@@ -1,6 +1,6 @@
 # dev-blog
 
-valery의 개인 개발 블로그. Next.js 15 + Contentlayer2 기반으로 MDX 포스트를 작성합니다.
+seren-wib의 개인 개발 블로그. Next.js 15 + Contentlayer2 기반으로 MDX 포스트를 작성합니다.
 
 **사이트:** https://kibotos.dev  
 **저장소:** https://github.com/seren-wib/vercel-blog

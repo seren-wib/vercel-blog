@@ -16,7 +16,7 @@ allowed-tools: Bash(git checkout:*), Bash(git branch:*), Bash(git pull:*), Bash(
 2. Create a GitHub issue:
 
    ```bash
-   wsl -- gh issue create --title "<title>" --body "<body>" --label "<label>" --assignee h2zkzd5whp-droid
+   wsl -- gh issue create --title "<title>" --body "<body>" --label "<label>" --assignee @me
    ```
 
    Available labels: `test` `backend` `bug` `documentation` `duplicate` `enhancement` `fix` `frontend` `good first issue` `help wanted` `invalid` `question` `wontfix`

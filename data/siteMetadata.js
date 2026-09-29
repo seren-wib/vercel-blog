@@ -7,10 +7,10 @@ const siteMetadata = {
   language: 'en-us',
   theme: 'system', // system, dark or light
   siteUrl: 'https://kibotos.dev',
-  siteRepo: 'https://github.com/h2zkzd5whp-droid/vercel-blog',
+  siteRepo: 'https://github.com/seren-wib/vercel-blog',
   siteLogo: `${process.env.BASE_PATH || ''}/static/images/logo.png`,
   socialBanner: `${process.env.BASE_PATH || ''}/static/images/twitter-card.png`,
-  github: 'https://github.com/h2zkzd5whp-droid/',
+  github: 'https://github.com/seren-wib/',
   locale: 'en-US',
   // set to true if you want a navbar fixed to the top
   stickyNav: false,

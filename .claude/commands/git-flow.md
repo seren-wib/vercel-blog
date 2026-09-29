@@ -82,7 +82,7 @@ Rules:
 
    closes #<issue-number>
    EOF
-   )" --assignee h2zkzd5whp-droid
+   )" --assignee @me
    ```
 
    Rules:

@@ -1,7 +1,7 @@
 /** @type {import("pliny/config").PlinyConfig } */
 const siteMetadata = {
   title: 'dev-blog',
-  author: 'valery',
+  author: 'seren-wib',
   headerTitle: 'DevBlog',
   description: 'dev blog',
   language: 'en-us',

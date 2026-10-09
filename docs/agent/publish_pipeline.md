@@ -23,7 +23,7 @@ iCloud `UNIV` 폴더의 강의 정리 문서를 블로그 글로 옮겨 배포�
 - **AI가 작성한 정리 문서.** 사용자가 나중에 직접 다시 쓸 예정이므로 블로그에 올리지 않는다. 첫 줄에 `> **AI 생성 문서.**` 태그가 있으면 AI 문서지만, 태그가 빠진 AI 문서도 있으므로 태그가 없다고 사용자 필기로 단정하지 않는다.
 - `_old/`, `tree/` 폴더
 - 시험 대비 압축본·총정리·퀴즈 모음 (`*총결산*`, `*압축*`, `*exam*review*`, `final-test.md` 등) — 사용자가 지정한 경우만 예외
-- 과제(`hw/`, `practice/`, `task N/`), 강의 PDF, 강의계획서
+- 과제(`hw/`, `practice/`, `task N/`), 강의 PDF, 강의계획서 — 과제는 사용자가 지정하면 아래 "과제 보고서" 절대로 블로그 글로 다시 쓴다
 - `haeul/` 전체 (단체 계정 정보 포함)
 
 ---
@@ -74,6 +74,22 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 3. 본문 경로를 `/static/images/<category>/<파일명>`으로 바꾼다.
 4. HEIC는 `sips -s format jpeg <in> --out <out>.jpg`로 변환한다.
 5. 링크는 있는데 원본 파일이 없으면 발행 전에 사용자에게 알린다.
+
+### 과제 보고서 (PDF·docx → 블로그 글)
+
+원본(`UNIV/<학기>/<과목>/hw/hwN/`)은 그대로 두고, 블로그 글(mdx)과 이미지는 이 레포에만 둔다. 레포 쪽 결과물을 UNIV에 다시 쓰지 않는다.
+
+- **파일명**: 장이 아니라 과제 번호로 `hwN-<내용>.mdx` (예: `hw2-kvm-vm-cluster.mdx`). 제목은 `HWN. <내용>`.
+- **본문 읽기**: `pdftotext -layout`으로 뽑아 **모든 페이지를 끝까지** 읽는다. 과제 안내 PDF(`2026-F-*-HWN.pdf`)도 같이 읽어 항목을 확인한다.
+- **다시 쓰기**: 보고서 형식을 블로그 글로 바꾼다. 빼는 것: 표지·학번·이름, `답:` 표시, 목차, "Reading Assignment" 같은 제출용 항목, 교수님께 드리는 말(승인·피드백 감사 등). 남기는 것: 실습 과정, 명령어(코드 블록), 문제 해결 과정, 연습문제 답(질문을 헤딩으로).
+- **이미지 추출**:
+  - docx가 있으면 `unzip`해서 `word/media/`의 원본을 쓴다. 본문 순서는 `word/document.xml`의 `r:embed` 순서와 `word/_rels/document.xml.rels`로 확인한다.
+  - PDF만 있으면 `pdfimages -list`로 확인하고 `pdfimages -png`로 뽑는다. smask(투명도 마스크)가 짝으로 있으면 `magick <img> <mask> -alpha off -compose CopyOpacity -composite -background white -alpha remove`로 합친다.
+  - 표지 로고(첫 페이지 204×204 같은 작은 이미지)는 뺀다.
+  - `cwebp -q 82`로 webp 변환해 `public/static/images/<category>/hwN-01.webp`처럼 그림 번호순으로 저장한다.
+  - 몇 장은 직접 열어 그림 번호와 맞는지, 학번 같은 개인정보가 찍혔는지 확인한다.
+- **캡션**: 이미지 아래 기울임 한 줄 (prettier가 `_캡션_`으로 맞춘다).
+- **코드 블록**: 언어가 없으면 `text`를 붙인다 (기본값이 js라 색이 잘못 칠해진다). 파일 이름은 ` ```bash:date.sh ` 형식.
 
 ## 3. 검증·배포
 

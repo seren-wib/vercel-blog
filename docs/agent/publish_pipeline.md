@@ -57,7 +57,7 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 
 - **`date`는 쓰기 직전에 `date +%F`로 오늘 날짜를 확인해서 넣는다.** 대화 앞부분이나 다른 글 frontmatter, 원본 파일의 날짜를 가져다 쓰지 않는다.
 - 제목 형식은 `CH<n>. <장 제목>`. 장 제목은 강의 PDF 제목을 따른다.
-- `tags`는 카테고리 표시 이름과 같게 한다 (`['Computer Systems']`).
+- `tags`는 카테고리 표시 이름과 같게 한다 (`['Computer Systems']`). 화면에는 태그가 안 보이고 카테고리만 보이지만, RSS 카테고리별 피드가 태그로 만들어지므로 비우지 않는다.
 - `summary`는 본문을 읽고 다룬 개념을 나열한다.
 
 ### 본문
@@ -91,7 +91,8 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 ## 블로그 구조
 
 - **카테고리**: `data/blog/<category>/` 폴더 = 카테고리. `category` 필드는 `contentlayer.config.ts`에서 폴더 이름으로 계산하고, 글 수는 빌드 때 `app/category-data.json`에 기록된다. 표시 이름과 사이드바 순서는 `data/categories.ts`.
-- **URL**: 글 `/blog/<category>/<file>/`, 카테고리 목록 `/blog/category/<category>/`. 폴더 분리 전 주소는 `data/redirects.js`에서 308 리다이렉트.
+- **URL**: 글 `/blog/<category>/<file>/`, 카테고리 목록 `/blog/category/<category>/`. 폴더 분리 전 주소와 예전 태그 페이지(`/tags/...`)는 `data/redirects.js`에서 308 리다이렉트.
+- **태그 없음**: 화면 분류는 카테고리 하나만 쓴다. 태그 페이지·사이드바 태그 목록·헤더 Tags 메뉴는 없앴다.
 - **장 순서**: 카테고리 페이지와 글 하단 이전/다음 링크는 `sortByChapter`(파일명 자연 정렬). 블로그 전체 목록은 날짜순.
 - **목차**: `components/TableOfContents.tsx`. 데스크톱은 왼쪽 사이드바에 고정 + 현재 섹션 강조, 모바일은 본문 위 접이식. `#`~`####` 헤딩 대상.
 

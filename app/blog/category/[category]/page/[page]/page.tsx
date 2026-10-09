@@ -1,6 +1,6 @@
 import { allCoreContent } from 'pliny/utils/contentlayer'
 import { getCategoryLabel, sortByChapter } from '@/data/categories'
-import ListLayout from '@/layouts/ListLayoutWithTags'
+import ListLayout from '@/layouts/ListLayoutWithCategories'
 import { allBlogs } from 'contentlayer/generated'
 import categoryData from 'app/category-data.json'
 import { notFound } from 'next/navigation'

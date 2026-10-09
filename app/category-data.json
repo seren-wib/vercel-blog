@@ -2,10 +2,10 @@
   "ai": 5,
   "cloud-computing": 3,
   "computer-systems": 2,
-  "os": 10,
   "git": 1,
-  "software-engineering": 1,
-  "sql": 1,
+  "os": 10,
   "network": 9,
+  "software-engineering": 2,
+  "sql": 1,
   "unity": 2
 }

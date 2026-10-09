@@ -1,0 +1,71 @@
+---
+title: 'CH9. Switched Network (1)'
+date: '2026-10-09'
+tags: ['Network']
+draft: false
+summary: 'Circuit Switching(Establish/Transfer/Disconnect), Blocking & Non-blocking network, Space Division switching, Packet Switching'
+---
+
+# 교환통신망(switched network)
+
+## 1. Circuit Switching
+
+**전화 회선처럼 길을 미리 깔아두고 그 길로만 가는 방식**
+
+- 보이스 트래픽에 적합하다
+- 한번 데이터 전송이 되면 다른 로직 고려할 필요가 없다(transparent)
+- 아날로그 통신에 적합하고 디지털 통신에 부적합하다
+
+### 1. 전용 경로 + 3단계
+
+#### 1. Establish(연결 설정)
+
+- 발신측이 보낸 신호가 교환 노드들을 하나씩 거쳐 수신측까지 도달하면서, 각 노드에서 채널을 하나씩 할당받아 end- to end 경로를 완성한다
+- 수신 측이 응답을 해야 회선이 잡힌다
+
+#### 2. Transfer(데이터 전송)
+
+- 데이터가 이제 두 기기에 선으로 연결된 것 처럼 흐른다.(라우팅을 다시 하거나 중간 노드가 주소를 볼 필요가 없다)
+- 전송 지연도 없고 지연 변화(jitter)도 없다.
+
+#### 3, Disconnect(연결 해제)
+
+- 통화가 끝나면 회선을 끊고 잡고있던 채널, 자원을 반납한다. 이제 이 경로는 다른 기기도 사용 가능
+
+#### 단점
+
+1. setup 시간이 걸린다
+2. 한번 잡으면 데이터를 안보내는 순간에도 capacity를 점유해서 낭비가 된다
+
+### 2. blocking & non-blocking
+
+**모든 경로가 사용중일 때 새 연결 요청을 어떻게 할건가?**
+
+#### blocking network
+
+- 모든 경로가 이미 쓰이고 있으면 새 연결을 거부
+- 전화 통화라는 게 원래 짧고, 전체 전화기 중 동시에 통화하는 비율이 낮다는 전제를 깔고 간다
+
+#### Non-blocking network
+
+- 모든 station이 동시에 연결가능한 구조
+- 상대방이 free 하기만 하면 어떤 연결 요청이든 반드시 수락된다.
+- 데이터 통신은 전화와 달리 한번 연결되면 장시간 유지하기에 이 방식을 사용
+
+### 3. Space Division switching
+
+물리적으로 분리된 경로를 통해 신호를 전달하는 방식
+
+### 4. Time Division switching
+
+## 2. Packet Switching
+
+정보를 잘게 쪼개 주소만 붙여 던지면 노드들이 알아서 찾아가는 방식
+
+### 1. 회선 효율 향상(링크 공유 + 버퍼링)
+
+### 2. Datagram
+
+### 3. Virtual Circuits
+
+## 3. 비교표

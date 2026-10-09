@@ -87,6 +87,9 @@ module.exports = () => {
       ],
       unoptimized,
     },
+    async redirects() {
+      return require('./data/redirects')
+    },
     async headers() {
       return [
         {

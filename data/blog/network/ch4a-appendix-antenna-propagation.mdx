@@ -20,7 +20,9 @@ summary: 'antenna basics, electromagnetic wave characteristics, radiation patter
 # 9. Antenna & Propagation(안테나와 전파)
 
 ## 9-1 안테나 기본
+
 - 정의: 전기신호 - 전자기파를 상호 변환하는 장치
+
 ```
 [송신 안테나]
    특정 주파수 전류 입력
@@ -38,12 +40,15 @@ summary: 'antenna basics, electromagnetic wave characteristics, radiation patter
         ↓
    전류 유도 → 전기신호로 변환
 ```
+
 **전기장과 자기장이 서로를 유도하면서 공간을 통해 퍼져나감. 이게 전자기파의 본질**
 
 ## 9-2 전자파의 특성
 
 ### 1. 거리에 따른 감쇄
+
 - 자유공간에서 수신 전력은 거리의 제곱에 반비례한다
+
 ```
 Pt
 Pr ∝ ─────
@@ -79,32 +84,39 @@ R: 거리
 - 산 너머로도 통신 가능한 이유. 고주파라 직진성이 강해도 **회절 특성** 덕분에 장애물 뒤로 신호가 휘어 들어간다.
 
 ### 3. Fading(페이딩)
+
 - 전파의 반사·산란·회절 때문에 하나의 신호가 여러 경로로 도착. 경로마다 길이가 달라서 도착 시간이 다름 → 서로 간섭(interference) 발생.
 - 이걸 **다중경로 간섭** 현상이라고 부른다
 
 ## 9-3 안테나 성능 파라미터
+
 - 3가지 주요 파라미터가 있다
-    1. 방사 패턴(Radiation Pattern)
-    2. 지향성과 이득(Directivity & gain)
-    3. 편파 (Polarization)
+  1. 방사 패턴(Radiation Pattern)
+  2. 지향성과 이득(Directivity & gain)
+  3. 편파 (Polarization)
 
 ### 1. 방사 패턴(Radiation Pattern)
+
 - 안테나가 어느 방향으로 얼마나 신호를 방사하느지 보여주는 그래프
 - 안테나마다 모든 방향으로 균일하게 방사하지 않는다. 어떤 방향은 강하고, 어떤 방향은 약하다. 그걸 시각화한 게 방사 패턴
 
-| 용어 | 의미 |
-| --- | --- |
-| Main lobe | 최대 전력이 방사되는 메인 빔 |
-| Side lobe | Main과 Back 사이에 형성되는 부수적 빔 |
-| Back lobe | Main lobe 정반대 방향에 형성되는 빔 |
-| Boresight | 안테나가 지향하는 기준 방향 (Main lobe 중심) |
+| 용어                         | 의미                                           |
+| ---------------------------- | ---------------------------------------------- |
+| Main lobe                    | 최대 전력이 방사되는 메인 빔                   |
+| Side lobe                    | Main과 Back 사이에 형성되는 부수적 빔          |
+| Back lobe                    | Main lobe 정반대 방향에 형성되는 빔            |
+| Boresight                    | 안테나가 지향하는 기준 방향 (Main lobe 중심)   |
 | HPBW (Half Power Beam Width) | 최대 전력의 절반(-3dB)이 되는 지점까지의 빔 폭 |
-| FNBW (First Null Beam Width) | 전력이 처음으로 0이 되는 지점까지의 빔 폭 |
+| FNBW (First Null Beam Width) | 전력이 처음으로 0이 되는 지점까지의 빔 폭      |
 
-![radiation pattern](/static/images/networkImg/ch4-radiation-pattern.png)
+![radiation pattern](/static/images/network/ch4-radiation-pattern.png)
+
 ### 2. 지향성과 이득
+
 1. 지향성(Directivity)
+
 - 안테나가 특정 방향으로 전파를 집중시키는 성질
+
 ```
 물리적 정의
         최대 방사 강도 (U_max)
@@ -113,11 +125,14 @@ D = ─────────────────────────�
 
 평균 방사강도에 대한 최대 방사강도의 비
 ```
+
 **지향성이 높다 = 한 방향으로 신호를 집중시킨다 = Main lobe가 좁고 길다.**
+
 - 무지향성 안테나: 다이폴안테나, 사방으로 퍼져나감
 - 지향성 안테나: 파라볼릭 안테나, 한 방향으로 집중
 
 2. 안테나 효율과 이득
+
 ```
 안테나 효율 (η) = 방사 전력(Pr) / 송신 출력(Pi)
    "입력한 전력 중 얼마나 실제로 방사되는가"
@@ -127,15 +142,18 @@ D = ─────────────────────────�
 
 이득은 단위 dB로 표현
 ```
+
 **이득의 의미: 같은 방향으로 같은 전력을 방사할 때, 무지향성 안테나 대비 몇 배 강한가.**
+
 - 이득과 빔폭의 Trade-dff
 - 이득이 크다 = 빔폭이 좁다 = 지향성이 높다
 - 이득과 빔폭은 항상 반비례
 
 ### 3. 편파(Polarization)
+
 - 전자기파가 진행할 때 전기장(E)이 진동하는 방향
 - 송수신 안테나의 편파 방향이 다르면 송수신 성능이 저하.
 - 완전히 직교할 경우 신호 교류 불가
 - 종류: 수직편파, 수평편파
 
-![polarization](/static/images/networkImg/ch4-polarization.png)
+![polarization](/static/images/network/ch4-polarization.png)

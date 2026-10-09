@@ -33,6 +33,7 @@ summary: 'Flow control, Sliding Window, Error control, ARQ(Stop-and-Wait, Go-Bac
   - [4. HDLC-2](#4-hdlc-2)
 
 # 0. 용어 정리
+
 Propagation time (전파 지연): 비트 하나가 회선을 타고 송신측에서 수신측까지 날아가는 데 걸리는 시간
 Transmission time (전송 시간): 프레임의 모든 비트를 회선 위에 밀어넣는 데 걸리는 시간
 ACK(Acknowledgement): 수신자가 데이터 받았다는 응답
@@ -114,7 +115,7 @@ REJ(Reject): HDLC랑 Go-back-N에서 쓰는 구체적인 NAK 형태
 - 단점
   - 프레임 하나 보내고 ACK가 돌아올 때까지 링크가 놀 수 있다. 특히 거리가 멀어서 propagation delay가 크면, 실제 데이터 전송 시간보다 기다리는 시간이 더 길어질 수 있다. 그래서 link utilization 문제가 나온다.
 
-![link utilization](/static/images/networkImg/ch7-stop-and-wait-Flow-Control.png)
+![link utilization](/static/images/network/ch7-stop-and-wait-Flow-Control.png)
 
 - T: 송신자
 - R: 수신자
@@ -123,29 +124,31 @@ REJ(Reject): HDLC랑 Go-back-N에서 쓰는 구체적인 NAK 형태
 - 파란막대: Frame
 - 회색막대: ACK
 
-* Stop-and-Wait Flow Control에서 총 걸리는 시간 = t0(기준시각) + 1(Transmission time)  + 2a(propagation delay)이다.
+* Stop-and-Wait Flow Control에서 총 걸리는 시간 = t0(기준시각) + 1(Transmission time) + 2a(propagation delay)이다.
 
 * 따라서 link utilization(링크 활용률)이 떨어진다.
 * a = propagation time / transmission time
 * U = 1 / (1 + 2a)
-    - a가 작을수록 좋다. 작을수록 활용률이 높아지기 때문에
+  - a가 작을수록 좋다. 작을수록 활용률이 높아지기 때문에
 * a가 1보다 작으면 효율 좋고, 1보다 크면 효율 안좋음
 
 ## 2. Sliding Windows Flow Control
+
 **ACK를 기다리는 동안에도 여러 frame을 연속으로 보낼 수 있게 하는 방식**
 
 - 수신자에게 frame을 최대 W개 정도 저장할 수 있는 buffer가 있다
 - 송신자가 ACK를 받기 전에도 최대 W개까지는 연속으로 보낼 수 있다
-    * W: 수신자 쪽이 가지고 있는 버퍼의 크기. 최대 W만큼 ACK없이 데이터를 보낼 수 있다
+  - W: 수신자 쪽이 가지고 있는 버퍼의 크기. 최대 W만큼 ACK없이 데이터를 보낼 수 있다
 - ACK에 다음에 받고 싶은 frame 번호가 들어간다
 - frame 번호를 적는 칸의 크기가 k비트로 제한되어 있다
-    * k비트면 가능한 번호가 2^k개이다. (ex: k=3, 가능한 frame번호: 0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7...)
+  - k비트면 가능한 번호가 2^k개이다. (ex: k=3, 가능한 frame번호: 0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7...)
 - window사이즈는 2^k-1로 제한된다.
-    * window는 송신 window, 수신 window 두개가 있다
-    * window가 2^k 이상이면 이전 윈도우와 다음 윈도우의 프레임 번호가 겹쳐서, ACK 손실 시 재전송 프레임과 새 프레임을 구분 못 하기 때문
+  - window는 송신 window, 수신 window 두개가 있다
+  - window가 2^k 이상이면 이전 윈도우와 다음 윈도우의 프레임 번호가 겹쳐서, ACK 손실 시 재전송 프레임과 새 프레임을 구분 못 하기 때문
 - 수신자는 버퍼가 거의 다 찼거나, 처리 시간이 필요할 때, 지금까지 보낸 건 인정하지만 더이상 데이터 보내지 말라는 요청을 할 수 있다.
-    * 준비가 다 되었으면 데이터를 계속 달라는 응답을 줘야한다.
+  - 준비가 다 되었으면 데이터를 계속 달라는 응답을 줘야한다.
 - full-duplex가 가능한 링크이면, 상대에게 보내는 data frame안에 ACK정보를 같이 실을 수 있다. 이를 piggyback ACK이라 한다.
+
 ### Sliding Window 동작 예시
 
 에러 없이 정상 동작하는 sliding window 흐름.
@@ -154,94 +157,115 @@ REJ(Reject): HDLC랑 Go-back-N에서 쓰는 구체적인 NAK 형태
 - 프레임 번호: 0~7 순환 (k=3, modulo 8)
 - window 크기: 7 (파란 칸 = 현재 window)
 
-![sliding Windows Flow Control](/static/images/networkImg/ch7-sliding-window-Flow-Control.png)
+![sliding Windows Flow Control](/static/images/network/ch7-sliding-window-Flow-Control.png)
 
 #### ① 초기 상태
+
 ```
 A: [0 1 2 3 4 5 6] 7 ...   ← 0~6 전송 가능
 B: [0 1 2 3 4 5 6] 7 ...   ← 0~6 수신 가능
 ```
 
 #### ② A가 F0, F1, F2 전송
+
 3개 내보냈으니 window의 **trailing edge(뒤)가 줄어듦**. 보낸 프레임은 ACK 올 때까지 버퍼에 보관.
+
 ```
 A: 0 1 2 [3 4 5 6] ...   ← window가 3~6으로 shrink
 ```
- 
+
 #### ③ B가 F0, F1, F2 받고 RR3 전송
+
 받은 만큼 window 줄고, ACK 내보내며 **leading edge(앞)가 확장**.
 RR3 = "0,1,2 잘 받음, 다음엔 3번 기대" (누적 확인)
+
 ```
 B: 0 1 2 [3 4 5 6 7 0 1] ...
         → RR3을 A로 전송
 ```
- 
+
 #### ④ A가 RR3 받음
+
 ACK 도착 → A의 window가 **앞쪽으로 확장**되어 다시 7칸 채워짐.
+
 ```
 A: 0 1 2 [3 4 5 6 7 0 1] ...
 ```
- 
+
 #### ⑤ A가 F3~F6 전송 → B 수신 → RR 회신 (반복)
+
 ```
 마지막 A: 0 1 2 3 4 5 6 [7 0 1 2] ...
 마지막 B: 0 1 2 3 4 5 6 [7 0 1 2] ...
 ```
 
 # 3. Error Control Techniques
+
 **프레임이 제대로 전달되지 않았을 때 어떻게 복구할 것인가?**
 
 ## Error Control이 필요한 오류 상황
+
 1. Lost frame: 프레임이 아예 상대방에게 도착하지 않는 경우
 2. Damaged frame은 프레임이 도착하긴 했지만 일부 bit에 오류가 있는 경우
 
 ## 1. Error detection
+
 **수신자가 프레임 오류 여부를 검사**
+
 - fcs, crc가 여기에 포함
 
 ## 2. Positive acknowledgment
+
 **수신자가 프레임 오류 여부를 검사**
 
 ## 3. Retransmission after timeout
+
 **ACK가 일정 시간 안에 오지 않으면 재전송**
 
 ## 4. Negative acknowledgment and retransmission
+
 **오류 프레임에 대해 NAK/REJ를 보내고 재전송 요청**
 
 **Automatic Repeat Request(ARQ): 위 요소들을 조합해서 오류가 난 프레임을 재전송하는 error control 방 식**
 
 # 4. ARQ(Automatic Repeat Request)
+
 **오류가 생겼거나 ACK가 오지 않을 때, 프레임을 자동으로 재전송해서 신뢰성을 확보하는 error control 방식**
 
 ARQ의 목적은 unreliable data link를 reliable data link처럼 보이게 만드는 것이다.  
 즉, 링크 자체에서 오류가 사라지는 것이 아니라, 오류가 생겼을 때 감지하고 다시 보내서 결과적으로 정상 전달되도록 만든다.
 
 ## 1. Stop-and-Wait ARQ
+
 ### Case 1. 정상동작
-1. 송신자가 frame 하나를 보내고 ACK가 올 때까지 기다린다. 
+
+1. 송신자가 frame 하나를 보내고 ACK가 올 때까지 기다린다.
 2. ACK가 정상적으로 오면 다음 frame을 보낸다.
 
 ### Case 2. 수신받은 frame이 damaged frame이다
+
 1. 수신자가 받은 frame이 damaged frame이면, 수신자는 그 frame을 버린다.
-2. 그러면 송신자는 ACK를 못 받는다. 
-3. 송신자는 무한정 기다리지 않고 timeout을 걸어둔다. 
+2. 그러면 송신자는 ACK를 못 받는다.
+3. 송신자는 무한정 기다리지 않고 timeout을 걸어둔다.
 4. timeout 안에 ACK가 안 오면 “문제가 생겼다”고 보고 같은 frame을 다시 보낸다.
 
 ### Case 3. frame는 정상적으로 도착했는데 ACK가 손상되거나 손실되었을 떄
-1. frame은 정상적으로 도착했는데, ACK가 손상되거나 사라짐. 
+
+1. frame은 정상적으로 도착했는데, ACK가 손상되거나 사라짐.
 2. 그러면 송신자 입장에서는 ACK를 못 알아보니까 timeout 후에 같은 frame을 다시 보낸다.
 3. 문제는 수신자는 이미 그 frame을 한 번 받았다. 그러면 같은 frame이 두 번 도착하는 중복 문제가 생겨야하는데 왜 안생길까?
-    - alternate numbering으로 frame에 번호 붙여서 안생긴다
+   - alternate numbering으로 frame에 번호 붙여서 안생긴다
 
 ```
 예시
-송신자가 Frame 0을 보냈고, 수신자가 정상 수신해서 ACK 보냈다. 
-그런데 ACK가 중간에 깨졌다. 
-송신자는 ACK를 못 받았으니 timeout 후 Frame 0을 다시 보낸다. 
+송신자가 Frame 0을 보냈고, 수신자가 정상 수신해서 ACK 보냈다.
+그런데 ACK가 중간에 깨졌다.
+송신자는 ACK를 못 받았으니 timeout 후 Frame 0을 다시 보낸다.
 수신자는 frame에 번호를 보고 “아, 이건 이미 받은 0번 frame이네”라고 판단해서 데이터를 상위 계층에 또 넘기지 않고, ACK만 다시 보낸다.
 ```
 
 ### Stop-and-Wait ARQ 동작 예시
+
 프레임/ACK가 손실됐을 때 복구하는 흐름.
 
 - **A** = 송신, **B** = 수신
@@ -249,26 +273,29 @@ ARQ의 목적은 unreliable data link를 reliable data link처럼 보이게 만�
 - ACK 번호를 **0/1로 번갈아(alternating)** 사용
 
 #### ACK 번호 의미
-| ACK | 의미 |
-|-----|------|
+
+| ACK      | 의미                                |
+| -------- | ----------------------------------- |
 | **ACK1** | "다음에 1번 기대" = **0번 잘 받음** |
 | **ACK0** | "다음에 0번 기대" = **1번 잘 받음** |
 
-![stop-and-wait ARQ](/static/images/networkImg/ch7-stop-and-wait-ARQ.png)
-
+![stop-and-wait ARQ](/static/images/network/ch7-stop-and-wait-ARQ.png)
 
 #### 단계별 흐름
 
 ##### ① 정상 동작
+
 ```
 A --- frame 0 ---> B    (frame 전송시간 + propagation 시간)
 A <--- ACK1 ------ B    (0번 받음, 다음 1 기대)
 A --- frame 1 ---> B
 A <--- ACK0 ------ B    (1번 받음, 다음 0 기대)
 ```
+
 한 프레임 → ACK 받고 → 다음 프레임. stop-and-wait 기본 동작.
 
 ##### ② 프레임 손실
+
 ```
 A --- frame 0 --✕       (도중에 사라짐)
    ⋮ Time-out interval   (A는 ACK를 못 받음)
@@ -276,10 +303,12 @@ A --- frame 0 --✕       (도중에 사라짐)
 A --- frame 0 ---> B     (timeout 후 재전송)
 A <--- ACK1 ------ B
 ```
+
 A는 ACK가 안 오면 **timeout까지 기다렸다 같은 프레임 재전송**.
 프레임 손실을 직접 감지하는 게 아니라 "ACK가 안 온다"로 간접 판단.
 
 ##### ③ ACK 손실 (핵심 포인트)
+
 ```
 A --- frame 1 ---> B     (B는 잘 받음)
 A      ✕--- ACK0 -- B    (ACK0가 도중에 사라짐)
@@ -288,6 +317,7 @@ A      ✕--- ACK0 -- B    (ACK0가 도중에 사라짐)
 A --- frame 1 ---> B     (A가 frame 1 재전송)
                    B     "B discards duplicate frame" → ACK0 재전송
 ```
+
 ACK가 사라지면 A는 실패한 줄 알고 frame 1을 **또 전송** → B 입장에선 **중복**.
 B는 번호를 보고 "아까 받은 1번이네" 하고 **버림(discard)**.
 
@@ -306,7 +336,9 @@ B는 번호를 보고 "아까 받은 1번이네" 하고 **버림(discard)**.
 > 한 줄 요약: frame 손실·ACK 손실 둘 다 timeout으로 복구하되, ACK 손실이 만드는 중복은 0/1 번호로 걸러낸다.
 
 ## 2. Go-Back-N ARQ
+
 **Sliding Window 기반 ARQ. 여러 frame을 연속으로 보내다가 오류가 발생하면, 오류난 frame부터 그 이후 frame들을 모두 재전송하는 방식**
+
 - 가장 흔하게 사용된다.
 - Stop-and-Wait ARQ보다 효율이 좋다.
   - ACK를 기다리는 동안에도 여러 frame을 보낼 수 있기 때문.
@@ -327,7 +359,7 @@ B는 번호를 보고 "아까 받은 1번이네" 하고 **버림(discard)**.
 송신자는 Frame 3부터 다시 보낸다.
 ```
 
-![Sliding-Window-ARQ](/static/images/networkImg/ch7-Sliding-Window-ARQ.png)
+![Sliding-Window-ARQ](/static/images/network/ch7-Sliding-Window-ARQ.png)
 
 ## 3. Selective-Reject ARQ
 
@@ -348,17 +380,18 @@ Selective-Reject는 5,6을 buffer에 저장하고 4만 다시 받는다.
 ```
 
 # 5. HDLC(High Level Data Link Control)
+
 **"data link 계층 요구사항(프레이밍·흐름·에러·주소)을 전부 구현한, 비트 기반 표준 프로토콜이자 후속 프로토콜들의 원형**
 
 station/link는 HDLC가 "어떤 환경에서, 누가 누구한테" 동작하는지를 정하는 전제
 
 ## 1. Station: 통신에 참여하는 기기(노드)
+
 구분 기준: 누가 이 통신에서 주도권을 갖는지.
 
 - Primary: 통신을 주도하는 쪽
 - Secondary: Primary의 지시대로 응답하는 쪽
 - Combined: 주도도 하고 응답도 함(대등)
-
 
 ## 2. Link: 그 station들을 잇는 연결(회선)
 
@@ -367,6 +400,7 @@ Unbalanced: primary 1대 + secondary 여러 대 (한 명이 여러 명 지휘하
 Balanced: combined 2대 (둘이 대등하게)
 
 ## 3. HDLC 프레임 구조
+
 ```
 frame format
 
@@ -385,45 +419,48 @@ frame format
 control field를 보고 어떤 frame인지 알아낸다
 
 ## 4. HDLC-2
+
 - N(S): send sequence number (내가 보내는 프레임 번호)
 - N(R): receive sequence number (다음에 기대하는 번호 = 누적 ACK)
 - P/F: Poll/Final bit (응답 요구 / 마지막 표시)
 - 첫 비트(들)로 타입 구분 — 0이면 I, 10이면 S, 11이면 U
 
 ### I-frame
+
 - Information Field있음
 - 길이 가변
 
-![I-frame](/static/images/networkImg/ch7-I-frame.png)
+![I-frame](/static/images/network/ch7-I-frame.png)
 
-![I-frame-control-field](/static/images/networkImg/ch7-I-frame-control-field.png)
+![I-frame-control-field](/static/images/network/ch7-I-frame-control-field.png)
 
 ### S-frame
-![S-frame](/static/images/networkImg/ch7-S-frame.png)
 
-![S-frame-control-field](/static/images/networkImg/ch7-S-frame-control-field.png)
+![S-frame](/static/images/network/ch7-S-frame.png)
+
+![S-frame-control-field](/static/images/network/ch7-S-frame-control-field.png)
 
 ### U-frame
+
 - 일부 information field 있음
 
-![U-frame-control-field](/static/images/networkImg/ch7-U-frame-control-field.png)
+![U-frame-control-field](/static/images/network/ch7-U-frame-control-field.png)
 
 ### Bit Stuffing
+
 문제: Flag가 01111110(1이 6개)인데, 데이터 안에 우연히 1이 6개 연속으로 나오면 수신측이 "어 프레임 끝났네?" 하고 오인
 
 해결: 송신측이 데이터 중 1이 5개 연속되면 무조건 0을 강제 삽입
 
 ### Address field
+
 - secondary station을 식별
 - 보통 8비트, 부족하면 7비트 배수로 확장 가능
 - 확장할 때 각 octet의 맨 왼쪽 비트가 "마지막 octet이냐" 표시 — 1이면 마지막, 0이면 뒤에 더 있음
 - 11111111은 broadcast 주소 — primary가 모든 secondary한테 한 번에 뿌릴 때
 
 ### FCS(Frame Check Sequence)
+
 - Flag 제외한 나머지 비트로 계산한 에러 검출 코드
 - 기본은 16비트 CRC-CCITT
 - 프레임이 길거나 회선이 불안정하면 32비트 CRC-32 옵션
-
-
-
-

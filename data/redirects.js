@@ -30,8 +30,23 @@ const movedPosts = {
   'ch9-wan-1': 'network/ch9-wan-1',
 }
 
-module.exports = Object.entries(movedPosts).map(([from, to]) => ({
+const postRedirects = Object.entries(movedPosts).map(([from, to]) => ({
   source: `/blog/${encodeURIComponent(from)}`,
   destination: `/blog/${to.split('/').map(encodeURIComponent).join('/')}/`,
   permanent: true,
 }))
+
+/**
+ * Tag pages were replaced by category pages. Every tag slug matches a category folder name.
+ */
+const tagRedirects = [
+  { source: '/tags', destination: '/blog/', permanent: true },
+  { source: '/tags/:tag', destination: '/blog/category/:tag/', permanent: true },
+  {
+    source: '/tags/:tag/page/:page',
+    destination: '/blog/category/:tag/page/:page/',
+    permanent: true,
+  },
+]
+
+module.exports = [...postRedirects, ...tagRedirects]

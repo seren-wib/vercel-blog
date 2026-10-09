@@ -1,0 +1,339 @@
+---
+title: 'CH6. Error Detection & Correction'
+date: '2026-05-08'
+tags: ['Network']
+draft: false
+summary: 'parity check, CRC, checksum, FEC, Hamming distance, block code'
+---
+
+- [1. 오류의 종류](#1-오류의-종류)
+  - [1-1 에러란?](#1-1-에러란)
+  - [1-2 Single bit error](#1-2-single-bit-error)
+  - [1-3 Burst error](#1-3-burst-error)
+- [2. 오류 검출의 기본 개념](#2-오류-검출의-기본-개념)
+- [3. 오류 검출 기법](#3-오류-검출-기법)
+  - [3-1 Parity Check](#3-1-parity-check)
+    - [Even Parity](#even-parity)
+    - [Odd Parity](#odd-parity)
+    - [Two-dimensional even parity](#two-dimensional-even-parity-scheme)
+  - [3-2 Internet Checksum](#3-2-the-internet-checksum)
+    - [ones-complement addition](#ones-complement-addition)
+  - [3-3 CRC](#3-3-crccycling-redundancy-check)
+    - [Modulo-2 arithmetic](#계산1-modulo-2-arithmetic)
+    - [Polynomial representation](#계산2-polynomial-representation)
+- [4. 오류 정정](#4-오류-검정)
+  - [4-1 FEC](#4-1-fecforward-error-correction)
+- [5. Block Code Principles](#5-block-code-principles)
+  - [5-1 Hamming distance](#5-1-hamming-distance)
+  - [5-2 redundancy](#5-2-redundancy-of-the-code)
+  - [5-3 code rate](#5-3-code-rate)
+  - [5-4 block code example](#5-4-block-code-example)
+
+# 1. 오류의 종류
+
+## 1-1 에러란?
+
+**전송과 수신 사이에 비트가 바뀌는 것**
+single-bit-error, burst error이 있다.
+
+## 1-2 Single bit error
+
+- 주변비트에 영향 안주고 한비트만 바뀌는거 "고립된 오류"
+
+## 1-3 Burst error
+
+- **연속된 B개의 비트 구간 안에서 오류가 발생하는 거**
+- 첫 번째로 틀린 비트부터 마지막으로 틀린 비트까지의 범위가 burst의 길이
+- 원인: impulse noise와 mobile wireless environment에서의 fading
+  - impluse noise: 순간적으로 튀는 잡음
+  - fading: 무선 환경에서 거리나 시간에 따라 신호가 약해지는 거
+- **Burst error의 영향은 data rate가 높을수록 커진다**
+  - 왜냐: data rate가 높을수록 초당 전송되는 비트가 많아서
+- 잡음이 얼마나 오래 지속되느냐? 그리고 그 시간동안 얼마나 많은 데이터가 지나가는가? 에 달려있다
+
+# 2. 오류 검출의 기본 개념
+
+- 전송 프레임에는 결국 오류가 생길 수 있음
+- frame: 비트의 묶음
+- 오류검출은 보통 이 frame이 정상인지 확인. 비트 하나하나 확인하는게 아니라.
+- Pb: 비트에러가 수신될 확률. 보통 BER로 부른다
+- P1: frame이 비트 에러 없이 도착할 확률. Pb와 반대로 움직인다.
+- P2: 오류 검출 알고리즘을 사용했음에도, frame이 하나 이상의 undected error(검출되지않은 오류)가 올 확률
+
+```
+data: k bits
+E = f(data): n-k bits
+전송 frame: data + E = n bits
+송신자가 붙여 보낸 E와 수신자가 새로 계산한 E가 같으면 오류 없다고 판단, 다르면 오류 있다고 판단.
+```
+
+# 3. 오류 검출 기법
+
+## 3-1 Parity Check
+
+- 가장 단순한 error detection
+- 원래 데이터 뒤에 검사비트 추가
+
+### Even Parity
+
+- 전체 1의 개수가 짝수이면 0, 홀수면 1
+- 따라서 전체 1의 개수가 홀수가 나오면 에러있다고 판단.
+  - 왜냐. 홀수면 1 추가해서 무조건 짝수 나와야하기 때문에
+
+### Odd Parity
+
+- 전체 1의 개수가 짝수면 1, 홀수면 0
+- 따라서 전체 1의 개수가 짝수가 나오면 에러있다고 판단.
+  - 왜냐. 짝수면 1 추가해서 무조건 홀수 나와야하기 때문에
+
+### Parity check 문제점
+
+- 짝수개의 비트가 뒤집어지면 에러 검출 못함
+
+### Two-dimensional even parity scheme
+
+- parity bit를 한 줄 끝에 하나만 붙이는 게 아니라, 데이터를 행렬처럼 놓고 행 방향 parity와 열 방향 parity를 같이 붙이는 방식
+- 장점은 single-bit error를 위치까지 찾을 수 있다 - 비트를 뒤집어서 정정할 수도 있다
+- 단점은 기하학적으로 직사각형 모양처럼 여러 비트가 깨지는 패턴이 나타난다. 이런 경우에는 각 행과 각 열에서 오류가 짝수 개씩 생길 수 있다
+- 그래서 오류가 짝수 개씩 교묘하게 생기면 약해지는 건 똑같다
+
+## 3-2 The Internet Checksum
+
+- IP, TCP, UDP를 포함한 여러 Internet standard protocol에서 사용되는 error detecting code
+- 실제 인터넷 프로토콜 계층에서 쓰임
+- 하위 계층의 CRC, 상위계층의 다른 검증도 같이 쓰여서 이거만으로 완벽하게 잡아내는건 아님
+
+### ones-complement operation
+
+- 비트를 전부 반전시키는 거, 1의 보수
+
+### ones-complement addition
+
+- 일반 이진수 덧셈과 다른 점이 하나 있는데, 왼쪽 끝, 그러니까 가장 높은 자리에서 carry가 밖으로 넘치면 그 carry를 버리지 않고 다시 오른쪽 끝에 더한다
+
+```
+  1110
++ 0011
+------
+ 10001
+
+ 4비트 범위를 넘어서 carry 1이 생겼다. 일반 덧셈이라면 결과가 5비트 10001이지만, ones-complement addition에서는 4비트 결과 0001에 넘친 carry 1을 다시 더한다
+
+  0001
++    1
+------
+  0010
+```
+
+```
+송신자가 가진 데이터 word들:
+
+0001, F203, F204, F4F5, ...
+
+↓ 1의 보수 덧셈
+
+sum 계산
+
+↓ 1의 보수
+
+checksum 생성
+
+↓ 전송
+
+데이터 word들 + checksum
+```
+
+- 결과가 FFFF, 즉 모든 비트가 1이면 오류가 없다고 판단한다. 정확히는 “오류가 검출되지 않았다”고 보는 거
+- 이 방식이 parity보다 나은 이유는, 단순히 1의 개수의 홀짝만 보는 게 아니라 word 단위의 합 관계를 보기 때문
+- 특정 오류 패턴에 대한 검출 능력은 CRC가 더 강력하다
+- checksum은 parity보다 발전한 방식이고, CRC로 넘어가기 전 단계라고 보면 된다.
+
+## 3-3 CRC(Cycling Redundancy Check)
+
+- 가장 흔하고 강력한 error-detecting code 중 하나
+- 데이터를 그냥 숫자로 더하는 게 아니라, 비트열을 다항식처럼 보고 나눗셈을 한다는 점
+- 송신자는 k bit block의 데이터를 갖고 있다. 여기에 n-k bit짜리 FCS, Frame Check Sequence를 만들어 붙인다. 그렇게 해서 전체 길이가 n bit인 frame이 된다.
+
+```
+원래 data: k bits
+FCS:       n-k bits
+
+전송 frame = data + FCS
+조건: 전송 frame이 divisor로 나누어떨어져야 함
+```
+
+- 수신자는 받은 frame을 같은 divisor로 나눈다.
+- 나머지가 없으면, 즉 remainder가 0이면 오류가 없다고 가정한다.
+- 나머지가 0이 아니면 전송 중 비트가 깨졌다고 판단한다
+
+### 계산1. Modulo-2 arithmetic
+
+- 이진수 덧셈을 하되 carry를 만들지 않는다. 이건 사실상 XOR이다
+
+```
+0 + 0 = 0
+0 + 1 = 1
+1 + 0 = 1
+1 + 1 = 0
+```
+
+### 계산2. Polynomial representation
+
+- X에 대한 다항식으로 표현
+- 왼쪽부터 차수가 높은 항이라고 보면 된다.
+- 1이 있는 위치만 다항식 항으로 적는 것
+
+```
+ 11001
+= 1·X^4 + 1·X^3 + 0·X^2 + 0·X^1 + 1·X^0
+= X^4 + X^3 + 1
+```
+
+### 예시
+
+data = 110101
+generator(나누는 값) = 10011
+
+```generator가 10011이면 길이가 5비트고, 차수는 4.
+그래서 data 뒤에 0을 4개 붙인다.
+
+110101 + 0000
+= 1101010000
+
+이제 1101010000을 10011로 modulo-2 division 한다.
+(data를 generator의 크기만큼 위에서부터 짜른다)
+여기서 나눗셈의 “빼기”는 전부 XOR.
+
+11010
+10011
+-----
+01001
+
+앞의 0 제거 - 1001
+generator은 5비트여서 1비트가 더 필요함
+처음에 쓴 건 11010까지였으니까, 아직 안 쓴 다음 비트는 6번째 비트 첫자리에 가져옴
+
+남은 값:       1001
+다음 비트:        1
+붙이면:       10011
+
+ 10011
+^10011
+------
+ 00000
+
+더이상 못나눠서 XOR 중지
+00000에서 최상위 비트 0 을 짜르면 그게 fcs = 0000
+remainder(나머지) = 0000
+
+그래서 최종 전송하는 데이터는
+data + FCS
+110101 + 0000
+= 1101010000
+```
+
+# 4. 오류 검정
+
+## 4-1 FEC(Forward Error Correction)
+
+**오류를 재전송 없이 수신자가 직접 고친다**
+
+- 오류가 검출되면 일반적으로 수신자가 송신자에게 이 frame 틀렸다고 다시 보내라고한다. 하지만 여기에 2가지 문제가 있다.
+  - wireless applications에는 적절하지 않을 수 있다
+    1. 무선 링크의 BER이 높을 수 있기 때문
+       - BER이 높으면 무슨 일이 생기냐면, frame을 보내도 오류가 자주 난다. 그때마다 재전송을 요구하면 재전송 횟수가 너무 많아진다
+    2. propagation delay가 single frame의 transmission time에 비해 매우 길 수 있기 때문
+       - propagation delay는 신호가 송신자에서 수신자까지 실제로 이동하는 데 걸리는 시간. transmission time은 frame 하나를 회선에 밀어 넣는 데 걸리는 시간이고. 예를 들어 frame 하나를 송신하는 데는 아주 짧은 시간이 걸리는데, 신호가 먼 거리까지 도달하고 다시 응답이 돌아오는 데는 훨씬 오래 걸릴 수 있다.
+- FEC에서는 송신자가 원래 data만 보내지 않는다. 처음부터 여분의 정보를 포함해서 보낸다, 그래서 수신자는 오류가 조금 섞여 있어도, 그 여분 정보를 이용해서 원래 data를 추정하고 고칠 수 있다.
+  - 여기서 나오는 단어가 codeword
+
+### codeword
+
+```
+k-bit data block
+
+↓ FEC encoder
+
+n-bit codeword
+
+단, n > k
+왜 n이 k보다 크냐면, 오류 정정을 하려면 여분의 비트가 필요하기 때문
+```
+
+# 5. Block Code Principles
+
+## 5-1 Hamming distance
+
+- d(v1, v2)를 두 n비트 binary sequence v1, v2가 서로 다른 bit 개수라고 정의. 쉽게 말하면, 두 비트열을 나란히 놓고 자리마다 비교했을 때 몇 자리가 다른지 세는 거
+
+### 예시
+
+```
+v1 = 10110
+v2 = 10011
+
+1 0 1 1 0
+1 0 0 1 1
+    ↑   ↑
+
+다른 자리가 2개. 그래서 Hamming distance는 2
+
+d(10110, 10011) = 2
+수신된 비트열이 조금 깨졌을 때, 수신자는 “이 받은 값이 어떤 정상 codeword에 가장 가까운가”를 보고 원래 data를 추정
+```
+
+## 5-2 redundancy of the code
+
+- redundant bits와 data bits의 비율
+- redundancy = (n - k) / k
+  - k는 원래 data bit, n: codeword 전체 bit 수
+- FEC에서 그냥 오류 정정비트를 말하는거같은데 그걸 원래 비트수로 나눠서 비율 맞추는거고
+
+## 5-3 code rate
+
+- code rate = data bit/codeword bit
+  - 원본데이터를 원본 데이터랑 오류 정정비트더한걸로 나눠서 송신하는 전체 데이터에 원본데이터의 비율이 얼마인지 보기
+- 그리고 이 값은 “without the code일 때와 같은 data rate를 유지하려면 얼마나 추가 bandwidth가 필요한지”를 나타내는 척도
+  - code rate가 높아질수록 bandwidth 효율은 좋아지지만 오류정정능력은 약해진다
+
+## 5-4 block code example
+
+Data: 00, 01, 10, 11
+Codeword: 00000, 00111, 11001, 11110
+
+1. 매핑
+   00 → 00000
+   01 → 00111
+   10 → 11001
+   11 → 11110
+
+2. Hamming distance 비교
+   00000 vs 00111 → 다른 비트 3개
+   00000 vs 11001 → 다른 비트 3개
+   00000 vs 11110 → 다른 비트 4개
+   00111 vs 11001 → 다른 비트 4개
+   00111 vs 11110 → 다른 비트 3개
+   11001 vs 11110 → 다른 비트 3개
+
+위 4개의 codeword만 송신자가 보내기로 약속했는데 다른 값이 오면 위 4개의 codeword에서 온 에러값과 hamming distance가 가장 가까운 값으로 치환한다.
+가장 가까운 codeword끼리도 최소 3비트는 다르니까, 이 코드의 minimum distance는 3
+
+3. Correction 구하기
+
+- 틀리면 원래 codeword에서 가장 가까운 값으로 복구하기
+- ⌊(d - 1) / 2⌋: 최대 몇비트 오류까지 정정가능한가? - d = 최소 hamming distance - 따라서 3-1/2니까 1. - 1비트까지 **정정**가능
+  예시:
+  수신값: 00001
+
+00000과 거리 1
+00111과 거리 2
+11001과 거리 2
+11110과 거리 5
+그래서 수신자는 “아, 원래는 00000이었겠구나” 하고 고친다
+
+4. Detection
+   d - 1:
+   따라서
+   3-1=2
+
+- 2비트 오류까지 **검출**가능함.

@@ -1,0 +1,286 @@
+---
+title: 'virtual memory 1'
+date: '2026-06-15'
+tags: ['OS']
+draft: false
+summary: 'hex, paging, virtual address, page table, demand paging, segmentation'
+---
+
+- [0. HEX](#0-hex)
+- [1. Paging](#1-paging)
+  - [1. 개념](#1-개념)
+    - [유저관점에서 추가 개념](#유저관점에서-추가-개념)
+    - [장점](#장점)
+    - [단점](#단점)
+  - [2. virtual address](#2-virtual-address)
+    - [구성요소](#구성요소)
+  - [3. page table](#3-page-table)
+  - [4. PTE(Page Table Entries)의 구성요소](#4-ptepage-table-entries의-구성요소)
+    - [valid bit 이 0(invalid)일 때](#valid-bit-이-0invalid일-때)
+  - [5. 용어 정리](#5-용어-정리)
+    - [책 한권](#책-한권)
+    - [책의 5번 페이지](#책의-5번-페이지)
+      - [책 5번 페이지의 10번째 단어](#책-5번-페이지의-10번째-단어)
+  - [6. 페이징 전체 흐름](#6-페이징-전체-흐름)
+- [2. demanding paging](#2-demanding-paging)
+  - [1. page fault 처리 단계](#1-page-fault-처리-단계)
+  - [2. 이게 잘 굴러가는 이유 -- Locality](#2-이게-잘-굴러가는-이유----locality)
+  - [3. Cold start](#3-cold-start)
+- [3. Segmentation](#3-segmentation)
+  - [1. 변환과정](#1-변환과정)
+- [4. Paging vs Segmentation 차이점 상세](#4-paging-vs-segmentation-차이점-상세)
+  - [1. 구조, 성능 차이](#1-구조-성능-차이)
+  - [2. 능력, 목적 차이](#2-능력-목적-차이)
+- [5. 결론 Segmentation with Paging (하이브리드)](#5-결론-segmentation-with-paging-하이브리드)
+
+# 0. HEX
+
+- `0x`: 이건 16진수다 라는 표시
+- 예시
+  - `0x4AFE = 4×4096(16^3) + 10×256(16^2) + 15×16(16^1) + 14×1(16^0) = 19198`
+- 한자리가 4bit이다(16진수이기 때문에)
+
+# 1. Paging
+
+## 1. 개념
+
+**virtual memory → page table → physical memory**
+
+- 프로세스가 사용하는 메모리를 물리 메모리 상의 비연속적인(noncontiguous) 위치에 나누어 배치할 수 있게 한다.
+- virtual-mem과 physical-mem을 동일한 크기로 자른다(4kb가 대중적)
+- 운영체제는 모든 빈 프레임을 추적한다.
+- 가상 주소를 물리 주소로 변환하기 위한 페이지 테이블(page table)을 설정한다.
+- 프로그램을 한 번 종료했다가 재시작하면 vm은 같은 값이 나오지만 실제 물리 메모리는 다른 값이다.
+
+### 유저관점에서 추가 개념
+
+- 유저는 연속적인 메모리만 본다.
+  - Virtual address space (VAS)
+- 실제로 페이지들은 물리 메모리 전체에 흩어져(scattered) 저장된다.
+  - 가상 주소를 물리 주소로 변환하는 매핑이 존재한다.
+  - 이 매핑 과정은 프로그램에게 보이지 않는다.
+- process A가 process B에 엑세스 못해서 자연스럽게 protection도 해결된다.
+- Process A는 Process B의 메모리 구조나 페이지 매핑 정보를 알 수 없어야 한다.
+  - 왜냐:
+    - 다른 프로세스의 데이터를 읽을 수 있고
+    - 다른 프로세스의 데이터를 수정할 수 있고
+    - 시스템 전체의 보안과 안정성이 깨질 수 있으니까
+- 그래서 절대 유저레벨에게 보여주지 않는다.
+
+### 장점
+
+1. 물리 메모리 할당이 쉽다.
+2. 외부 단편화가 없다.
+3. page out(메모리 꽉차면 디스크로 내려보내는거)이 쉽다.
+4. 페이지 보호가 쉽다(protection bit + valid bit을 사용하기 때문에).
+5. 페이지 공유가 쉽다(OS가 페이지 테이블에서 같은 PFN을 가리키게 하면 되기 때문에).
+
+### 단점
+
+1. 내부 단편화 발생 가능(4kb여서 크게 문제는 안됨) + 뒤에 segmentation 기법이랑 같이 사용해서 잘 발생 안함
+2. 모든 메모리 access를 2번이나 해야해서 2배씩 느려짐
+   - 해결법: TLB 사용
+3. 페이지 테이블이 너무 큼 → 해결책 multi-level / inverted page table
+
+## 2. virtual address
+
+**virtual address란 프로세스가 생성하는 가상 주소 공간 상의 한 위치**
+
+### 구성요소
+
+- VPN과 offset으로 구성된다.
+- 총 32비트로 구성된다.
+- 그 중 offset은 페이지의 크기와 관련이 있다.
+  - 페이지 크기 2^n이라면 offset은 n비트만큼 할당된다.
+- VPN은 32-n 비트이다.
+  - 만약 페이지의 크기가 4kb라면 2^12=4kb이기 때문에 VPN = 20bit, offset = 12bit이다.
+
+## 3. page table
+
+- OS가 관리한다.
+- 각 프로레스는 자신만의 페이지 테이블을 가지고 있다(프로세스마다 주소 공간이 독립이고 보호돼야 해서).
+- VPN이 페이지테이블에 의해 PFN으로 매핑된다.
+- VPN과 PTE(page table entry = 페이지 테이블의 한 칸)은 일대일 대응된다.
+
+## 4. PTE(Page Table Entries)의 구성요소
+
+| V    | R    | M    | Prot | PFN(Page Frame Number) |
+| ---- | ---- | ---- | ---- | ---------------------- |
+| 1bit | 1bit | 1bit | 2bit | 20bit                  |
+
+- V(Valid bit):
+  - 1이면 PFN꺼내서 VPN에서 변환, 0이면 문제있어서 OS한테 넘김(trap)
+    - 1이면 valid, 이 페이지가 프로세스의 주소 공간 안에 있는, 합법적인 페이지라는 뜻
+    - 0이면 invalid, 주소 공간 밖 2가지 경우가 있다
+      - 애초에 할당된 적 없음 (Never allocated) — 엉뚱한 주소, NULL 포인터 같은 거. 건드리면 불법 접근
+      - 디스크로 쫓겨남 (page out to disk) — 합법인데 자리 없어서 디스크에 내려간 상태. 건드리면 page fault → 다시 끌어올림
+- R(Reference): 그 페이지에 접근된 적있는지
+- M(Modify/dirty): 이 페이지에 뭘 썼나 - dirty일 때만 디스크에 다시 씀
+- Prot: R/W/X 권한
+  - 각 페이지마다 보호 비트가 있어서, 합법 페이지라도 "무슨 동작까지 허용할지(read-only, read-write, execute-only)"를 세밀하게 정한다.
+- PFN: 물리 프레임 번호
+
+### valid bit 이 0(invalid)일 때
+
+1. 페이지 테이블에서 처음으로 피지컬 메모리 접근
+2. 메모리에 없다
+3. 디스크에 있다
+4. 디스크에서 메모리로 올린다 (page fault)
+
+## 5. 용어 정리
+
+### 책 한권
+
+- virtual memory
+- physical memory
+
+### 책의 5번 페이지
+
+- page: vm 한칸
+- page table
+- frame: physical mem 한칸
+
+#### 책 5번 페이지의 10번째 단어
+
+- virtual address(VPN+offset)
+- PTE
+- physical address(PFN+offset)
+
+## 6. 페이징 전체 흐름
+
+```text
+ex:
+page = 4096byte
+
+0   0 ~ 4095
+1   4096 ~ 8191
+2   8192 ~ 12287
+3   12288 ~ 16383
+4   16384 ~ 20479
+
+virtual address = 0x4AFE = 19198
+19198//4096 = 4 = 0x00004(20bit)
+따라서 VPN = 0x00004(20bit)
+
+따라서 들어가는 페이지 = 페이지 4번
+
+19198 % 4096 = 2814= 0xAFE
+따라서 offset = 0xAFE
+
+page table이 아래와 같이 생겼다면
+
+0   2|7
+1   D|0
+2   3|1
+3   F|E
+4   B|6 여기에 들어감
+5   A|4
+
+이 virtual address는 페이지 테이블의 [4]번 칸을 조회한다.
+그 후 VPN 0X00004는 PFN 0xB6로 매핑된다
+
+그래서 나오는 physical address B6AFE가 된다(offset은 유지되기 때문에)
+```
+
+# 2. demanding paging
+
+**프로그램을 통째로 메모리에 안 올리고, 실제로 건드리는 페이지만 그때그때(demand) 올린다.**
+
+- I/O 줄이고, 메모리 적게 쓰고, 유저 더 수용하고, 반응성이 좋아진다.
+
+페이지가 메모리에 없으면 → PTE의 valid=0, 그리고 PTE에 OS가 **"이 페이지가 디스크 어디에 있는지(swap 위치)"**를 적어둔다.
+
+그 페이지를 건드리면 → page fault(trap)
+
+**이건 segfault 같은 에러가 아니라 회복 가능한 정상 동작.**
+
+OS가 처리하고 터진 명령을 다시 실행한다. 앱은 이게 일어난 줄도 모른다. (transparent)
+
+## 1. page fault 처리 단계
+
+1. 주소 참조(cpu가 페이지 접근)
+2. Trap(Page fault)(valid = 0 → OS로 넘김)
+3. 디스크에서 찾기 swap file 위치 확인
+4. 디스크에서 프레임으로 이동 -- 여기서 근데 빈 프레임이 없으면? 누군가를 내쫓아야함(page replacement algorithm)
+5. PTE 갱신 valid=1, 프레임 연결
+6. 명령 재시작
+
+## 2. 이게 잘 굴러가는 이유 -- Locality
+
+- 필요할 때만 올린다는게 page fault를 계속 유발하지 않나?
+  - 안그렇다. 지역성 때문에
+    1. 시간 지역성(Temporal): 방금 쓴 데이터는 또 쓸 가능성이 높다.
+    2. 공간 지역성(Spatial): 방금 쓴 곳 근처를 다시 쓸 가능성이 높다.
+
+## 3. Cold start
+
+프로세스 처음 시작하면 페이지 테이블 전부 valid=0인 상태
+
+처음 시작할 때 cold page fault 생으로 맞고 가야함
+
+demand인 이유: 미리 다 올리는 게 아니라, 요구가 들어와야(폴트가 나야) 올리니까
+
+# 3. Segmentation
+
+paging은 메모리를 의미 무시하고 똑같은 칸으로 자르는데 반해 segmentation은 **메모리를 논리적 의미 단위로 자른다.**
+
+virtual address = [ Segment# | Offset ] // 세그먼트 번호 + offset
+
+- Segment# = base, limit으로 구성되어있음
+  - base: 이 세그먼트가 물리 메모리 어디서 시작하는지
+  - limit: 이 세그먼트가 얼마나 긴지 ← 이게 새로 등장
+    - limit이 필요한 이유: 세그먼트마다 크기가 달라서
+- variable partition의 확장판이다.
+
+### 장점
+
+1. 논리 단위라 늘리고 줄이기 편하다.
+2. 보호가 자연스럽다(세그먼트 단위로 R/W/X권한).
+3. 공유가 깔끔하다.
+
+### 단점
+
+1. 외부 단편화 발생 - 세그먼트 크기가 제각각이라서. 근데 세그먼트가 워낙 큰 문제는 안됨
+2. 세그먼트 테이블이 크다(메인 메모리에 두고 하드웨어 캐시로 속도 보완)(근데 일반적으로 페이지 테이블보다는 크기가 작다)
+
+## 1. 변환과정
+
+**logical address → space segment table → physical memory**
+
+1. 가상주소[segment#|Offset]
+2. 세그먼트 테이블 [Seg#](limit, base)
+3. offset이 limit보다 작은지 조사
+4. **offset이 limit보다 크면 protection fault**
+   - offset이 limit보다 크면 안되는 이유: limit는 그 가상 주소가 할당받은 전체 메모리 크기여서
+5. 물리주소 = base + offset
+
+# 4. Paging vs Segmentation 차이점 상세
+
+## 1. 구조, 성능 차이
+
+| 항목                 | 페이징                        | 세그멘테이션                |
+| -------------------- | ----------------------------- | --------------------------- |
+| 블록 크기            | 고정 (4KB~64KB)               | 가변                        |
+| 주소 지정            | 페이지번호 + offset           | 세그먼트# + offset          |
+| 교체 (replacement)   | 쉬움 (다 같은 크기)           | 어려움 (맞는 빈자리 찾기)   |
+| 단편화               | 내부                          | 외부                        |
+| 디스크 전송          | 효율적 (페이지 크기에 최적화) | 비효율 (전송 크기 들쭉날쭉) |
+| 선형 주소공간        | 1개                           | 여러 개                     |
+| 프로그래머에게 투명? | Yes (안 보임)                 | No (보임)                   |
+
+## 2. 능력, 목적 차이
+
+| 질문                              | 페이징           | 세그멘테이션                 |
+| --------------------------------- | ---------------- | ---------------------------- |
+| 전체 주소공간 > 물리 메모리 가능? | Yes              | Yes (단, 비효율적일 수 있음) |
+| 코드/데이터 구분해 따로 보호?     | No               | Yes                          |
+| 크기 변하는 자료구조 수용 쉬움?   | No               | Yes                          |
+| 코드 공유 쉬움?                   | No               | Yes                          |
+| 왜 발명됨?                        | 큰 선형 주소공간 | 논리적 독립 공간 (공유·보호) |
+
+# 5. 결론 Segmentation with Paging (하이브리드)
+
+- **Paged Segments: 세그멘테이션 + 페이징. 세그먼트를 페이지 크기의 배수로 잡음**
+- 세그먼트가 **"pageable"**해짐 — 세그먼트 통째로 옮기는 게 아니라 페이지 조각 단위로 올리고 내림
+- 그 결과 외부 단편화 제거 (세그멘테이션의 치명적 약점을 페이징으로 해결)
+  - 내부단편화는 있을 수 있다.

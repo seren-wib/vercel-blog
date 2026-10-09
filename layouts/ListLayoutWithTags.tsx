@@ -9,6 +9,8 @@ import Link from '@/components/Link'
 import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import tagData from 'app/tag-data.json'
+import categoryData from 'app/category-data.json'
+import { getCategoryLabel, sortCategories } from '@/data/categories'
 
 interface PaginationProps {
   totalPages: number
@@ -76,6 +78,9 @@ export default function ListLayoutWithTags({
   const tagCounts = tagData as Record<string, number>
   const tagKeys = Object.keys(tagCounts)
   const sortedTags = tagKeys.sort((a, b) => tagCounts[b] - tagCounts[a])
+  const categoryCounts = categoryData as Record<string, number>
+  const sortedCategories = sortCategories(Object.keys(categoryCounts))
+  const currentCategory = decodeURI(pathname.split('/blog/category/')[1] ?? '').split('/')[0]
 
   const displayPosts = initialDisplayPosts.length > 0 ? initialDisplayPosts : posts
 
@@ -86,11 +91,28 @@ export default function ListLayoutWithTags({
           <h1 className="text-3xl leading-9 font-extrabold tracking-tight text-gray-900 sm:hidden sm:text-4xl sm:leading-10 md:text-6xl md:leading-14 dark:text-gray-100">
             {title}
           </h1>
+          <nav aria-label="Categories" className="mt-4 flex flex-wrap gap-2 sm:hidden">
+            {sortedCategories.map((c) => (
+              <Link
+                key={c}
+                href={`/blog/category/${c}`}
+                className={`rounded-full border px-3 py-1 text-sm ${
+                  c === currentCategory
+                    ? 'border-primary-500 text-primary-500'
+                    : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300'
+                }`}
+              >
+                {getCategoryLabel(c)}
+              </Link>
+            ))}
+          </nav>
         </div>
         <div className="flex sm:space-x-24">
           <div className="hidden h-full max-h-screen max-w-[280px] min-w-[280px] flex-wrap overflow-auto rounded-sm bg-gray-50 pt-5 shadow-md sm:flex dark:bg-gray-900/70 dark:shadow-gray-800/40">
             <div className="px-6 py-4">
-              {pathname.startsWith('/blog') ? (
+              {pathname === '/blog' ||
+              pathname === '/blog/' ||
+              pathname.startsWith('/blog/page') ? (
                 <h3 className="text-primary-500 font-bold uppercase">All Posts</h3>
               ) : (
                 <Link
@@ -100,6 +122,31 @@ export default function ListLayoutWithTags({
                   All Posts
                 </Link>
               )}
+              <h3 className="mt-6 text-xs font-bold tracking-wide text-gray-500 uppercase dark:text-gray-400">
+                Categories
+              </h3>
+              <ul>
+                {sortedCategories.map((c) => (
+                  <li key={c} className="my-3">
+                    {c === currentCategory ? (
+                      <h3 className="text-primary-500 inline px-3 py-2 text-sm font-bold uppercase">
+                        {`${getCategoryLabel(c)} (${categoryCounts[c]})`}
+                      </h3>
+                    ) : (
+                      <Link
+                        href={`/blog/category/${c}`}
+                        className="hover:text-primary-500 dark:hover:text-primary-500 px-3 py-2 text-sm font-medium text-gray-500 uppercase dark:text-gray-300"
+                        aria-label={`View ${getCategoryLabel(c)} posts`}
+                      >
+                        {`${getCategoryLabel(c)} (${categoryCounts[c]})`}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <h3 className="mt-6 text-xs font-bold tracking-wide text-gray-500 uppercase dark:text-gray-400">
+                Tags
+              </h3>
               <ul>
                 {sortedTags.map((t) => {
                   return (

@@ -1,0 +1,765 @@
+---
+title: 'virtual memory 3'
+date: '2026-06-15'
+tags: ['OS']
+draft: false
+summary: 'page replacement algorithms, frame allocation, thrashing, working set, shared memory, COW, mmap'
+---
+
+- [1. 어떤 페이지를 메모리에서 쫓아낼까(Page Replacement)](#1-어떤-페이지를-메모리에서-쫓아낼까page-replacement)
+  - [0. Belady's proof(가장 좋은 희생자는?)](#0-beladys-proof가장-좋은-희생자는)
+  - [1. Belady's Algorithm(Optimal page replacement(OPT))](#1-beladys-algorithmoptimal-page-replacementopt)
+    - [문제점](#문제점)
+    - [앞으로 나올 알고리즘들의 기준점 역할](#앞으로-나올-알고리즘들의-기준점-역할)
+  - [2. FIFO(First-In First-Out)](#2-fifofirst-in-first-out)
+    - [예시](#예시)
+  - [3. LRU(Least Recently Used)](#3-lruleast-recently-used)
+    - [예시](#예시)
+    - [Approximating LRU(근사 LRU)](#approximating-lru근사-lru)
+  - [4. Second chance(LRU clock)](#4-second-chancelru-clock)
+  - [5. NRU(Not Recently Used)](#5-nrunot-recently-used)
+    - [class](#class)
+  - [6. LFU(Least frequently used) & MFU(Most frequently used)](#6-lfuleast-frequently-used--mfumost-frequently-used)
+    - [LFU의 치명적 결함](#lfu의-치명적-결함)
+    - [aging(퇴물도살자)](#aging퇴물도살자)
+- [2. 프로세스 중 누구의 페이지를 메모리에서 쫓아낼까(멀티프로그래밍)(Allocation of Frames)](#2-프로세스-중-누구의-페이지를-메모리에서-쫓아낼까멀티프로그래밍allocation-of-frames)
+  - [0. 문제 상황:](#0-문제-상황)
+  - [1. Fixed space algorithms](#1-fixed-space-algorithms)
+  - [2. Variable space algorithms](#2-variable-space-algorithms)
+- [3. 쫓아내기 전에 메모리 부족 자체를 어떻게 감지, 제어 할까](#3-쫓아내기-전에-메모리-부족-자체를-어떻게-감지-제어-할까)
+  - [0. THRASHING](#0-thrashing)
+  - [1. Working Set Model](#1-working-set-model)
+    - [1, working set: 프로세스가 필요로하는 페이지들의 집합](#1-working-set-프로세스가-필요로하는-페이지들의-집합)
+    - [2. WS(t, w) = 시간 t 시점에서, 최근 w번의 페이지 참조 동안 사용된 페이지들의 집합](#2-wst-w--시간-t-시점에서-최근-w번의-페이지-참조-동안-사용된-페이지들의-집합)
+    - [3. WSS](#3-wss)
+    - [Working Set Page Replacement](#working-set-page-replacement)
+    - [예시 (슬라이드 24)](#예시-슬라이드-24)
+  - [2. PFF(Page Fault Frequency)](#2-pffpage-fault-frequency)
+    - [예외(Belady's Anomaly)](#예외beladys-anomaly)
+- [4. page table 트릭으로 메모리를 덜 쓰거나 공유하는 법(Advanced VM Functionality)](#4-page-table-트릭으로-메모리를-덜-쓰거나-공유하는-법advanced-vm-functionality)
+  - [1. Shared Memory](#1-shared-memory)
+    - [1. 예시](#1-예시)
+    - [2. 문제점](#2-문제점)
+    - [3. 구현방법](#3-구현방법)
+    - [4. 보호권한](#4-보호권한)
+    - [5. Process A와 B가 같은 가상주소를 가질 떄 VS 다른 가상 주소를 가질 떄](#5-process-a와-b가-같은-가상주소를-가질-떄-vs-다른-가상-주소를-가질-떄)
+  - [2. COW(Copy On Write)](#2-cowcopy-on-write)
+    - [1. 원래 fork](#1-원래-fork)
+    - [2. 그래서 나온 vfork()](#2-그래서-나온-vfork)
+    - [3. 보다 더 똑똑한 COW](#3-보다-더-똑똑한-cow)
+  - [3. MMAP(Memory-Mapped Files)](#3-mmapmemory-mapped-files)
+    - [1. 기존 파일 I/O](#1-기존-파일-io)
+    - [2. mmap](#2-mmap)
+    - [3. mmap가 실제로 하는 일](#3-mmap가-실제로-하는-일)
+    - [4. 페이지가 메모리에서 쫓겨날 떄](#4-페이지가-메모리에서-쫓겨날-떄)
+    - [5. 장점](#5-장점)
+    - [6. 단점](#6-단점)
+    - [note](#note)
+
+# 1. 어떤 페이지를 메모리에서 쫓아낼까(Page Replacement)
+
+**page replacement: 메모리에서 디스크로 내려가는 것을 말함**
+
+page replacement 발생 원인: 메모리 공간이 부족해서
+
+page fault: CPU가 접근하려는 가상 페이지가 현재 물리 메모리에 없는 상태
+
+## 0. Belady's proof(가장 좋은 희생자는?)
+
+가장 나중에 다시 사용될 페이지를 제거하는 OPT가 최적임을 보이는 증명
+
+## 1. Belady's Algorithm(Optimal page replacement(OPT))
+
+**가장 오랫동안 사용되지 않을 페이지 제거**
+
+최소 fault의 수는 프로그램의 참조패턴(workload)에 따라 달라진다
+
+### 문제점
+
+어떻게 미래 예측하지
+
+### 앞으로 나올 알고리즘들의 기준점 역할
+
+## 2. FIFO(First-In First-Out)
+
+- 가장 먼저 들어온 애를 먼저 뺀다
+- 최근 사용 여부를 보지 않는다
+- 오래 전에 들어온 페이지가 지금도 엄청 중요할 수도 있는데
+
+### 예시
+
+Reference string: 1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5
+
+#### 프레임 3개일 때
+
+1. [1, 2, 3] // fault 3번
+2. 4 참조, 1 제거 [2, 3, 4] // fault++
+3. 1 참조, 2 제거 [3, 4, 1] // fault++
+4. 2 참조, 3 제거 [4, 1, 2] // fault++
+5. 5 참조, 4 제거 [1, 2, 5] // fault++
+6. 1 참조 hit
+7. 2 참조 hit
+8. 3 참조, 1 제거 [2, 5, 3] // fault++
+9. 4 참조, 2 제거 [5, 3, 4] // fault++
+10. 5참조 hit
+
+최종: [5, 3, 4], 총 fault 수 = 9번
+
+#### 프레임 4개일 때
+
+1. [1 2 3 4] // fault 4번
+2. 1 hit, 2 hit
+3. 5 참조, 1제거하고 5 넣기 [2, 3, 4, 5] // fault 1번
+4. 1 참조, 2제거하고 1 넣기 [3, 4, 5, 1] // fault 1번
+5. 2 참조, 3제거하고 2 넣기 [4, 5, 1, 2] // fault 1번
+6. 3 참조, 4 제거하고 3 넣기 [5, 1, 2, 3] // fault 1번
+7. 4 참조, 5 제거하고 4 넣기 [1, 2, 3, 4] // fault 1번
+8. 5 참조, 1 제거하고 5 넣게 [2, 3, 4, 5] // fault 1번
+
+따라서 최종 = [2, 3, 4, 5], 총 fault 수 = 10번
+
+#### note: !!FIFO에서는 프레임 수가 늘어도 page fault 수가 늘을 수 있다!!
+
+## 3. LRU(Least Recently Used)
+
+**최근에 쓴 페이지는 앞으로도 쓸 가능성이 높다는 locality 이용**
+
+- 가장 오래 안 쓴 프레임을 디스크로 내리기
+- 가장 최근에 쓰인 애가 누구인지를 정렬해서 가지고 있어야 하는데 이게 어렵다
+  - 구현방법:
+    1. counter: Timestamp(가장 최근에 사용된 시간을 저장)
+    2. stack: 최근 사용 순서를 유지(문제점: 페이지 접근할 때마다 스택 재정렬을 해야함(오버헤드 발생))
+    - 그래서 실제 OS는 비슷하게 동작할 수 있는 휴리스틱을 구현한다(근사 LRU)
+- 대부분 경우에 FIFO보다 page fault가 적게 난다
+
+### 예시
+
+Reference string: 1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5
+
+**윈도우 슬라이딩 처럼 히트 되어도 하나씩 갱신**
+
+#### 3 frame
+
+```
+[1, 2, 3]   //fault+3
+[2, 3, 4]   // fault +1
+[3, 4, 1]   // fault +1
+[4, 1, 2]   // fault +1
+[1, 2, 5]   // fault +1
+[2, 5, 1]   // hit
+[5, 1, 2]   // hit
+[1, 2, 3]   // fault +1
+[2, 3, 4]   // fault +1
+[3, 4, 5]   // fault +1
+```
+
+최종: page fault = 10번
+
+#### 4 frame
+
+[1, 2, 3, 4] // fault +4
+[2, 3, 4, 1] // hit
+[3, 4, 1, 2] // hit
+[4, 1, 2, 5] // fault +1
+[4, 2, 5, 1] // hit (지금까지 하던대로 하면 1, 2, 5, 1순서가 되어야하지만 1이 중복되기 때문에 4유지하고 1 위치만 변경)
+[4, 5, 1, 2] // hit
+[5, 1, 2, 3] // fault +1
+[1, 2, 3, 4] // fault +1
+[2, 3, 4, 5] // fault 1
+
+### Approximating LRU(근사 LRU)
+
+- R=1이면 최근에 사용됨
+- 주기적으로 R bit 0으로 만듬
+- R bit이 0이면 count++
+- 따라서 count값이 가장 큰 것이 오랫동안 안쓰였다고 볼 수 있다.
+- 메모리 사용량 느는 단점이 있음
+
+## 4. Second chance(LRU clock)
+
+- FIFO는 그대로 두되, 쫓아내기 직전에 "너 최근에 쓰였냐?"를 R(reference) 비트로 한 번 물어보는 것
+- 모든 배열들을 시계처럼 나열하고 한바퀴 돌면서 체크
+- r bit이 0이면 count++같은거 안하고 그냥 뺴고 그자리에 새 페이지를 넣는다
+- r bit이 1이면 클리어 시킨다
+- 한바퀴 돌리는데 10초가 걸리고 C가 0이고 D가 1이면 10초동안 C는 액세스가 없었고 D는 액세스가 있었다
+- 다른 세팅 없이 스캔만 돌리면 된다. 오버헤드는 낮지만 정확도가 부족하다
+- 메모리가 클수록 한바퀴 돌리는데 시간이 오래걸려서 다들 최근에 쓰이는 것처럼 보인다. 따라서 정확도가 떨어진다
+- 순수한 clock에서 바늘은 page fault가 터질 때만 움직인다
+
+## 5. NRU(Not Recently Used)
+
+**second chance가 R 비트 1개만 봤다면, NRU는 R + M(modify bit) 두 비트를 본다**
+
+### class
+
+| Class   | R   | M   | 의미                            |
+| ------- | --- | --- | ------------------------------- |
+| Class 0 | 0   | 0   | 최근에 안 쓰임 + 깨끗함         |
+| Class 1 | 0   | 1   | 최근에 안 쓰임 + 수정됨 (dirty) |
+| Class 2 | 1   | 0   | 최근에 쓰임 + 깨끗함            |
+| Class 3 | 1   | 1   | 최근에 쓰임 + 수정됨            |
+
+**쫓아내는 순서는 클래스 번호 낮은 것부터. 0 → 1 → 2 → 3**
+
+- R이 1순위 그다음이 M
+- 더티 상태인건 디스크에 write해야해서 더 비싸다
+
+#### clock interrupt 터지면 (R만 0으로 클리어 = 왼쪽으로 이동):
+
+- Class 2 --interrupt--> Class 0 (R 클리어, M은 0 그대로)
+- Class 3 --interrupt--> Class 1 (R 클리어, M은 1 그대로 유지)
+
+### 알고리즘: 비어있지 않은 가장 낮은 클래스에서 랜덤으로 하나 뺀다. 클래스 안에서 누구 뺄지까진 안 따짐
+
+### 장점: 이해 쉽고, 구현 적당히 효율적이고, optimal은 절대 아니지만 그럭저럭 쓸 만한 성능
+
+## 6. LFU(Least frequently used) & MFU(Most frequently used)
+
+**"최근에 썼냐"가 아니라 "얼마나 자주 썼냐(횟수)"를 세는 방식**
+
+- 각 페이지에 소프트웨어 카운터를 단다
+- clock interrupt 때마다 그 페이지의 R비트를 카운터에 더한다
+- 따라서 카운터 값이 클수록 페이지가 많이 사용된다
+
+### LFU: 카운터가 가장 작은 페이지를 쫓아낸다
+
+### MFU: 카운터가 가장 큰 페이지를 쫓아낸다
+
+#### 왜 MFU가 말이 되냐?
+
+1. 카운터가 작은 놈 = 방금 막 올라온 페이지일 가능성이 높다.
+2. 카운터가 큰거는 프로세스 초반에만 많이 쓰이고 그 뒤엔 안 쓰이는 죽은 페이지일 가능성이 있어서. // 이게 LFU의 치명적 결함
+
+### LFU의 치명적 결함
+
+초반에 폭발적으로 쓰이고 지금은 죽은 페이지도 계속 메모리에 남아있다.
+
+이 결함을 해결하기 위해 나온 것이 **aging**
+
+### aging(퇴물도살자)
+
+카운터에 R 비트를 더하기 전에,
+
+1. 카운터를 먼저 오른쪽으로 1비트 시프트하고,
+2. R 비트는 맨 왼쪽(MSB)에 꽂는다.
+
+```
+예시
+clock tick     [0, 1, 2, 3, 4]
+
+page 1의 r bit [0, 1, 1, 0, 1]
+
+아래는 counter 순서
+(1) 00000000
+(2) 10000000    // 오른쪽 시프트 후 r=1을 msb에 추가
+(3) 11000000    // 오른쪽 시프트 후 r=1을 msb에 추가
+(4) 01100000    // 오른쪽 시프트 후 r=0을 msb에 추가
+(5) 10110000    // 오른쪽 시프트 후 r=1을 msb에 추가
+```
+
+#### aging와 LRU와의 차이점
+
+1. aging은 LRU의 근사다
+2. 비트 수가 유한하다
+3. 한 틱 안에서의 순서를 모른다: 한 클록 주기 안에 A를 먼저 쓰고 B를 나중에 썼어도, aging은 "그 틱에 R=1이었다"만 기록
+
+# 2. 프로세스 중 누구의 페이지를 메모리에서 쫓아낼까(멀티프로그래밍)(Allocation of Frames)
+
+## 0. 문제 상황:
+
+메모리에 여러 프로세스가 동시에 있다.
+
+- P1
+- P2
+- P3
+
+모두 프레임을 쓰고 있다.
+
+그런데 P1에서 페이지 폴트가 발생
+
+빈 프레임이 없으면 페이지 하나를 쫓아내야 하는데,
+
+P1의 페이지를 내쫓을까?
+
+P2의 페이지를 내쫓을까?
+
+## 1. Fixed space algorithms
+
+각 프로세스에
+
+- P1 : 10 프레임
+- P2 : 15 프레임
+- P3 : 20 프레임
+
+처럼 미리 한도를 정해 둔다.
+
+페이지 폴트 발생
+
+P1이 이미 10개 사용 중이면 P1의 페이지 중 하나만 제거, P2, P3는 건드리지 못함 - 이걸 **Local Replacement**이라 한다.
+
+### 다른 프로세스에 피해를 주지 않지만 p1은 프레임 부족현상을 겪는데 p2는 프레임이 남아도는 상황이 발생 가능
+
+## 2. Variable space algorithms
+
+프레임 개수를 고정하지 않는다.
+
+상황에 따라
+
+- P1 : 10 → 15
+- P2 : 20 → 12
+
+처럼 변함.
+
+P1페이지 폴트 발생시 P2페이지 제거가 가능하다. - 이걸 **Global Replacement**라고 한다.
+
+### 남는 프레임을 효율적으로 활용 가능하지만 한 프로세스가 전체 시스템을 망칠 수 있다.
+
+# 3. 쫓아내기 전에 메모리 부족 자체를 어떻게 감지, 제어 할까
+
+## 0. THRASHING
+
+**운영체제가 디스크와 메모리 사이에서 페이지 교체만 하느라 정작 프로그램 실행은 거의 못 하는 상태**
+
+- overcommited: 실제 커버할 수 있는 양보다 더 많은 메모리를 올릴 때
+
+```
+발생원인 예시
+
+RAM = 8페이지
+프로세스들이 필요로 하는 working set = 20페이지
+라면
+
+A 필요 → fault
+B 필요 → fault
+C 필요 → fault
+...
+
+매번 필요한 페이지가 메모리에 없어서 디스크에서 읽어와야 한다.
+
+읽어오려면 기존 페이지를 내보내야 하고,
+
+내보낸 페이지가 곧바로 다시 필요해져서 또 fault가 발생
+
+결국:
+fault → page in
+fault → page out
+fault → page in
+fault → page out
+
+만 반복
+```
+
+**해결법: 프로세스 하나를 통쨰로 swap out 시켜서 메모리 확보, 메모리 추가 구매**
+
+## 1. Working Set Model
+
+### 1, working set: 프로세스가 필요로하는 페이지들의 집합
+
+- working set이 필요한 이유: 이 페이지를 미래에 사용 가능할 지를 알아야하는데 미래를 모르기 때문에 **지역성의 원리**를 적용.
+
+### 2. WS(t, w) = 시간 t 시점에서, 최근 w번의 페이지 참조 동안 사용된 페이지들의 집합
+
+```
+예시
+최근 페이지 참조 기록
+A B C D B C E B
+
+w = 4
+
+최근 4번 참조만 보면
+B C E B
+
+등장한 페이지는
+`{B,C,E}`
+
+따라서
+WS(t,4) = `{B,C,E}`
+```
+
+w가 너무 작으면 필요한 페이지를 놓칠 수 있고 너무 크면 working set이 과도하게 커져서 메모리를 낭비할 수 있다.
+
+### 3. WSS
+
+Working Set을 이용해서 Thrashing을 막는 방법
+
+- **WSS (Working Set Size) = Working Set 안에 있는 페이지 수**
+  - WS(t,w) = `{A,B,C,D}` 라면 WSS = 4
+
+**locality가 좋으면 WSS의 값은 작아진다**
+
+#### WSS를 이용한 Thrashing 방지 예시
+
+```
+예:
+
+P1 = 10
+P2 = 8
+P3 = 12
+
+그러면
+
+ΣWSS = 30
+
+물리 프레임이 20개 뿐이면
+
+30 > 20
+
+이니까
+
+모든 Working Set을 담을 수 없다.
+
+즉, Thrashing 위험
+
+OS는
+
+프로세스 하나 중지(suspend) 시킨다..
+
+예:
+
+P3 중지
+
+그러면
+
+10 + 8 = 18
+
+돼서 메모리에 수용 가능
+```
+
+### Working Set Page Replacement
+
+최근 k번 참조를 정확히 저장하는 게 비싸서 나온 기법
+
+여기서는 **근사**를 사용한다
+
+#### 사용법
+
+1. PTE에 R(reference) bit과 Tlast(마지막 사용 시간)을 둔다
+2. 주기적으로 R=0으로 초기화한다
+3. case1: R=1인 경우, Tlast = 현재시각 으로 초기화
+4. case2: R=0인 경우, Tcurrent-Tlast>t이면 Working Set 밖이라고 판단하고 Evict한다
+5. case3: R=0인 경우, Tcurrent-Tlast < t이면 Working Set 안이라고 판단하고 유지
+
+- evict하는 판단근거
+
+1. R= 0인가?
+2. 그러면 Tcurrent - Tlast>t 인가?
+3. 그럴 시 evict
+
+#### 예시
+
+### 예시 (슬라이드 24)
+
+조건: t(τ) = 600, Current virtual time = 2204
+
+페이지 테이블 (Tlast, R):
+
+| 페이지 | Tlast | R   |
+| ------ | ----- | --- |
+| a      | 2084  | 1   |
+| b      | 2003  | 1   |
+| c      | 1980  | 1   |
+| d      | 1213  | 0   |
+| e      | 2014  | 1   |
+| f      | 2020  | 1   |
+| g      | 2032  | 1   |
+| h      | 1620  | 0   |
+
+#### 풀이
+
+**1단계: R=1인 페이지 전부 Tlast = 2204로 갱신 → working set 안, evict 후보 제외**
+
+- a, b, c, e, f, g (R=1) → 이번 틱에 쓰였으니 살림
+
+**2단계: R=0인 페이지만 age(=Tcurrent - Tlast) 계산**
+
+- d: age = 2204 - 1213 = 991 → 991 > 600 → **working set 밖 → evict 후보**
+- h: age = 2204 - 1620 = 584 → 584 < 600 → working set 안 → 유지(가장 작은 시간으로 기억만)
+
+#### 결론
+
+**evict 대상 = d 페이지 (R=0, age=991 > τ=600)**
+
+> 함정: h는 R=0이라 1단계는 통과하지만 age가 584로 τ를 못 넘어서 살아남는다.
+> R=0이라고 무조건 빼는 게 아니라 **R=0 AND age>τ** 둘 다 만족해야 evict.
+
+## 2. PFF(Page Fault Frequency)
+
+Fault Rate 높음 → 프레임 증가
+
+Fault Rate 낮음 → 프레임 감소
+
+Fault Rate 높음 + 줄 프레임 없음 → 프로세스 Suspend
+
+### 예외(Belady's Anomaly)
+
+보통은 프레임 ↑ → Page Fault ↓가 맞다.
+
+그런데 FIFO에서는 프레임 ↑ → Page Fault ↑ 가 되는 경우가 있다.
+
+즉 PFF가 높으니 프레임 늘려야지가 FIFO에서는 항상 정답이 아닐 수 있다
+
+# 4. page table 트릭으로 메모리를 덜 쓰거나 공유하는 법(Advanced VM Functionality)
+
+## 1. Shared Memory
+
+**두 프로세스가 같은 Physical Memory를 참조**
+
+원래는 각자 독립적인 virtual address space를 가져서 프로세스끼리 서로 못 건들이지만 데이터 공유가 어렵다
+
+### 1. 예시
+
+```c
+// process A
+memcpy(shared_memory, "TEST", 5);
+```
+
+```c
+// process B
+printf("%s\n", shm);
+
+// 출력: TEST
+```
+
+### 2. 문제점
+
+processA와 processB가 동시에 수정하면 Race Condition 발생
+
+그래서 세마포어, mutex, lock과 같은 동기화 기법이 필요
+
+### 3. 구현방법
+
+서로 다른 PTE가 같은 Physical Frame를 가리키게 한다
+
+### 4. 보호권한
+
+같은 프레임을 보더라도 PTE 권한은 다르게 줄 수 있다.
+
+- A : Read/Write
+- B : Read Only
+
+### 5. Process A와 B가 같은 가상주소를 가질 떄 VS 다른 가상 주소를 가질 떄
+
+#### 1. 다른 가상주소
+
+A : 0x1000
+
+B : 0x9000
+
+일 떄,
+
+주소 충돌이 없고 유연하다는 장점이 있다.
+
+하지만 공유 메모리 안에 Node \*next와 같은 포인터가 있으면 주소 값이 깨진다. 둘의 기준 주소가 다르기 때문에
+
+#### 2. 같은 가상주소
+
+A : 0x1000
+
+B : 0x1000
+
+둘 다 같은 위치에 매핑.
+
+장점
+
+포인터 그대로 사용 가능
+
+단점
+
+주소 공간 배치가 어려움
+
+## 2. COW(Copy On Write)
+
+**fork() 할 때 진짜 복사는 쓰기(write)할 때까지 미룬다**
+
+### 1. 원래 fork
+
+부모 프로세스가 100MB 메모리 사용 중 이라면,
+
+fork()를 하면 Parent 100MB Child 100MB를 만들어야 한다.
+
+원칙적으로는 100MB 전부 복사해야 한다
+
+엄청 느리고 메모리 낭비
+
+### 2. 그래서 나온 vfork()
+
+부모와 자식이 같은 주소공간 공유
+
+복사 비용이 없다.
+
+#### 문제점
+
+자식이 x = 10; 하면 부모 메모리도 바뀐다
+
+그래서 부모를 강제로 멈춘다.
+
+자식이
+
+exit()
+exec()
+
+할 때까지
+
+### 3. 보다 더 똑똑한 COW
+
+- fork 직후 둘 다 같은 페이지를 본다
+
+```
+Parent
+  \
+   -> Physical Page
+  /
+Child
+```
+
+- 대신 read only로 설정한다, 읽기만 하면 그냥 공유해도 문제가 없다
+
+#### 쓰기 발생
+
+Child가 x = 100; 하려고 함.
+
+그런데 페이지가 Read Only
+
+그러면 Protection Fault 발생.
+
+여기서 OS가 "아, 이제 진짜 수정하려고 하는구나"를 알게 된다.
+
+##### 이후 OS 동작
+
+1. 새페이지 할당
+2. 기존 페이지 복사
+3. Child PTE 수정
+4. Write 가능하게 변겅
+5. 명령 재실행
+
+#### 결과
+
+```
+처음
+
+Parent -> Page A
+
+Child -> Page A
+```
+
+```
+child 쓰기 후
+
+Parent -> Page A
+
+Child -> Page B
+
+완전히 분리됨
+```
+
+#### 이게 빠른 이유
+
+원래 fork 라면 100mb를 복사해야하지만 실제로 수정한 페이지만 COW에서는 복사하면 되기 때문에
+
+## 3. MMAP(Memory-Mapped Files)
+
+**파일을 메모리처럼 사용하자**
+
+### 1. 기존 파일 I/O
+
+```c
+fd = open("test.txt");
+read(fd, buf, 100);
+write(fd, buf, 100);
+close(fd);
+```
+
+### 2. mmap
+
+```c
+addr = mmap(...); // 이걸 한 번 해두면
+
+printf("%s", addr); // 포인터만 사용해도 파일을 읽을 수 있다
+```
+
+### 3. mmap가 실제로 하는 일
+
+**파일 ↔ 가상주소 공간 연결**
+
+```
+예시
+
+이거를
+
+test.txt
+
+offset 0
+offset 1
+offset 2
+...
+```
+
+```
+여기에 대응
+
+VA 0x1000
+VA 0x1001
+VA 0x1002
+...
+```
+
+따라서 Virtual Address + N = File Offset + N
+
+#### 처음부터 파일 전체를 읽어오지 않는다
+
+처음 상태: PTE Valid = 0
+
+처음 읽으면 Invalid Page Access(cold page fault같은 거)가 발생
+
+```
+파일의 해당 페이지 읽기
+↓
+메모리에 적재
+↓
+PTE Valid=1
+
+즉 Demand paging처럼 작동
+```
+
+### 4. 페이지가 메모리에서 쫓겨날 떄
+
+**메모리가 부족해서 Mapped Page Eviction**이 발생하면,
+
+- case1: Dirty=1(수정된 경우), 메모리 → 파일로 저장
+- case2: Dirty=0(수정안된경우), 그냥 메모리에 있는거 버림(파일에 원본 있어서)
+
+### 5. 장점
+
+1. 파일 = 메모리로 사용가능
+2. 기존에는 복사 여러번하는데 복사가 감소
+   - read(fd, buf, 4096); 를 실행하면
+     1. 디스크에서 커널 버퍼로 읽음
+     2. 커널 버퍼 → buf로 복사
+     - 최소 한 번은 복사가 발생
+   - 그런데 mmap는
+   - addr = mmap(...);
+   - printf("%c", addr[0]); 를 실행하면
+   - Page Cache에 있는 페이지를 그냥 바라봄
+
+3. shared mem처럼 파일 공유 가능
+
+### 6. 단점
+
+1. OS가 언제 읽고 쓰고 내보낼지 정해서 제어가 어렵다
+2. pipe, socket과 같은 순차데이터에서 사용 불가(흐름대로 읽기 때문에 적용할 offset이 없기 때문에)
+
+### note
+
+backing store: 페이지가 메모리에서 쫓겨날 때 나중에 다시 가져올 원본을 말한다.
+
+#### 일반 가상 메모리
+
+- Anonymous Page = 파일과 연결되지 않은 일반 가상 메모리 페이지 (heap, stack, malloc 등)
+- Anonymous Page가 쫓겨나면 OS는 Swap Area에 저장
+- 따라서 **일반 vm은 backing store = swap 영역**
+
+#### mmap 페이지
+
+하지만 mmap는 페이지가 쫓겨나도 원본이 이미 파일로 존재한다고 판단해서 backing store = a.txt와 같은 파일이 된다
+
+즉 **mmap된 페이지는 swap 파일 대신 원래 파일이 backing store 역할**을 한다

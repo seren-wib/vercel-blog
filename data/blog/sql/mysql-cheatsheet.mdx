@@ -1,0 +1,195 @@
+---
+title: 'MySQL Cheatsheet (macOS)'
+date: '2026-10-09'
+tags: ['SQL']
+summary: 'MySQL 설치와 서비스 관리, 접속, DB/테이블, CRUD, 백업, 유저 권한, 비밀번호 초기화'
+draft: false
+---
+
+> 개인 참고용. 원본: `3-1/오픈소스 웹소프트웨어/mysql-test/mysql-setup.md` 에서 보강.
+
+---
+
+## 1. 설치 & 서비스 관리
+
+```bash
+brew install mysql
+brew services start mysql      # 시작 (부팅 시 자동 실행 등록)
+brew services stop mysql       # 정지
+brew services restart mysql    # 재시작
+brew services list             # 상태 확인 (started / stopped)
+mysql --version                # 설치 버전 확인
+```
+
+---
+
+## 2. 접속
+
+```bash
+mysql -u root -p               # root로 접속 (비번 입력)
+mysql -u root -p DB이름         # 접속하면서 바로 DB 선택
+mysql -h 127.0.0.1 -P 3306 -u root -p   # 호스트/포트 지정
+exit                           # 또는 quit, \q
+```
+
+---
+
+## 3. 데이터베이스 / 테이블
+
+```sql
+SHOW DATABASES;                -- DB 목록
+CREATE DATABASE mydb;          -- DB 생성
+CREATE DATABASE mydb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  -- 한글 안전
+DROP DATABASE mydb;            -- ⚠️ DB 통째로 삭제
+USE mydb;                      -- DB 선택
+SELECT DATABASE();             -- 현재 선택된 DB 확인
+
+SHOW TABLES;                   -- 테이블 목록
+DESCRIBE 테이블이름;            -- 테이블 구조 (DESC 로 줄여도 됨)
+SHOW CREATE TABLE 테이블이름;   -- 테이블 생성문 그대로 보기
+DROP TABLE 테이블이름;          -- ⚠️ 테이블 삭제
+TRUNCATE TABLE 테이블이름;      -- 데이터만 전부 비움 (구조는 유지)
+```
+
+---
+
+## 4. 데이터 다루기 (CRUD)
+
+```sql
+-- 조회
+SELECT * FROM 테이블이름;
+SELECT 컬럼1, 컬럼2 FROM 테이블이름 WHERE 조건;
+SELECT * FROM 테이블이름 ORDER BY 컬럼 DESC LIMIT 10;
+SELECT COUNT(*) FROM 테이블이름;
+
+-- 삽입 (※ 컬럼명은 괄호로 감싸야 함)
+INSERT INTO 테이블이름 (컬럼1, 컬럼2) VALUES (값1, 값2);
+INSERT INTO 테이블이름 (컬럼1, 컬럼2) VALUES (값1, 값2), (값3, 값4);  -- 여러 행 한 번에
+
+-- 수정 (⚠️ WHERE 빼먹으면 전체 행이 바뀜)
+UPDATE 테이블이름 SET 컬럼1 = 값 WHERE 조건;
+
+-- 삭제 (⚠️ WHERE 빼먹으면 전체 행이 지워짐)
+DELETE FROM 테이블이름 WHERE 조건;
+```
+
+> 원본에 `INSERT INTO 테이블 VALUES 값` 형태로 적혀 있었는데, 값에 괄호 `()`가 필요하고
+> 컬럼 지정 시에도 `(컬럼)` 괄호가 필요해요. 위가 정확한 문법.
+
+---
+
+## 5. 파일로 실행 / 백업
+
+```bash
+# .sql 파일로 초기화·실행 (터미널에서, mysql 접속 전)
+mysql -u root -p DB이름 < init.sql
+
+# DB 백업 (덤프)
+mysqldump -u root -p DB이름 > backup.sql
+
+# 백업 복원
+mysql -u root -p DB이름 < backup.sql
+```
+
+```sql
+-- mysql 접속한 상태에서 파일 실행
+SOURCE /경로/init.sql;
+```
+
+---
+
+## 6. 유저 / 권한
+
+```sql
+SELECT user, host FROM mysql.user;     -- 유저 목록
+SELECT CURRENT_USER();                 -- 지금 접속한 유저
+
+-- 유저 생성
+CREATE USER 'app'@'localhost' IDENTIFIED BY '비밀번호';
+
+-- 권한 부여 (특정 DB 전체)
+GRANT ALL PRIVILEGES ON mydb.* TO 'app'@'localhost';
+FLUSH PRIVILEGES;                      -- 권한 변경 적용
+
+-- 유저 삭제
+DROP USER 'app'@'localhost';
+```
+
+---
+
+## 7. 주의사항
+
+- `root` 비밀번호는 **PC 전역** — 같은 MySQL을 쓰는 모든 프로젝트에 영향.
+- 비밀번호 변경 후 각 프로젝트의 `.env` / DB 설정 파일도 함께 수정 필요.
+- `UPDATE` / `DELETE` 는 **`WHERE` 를 빼먹으면 전체 행에 적용됨**. 실행 전 `SELECT` 로 대상 먼저 확인하는 습관.
+- `DROP` / `TRUNCATE` 는 되돌리기 어려움. 백업 먼저.
+
+---
+
+## 8. 비밀번호 분실 시 초기화
+
+### 1) MySQL 정지
+
+```bash
+brew services stop mysql
+```
+
+### 2) 인증 우회로 실행
+
+```bash
+mysqld_safe --skip-grant-tables &
+```
+
+5초 정도 기다린 후:
+
+```bash
+mysql -u root
+```
+
+### 3) 비밀번호 재설정
+
+```sql
+FLUSH PRIVILEGES;
+SET GLOBAL validate_password.policy = LOW;
+ALTER USER 'root'@'localhost' IDENTIFIED BY '새비밀번호';
+FLUSH PRIVILEGES;
+exit
+```
+
+> 비밀번호 정책 기본값: 대문자 + 소문자 + 숫자 + 특수문자 조합 필요.
+> `validate_password.policy = LOW` 로 낮추면 단순한 비밀번호도 가능.
+
+### 4) 정리 후 재시작
+
+```bash
+pkill mysqld_safe; pkill mysqld
+brew services start mysql
+```
+
+### 5) 새 비밀번호로 접속 확인
+
+```bash
+mysql -u root -p
+```
+
+---
+
+## 9. 문제 해결 (자주 겪는 것)
+
+```bash
+# 서버가 안 켜질 때 — 이미 떠 있는 프로세스 확인
+ps aux | grep mysql
+
+# 포트 3306 누가 쓰는지 확인
+lsof -i :3306
+
+# "Can't connect to local MySQL server" → 서비스부터 확인
+brew services list
+```
+
+| 증상                            | 원인/해결                                         |
+| ------------------------------- | ------------------------------------------------- |
+| `Access denied for user 'root'` | 비번 틀림 → 8번 초기화                            |
+| `Can't connect ... socket`      | 서버 안 켜짐 → `brew services start mysql`        |
+| 한글 깨짐 (`???`)               | DB/테이블 charset을 `utf8mb4` 로                  |
+| `Unknown database`              | `SHOW DATABASES;` 로 이름 확인, `CREATE DATABASE` |

@@ -15,6 +15,11 @@
 | 아키텍처      | `docs/shared/architecture.md`          |
 | 검증 절차     | `docs/agent/runbook.md`                |
 | 완료 조건     | `docs/agent/done_condition.md`         |
+| 노트 발행     | `docs/agent/publish_pipeline.md`       |
+
+UNIV 노트를 블로그에 올릴 때는 아래 파이프라인을 따른다.
+
+@docs/agent/publish_pipeline.md
 
 ---
 

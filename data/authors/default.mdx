@@ -11,59 +11,37 @@ github: https://github.com/seren-wib/
 
 Hi, I'm **seren-wib**, a third-year student in the School of Software at Chungbuk National University who learns by
 building and writing things down.
-I build web apps end to end in small teams, keep them honest with CI and pull-request rules, and spend a fair amount
-of time making AI coding agents work the way I want. Lecture notes end up here as structured posts.
+Two things interest me most: handing repetitive work to AI agents and scripts, and turning stories I imagine into games.
+Beyond that, I build web apps end to end in small teams and keep them honest with CI and pull-request rules. Lecture notes end up here as structured posts.
 
-## Focus
+## Interests
 
+- **AI automation**: I keep the config, hooks and memory of three agents (Claude Code, Codex, Gemini) in one repo shared across Windows and macOS (dotfiles), and built a USB kit that handles school lab PC logins in one command (usb-kit). I also designed, and have long been using, a workflow where the agent takes work from issue to merge through per-step skills (Atlas Odyssey)
+- **Game development**: I'm prototyping Vane, a 2D story adventure in Unity, and published a Victoria 3 mod. My Unity study notes live in the Unity category of this blog
 - **Full-stack web**: React front ends on top of Express or Django back ends, with JWT auth and relational databases
 - **CI and team workflow**: GitHub Actions on every pull request, protected branches, issue- and PR-based collaboration
-- **AI agents**: rule-based agent harnesses, project rules and verification loops for AI coding tools
 - **Computer science fundamentals**: course notes written up chapter by chapter on this blog
 
-## Skills
+## Tech Stack
 
-- **Languages**: JavaScript, TypeScript, Python, SQL
-- **Frontend**: React, Vite, Next.js, Tailwind CSS, Monaco Editor
-- **Backend**: Node.js, Express, Django, JWT auth, bcrypt
-- **Database**: MySQL, SQLite
-- **Testing**: Jest, Supertest, Vitest, React Testing Library
-- **Infra & DevOps**: GitHub Actions, Docker, Vercel, Linux (Ubuntu, WSL)
-- **Tools**: Git, Bruno, DBeaver, Claude Code, Codex, Antigravity
+Bold marks what shows up most in my commits.
+
+- Languages: **Python**, **JavaScript**, **TypeScript**, SQL, Bash, PowerShell
+- Frontend: **React**, **Next.js**, **Tailwind CSS**, Vite, Contentlayer, Monaco Editor
+- Backend: Node.js, Express, Django, JWT auth, bcrypt
+- Data: SQLite, MySQL, BeautifulSoup, Streamlit
+- Testing: Jest, Supertest, Vitest, React Testing Library
+- Infra & DevOps: **GitHub Actions**, **Vercel**, Linux (Ubuntu, WSL), Docker, gocryptfs
+- AI tools: **Claude Code** (hooks, skills, MCP), Codex, Antigravity
+- Games: Unity (2D, URP), Victoria 3 modding
+- Tools: Git, GitHub CLI, Bruno, DBeaver
 
 ## Projects
 
-### [Online Code Editor](https://github.com/seren-wib/opensource-web-azas)
+Details are on the [Projects](/en/projects/) page.
 
-A browser-based code editor where users write, run and save code, built by a team of four (I built most of the front end).
-React, Vite and Monaco Editor on an Express + MySQL back end, with code running in per-language Docker containers.
-Every pull request runs through GitHub Actions CI (Jest, Supertest, Vitest, MySQL service container), and `main` is
-protected so nothing merges until it passes.
-
-### [kibotos.dev](https://github.com/seren-wib/vercel-blog)
-
-This blog, built with Next.js 15, Contentlayer and Tailwind CSS on Vercel, plus a pipeline that turns course notes into posts.
-Every change ships through a pull request with lint, type check and build in CI.
-
-### [SCPC 2026 AI Agent Harness](https://github.com/seren-wib/scpc-2026-agent-harness)
-
-A rule-based harness for the SCPC 2026 qualifier (DACON) that decides how a personal-device agent should handle a request,
-written in plain Python with no dependencies. Final score **0.8408** (baseline 0.5206).
-
-### [Coffee Shop](https://github.com/seren-wib/coffee-shop)
-
-A coffee-bean online shop for the Software Engineering term project (in progress), built by a team of three.
-I build the React + Vite front end on top of a Django back end.
-
-### [Atlas Odyssey](https://github.com/seren-wib/atlas-odyssey)
-
-A personal learning atlas that maps what I've learned and shows what's left, my solo entry for the 2026 CUVIC Vibe Coding
-Contest (in progress). The repo is set up for AI-agent-driven development: protected `develop`/`main` rulesets, PR-only
-merges and a test-first workflow.
-
-### [Amazon Price Scraper](https://github.com/seren-wib/amazon-price-scraper)
-
-Scrapes Amazon search results through ScraperAPI, stores them in SQLite and CSV, and charts prices in a Streamlit dashboard.
+- **Building**: [Atlas Odyssey](https://github.com/seren-wib/atlas-odyssey), [kibotos.dev](https://github.com/seren-wib/vercel-blog), [Coffee Shop](https://github.com/seren-wib/coffee-shop), dotfiles, Vane
+- **Shipped**: [my-status](https://github.com/seren-wib/my-status-public), [SCPC 2026 AI Agent Harness](https://github.com/seren-wib/scpc-2026-agent-harness), [Online Code Editor](https://github.com/seren-wib/opensource-web-azas), usb-kit, [Amazon Price Scraper](https://github.com/seren-wib/amazon-price-scraper), [Uncapped Construction](https://github.com/seren-wib/vic3-mod-construction-cap)
 
 ## Education
 

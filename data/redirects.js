@@ -83,7 +83,7 @@ const postRedirects = Object.entries({ ...movedPosts, ...renamedPosts }).map(([f
  * Tag pages were replaced by category pages. Every tag slug matches a category folder name.
  */
 const tagRedirects = [
-  { source: '/tags', destination: '/blog/', permanent: true },
+  { source: '/tags', destination: '/blog/category/', permanent: true },
   { source: '/tags/:tag', destination: '/blog/category/:tag/', permanent: true },
   {
     source: '/tags/:tag/page/:page',

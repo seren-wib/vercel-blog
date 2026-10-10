@@ -9,9 +9,7 @@
 | `app/[locale]/layout.tsx`                                    | `RootLayout` (default), `generateStaticParams` | —                                             | 언어별 루트 레이아웃, 헤더·푸터·검색 |
 | `app/[locale]/page.tsx`                                      | `Page` (default)                               | `/[locale]`                                   | 랜딩 (소개 + 전체 글 목록)           |
 | `app/[locale]/page/[page]/page.tsx`                          | `Page` (default)                               | `/[locale]/page/[n]`                          | 전체 글 목록 페이지네이션            |
-| `app/[locale]/latest/page.tsx`                               | `Page` (default)                               | `/[locale]/latest`                            | 최신 글 5개                          |
 | `app/[locale]/blog/[...slug]/page.tsx`                       | `Page` (default)                               | `/[locale]/blog/[category]/[slug]`            | 포스트 상세                          |
-| `app/[locale]/blog/category/page.tsx`                        | `Page` (default)                               | `/[locale]/blog/category`                     | 카테고리 목록                        |
 | `app/[locale]/blog/category/[category]/page.tsx`             | `CategoryPage` (default)                       | `/[locale]/blog/category/[category]`          | 카테고리별 포스트                    |
 | `app/[locale]/blog/category/[category]/page/[page]/page.tsx` | `CategoryPage` (default)                       | `/[locale]/blog/category/[category]/page/[n]` | 카테고리별 페이지네이션              |
 | `app/[locale]/about/page.tsx`                                | `Page` (default)                               | `/[locale]/about`                             | 어바웃                               |

@@ -7,7 +7,7 @@ export const feedPath = (locale: Locale) => (locale === 'kr' ? '/feed.xml' : `/$
 
 /**
  * hreflang alternates for a path that exists in the given locales (all locales by default).
- * `path` is the part after the locale prefix, e.g. '/latest/' or '/blog/os/os-13-io/'.
+ * `path` is the part after the locale prefix, e.g. '/about/' or '/blog/os/os-13-io/'.
  */
 export function languageAlternates(path: string, available: readonly Locale[] = locales) {
   const languages: Record<string, string> = {}

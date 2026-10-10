@@ -87,7 +87,7 @@ const postRedirects = Object.entries({ ...movedPosts, ...renamedPosts }).map(([f
  * Tag pages were replaced by category pages. Every tag slug matches a category folder name.
  */
 const tagRedirects = [
-  { source: '/tags', destination: '/kr/blog/category/', permanent: true },
+  { source: '/tags', destination: '/kr/', permanent: true },
   { source: '/tags/:tag', destination: '/kr/blog/category/:tag/', permanent: true },
   {
     source: '/tags/:tag/page/:page',
@@ -107,4 +107,15 @@ const listRedirects = [
   { source: '/:locale(kr|en)/page/1', destination: '/:locale/', permanent: true },
 ]
 
-module.exports = [...postRedirects, ...tagRedirects, ...listRedirects]
+/**
+ * The Latest page and the category index were removed; the landing page already lists posts by date
+ * and shows every category in its sidebar.
+ */
+const removedPageRedirects = [
+  { source: '/latest', destination: '/kr/', permanent: true },
+  { source: '/:locale(kr|en)/latest', destination: '/:locale/', permanent: true },
+  { source: '/blog/category', destination: '/kr/', permanent: true },
+  { source: '/:locale(kr|en)/blog/category', destination: '/:locale/', permanent: true },
+]
+
+module.exports = [...postRedirects, ...tagRedirects, ...listRedirects, ...removedPageRedirects]

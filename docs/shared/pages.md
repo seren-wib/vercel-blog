@@ -19,9 +19,7 @@
 | ------------------------------------------------ | -------------------------------- | ----------------------------------------------------------------------------------- | --------- |
 | `/[locale]`                                      | 랜딩 (전체 글 목록)              | 소개 문구 + 해당 언어 전체 포스트 목록(날짜순), 카테고리 사이드바                   | 아니오    |
 | `/[locale]/page/[page]`                          | 전체 글 목록 (페이지네이션)      | 5개/페이지, 2페이지부터 (`/[locale]/page/1`은 `/[locale]`로 리다이렉트)             | 아니오    |
-| `/[locale]/latest`                               | 최신 글                          | 최신 포스트 5개 + "All Posts" 링크(`/[locale]`)                                     | 아니오    |
 | `/[locale]/blog/[category]/[slug]`               | 블로그 상세                      | MDX 포스트 렌더링, 목차, 같은 언어·카테고리 안 장 순서 prev/next, 댓글(Giscus)      | 아니오    |
-| `/[locale]/blog/category`                        | 카테고리 목록                    | 해당 언어 카테고리 + 포스트 수 (`data/categories.ts` 순서)                          | 아니오    |
 | `/[locale]/blog/category/[category]`             | 카테고리별 포스트                | 장 순서(파일명 자연 정렬)로 나열                                                    | 아니오    |
 | `/[locale]/blog/category/[category]/page/[page]` | 카테고리별 포스트 (페이지네이션) | 5개/페이지                                                                          | 아니오    |
 | `/[locale]/about`                                | 어바웃                           | 저자 프로필 (`kr`: `data/authors/kr/default.mdx`, `en`: `data/authors/default.mdx`) | 아니오    |
@@ -31,7 +29,7 @@
 
 ### 상단 바
 
-Home(`/[locale]`) · Latest(`/[locale]/latest`) · Categories(`/[locale]/blog/category`) · Projects · About · 언어 토글(KR / EN) (`data/headerNavLinks.ts`, 문구는 `data/i18n.ts`)
+Home(`/[locale]`) · Projects · About · 언어 토글(KR / EN) (`data/headerNavLinks.ts`, 문구는 `data/i18n.ts`)
 
 - 언어 토글은 지금 주소의 언어 접두사만 바꾼 주소로 이동한다 (`/kr/blog/os/os-13-io` ↔ `/en/blog/os/os-13-io`).
 - 글 상세에서 다른 언어 버전이 없으면 토글을 비활성화한다. 다른 페이지는 항상 두 언어가 있다.
@@ -44,10 +42,11 @@ Home(`/[locale]`) · Latest(`/[locale]/latest`) · Categories(`/[locale]/blog/ca
 
 ### 리다이렉트 (`data/redirects.js`, 308)
 
-- 언어 접두사 없는 예전 주소 → `/kr` 주소: `/blog/...` → `/kr/blog/...`, `/latest`·`/about`·`/projects`·`/page/[page]` → `/kr/...`
+- 언어 접두사 없는 예전 주소 → `/kr` 주소: `/blog/...` → `/kr/blog/...`, `/about`·`/projects`·`/page/[page]` → `/kr/...`
 - `/blog` → `/kr`, `/blog/page/[page]` → `/kr/page/[page]`, `/[locale]/page/1` → `/[locale]`
 - 예전 글 주소(카테고리 폴더 분리 전, slug 변경 전) → 현재 `/kr` 글 주소 (중간 단계 없이 바로)
-- `/tags` → `/kr/blog/category`, `/tags/[tag]` → `/kr/blog/category/[tag]`
+- 없앤 페이지 → 언어별 랜딩: `/[locale]/latest`, `/[locale]/blog/category` → `/[locale]` (접두사 없는 `/latest`, `/blog/category`는 `/kr`)
+- `/tags` → `/kr`, `/tags/[tag]` → `/kr/blog/category/[tag]`
 
 ---
 
@@ -59,18 +58,11 @@ Home(`/[locale]`) · Latest(`/[locale]/latest`) · Categories(`/[locale]/blog/ca
 ├─ 카테고리 클릭 → /[locale]/blog/category/[category]
 └─ 페이지네이션 → /[locale]/page/[page]
 
-최신 글(/[locale]/latest)
-├─ 포스트 클릭 → /[locale]/blog/[category]/[slug]
-└─ "All Posts" 링크 → /[locale]
-
 블로그 상세(/[locale]/blog/[category]/[slug])
 ├─ 카테고리 클릭 → /[locale]/blog/category/[category]
 ├─ 같은 언어·카테고리 안 Prev/Next (장 순서)
 ├─ 언어 토글 → 다른 언어의 같은 글 (없으면 비활성)
 └─ 댓글 (Giscus, GitHub Discussions, 언어별 주소라 스레드도 따로)
-
-카테고리 목록(/[locale]/blog/category)
-└─ 카테고리 클릭 → /[locale]/blog/category/[category]
 
 카테고리별 목록(/[locale]/blog/category/[category])
 ├─ 포스트 클릭 → /[locale]/blog/[category]/[slug]

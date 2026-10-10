@@ -24,9 +24,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }))
   }
 
-  const routes = ['/', '/latest/', '/blog/category/', '/projects/', '/about/'].flatMap((path) =>
-    entries(path, locales, today)
-  )
+  const routes = ['/', '/projects/', '/about/'].flatMap((path) => entries(path, locales, today))
 
   const categories = [...new Set(locales.flatMap((l) => Object.keys(counts[l] ?? {})))]
   const categoryRoutes = categories.flatMap((category) =>

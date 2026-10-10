@@ -1,0 +1,46 @@
+---
+title: 'CH1. The Big Picture of Computing'
+date: '2026-10-09'
+tags: ['Computer Systems']
+draft: false
+summary: 'Scope of computer science, problems and algorithms (Euclidean algorithm), how C code gets executed, abstraction'
+---
+
+# 1. What does computer science deal with?
+
+**Computer science is the study of problem-solving methods together with the computer systems that execute them**
+
+1. Problem definition
+2. Algorithm design
+3. Program implementation
+4. Execution on a computer system
+
+## The whole flow in one line
+
+**Problem → algorithm → program (C code) → executable → process → executed by the CPU**
+
+# 2. Problems and algorithms
+
+- Algorithmic thinking: turning a problem into clear steps and data forms
+
+## Algorithm
+
+- 5 basic conditions: input, output, definiteness, finiteness, effectiveness
+- 2 evaluation criteria: correctness, efficiency
+
+### Example (Euclidean algorithm)
+
+- gcd(m, n) = gcd(n, m mod n); when n becomes 0, m is the answer.
+- gcd(48,18) → (18,12) → (12,6) → (6,0) → 6
+
+# 3. Connecting programs and computer systems
+
+- Until C code runs: preprocessing → compiling → assembling → linking → executable → OS loads it into memory
+
+- Program execution path: user → application program → standard library → operating system → hardware
+
+## Abstraction
+
+Hide the complex internals and expose only what the user needs
+
+Address of arr[i] = start address + i × element size

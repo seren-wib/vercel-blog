@@ -30,7 +30,6 @@ app/layout.tsx (RootLayout)
     │   │   └── SocialIcon
     │   └── [프로젝트] Card
     └── Footer
-        └── SocialIcon
 ```
 
 ---
@@ -46,8 +45,8 @@ app/layout.tsx (RootLayout)
 ### Footer
 
 - 위치: `components/Footer.tsx`
-- 역할: 소셜 링크, 저작권 표시
-- Props: 없음 (`siteMetadata.js`에서 직접 import)
+- 역할: 저작권 표시 (소셜 아이콘은 About의 `AuthorLayout`에만 둔다)
+- Props: `locale` (`siteMetadata.js`에서 직접 import)
 
 ### Link (CustomLink)
 
@@ -128,11 +127,11 @@ app/layout.tsx (RootLayout)
 - 위치: `components/social-icons/index.tsx`
 - 역할: 소셜 플랫폼 아이콘 렌더링
 
-| prop   | 타입     | 필수 | 설명                                                  |
-| ------ | -------- | ---- | ----------------------------------------------------- |
-| `kind` | `string` | ✅   | `mail`, `github`, `linkedin`, `twitter`, `bluesky` 등 |
-| `href` | `string` | ✅   | 링크 URL                                              |
-| `size` | `number` |      | 아이콘 크기 (px)                                      |
+| prop   | 타입     | 필수 | 설명                                        |
+| ------ | -------- | ---- | ------------------------------------------- |
+| `kind` | `string` | ✅   | `mail`, `github`, `linkedin`, `facebook` 등 |
+| `href` | `string` | ✅   | 링크 URL                                    |
+| `size` | `number` |      | 아이콘 크기 (px)                            |
 
 ### PageTitle
 

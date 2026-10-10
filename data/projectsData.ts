@@ -104,31 +104,6 @@ const projectsData: Project[] = [
     href: 'https://github.com/seren-wib/coffee-shop',
   },
   {
-    title: 'dotfiles',
-    status: 'building',
-    size: 'standard',
-    period: { kr: '2026.10 –', en: 'Oct 2026 –' },
-    role: { kr: '개인 도구', en: 'Personal tooling' },
-    summary: {
-      kr: 'Claude Code, Codex, Gemini(Antigravity), VS Code 설정을 한 레포에 모아 Windows와 macOS에서 같이 쓰는 개발 환경.',
-      en: 'One repo for Claude Code, Codex, Gemini (Antigravity) and VS Code config, shared between Windows and macOS.',
-    },
-    highlights: {
-      kr: [
-        '링크 목록 `links.txt` 하나를 `install.ps1`·`install.sh`가 같이 읽어 두 OS에 심볼릭 링크로 설치. 기존 파일은 시간별 백업 폴더로 옮김',
-        '세 에이전트가 같은 훅을 공유하고, 전역 메모리를 레포로 동기화해 어느 기기에서 열어도 같은 맥락으로 시작',
-        '앱이 머신별 경로를 써넣는 Codex `config.toml`은 링크하지 않고 MCP 서버 목록만 병합. Unity MCP 설정 skill과 로컬 VS Code 확장도 포함',
-      ],
-      en: [
-        'A single `links.txt` read by both `install.ps1` and `install.sh` symlinks everything on either OS, moving existing files to a timestamped backup',
-        'Three agents share the same hooks, and global memory syncs through the repo, so every machine starts with the same context',
-        "Codex's `config.toml` holds machine-specific paths, so only the MCP server list is merged into it instead of linking. Also ships a Unity MCP setup skill and a local VS Code extension",
-      ],
-    },
-    stack: ['PowerShell', 'Bash', 'Node.js', 'Claude Code', 'Codex'],
-    private: true,
-  },
-  {
     title: 'Vane',
     status: 'building',
     size: 'brief',

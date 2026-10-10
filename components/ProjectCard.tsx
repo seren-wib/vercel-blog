@@ -69,12 +69,12 @@ export default function ProjectCard({ project, locale }: { project: Project; loc
     <article
       className={`rounded-md border p-6 ${
         featured
-          ? 'border-primary-500/60 bg-gray-50 shadow-md dark:bg-gray-900/70 dark:shadow-gray-800/40'
+          ? 'border-gray-900 bg-gray-50 shadow-md dark:border-gray-100 dark:bg-gray-900/70 dark:shadow-gray-800/40'
           : 'border-gray-200 dark:border-gray-700'
       }`}
     >
       {featured && (
-        <div className="text-primary-500 mb-2 text-xs font-bold tracking-wide uppercase">
+        <div className="mb-2 text-xs font-bold tracking-wide text-gray-900 uppercase dark:text-gray-100">
           {dict.featuredProject}
         </div>
       )}

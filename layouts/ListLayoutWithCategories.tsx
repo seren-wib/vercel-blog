@@ -92,7 +92,7 @@ export default function ListLayoutWithCategories({
             {title}
           </h1>
           {description && (
-            <p className="border-primary-500 mt-2 rounded-sm border-l-4 bg-gray-50 px-6 py-5 text-base leading-7 text-gray-600 shadow-md sm:mt-0 dark:bg-gray-900/70 dark:text-gray-300 dark:shadow-gray-800/40">
+            <p className="mt-2 rounded-sm border-l-4 border-gray-900 bg-gray-50 px-6 py-5 text-base leading-7 text-gray-600 shadow-md sm:mt-0 dark:border-gray-100 dark:bg-gray-900/70 dark:text-gray-300 dark:shadow-gray-800/40">
               {description}
             </p>
           )}

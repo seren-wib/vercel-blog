@@ -39,7 +39,7 @@ iCloud `UNIV` 폴더의 강의 정리 문서를 블로그 글로 옮겨 배포�
 ### 파일명
 
 - 확장자는 반드시 `.mdx` (`contentlayer.config.ts`의 `filePathPattern: 'blog/**/*.mdx'` — `.md`는 사이트에 안 뜬다).
-- 형식은 `<category>-<장>-<내용>.mdx`. kebab-case, 공백 금지. 카테고리를 앞에 붙여 파일명(slug)이 블로그 전체에서 겹치지 않게 한다: `computer-systems-ch1-big-picture.mdx`, `network-ch7-data-link.mdx`.
+- 형식은 `<category>-<장>-<내용>.mdx`. 영어 소문자·숫자·하이픈만 쓴다 (한글·대문자·공백 금지). 내용 부분은 글 주제를 영어로 옮긴다 (`딥러닝` → `deep-learning`). 카테고리를 앞에 붙여 파일명(slug)이 블로그 전체에서 겹치지 않게 한다: `computer-systems-ch1-big-picture.mdx`, `network-ch7-data-link.mdx`.
 - **파일명이 카테고리 안 장 순서를 정한다** (숫자는 수치로 비교: `ch2` < `ch10`). 카테고리 접두사 바로 뒤에 장 번호를 둔다.
 - 같은 장의 부록처럼 본문 뒤에 와야 하면 장 번호 뒤에 글자를 붙인다: `network-ch4-transmission-media` 다음 `network-ch4a-appendix-antenna-propagation`.
 - 파일명(slug)이 URL이 되므로 한 번 발행한 글의 파일명을 바꾸면 `data/redirects.js`에 예전 주소를 추가한다.

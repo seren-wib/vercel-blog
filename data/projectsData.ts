@@ -180,8 +180,8 @@ const projectsData: Project[] = [
     size: 'standard',
     period: { kr: '2026.03 – 2026.06', en: 'Mar – Jun 2026' },
     role: {
-      kr: '프론트엔드 · 인증 · CI · 오픈소스 웹 수업 팀 프로젝트 (4인, 커밋 168개 중 94개)',
-      en: 'Front-end · Auth · CI · Open-source web course team project (team of 4, 94 of 168 commits)',
+      kr: '문서 · 프론트엔드 · 인증 · CI · 오픈소스 웹 수업 팀 프로젝트 (4인, 커밋 168개 중 94개)',
+      en: 'Docs · Front-end · Auth · CI · Open-source web course team project (team of 4, 94 of 168 commits)',
     },
     summary: {
       kr: '브라우저에서 코드를 작성하고 실행하고 저장하는 온라인 코드 에디터.',
@@ -189,11 +189,13 @@ const projectsData: Project[] = [
     },
     highlights: {
       kr: [
+        '팀이 보고 일하는 문서를 전부 작성: 개발 환경·기술 스택 버전·폴더 구조를 담은 README, 기여 흐름 CONTRIBUTING, 그리고 API 명세, DB 스키마, 아키텍처, 페이지 정의, 컴포넌트 구조, export 함수명, AI 코딩 도구용 검증 절차·완료 조건까지 스펙 문서 9종',
         'React 19 + Vite + Monaco Editor 프론트엔드 대부분: 라우팅과 인증 가드, 공용 컴포넌트, 라이트·다크 디자인 토큰',
         'bcrypt + JWT 로그인·회원가입 API',
         'GitHub Actions CI(클라이언트·서버 각각 lint, 테스트, 빌드)를 세우고 `main` 보호 규칙으로 CI 통과 시에만 머지. Jest·Supertest, Vitest·React Testing Library',
       ],
       en: [
+        'Wrote every document the team worked from: a README with the dev environment, pinned stack versions and folder layout, a CONTRIBUTING workflow, and nine spec docs covering the API, DB schema, architecture, pages, component structure, exported function names, plus a runbook and done conditions for AI coding tools',
         'Most of the React 19 + Vite + Monaco Editor front-end: routing and auth guards, shared components, light/dark design tokens',
         'Login and registration API with bcrypt + JWT',
         'Set up GitHub Actions CI (lint, test, build for both client and server) and protected `main` so only green PRs merge. Jest, Supertest, Vitest, React Testing Library',

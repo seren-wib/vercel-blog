@@ -41,22 +41,21 @@
 /*
   Accent color. Near-black on light, near-white on dark, so existing `primary-*` classes
   (links, active category, hovers) stay readable in both themes without `dark:` variants.
-  400/600 are the softer hover shades.
+  Every shade is the same strongest tone: text sits in gray and hovers or active states
+  step up to it.
 */
 @theme inline {
-  --color-primary-400: var(--accent-soft);
+  --color-primary-400: var(--accent);
   --color-primary-500: var(--accent);
-  --color-primary-600: var(--accent-soft);
+  --color-primary-600: var(--accent);
 }
 
 :root {
   --accent: var(--color-gray-950);
-  --accent-soft: var(--color-gray-600);
 }
 
 .dark {
-  --accent: var(--color-gray-50);
-  --accent-soft: var(--color-gray-300);
+  --accent: var(--color-white);
 }
 
 /*
@@ -92,9 +91,9 @@
 @layer utilities {
   .prose {
     & a {
-      color: var(--color-primary-500);
+      color: var(--color-gray-700);
       &:hover {
-        color: var(--color-primary-600);
+        color: var(--color-primary-500);
       }
       & code {
         color: var(--color-primary-400);
@@ -114,7 +113,7 @@
 
   .prose-invert {
     & a {
-      color: var(--color-primary-500);
+      color: var(--color-gray-300);
       &:hover {
         color: var(--color-primary-400);
       }

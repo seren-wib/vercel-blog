@@ -92,7 +92,7 @@ export default function ListLayoutWithCategories({
             {title}
           </h1>
           {description && (
-            <p className="mt-2 rounded-sm border-l-4 border-gray-900 bg-gray-50 px-6 py-5 text-base leading-7 text-gray-600 shadow-md sm:mt-0 dark:border-gray-100 dark:bg-gray-900/70 dark:text-gray-300 dark:shadow-gray-800/40">
+            <p className="mt-2 rounded-sm border-l-4 border-gray-900 bg-white px-6 py-5 text-base leading-7 text-gray-600 shadow-md ring-1 ring-gray-200 sm:mt-0 dark:border-gray-100 dark:bg-gray-950/60 dark:text-gray-300 dark:shadow-gray-800/40 dark:ring-gray-800">
               {description}
             </p>
           )}
@@ -113,10 +113,12 @@ export default function ListLayoutWithCategories({
           </nav>
         </div>
         <div className="flex sm:space-x-24">
-          <div className="hidden h-full max-h-screen max-w-[280px] min-w-[280px] flex-wrap overflow-auto rounded-sm bg-gray-50 pt-5 shadow-md sm:flex dark:bg-gray-900/70 dark:shadow-gray-800/40">
+          <div className="hidden h-full max-h-screen max-w-[280px] min-w-[280px] flex-wrap overflow-auto rounded-sm bg-white pt-5 shadow-md ring-1 ring-gray-200 sm:flex dark:bg-gray-950/60 dark:shadow-gray-800/40 dark:ring-gray-800">
             <div className="px-6 py-4">
               {isAllPosts ? (
-                <h3 className="text-primary-500 font-bold uppercase">{dict.allPosts}</h3>
+                <h3 className="font-bold text-gray-950 uppercase dark:text-white">
+                  {dict.allPosts}
+                </h3>
               ) : (
                 <Link
                   href={home}
@@ -132,7 +134,7 @@ export default function ListLayoutWithCategories({
                 {sortedCategories.map((c) => (
                   <li key={c} className="my-3">
                     {c === currentCategory ? (
-                      <h3 className="text-primary-500 inline px-3 py-2 text-sm font-bold uppercase">
+                      <h3 className="inline px-3 py-2 text-sm font-bold text-gray-950 uppercase dark:text-white">
                         {`${getCategoryLabel(c)} (${categoryCounts[c]})`}
                       </h3>
                     ) : (
@@ -167,7 +169,10 @@ export default function ListLayoutWithCategories({
                       <div className="space-y-3">
                         <div>
                           <h2 className="text-2xl leading-8 font-bold tracking-tight">
-                            <Link href={`/${path}`} className="text-gray-900 dark:text-gray-100">
+                            <Link
+                              href={`/${path}`}
+                              className="hover:text-primary-500 dark:hover:text-primary-400 inline-block origin-left text-gray-700 transition-transform duration-150 hover:scale-[1.03] dark:text-gray-300"
+                            >
                               {title}
                             </Link>
                           </h2>

@@ -86,7 +86,7 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                           {author.twitter && (
                             <Link
                               href={author.twitter}
-                              className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
+                              className="hover:text-primary-500 dark:hover:text-primary-400 text-gray-600 dark:text-gray-300"
                             >
                               {author.twitter
                                 .replace('https://twitter.com/', '@')
@@ -140,7 +140,7 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                         <h2 className="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
                           {dict.previousArticle}
                         </h2>
-                        <div className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400">
+                        <div className="hover:text-primary-500 dark:hover:text-primary-400 text-gray-600 dark:text-gray-300">
                           <Link href={`/${prev.path}`}>{prev.title}</Link>
                         </div>
                       </div>
@@ -150,7 +150,7 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                         <h2 className="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
                           {dict.nextArticle}
                         </h2>
-                        <div className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400">
+                        <div className="hover:text-primary-500 dark:hover:text-primary-400 text-gray-600 dark:text-gray-300">
                           <Link href={`/${next.path}`}>{next.title}</Link>
                         </div>
                       </div>
@@ -161,7 +161,7 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
               <div className="pt-4 xl:pt-8">
                 <Link
                   href={`/${basePath}`}
-                  className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
+                  className="hover:text-primary-500 dark:hover:text-primary-400 text-gray-600 dark:text-gray-300"
                   aria-label={dict.backToBlog}
                 >
                   &larr; {dict.backToBlog}

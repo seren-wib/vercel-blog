@@ -33,9 +33,12 @@ function Title({ project, locale }: { project: Project; locale: Locale }) {
   const dict = getDictionary(locale)
   return (
     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      <h3 className="text-xl leading-8 font-bold tracking-tight text-gray-900 dark:text-gray-100">
+      <h3 className="text-xl leading-8 font-bold tracking-tight text-gray-700 dark:text-gray-300">
         {project.href ? (
-          <Link href={project.href} className="hover:text-primary-500 dark:hover:text-primary-400">
+          <Link
+            href={project.href}
+            className="hover:text-primary-500 dark:hover:text-primary-400 inline-block origin-left transition-transform duration-150 hover:scale-[1.03]"
+          >
             {project.title}
           </Link>
         ) : (
@@ -69,8 +72,8 @@ export default function ProjectCard({ project, locale }: { project: Project; loc
     <article
       className={`rounded-md border p-6 ${
         featured
-          ? 'border-gray-900 bg-gray-50 shadow-md dark:border-gray-100 dark:bg-gray-900/70 dark:shadow-gray-800/40'
-          : 'border-gray-200 dark:border-gray-700'
+          ? 'border-gray-900 bg-white shadow-md dark:border-gray-100 dark:bg-gray-950/60 dark:shadow-gray-800/40'
+          : 'border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950/40'
       }`}
     >
       {featured && (

@@ -116,19 +116,21 @@ export default async function RootLayout(props: {
         color="#000000"
       />
       <meta name="msapplication-TileColor" content="#000000" />
-      <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fff" />
+      <meta name="theme-color" media="(prefers-color-scheme: light)" content="#d4d4d4" />
       <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000" />
       <link rel="alternate" type="application/rss+xml" href={`${basePath}${feedPath(locale)}`} />
-      <body className="bg-white pl-[calc(100vw-100%)] text-black antialiased dark:bg-gray-950 dark:text-white">
+      <body className="bg-gray-300 pl-[calc(100vw-100%)] text-black antialiased dark:bg-black dark:text-white">
         <ThemeProviders>
           <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
-          <SectionContainer>
-            <SearchProvider searchConfig={searchConfig as SearchConfig}>
-              <Header locale={locale} />
-              <main className="mb-auto">{children}</main>
-            </SearchProvider>
-            <Footer locale={locale} />
-          </SectionContainer>
+          <div className="mx-auto min-h-screen max-w-[52rem] bg-gray-50 shadow-sm sm:my-6 sm:min-h-[calc(100vh-3rem)] sm:rounded-2xl xl:max-w-[70rem] xl:px-12 dark:bg-gray-900">
+            <SectionContainer>
+              <SearchProvider searchConfig={searchConfig as SearchConfig}>
+                <Header locale={locale} />
+                <main className="mb-auto">{children}</main>
+              </SearchProvider>
+              <Footer locale={locale} />
+            </SectionContainer>
+          </div>
         </ThemeProviders>
       </body>
     </html>

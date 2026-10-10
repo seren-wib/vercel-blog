@@ -12,7 +12,7 @@ const Category = ({ category, locale }: Props) => {
   return (
     <Link
       href={localePath(locale, `/blog/category/${category}`)}
-      className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 mr-3 text-sm font-medium uppercase"
+      className="hover:text-primary-500 dark:hover:text-primary-400 mr-3 text-sm font-medium text-gray-500 uppercase dark:text-gray-400"
     >
       {getCategoryLabel(category)}
     </Link>

@@ -29,7 +29,7 @@
 
 ### 상단 바
 
-Home(`/[locale]`) · Projects · About · 언어 토글(KR / EN) (`data/headerNavLinks.ts`, 문구는 `data/i18n.ts`)
+Blog(`/[locale]`, 랜딩 글 목록) · Projects · About · 언어 토글(KR / EN) (`data/headerNavLinks.ts`, 문구는 `data/i18n.ts`)
 
 - 언어 토글은 지금 주소의 언어 접두사만 바꾼 주소로 이동한다 (`/kr/blog/os/os-13-io` ↔ `/en/blog/os/os-13-io`).
 - 글 상세에서 다른 언어 버전이 없으면 토글을 비활성화한다. 다른 페이지는 항상 두 언어가 있다.

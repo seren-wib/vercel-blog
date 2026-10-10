@@ -30,8 +30,8 @@ iCloud `UNIV` 폴더의 강의 정리 문서를 블로그 글로 옮겨 배포�
 ## 1. 가져오기
 
 1. **사용자가 지정한 문서만** 가져온다. 과목 폴더를 통째로 훑어서 임의로 고르지 않는다.
-2. 중복 확인: `data/blog/` 전체에서 같은 장·같은 제목의 글이 이미 있는지 찾는다. 있으면 덮어쓰기인지 사용자에게 묻는다.
-3. 파일을 `data/blog/<category>/`로 복사한다. 카테고리는 과목 단위이고, 새 과목이면 폴더를 만들고 `data/categories.ts`에 영어 표시 이름을 추가한다 (예: `'computer-systems': 'Computer Systems'`).
+2. 중복 확인: `data/blog/kr/` 전체에서 같은 장·같은 제목의 글이 이미 있는지 찾는다. 있으면 덮어쓰기인지 사용자에게 묻는다.
+3. 파일을 한국어 폴더 `data/blog/kr/<category>/`로 복사한다. 카테고리는 과목 단위이고, 새 과목이면 폴더를 만들고 `data/categories.ts`에 영어 표시 이름을 추가한다 (예: `'computer-systems': 'Computer Systems'`).
 
 ## 2. 변환
 
@@ -41,7 +41,7 @@ iCloud `UNIV` 폴더의 강의 정리 문서를 블로그 글로 옮겨 배포�
 - 형식은 `<category>-<장>-<내용>.mdx`. 영어 소문자·숫자·하이픈만 쓴다 (한글·대문자·공백 금지). 내용 부분은 글 주제를 영어로 옮긴다 (`딥러닝` → `deep-learning`). 카테고리를 앞에 붙여 파일명(slug)이 블로그 전체에서 겹치지 않게 한다: `computer-systems-ch1-big-picture.mdx`, `network-ch7-data-link.mdx`.
 - **파일명이 카테고리 안 장 순서를 정한다** (숫자는 수치로 비교: `ch2` < `ch10`). 카테고리 접두사 바로 뒤에 장 번호를 둔다.
 - 같은 장의 부록처럼 본문 뒤에 와야 하면 장 번호 뒤에 글자를 붙인다: `network-ch4-transmission-media` 다음 `network-ch4a-appendix-antenna-propagation`.
-- 파일명(slug)이 URL이 되므로 한 번 발행한 글의 파일명을 바꾸면 `data/redirects.js`에 예전 주소를 추가한다.
+- 파일명(slug)이 URL이 되므로 한 번 발행한 글의 파일명을 바꾸면 `data/redirects.js`에 예전 주소를 추가한다. 한/영 두 버전의 파일명을 함께 바꾼다.
 
 ### frontmatter
 
@@ -91,23 +91,35 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 - **캡션**: 이미지 아래 기울임 한 줄 (prettier가 `_캡션_`으로 맞춘다).
 - **코드 블록**: 언어가 없으면 `text`를 붙인다 (기본값이 js라 색이 잘못 칠해진다). 파일 이름은 ` ```bash:date.sh ` 형식.
 
+### 영어 번역
+
+모든 글은 영어 번역을 같이 발행한다. 한국어 글을 다 만든 뒤 번역한다.
+
+- **위치**: `data/blog/en/<category>/<slug>.mdx`. 카테고리 폴더와 파일명은 한국어 글과 똑같이 한다 (언어 토글이 파일명으로 짝을 찾는다).
+- **frontmatter**: `title`·`summary`는 번역하고, `CH<n>.`·`HWN.` 접두사는 그대로 둔다. `date`·`tags`·`draft`·`layout`은 한국어 글과 같게 한다.
+- **본문**: 문장만 번역한다. 헤딩 개수·레벨·순서, 표 구조, 리스트 구조는 한국어 글과 똑같이 맞춘다. 코드 블록·인라인 코드·수식·이미지 경로·링크 주소는 그대로 둔다 (코드 안 한국어 주석만 번역). 이미지 캡션과 alt는 번역한다.
+- **용어**: 강의에서 영어 원어를 쓰는 개념은 원어로 쓴다. 한국어 고유 표현(학교 이름, 과목명)은 영어로 옮기고 처음 한 번만 괄호로 원문을 붙인다.
+- **MDX 이스케이프**는 한국어 글과 같은 규칙을 따른다.
+- 이미지는 두 언어가 같은 파일(`public/static/images/<slug>/`)을 쓴다. 그림 안 글씨는 번역하지 않는다.
+
 ## 3. 검증·배포
 
 1. `main` 최신화 후 브랜치 생성: `docs/<category>-<내용>` (예: `docs/network-ch9`).
-2. `npm run build` — 통과하고 `.next/server/app/blog/`에 해당 slug 페이지가 생성됐는지 확인한다. 빌드가 `app/tag-data.json`을 갱신하면 같이 커밋한다.
+2. `npm run build` — 통과하고 `.next/server/app/kr/blog/`와 `.next/server/app/en/blog/`에 해당 slug 페이지가 둘 다 생성됐는지 확인한다. 빌드가 `app/tag-data.json`을 갱신하면 같이 커밋한다.
 3. 커밋 메시지: `docs: add <category> <chapter> notes` (Conventional Commits, `.claude/commands/git-flow.md` 규칙).
 4. 푸시 → PR 생성 → CI 대기 → 머지. 머지되면 Vercel이 `main`을 자동 배포한다.
    - CI(`.github/workflows/ci.yml`)는 `main` 대상 PR에서 돈다. **CI가 성공해야 머지한다**: `gh pr checks <number> --watch`로 끝까지 기다리고, 실패하면 고쳐서 다시 푸시한다.
    - 원격 저장소 이름이 바뀐 뒤로 `gh`가 레포를 못 찾을 수 있으므로 `--repo seren-wib/vercel-blog`를 붙인다.
    - auto mode에서 `gh pr create` / `gh pr merge`가 막히면, 사용자에게 명령어를 넘기고 멈춘다.
-5. 배포 확인: `https://kibotos.dev/blog/<category>/<file>/`가 200인지 `curl`로 확인한다.
+5. 배포 확인: `https://kibotos.dev/kr/blog/<category>/<file>/`와 `https://kibotos.dev/en/blog/<category>/<file>/`가 200인지 `curl`로 확인한다.
 
 ---
 
 ## 블로그 구조
 
-- **카테고리**: `data/blog/<category>/` 폴더 = 카테고리. `category` 필드는 `contentlayer.config.ts`에서 폴더 이름으로 계산하고, 글 수는 빌드 때 `app/category-data.json`에 기록된다. 표시 이름과 사이드바 순서는 `data/categories.ts`.
-- **URL**: 글 `/blog/<category>/<slug>/` (slug에 카테고리 접두사가 들어 있어 `/blog/network/network-ch7-data-link/` 형태), 카테고리 목록 `/blog/category/<category>/`. 폴더 분리 전 주소, 카테고리 접두사를 붙이기 전 주소, 예전 태그 페이지(`/tags/...`)는 `data/redirects.js`에서 308 리다이렉트.
+- **언어**: `data/blog/<locale>/` 폴더 = 언어 (`kr`, `en`). `locale` 필드는 `contentlayer.config.ts`에서 폴더 이름으로 계산한다. 화면 구조·토글·SEO는 `docs/shared/pages.md`.
+- **카테고리**: `data/blog/<locale>/<category>/` 폴더 = 카테고리. `category` 필드는 `contentlayer.config.ts`에서 폴더 이름으로 계산하고, 언어별 글 수는 빌드 때 `app/category-data.json`에 기록된다. 표시 이름과 사이드바 순서는 `data/categories.ts`.
+- **URL**: 글 `/<locale>/blog/<category>/<slug>/` (slug에 카테고리 접두사가 들어 있어 `/kr/blog/network/network-ch7-data-link/` 형태), 카테고리 목록 `/<locale>/blog/category/<category>/`. 언어 접두사 없는 예전 주소, 폴더 분리 전 주소, 카테고리 접두사를 붙이기 전 주소, 예전 태그 페이지(`/tags/...`)는 `data/redirects.js`에서 `/kr` 주소로 308 리다이렉트.
 - **이미지**: `public/static/images/<slug>/`에 글별로 둔다. 사이트 공용 이미지(`avatar.png`, `logo.png`, `twitter-card.png`)만 `public/static/images/` 바로 아래에 있다.
 - **태그 없음**: 화면 분류는 카테고리 하나만 쓴다. 태그 페이지·사이드바 태그 목록·헤더 Tags 메뉴는 없앴다.
 - **장 순서**: 카테고리 페이지와 글 하단 이전/다음 링크는 `sortByChapter`(파일명 자연 정렬). 블로그 전체 목록은 날짜순.
@@ -120,7 +132,8 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 - 카테고리 이름은 영어. 과목이 아닌 글은 주제별(`unity`, `git`, `sql`).
 - 목차와 카테고리 장 순서는 필수.
 - `date`는 발행하는 날.
-- URL은 `/blog/<category>/<slug>`로 바꾼다 (기존 URL은 리다이렉트).
+- URL은 `/<locale>/blog/<category>/<slug>`. 언어 접두사는 `kr`·`en` (기존 URL은 `/kr`로 리다이렉트).
+- 모든 글은 한국어·영어 두 버전으로 발행한다. 영어 번역은 Claude가 한다.
 - 글 파일명(slug)은 전부 `<category>-` 접두사로 시작한다. URL에 카테고리가 두 번 들어가는 건 감수한다.
 - 이미지는 카테고리가 아니라 글 단위 폴더(`public/static/images/<slug>/`)로 묶는다.
 - 카테고리는 과목 단위로 나눈다.

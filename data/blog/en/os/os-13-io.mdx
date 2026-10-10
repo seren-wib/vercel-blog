@@ -1,0 +1,209 @@
+---
+title: 'I/O'
+date: '2026-06-16'
+tags: ['OS']
+draft: false
+summary: 'I/O hardware, I/O devices, polling, interrupts, DMA, and I/O software layers'
+---
+
+- [1. I/O Hardware](#1-io-hardware-how-its-physically-organized)
+  - [1. Bus structure](#1-bus-structure)
+  - [2. Device Controller](#2-device-controller-host-adapter)
+  - [3. Device Registers](#3-device-registers)
+- [2. I/O Device](#2-io-device-classifying-behavior-from-5-angles)
+  - [1. In what units is data exchanged?](#1-in-what-units-is-data-exchanged)
+  - [2. How does the CPU access device registers?](#2-how-does-the-cpu-access-device-registers)
+  - [3. How does the CPU know the I/O has been handled?](#3-how-does-the-cpu-know-the-io-has-been-handled)
+  - [4. Who actually moves the data?](#4-who-actually-moves-the-data)
+  - [5. How does the calling process wait?](#5-how-does-the-calling-process-wait-processsystem-call-level)
+- [3. I/O Software](#3-io-software-how-the-kernel-abstracts-it)
+  - [1. Goals](#1-goals)
+  - [2. Layer](#2-layer)
+
+# 1. I/O Hardware (how it's physically organized)
+
+device controller, device register
+
+## 1. Bus structure
+
+## 2. Device Controller (host adapter)
+
+### 1. Two components of a device
+
+- Mechanical component
+- Electronic component (= contains the controller)
+
+### 2. What the controller does
+
+- Converts a serial bit stream → a block of bytes
+- Delivers it to main memory
+- Error correction when needed
+- Can handle multiple devices at once
+
+## 3. Device Registers
+
+- Types: data-in / data-out / status / control (1~4 byte or FIFO)
+- Usually 1~4 bytes, or a FIFO buffer
+
+### 2. Two ways to read or write registers ← ※ same concept as #2.2 (duplicate)
+
+- Direct I/O / Memory-mapped
+
+### 3. Example: Simple Printer
+
+- status register: done bit (output complete) / error bit (paper jam, out of paper)
+- data register: the data to print
+- CPU behavior: wait until the done bit is set + always check the error bit
+
+# 2. I/O Device (classifying behavior from 5 angles)
+
+## 1. In what units is data exchanged?
+
+### 1. Block (fixed blocks)
+
+- Definition: stores information in fixed-size blocks, each block has its own address
+- Characteristics: block size 512B~32KB / each block can be read and written independently / has a unique address, so → seek is possible (random access (the opposite of sequential access; it doesn't mean accessing at random, it means you can skip ahead and land exactly on the location you want.))
+- Examples: disks, tapes
+
+### 2. Character (character stream)
+
+- Definition: exchanges a character stream one character at a time
+- Characteristics: no address (not addressable) / no seek (sequential)
+- Examples: printers, modems, mice, keyboards
+
+## 2. How does the CPU access device registers?
+
+### 1. Direct I/O (dedicated instructions)
+
+From the CPU's point of view there are two address spaces — one is the memory address space (where RAM is read and written), the other is the I/O port address space (where the device registers are).
+
+The two are completely separate, so memory access instructions can't reach the devices, and dedicated instructions like in/out have to be used instead
+
+### 2. Memory-mapped (memory addresses)
+
+- Definition: map the device control registers into the processor's memory address space → treat the registers just like memory addresses
+- Characteristics: accessed with standard data transfer instructions (load/store) with no separate I/O instructions
+- Advantages:
+  - Drivers can be written in pure C (no assembly in/out needed)
+  - No separate protection mechanism needed → protected by the existing page tables (PTE); by putting the desired pages in a page table, you can even give a specific user control of a specific device
+  - Reading a register and testing its value is handled in a single instruction
+
+## 3. How does the CPU know the I/O has been handled?
+
+### 1. Polling (keep checking)
+
+- Definition: the CPU repeatedly asks the device itself, "do you need attention?" (poll)
+  - Checks whether it's ready to accept a command / what the command status is, etc.
+- Advantages:
+  - Simple (just run a loop checking the status register)
+  - Software holds control (the CPU decides when to check)
+  - Actually efficient if the device becomes ready right away
+- Disadvantages:
+  - Inefficient in complex systems → only drives up CPU usage (busy-wait)
+  - Low-priority devices might never get serviced
+
+### 2. Interrupt (receive a signal)
+
+- Definition: when a device needs attention it requests an interrupt from the CPU → wait until the CPU is notified
+- Characteristics:
+  - A dedicated ISR (interrupt service routine) per device is called
+  - Several devices can share an interrupt
+- Advantages:
+  - The CPU steps in to the device only when really needed (does other work the rest of the time)
+  - Generally more efficient than polling
+- Disadvantages:
+  - Too many interrupts slow down or block execution of the main program
+  - Overhead (might need 1 interrupt per byte transferred) ← the reason 1.4 DMA came along
+- Handling flow (7 steps):
+  1. The driver starts the I/O
+  2. The controller performs the I/O
+  3. On completion/error, an interrupt signal is raised (when going wait queue -> ready queue )
+  4. The CPU receives the interrupt and hands control to the handler
+  5. The handler processes the data and returns
+  6. The CPU resumes its original work (the CPU checks whether an interrupt came in between every instruction)
+
+## 4. Who actually moves the data?
+
+### 1. Programmed I/O (the CPU moves it)
+
+- Definition: the CPU is directly involved in moving data device ↔ memory (each word passes through the CPU's hands)
+- Characteristics: moved with dedicated I/O instructions or memory-mapped
+- Disadvantage: on large transfers the CPU has to hang on every byte → wastes the CPU
+
+### 2. DMA (the controller moves it)
+
+- Definition: the DMA controller transfers directly device ↔ memory without going through the CPU
+- Characteristics:
+  - For high-speed devices that pour out data close to memory speed
+  - Transfers block by block directly from buffer → main memory (no CPU involvement)
+  - Only 1 interrupt per block ← solves the "interrupt per byte" disadvantage of 1.3.2
+- Handling flow (4 steps):
+  1. The CPU sets up the DMA controller (Address/Count/Control registers)
+  2. DMA requests a transfer to memory → 3. data is transferred directly → 4. on completion, Ack + interrupt
+
+## 5. How does the calling process wait? (process/system call level)
+
+### 1. Blocking (wait)
+
+- Definition: the process is suspended (sleeps) until the I/O finishes
+- Characteristics: easy to write and easy to understand (the code flows in order from top → bottom)
+- Examples: read(), write()
+- ※ The cause of the run→wait transition in the process state diagram = exactly this blocking I/O
+
+### 2. Non-blocking (return immediately)
+
+- Definition: the I/O call returns immediately, and the return value tells how many bytes have been transferred so far
+- Characteristics:
+  - Even if there's no data, it doesn't wait and moves right on to the next thing
+  - Implemented with multithreading
+  - select() checks whether data is ready
+- Example: select()
+
+# 3. I/O Software (how the kernel abstracts it)
+
+## 1. Goals
+
+Device independence, uniform naming, error handling, synchronous/asynchronous, buffering, shared/dedicated
+
+## 2. Layer
+
+### 1. User-level I/O Software
+
+- Mostly provided as libraries (run outside the kernel, in user space)
+  - C standard I/O library: fopen(), fgets(), fscanf(), etc. / you can also write your own (myopen)
+- Key distinction fopen() vs open():
+  - open() = system call (enters the kernel directly)
+  - fopen() = a library function wrapping open() (adds buffering, etc.)
+- What it does: I/O calls / formatting (printf's %d) / spooling
+
+### 2. Device-independent I/O Software
+
+- Role: a layer that sits on top of all drivers in common. Where the 3.1 goals (uniform naming, protection, buffering, allocation, error handling) are actually implemented
+- (1) Uniform interfacing:
+  - File protection rules apply to devices as is
+- (2) Error reporting:
+  - Many errors are device-specific → handled by that driver; distinguish programming errors vs actual I/O errors
+  - 5 ways to handle them: return an error code / retry / ignore / kill the calling process / shut down the system
+
+### 3. Device Drivers
+
+- Definition: device-specific code that controls each I/O device
+- Role/position:
+  - Talks upward with the device-independent I/O software + interrupt handlers, and controls the actual hardware downward
+  - Connects to the rest of the OS through a well-defined model and standard interface → responsible for actually implementing device independence (3.1)
+- 3 ways to implement (load) them:
+  - Statically linked into the kernel (baked in)
+  - Selectively loaded at boot
+  - Dynamically loaded while running (for hot-plugging — loaded when you plug in a USB device)
+- Reliability problems:
+  - Drivers are the main cause of OS failures → 85% of Windows XP crashes were drivers
+  - 70% of Linux kernel code is drivers, with 7x more bugs than the kernel
+  - Why: written by less experienced developers + an explosion of variety (35,000 drivers and 120,000 versions for XP)
+
+### 4. Interrupt Handlers
+
+- Wakes up the driver when I/O completes (wake up driver)
+
+### 5. Hardware
+
+- Performs the actual I/O operations

@@ -1,0 +1,249 @@
+---
+title: 'file system'
+date: '2026-06-16'
+tags: ['OS']
+draft: false
+summary: 'file system basics, mapping problem, directories, mounting, disk layout, VFS internals'
+---
+
+- [1. Basic Concepts](#1-basic-concepts)
+  - [1. The 3 requirements for long-term information storage](#1-the-3-requirements-for-long-term-information-storage)
+  - [2. What is a File?](#2-what-is-a-file)
+  - [3. The role of the File System](#3-the-role-of-the-file-system)
+  - [4. The logical view of a disk (block device abstraction)](#4-the-logical-view-of-a-disk-block-device-abstraction)
+- [2. Core model — "the mapping problem"](#2-core-model--the-mapping-problem)
+  - [1. The 3 components of a file](#1-the-3-components-of-a-file)
+  - [2. Why the mapping is non-trivial](#2-why-the-mapping-is-non-trivial)
+  - [3. Goals](#3-goals)
+  - [4. Key design issues](#4-key-design-issues)
+- [3. File attributes & operations](#3-file-attributes--operations)
+  - [1. File Attributes (kinds of metadata)](#1-file-attributes-kinds-of-metadata)
+  - [2. Unix file operations (system call)](#2-unix-file-operations-system-call)
+- [4. Directories](#4-directories)
+  - [1. The two faces of a directory](#1-the-two-faces-of-a-directory)
+  - [2. Hierarchical directory system](#2-hierarchical-directory-system)
+  - [3. Directory Internals](#3-directory-internals)
+  - [4. Pathname Translation ★](#4-pathname-translation-)
+  - [5. Directory operations](#5-directory-operations)
+- [5. File system Mounting](#5-file-system-mounting)
+- [6. Disk Layout](#6-disk-layout)
+  - [1. The whole disk](#1-the-whole-disk)
+  - [2. Inside a partition (FS-dependent, differs per file system type)](#2-inside-a-partition-fs-dependent-differs-per-file-system-type)
+- [7. File system Internals](#7-file-system-internals)
+  - [1. Layer structure (top → bottom)](#1-layer-structure-top--bottom)
+  - [2. VFS (Virtual File System)](#2-vfs-virtual-file-system)
+  - [3. In-memory data structures](#3-in-memory-data-structures-what-gets-loaded-into-memory-at-runtime)
+
+# 1. Basic Concepts
+
+A disk looks like nothing more than "N blocks of 512B" → too raw for people to use → one layer of abstraction on top of it = the file system
+
+## 1. The 3 requirements for long-term information storage
+
+- Store large amounts of information (memory is small and volatile)
+- Survive process exit, power loss and reboots (persistent)
+- Accessible by multiple processes at the same time
+
+## 2. What is a File?
+
+- Definition: "a named collection of related information" recorded on secondary storage
+- Key point: persistent (survives when the power goes out ← the decisive difference from memory)
+- The OS provides a uniform logical view called a file → the user doesn't need to know about blocks or sectors
+
+## 3. The role of the File System
+
+- Abstracts secondary storage → presents it in units called files
+- Logical structuring → directories
+- Data sharing (between processes, people and machines)
+- Protection/access control (security)
+
+## 4. The logical view of a disk (block device abstraction)
+
+- Operations provided by the block device driver:
+  - Identify() → returns the total number of blocks N
+  - Read(starting sector#, number of sectors)
+  - Write(starting sector#, number of sectors)
+- That is, a disk is just an array `[512B][512B]...[512B]` (0 ~ N-1) → no notion of names or directories
+
+# 2. Core model — "the mapping problem"
+
+The essential problem a file system solves = **mapping `<file name, metadata, data>` → `<set of blocks>`**
+
+## 1. The 3 components of a file
+
+### 1. File name
+
+- The starting point people access it by → `open("/etc/passwd", O_RDONLY)`
+
+### 2. File attributes (metadata)
+
+- File size, owner, access control list (ACL)
+- Creation/access/modification times, etc.
+- ※ Not the file's "contents" but "information about the file"
+
+### 3. File contents (data)
+
+- The actual contents → the file system doesn't care what it is (treats it as just a lump of bytes)
+
+## 2. Why the mapping is non-trivial
+
+- One file's data is stored **scattered (non-contiguous)** across the disk
+- e.g.: blocks 1,2,3,4 of "a.out" / blocks 1,2,3 of "dog.jpg" are laid out mixed together on the disk
+- → The metadata has to hold, in order, "where on the disk this file's blocks are"
+
+## 3. Goals
+
+- **Performance + Reliability** (the two often conflict → a design trade-off)
+
+## 4. Key design issues
+
+(Shows up on the exam in the form "what problems need to be solved")
+
+- What information to put in the metadata
+- How to find the metadata → **pathname → metadata mapping**
+- How to find the data blocks
+- Managing metadata and data blocks (allocation / reclamation / free space management)
+- How to recover after a crash
+
+# 3. File attributes & operations
+
+## 1. File Attributes (kinds of metadata)
+
+- Protection-related: Protection (who can access and how), Password, Creator, Owner
+- Flags (control flags): read-only / hidden / system / archive / ASCII·binary / random-access / temporary / lock
+  - e.g.: archive flag = 0 backed up, 1 needs backup
+  - e.g.: if temporary flag = 1, the file is deleted when the process exits
+- For key-based lookup (record search): record length / key position / key length
+- Time and size: creation time / last access / last change / current size / maximum size
+
+## 2. Unix file operations (system call)
+
+- `creat` / `open` / `close`
+- `read` / `write` / `lseek` (move the file offset)
+- `stat` (look up metadata)
+- `chmod` (change permissions) / `chown` (change owner)
+- `flock` (file lock) / `fcntl` (file control)
+
+# 4. Directories
+
+## 1. The two faces of a directory
+
+- **From the user's side**: a means of organizing files structurally
+- **From the file system's side**: provides the naming interface
+  - → Separates **logical file organization (names)** from **physical disk placement** (key point)
+
+## 2. Hierarchical directory system
+
+- Most support multi-level directories
+- The concept of a current working directory (cwd, working directory) exists
+- Relative path: relative to cwd → `cd ../../foo/bar/../bar`
+- Absolute path: starts from the root → `cd /tmp/foo/bar`
+
+## 3. Directory Internals
+
+- A directory = **effectively just a file holding special metadata**
+- Contents = a list of `(file name, file attributes)`
+  - Attributes: size, protection, creation/access time, location on disk, etc.
+- Usually not sorted (effectively random) → sorting is done by the program reading the directory (`ls`, etc.)
+
+## 4. Pathname Translation ★
+
+How `open("/a/b/c", ...)` is processed:
+
+1. Open the root "/" directory (its location is always known)
+2. Search "/" for "a" → get the location of "a"
+3. Open "a" and search for "b" → get the location of "b"
+4. Open "b" and search for "c" → get the location of "c"
+5. Open file "c"
+
+- ※ **A permission check is performed at every step**
+- → Each step down the path costs a lot to read and search the directory (the system spends a lot of time walking paths)
+
+### ★ Why open() is separate from read()/write()
+
+- Path resolution is expensive → making every I/O walk the path again, like `read("/a/b/c", buf, 100)`, would be insane
+- → **open() resolves the path just once** and hands over the result (fd) → read/write use only the fd, so no path resolution is needed
+- Extra optimization: the OS caches prefix lookup results
+  - `/a/b`, `/a/bb`, `/a/bbb` all share the `/a` prefix → reuse what was found once
+
+## 5. Directory operations
+
+- Directories are files too → they can be manipulated with file operations
+- The C runtime provides a higher-level abstraction:
+  - `opendir` / `readdir` / `seekdir` / `closedir`
+- Other system calls:
+  - `rename` (rename)
+  - `link` (create a hard link) / `unlink` (remove a link = delete)
+
+# 5. File system Mounting
+
+"The step that makes a file system recognized by the OS and usable"
+
+- A file system **can't be used by processes before it's mounted** (mounting is mandatory)
+- **Windows**: attached to a drive letter (`C:\`, `D:\`, ...)
+- **Unix**: attached to an existing **empty directory (= mount point)**
+  - e.g.: if a new file system is mounted under `/users`, that directory acts like the root of the new FS
+
+# 6. Disk Layout
+
+What gets laid out on the disk physically, and in what order
+
+## 1. The whole disk
+
+- **MBR (Master Boot Record)**: boot code + partition table
+- **Partitions**: Partition 1(active) / 2 / 3 ...
+  - The active partition is the one booted
+
+## 2. Inside a partition (FS-dependent, differs per file system type)
+
+In order from top to bottom:
+
+- **boot block**: boot code
+- **super block**: FS metadata (FS type, total number of blocks, etc.) ← information representing the whole FS (something like a PK)
+- **bitmaps**: a data structure for free space management → marks "is this block currently **in use / free**"
+- **i-nodes**: file metadata → "where and how a particular file is **placed** on the disk"
+- **root dir**: the root directory
+- **files & directories**: the actual file and directory data
+
+> ⚠️ Watch out for mixing up bitmap vs i-node
+>
+> - bitmap = whether a block is used/free (space management)
+> - i-node = that file's block placement information (file management)
+
+# 7. File system Internals
+
+## 1. Layer structure (top → bottom)
+
+1. **System call interface** ← the entry point where user processes call open/read/write
+2. **VFS (Virtual File System)** ← abstracts multiple FSes into one
+3. **Individual File Systems** (minix, nfs, ext4, fat, procfs ...)
+4. **buffer cache** ← caches disk blocks (performance)
+5. **device driver** ← controls the actual hardware
+
+## 2. VFS (Virtual File System)
+
+- Role:
+  - Abstracts all file systems into **a single kernel-level format** → the layer above (system calls) doesn't need to know the FS type
+  - Receives user-level system calls (open, read, write, close, stat, etc.)
+  - Interacts with a specific FS based on **mount point traversal** → while walking a path, on hitting a mount point it calls that FS's driver
+
+### ★ Linux VFS common file model — 4 objects (a regular for short-answer and matching questions)
+
+- **superblock object**: information about the whole mounted file system
+- **dentry object**: **linking** information between a directory entry ↔ a file → in charge of the directory structure
+- **inode object**: general information about a specific file → in charge of the file itself
+- **file object**: information about the interaction between **an open file ↔ a process** (the opened state)
+
+> Swapping dentry (directory structure) ↔ inode (file structure) loses points outright
+
+## 3. In-memory data structures (what gets loaded into memory at runtime)
+
+- **per-process file descriptor table** (per-process open-file table)
+  - Each process has its own → indexed by fd number
+- **system-wide file table** (system-wide open-file table)
+  - Holds count (number of references) and offset (current position in the file)
+- **in-memory partition table**
+- **directory cache** (speeds up path resolution)
+- **buffer cache** (caches disk blocks)
+
+> The fd table is per process / the file table is global → this split explains how files are shared on fork and dup

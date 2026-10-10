@@ -1,0 +1,147 @@
+---
+title: 'CNN'
+date: '2026-06-16'
+tags: ['AI']
+draft: false
+summary: 'CNN structure, convolution, gradient computation, pooling'
+---
+
+- [1. CNN(Convolutional Neural Network)](#1-cnnconvolutional-neural-network)
+  - [Structure](#structure)
+- [2. Convolution](#2-convolution)
+  - [How are the filter weights w learned?](#how-are-the-filter-weights-w-learned)
+- [3. Pooling](#3-pooling)
+  - [Max pooling](#max-pooling)
+  - [Average pooling](#average-pooling)
+  - [Stochastic pooling](#stochastic-pooling)
+
+# 1. CNN(Convolutional Neural Network)
+
+- First half: performs convolution to **extract features**
+- Second half: uses the features to **classify**
+
+## Structure
+
+1. Convolution part for feature extraction
+   - Conv layer (convolution operation)
+   - ReLU layer (ReLU operation)
+   - Pool layer (optional) (pooling operation)
+2. Multilayer perceptron part that performs classification or regression
+   - FC (Fully Connected) layer
+     - Flattens the extracted feature values, connects each neuron to every value in the previous layer, and goes through several such layers to produce the final classification scores.
+   - SM (SoftMax operation) layer: the last layer
+     - softmax operation: turns the values from FC into probabilities
+       - Sum all e^score values, then divide each e^score by that sum to express them as probabilities
+
+Typical example: **Conv - ReLU - Pool - Conv - ReLU - Pool - FC - SM**
+
+# 2. Convolution
+
+An operation that applies weights to the values in a region to produce a single value
+
+- stride: the step by which filter W moves over X
+- padding: an operation that extends the border of the input array and fills it with 0
+- Feature map: the convolution result Y; each y value in the feature map is how strongly the feature the filter looks for responds at a given position
+- Variables:
+  - x: input,
+  - w: filter,
+  - y: output (feature map)
+
+```
+Example:
+X (input) =
+1 1 1 0 0
+0 1 1 1 0
+0 0 1 1 1
+0 0 1 1 0
+0 1 1 0 0
+
+W =
+1 0 1
+0 1 0
+1 0 1
+
+Top-left 3×3 region of the input =
+1 1 1
+0 1 1
+0 0 1
+
+Input region   Filter      Product
+1 1 1        1 0 1       1 0 1
+0 1 1   ×    0 1 0   =   0 1 0
+0 0 1        1 0 1       0 0 1
+
+  1 + 0 + 1
++ 0 + 1 + 0
++ 0 + 0 + 1
+= 4
+
+So y11 is 4.
+```
+
+## How are the filter weights w learned?
+
+- Random values at first > afterwards, when predictions are wrong, look at the loss and adjust the weights little by little
+
+### Updating weights with derivatives
+
+#### Numerical differentiation
+
+Compute f(x)
+Change x by a tiny amount h and compute f(x+h)
+Estimate the slope from the difference between the two values
+
+#### Symbolic differentiation
+
+The thing we did in math class
+
+```math
+f(x) = x²
+f'(x) = 2x
+```
+
+Neural networks are too large and complex for numerical or symbolic differentiation.
+
+#### Automatic differentiation
+
+- Break the whole complex network into a graph of small operations,
+- chain the derivative of each operation with the chain rule,
+- and compute how much each weight should be adjusted.
+
+# 3. Pooling
+
+**An operation that merges a block of fixed size and replaces it with one representative value**
+
+- Role:
+  - Reduces the size of the feature maps produced in intermediate steps
+    > Reduces the memory size and computation in the next stage
+  - Compresses the feature responses of nearby positions into one representative value.
+  - Makes the output similar even if a feature shifts slightly sideways.
+
+## Max pooling
+
+Uses the maximum as the representative value
+
+## Average pooling
+
+Uses the average as the representative value
+
+## Stochastic pooling
+
+Assigns probabilities proportional to the element values in the block and randomly picks the representative value according to these probabilities
+
+| During training                                          | During inference                                  |
+| -------------------------------------------------------- | ------------------------------------------------- |
+| Randomly pick one element according to the probabilities | Use the probability-weighted sum (expected value) |
+
+```math
+Probability-weighted sum formula
+s_j = \sum_{i \in R_j} p_i a_i
+```
+
+```
+Example
+s = 0.1×1 + 0.2×2 + 0.3×3 + 0.4×4
+  = 0.1 + 0.4 + 0.9 + 1.6
+  = 3.0
+```

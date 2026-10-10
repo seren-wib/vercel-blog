@@ -1,0 +1,159 @@
+---
+title: 'CH4 Appendix. Antenna & Propagation'
+date: '2026-05-08'
+tags: ['Network']
+draft: false
+summary: 'antenna basics, electromagnetic wave characteristics, radiation pattern, directivity, gain, polarization'
+---
+
+- [9. Antenna & Propagation](#9-antenna--propagation)
+  - [9-1 Antenna basics](#9-1-antenna-basics)
+  - [9-2 Characteristics of electromagnetic waves](#9-2-characteristics-of-electromagnetic-waves)
+    - [1. Attenuation with distance](#1-attenuation-with-distance)
+    - [2. Five characteristics of radio waves](#2-five-characteristics-of-radio-waves)
+    - [3. Fading](#3-fading)
+  - [9-3 Antenna performance parameters](#9-3-antenna-performance-parameters)
+    - [1. Radiation Pattern](#1-radiation-pattern)
+    - [2. Directivity and gain](#2-directivity-and-gain)
+    - [3. Polarization](#3-polarization)
+
+# 9. Antenna & Propagation
+
+## 9-1 Antenna basics
+
+- Definition: a device that converts between electrical signals and electromagnetic waves
+
+```
+[Transmitting antenna]
+   Current of a specific frequency is input
+        ↓
+   Magnetic field generated (current → magnetic field)
+        ↓
+   Changing magnetic field → induces electric field
+        ↓
+   Changing electric field → induces magnetic field
+        ↓
+   (repeats this process while propagating through space)
+        ↓
+[Receiving antenna]
+   Detects the change of the magnetic field over time
+        ↓
+   Induces current → converted into an electrical signal
+```
+
+**The electric and magnetic fields induce each other and spread through space. This is the essence of an electromagnetic wave**
+
+## 9-2 Characteristics of electromagnetic waves
+
+### 1. Attenuation with distance
+
+- In free space, received power is inversely proportional to the square of the distance
+
+```
+Pt
+Pr ∝ ─────
+        R²
+
+Pt: transmitted power
+Pr: received power
+R: distance
+```
+
+### 2. Five characteristics of radio waves
+
+1. Linearity (rectilinear propagation)
+   Travels the shortest path, the way light travels in a straight line
+   Stronger at higher frequencies
+
+2. Reflection
+   Changes path when it hits a material
+   Metal surfaces, walls, etc.
+
+3. Refraction
+   Direction and speed change when entering a different medium
+   Atmospheric layers, glass, etc.
+
+4. Diffraction
+   Bends around the edges of obstacles
+   Signals can reach even behind obstacles
+
+5. Scattering
+   Scattered in all directions by obstacles
+   Rain, fog, dust, etc.
+
+- Why communication is possible even over a mountain: even though high frequencies have strong linearity, the signal bends in behind obstacles thanks to the **diffraction characteristic**.
+
+### 3. Fading
+
+- Because of reflection, scattering and diffraction of radio waves, one signal arrives over multiple paths. Each path has a different length, so arrival times differ → interference occurs.
+- This is called **multipath interference**
+
+## 9-3 Antenna performance parameters
+
+- There are 3 main parameters
+  1. Radiation Pattern
+  2. Directivity & gain
+  3. Polarization
+
+### 1. Radiation Pattern
+
+- A graph showing in which direction and how much signal an antenna radiates
+- No antenna radiates uniformly in all directions. Some directions are strong, some are weak. The radiation pattern visualizes this
+
+| Term                         | Meaning                                                          |
+| ---------------------------- | ---------------------------------------------------------------- |
+| Main lobe                    | The main beam where maximum power is radiated                    |
+| Side lobe                    | Secondary beams formed between the main and back lobes           |
+| Back lobe                    | The beam formed in the direction directly opposite the main lobe |
+| Boresight                    | The reference direction the antenna points to (main lobe center) |
+| HPBW (Half Power Beam Width) | Beam width out to the points where power is half the max (-3dB)  |
+| FNBW (First Null Beam Width) | Beam width out to the points where power first drops to 0        |
+
+![radiation pattern](/static/images/network-ch4a-appendix-antenna-propagation/radiation-pattern.png)
+
+### 2. Directivity and gain
+
+1. Directivity
+
+- The property of an antenna to concentrate radio waves in a particular direction
+
+```
+Physical definition
+        max radiation intensity (U_max)
+D = ─────────────────────────────
+        avg radiation intensity (U_avg)
+
+Ratio of maximum radiation intensity to average radiation intensity
+```
+
+**High directivity = concentrates the signal in one direction = the main lobe is narrow and long.**
+
+- Omnidirectional antenna: dipole antenna, spreads out in all directions
+- Directional antenna: parabolic antenna, concentrates in one direction
+
+2. Antenna efficiency and gain
+
+```
+Antenna efficiency (η) = radiated power (Pr) / input power (Pi)
+   "How much of the input power is actually radiated"
+
+Antenna gain (G) = η × D
+              = efficiency × directivity
+
+Gain is expressed in dB
+```
+
+**Meaning of gain: when radiating the same power in the same direction, how many times stronger it is than an omnidirectional antenna.**
+
+- Trade-off between gain and beam width
+- High gain = narrow beam width = high directivity
+- Gain and beam width are always inversely proportional
+
+### 3. Polarization
+
+- The direction in which the electric field (E) oscillates as an electromagnetic wave travels
+- If the polarization directions of the transmitting and receiving antennas differ, transmission/reception performance degrades.
+- If they are completely orthogonal, no signal can be exchanged
+- Types: vertical polarization, horizontal polarization
+
+![polarization](/static/images/network-ch4a-appendix-antenna-propagation/polarization.png)

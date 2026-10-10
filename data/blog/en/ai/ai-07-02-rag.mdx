@@ -1,0 +1,96 @@
+---
+title: 'AI agent 2 (RAG)'
+date: '2026-10-09'
+tags: ['AI']
+summary: 'RAG(Retrieval Augmented Generation) process: indexing, chunking strategies, retrieval, generation'
+draft: false
+---
+
+# 1. RAG(Retrieval Augmented Generation)
+
+Produces improved results by providing externally retrieved data together with the question or instruction
+
+## 1. RAG process
+
+### 1. Indexing
+
+#### 1. Chunk splitting
+
+Split documents into small units
+
+##### Chunking strategies
+
+###### 1. Fixed-size splitting
+
+Simple, but risks breaking the context.
+
+###### 2. Overlapping splitting
+
+Overlaps part of adjacent chunks to preserve the continuity of context
+
+###### 3. Paragraph/section-based splitting
+
+Splits the document at paragraph boundaries and headers
+
+###### 4. Recursive splitting
+
+Splits in the order paragraph > sentence > word
+Splits further when the size is exceeded
+
+#### 2. Creating embedding vectors
+
+##### Definition of an embedding vector
+
+Converts text into a numeric vector while preserving meaning
+
+Words with similar meanings are located close together in vector space
+
+```json
+Example
+
+"puppy" → [0.23, -0.87, 0.14, 0.56, 0.91, ...]
+"dog" → [0.21, -0.83, 0.17, 0.52, 0.88, ...] ← similar
+"car" → [0.91, 0.34, -0.67, 0.12, -0.44, ...] ← different
+```
+
+##### How the encoder creates embedding vectors
+
+###### Terminology
+
+1. hidden state: the internal representation vector of each token that the Transformer creates reflecting context
+2. polling: a method of combining multiple token hidden states into one fixed-size vector
+3. RoBERTa: a BERT-family Transformer encoder; splits the input sentence into tokens and turns each token into a context-aware vector.
+4. CLS(Classification):
+   - A special token placed at the very start of a sentence in BERT-family models
+   - The hidden state of CLS can be used as a vector representing the whole sentence.
+5. Mean Polling: the average of all token vectors, used in sentence-BERT (better performance)
+6. Max Polling: the maximum of each dimension, good for emphasizing features
+7. Polling using the CLS token: uses the CLS token, which compresses the meaning of the whole sentence
+8. Bi-encoder: two identical models each take a different sentence as input to learn similarity; used to build the embedding vector DB
+9. Cross-encoder: an encoder takes two sentences as input at the same time to learn similarity; used to select the candidates that match the query (reranking)
+   - Among the candidates roughly picked by the Bi-encoder, the Cross-encoder picks again the ones that are truly relevant
+
+###### Step flow
+
+0. The tokenizer turns the input text into tokens.
+1. The Transformer encoder produces a hidden state per token.
+2. To make a sentence/chunk embedding, the per-token hidden states must be combined into one.
+3. This combining method is pooling.
+4. Pooling options include [CLS], mean pooling, max pooling, using the last token, etc.
+5. In a Bi-encoder, these text vectors are created separately for the question and the documents, and their similarity is compared.
+6. Generate fixed-size vectors and store them in the DB
+7. In a Cross-encoder, the question and a document are fed in together to directly compute relevance scores for the vectors in the DB.
+
+#### 3. Storing in a vector DB
+
+### 2. Retrieval
+
+#### 1. Query embedding
+
+#### 2. Top-K similarity search
+
+### 3. Generation
+
+#### 1. Building the context
+
+#### 2. LLM answer generation

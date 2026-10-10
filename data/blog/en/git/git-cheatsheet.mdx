@@ -1,0 +1,125 @@
+---
+title: 'Git / GitHub Cheatsheet'
+date: '2026-10-09'
+tags: ['Git']
+summary: 'Git/GitHub basic concepts, checking status, pull, resolving conflicts, commit/push, undoing changes'
+draft: false
+---
+
+> A personal cheatsheet for when I get confused. Run the commands in a terminal after moving into the repository folder.
+
+---
+
+## 0. Basic Concepts
+
+- **Local**: the files/repository on my computer
+- **Remote (remote, origin)**: the repository uploaded to GitHub
+- **Commit (commit)**: one snapshot that records changes
+- **stash**: temporarily putting in-progress changes away in a "drawer"
+
+---
+
+## 1. Checking the Current State
+
+```bash
+git status              # which files changed
+git log --oneline -10   # the 10 most recent commits
+git fetch               # only fetches remote info (files don't change)
+git log HEAD..@{u} --oneline   # commits that are on the remote but not on mine
+```
+
+---
+
+## 2. Pulling Without Losing Changes ★ (what I did on 2026-06-13)
+
+When I have files being edited locally and the remote also has new commits.
+A plain `git pull` stops or is refused on overlapping files. The safe order:
+
+```bash
+# 1. Put local changes away in the drawer (-u also includes newly created untracked files)
+git stash push -u -m "stash before pull"
+
+# 2. Fetch the remote from the clean state
+git pull --ff-only
+
+# 3. Take the stashed changes back out
+git stash pop
+```
+
+- If files overlap, `stash pop` produces a **conflict** → go to section 3 below.
+- No data is lost. Even on a conflict, the stash stays in `git stash list`.
+
+---
+
+## 3. Resolving Conflicts
+
+When you open a conflicted file, it contains markers like these:
+
+```
+<<<<<<< Updated upstream
+Remote (fetched side) content
+=======
+My local (stash) content
+>>>>>>> Stashed changes
+```
+
+How to resolve:
+
+1. Keep only the content you want and **delete the three marker lines yourself** (`<<<`, `===`, `>>>`)
+2. If both sides are needed, keep both and delete only the markers
+3. Stage the cleaned-up file:
+
+```bash
+git add "path/to/file"
+```
+
+**Delete vs modify conflict** (one side deleted the file and the other edited it):
+
+```bash
+git rm "path/to/file"      # when choosing deletion
+# or
+git add "path/to/file"     # when choosing to keep it (the file stays)
+```
+
+Once all conflicts are cleaned up, empty the stash drawer:
+
+```bash
+git stash drop         # delete the stash just popped
+git stash list         # check the remaining stashes
+```
+
+---
+
+## 4. Committing and Pushing
+
+```bash
+git add .                    # stage all changes (or just "file name")
+git commit -m "message"        # commit
+git push                     # upload to the remote (GitHub)
+```
+
+---
+
+## 5. Undoing (When You Make a Mistake)
+
+```bash
+git restore "path/to/file"           # discard edits and go back to the last commit's state
+git restore --staged "path/to/file"  # undo an add (changes are kept)
+git stash list               # list of stashed changes
+git stash pop                # take the most recent stash back out
+git reset --hard HEAD        # ⚠️ discards all local changes (cannot be undone, careful)
+```
+
+---
+
+## Frequently Used One-Line Summary
+
+| What I want to do           | Command                                        |
+| --------------------------- | ---------------------------------------------- |
+| Check status                | `git status`                                   |
+| Safely fetch remote changes | stash → `git pull --ff-only` → `git stash pop` |
+| After resolving a conflict  | Delete the markers, then `git add`             |
+| Commit                      | `git add .` → `git commit -m "..."`            |
+| Upload to GitHub            | `git push`                                     |
+| Temporarily stash changes   | `git stash push -u`                            |
+| Take out what was stashed   | `git stash pop`                                |

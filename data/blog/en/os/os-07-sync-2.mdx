@@ -1,0 +1,320 @@
+---
+title: 'sync-2'
+date: '2026-05-05'
+tags: ['OS']
+draft: false
+summary: 'sync, semaphores, monitors'
+---
+
+- [1. Motivation](#1-motivation)
+  - [1. A spinlock alone isn't enough](#1-a-spinlock-alone-isnt-enough)
+  - [2. Interrupt disable/enable has limits too](#2-interrupt-disableenable-has-limits-too)
+  - [3. So what do we need?](#3-so-what-do-we-need)
+- [2. High-level synchronization](#2-high-level-synchronization)
+- [3. Semaphores](#3-semaphores)
+  - [1. Wait(S): decrement the value](#1-waits-decrement-the-value)
+  - [2. Signal(S): increment the value](#2-signams-increment-the-value)
+  - [3. Implementation example](#3-implementation-example)
+  - [4. Binary semaphore execution flow](#4-binary-semaphore-execution-flow)
+  - [5. Problems with semaphores](#5-problems-with-semaphores)
+    - [1. deadlock](#1-deadlock)
+    - [2. starvation](#2-starvation)
+    - [3. Priority Inversion](#3-priority-inversion)
+    - [4. Too much freedom makes it easy for users to make mistakes](#4-too-much-freedom-makes-it-easy-for-users-to-make-mistakes)
+- [4. Classical Problems of Synchronization (chronic problems of synchronization)](#4-classical-problems-of-synchronization-chronic-problems-of-synchronization)
+  - [1. Bounded-Buffer Problem](#1-bounded-buffer-problem)
+  - [2. Dining-Philosophers Problem](#2-dining-philosophers-problem)
+  - [3. Readers-Writers Problem](#3-readers-writers-problem)
+- [5. Monitor](#5-monitor)
+
+# 1. Motivation
+
+## 1. A spinlock alone isn't enough
+
+- If another thread holds the lock, you have to keep waiting
+- It's busy waiting, so it wastes a lot of CPU
+- Only suitable for very short critical sections
+
+## 2. Interrupt disable/enable has limits too
+
+- Too primitive (it only gives you plain mutual exclusion (keeping others out of the critical section))
+- Hard to keep interrupts off throughout a critical section
+- Doesn't directly solve high-level synchronization problems
+
+## 3. So what do we need?
+
+- Block the waiting threads
+- Keep interrupts on even inside the critical section
+- Use high-level synchronization
+
+# 2. High-level synchronization
+
+## 0. Purpose
+
+- Provide more than plain mutual exclusion
+- Handle waiting efficiently
+- Make complex synchronization patterns easy to express
+
+## 1. Semaphores
+
+- Semaphores are usually implemented using spinlocks
+
+1. binary semaphores: used like a lock or mutex, value is just 1, guarantees only one enters the critical section
+
+2. counting semaphores: what's usually just called a semaphore, value is N (N>1), manages N identical resources
+
+## 2. Monitors
+
+A synchronization construct provided at the language level
+
+# 3. Semaphores
+
+- A synchronization tool one level above a lock
+- On top of "only one at a time", it's more like "come in if there's room"
+- **No busy waiting. (It doesn't keep using the CPU to check whether the lock is open)**
+
+## 1. Wait(S): decrement the value
+
+- If the semaphore is open, let it into the critical section and value -1
+- If the semaphore is closed, hang it on the semaphore waiting queue and block it
+
+## 2. Signam(S): increment the value
+
+- Open the semaphore (value + 1)
+- Unblock something blocked in the semaphore waiting queue
+
+## 3. Implementation example
+
+```c
+typedef struct {
+    int value; // 1 or a value N greater than 1; if value is 3, up to 3 can enter the critical section
+    struct process *L;
+} semaphore;
+
+void wait (semaphore S) {
+    S.value--;
+    // acquire(S.lock) here
+    if (S.value < 0) {
+        add this process to S.L;
+        block ();
+    }
+    // guard it with release(S.lock) here. Why: so that wait and signal can run atomically. A spinlock is used for this. Spinning for this is very short, so it's justified.
+}
+void signal (semaphore S) {
+    // acquire(S.lock)
+    S.value++;
+    if (S.value <= 0) {
+        remove a process P from S.L;
+        wakeup (P);
+    }
+    // release(S.lock)
+}
+// If you don't want to do require/release, you have to turn interrupts off, or get atomic support from the hardware
+```
+
+## 4. Binary semaphore execution flow:
+
+1. S.value = 1
+2. T1 tries to enter
+3. T1 calls wait(S)
+4. S.value--
+   1 → 0
+5. S.value is 0 or more, so T1 passes
+   → enters the critical section
+6. T2 tries to enter
+7. T2 calls wait(S)
+8. S.value--
+   0 → -1
+9. S.value < 0, so T2 can't enter
+   → goes into the semaphore waiting queue
+   → becomes blocked
+10. T1 finishes its critical section work
+11. T1 calls signal(S)
+12. S.value++
+    -1 → 0
+13. S.value &lt;= 0 means a thread is waiting
+    → take T2 out of the semaphore waiting queue
+    → wakeup(T2)
+14. T2 goes from blocked to ready
+    → moves to the ready queue
+15. When the scheduler gives T2 the CPU,
+    T2 doesn't call wait(S) again from the start;
+    it continues from the point after block()
+16. T2 enters the critical section
+
+## 5. Problems with semaphores
+
+### 1. deadlock
+
+- They wait on each other, so everything stops
+
+```
+Example
+P0 has already taken printer semaphore S with wait, then blocks while calling wait on scanner semaphore Q
+Initial:
+S = 1 // printer
+Q = 1 // scanner
+
+P0: wait(S)
+S = 0
+P0 takes the printer
+
+P1: wait(Q)
+Q = 0
+P1 takes the scanner
+
+P0: wait(Q)
+Q = -1
+P0 waits for the scanner
+
+P1: wait(S)
+S = -1
+P1 waits for the printer
+
+Solution
+Initial
+S = 1
+Q = 1
+
+1. P0: wait(S)
+   S: 1 → 0
+   P0 takes S
+
+2. P1: wait(S)
+   S: 0 → -1
+   P1 blocks in S's waiting queue
+   It hasn't taken Q yet
+
+3. P0: wait(Q)
+   Q: 1 → 0
+   P0 takes Q too
+
+4. P0: does its work
+   It holds both S and Q, so it can work
+
+5. P0: signal(Q)
+   Q: 0 → 1
+   returns Q
+
+6. P0: signal(S)
+   S: -1 → 0
+   wakes up P1, which was in S's waiting queue
+
+7. P1: moves to the ready queue
+   When it gets the CPU, it continues from after wait(S)
+
+8. P1: wait(Q)
+   Q: 1 → 0
+   P1 takes Q too
+
+9. P1: does its work
+
+10. P1: signal(Q)
+
+11. P1: signal(S)
+```
+
+### 2. starvation
+
+- A particular thread never gets to wake up and stays blocked
+
+```
+Example
+Semaphore S
+waiting queue = [T1, T2, T3]
+
+In a normal flow T1, T2 and T3 should all wake up, but because of a strange scheduling policy or a priority problem, a particular thread never wakes up
+```
+
+- Solution: fairness: FIFO queue (wake whoever came first), aging (raise the priority of whoever has waited long)
+
+### 3. Priority Inversion
+
+- A situation where a high-priority thread ends up waiting because of a low-priority thread
+
+```
+Example
+L: holds lock S
+H: needs lock S → waits for L
+M: doesn't need lock S → takes the CPU
+
+The actual cause of the delay:
+Even though H has higher priority than M,
+M keeps L from running,
+and since L can't run, H can't wake up either
+```
+
+### 4. Too much freedom makes it easy for users to make mistakes
+
+1. They're used like global variables - the more complex the code gets, the easier it is to lose track of what's what
+2. Purposes get mixed
+   - A semaphore can be used for two purposes
+     1. Protecting a Critical Section
+     2. Enforcing execution order or conditions
+3. It doesn't enforce correct usage.
+
+# 4. Classical Problems of Synchronization (chronic problems of synchronization)
+
+## 1. Bounded-Buffer Problem
+
+- A producer and a consumer share the same buffer
+- producer: puts data into the buffer
+- consumer: uses data from the buffer
+- buffer: the space the two share (the buffer size isn't infinite)
+  **What if production exceeds consumption? What if consumption exceeds production? If it produces like crazy and the queue fills up, use a global variable called count to stop filling it, and the same the other way around**
+
+## 2. Dining-Philosophers Problem
+
+- At a round table, if everyone picks up their right chopstick, nobody can pick up their left one, so nobody gets to eat (**a deadlock occurs**)
+
+## 3. Readers-Writers Problem
+
+# 5. Monitor
+
+- A monitor isn't just a library function; it's a construct the programming language provides. Like Java synchronized or C# lock
+- Instead of people writing synchronization code by hand every time, the compiler and runtime help
+
+```java
+synchronized void add1() {
+    x = x + 1;
+}
+// on entering add1()
+// → lock acquire
+// on leaving after add1() finishes
+// → lock release
+```
+
+- A construct that came about because semaphores are hard for people to manage by hand
+- Bundles shared data + the functions that handle the data + the synchronization rules into one unit
+- Wraps the shared data so it can't be accessed directly
+- Guarantees only one thread at a time can run a procedure inside the monitor
+
+```
+Structure
+Monitor
+├─ shared data structures
+│  └─ data like shared variables and shared buffers
+├─ procedures
+│  └─ functions that manipulate that shared data
+└─ synchronization
+   └─ rules that keep multiple threads from entering at once
+```
+
+```
+Semaphore
+├─ wait/signal must be called directly
+├─ shared data can be touched directly
+├─ the programmer has to follow the usage rules
+└─ easy to make mistakes
+
+Monitor
+├─ shared data and functions bundled in one place
+├─ shared data accessible only through functions
+├─ synchronization is built into the construct
+└─ makes it easier to reduce mistakes
+```
+
+1. Encapsulation
+   Hides shared data inside procedures
+2. Mutual exclusion
+   Only one thread at a time runs inside the monitor

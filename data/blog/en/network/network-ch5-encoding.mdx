@@ -1,0 +1,544 @@
+---
+title: 'CH5. Encoding & Modulation'
+date: '2026-05-08'
+tags: ['Network']
+draft: false
+summary: 'NRZ, Manchester, Scrambling, ASK, FSK, PSK, QAM, PCM, Delta Modulation'
+---
+
+- [1. The big picture of encoding and modulation](#1-the-big-picture-of-encoding-and-modulation)
+  - [1-1 4 conversion paths](#1-1-4-conversion-paths)
+  - [1-2 Definitions](#1-2-definitions)
+  - [1-3 5 criteria for evaluating a good encoding](#1-3-5-criteria-for-evaluating-a-good-encoding)
+  - [1-4 Differential Encoding](#1-4-differential-encoding)
+- [2. Digital → Digital Encoding](#2-digital--digital-encoding)
+  - [2-1 NRZ family](#2-1-nrzno-return-to-zero-family)
+    - [NRZ-L](#nrz-l-nonreturn-to-zero---level)
+    - [NRZI](#nrzi-nonreturn-to-zero-inverted-invert-on-ones)
+  - [2-2 Multilevel Binary](#2-2-multilevel-binary)
+    - [Bipolar-AMI](#bipolar-ami)
+    - [Pseudoternary](#pseudoternary)
+  - [2-3 Manchester family](#2-3-manchester-family)
+    - [Manchester](#manchester)
+    - [Differential Manchester](#differential-manchester)
+  - [2-4 Scrambling](#2-4-scrambling)
+    - [B8ZS / HDB3](#two-representative-schemes)
+- [3. Digital → Analog (Modulation)](#3-digital-data---analog-signal-encoding-modulation)
+  - [3-1 ASK](#3-1-ask)
+  - [3-2 FSK](#3-2-fsk)
+  - [3-3 PSK](#3-3-psk)
+    - [DPSK](#dpsk)
+    - [QPSK / OQPSK](#qpsk)
+  - [3-5 QAM](#3-5-qam)
+- [4. Analog → Digital (Digitization)](#4-analog-data---digital-signal)
+  - [4-1 PCM](#4-1-pcmpulse-code-modulation)
+  - [4-2 Delta Modulation](#4-2-dmdelta-modulation)
+
+# 1. The big picture of encoding and modulation
+
+## 1-1 4 conversion paths
+
+- There is data (the content you want to convey) and signals (the physical waves that actually travel over the medium).
+- Either can be digital or analog. So there are **4 possible combinations**.
+
+```
+signal form
+            digital     analog
+data  D ┃   ①          ②
+      A ┃   ③          ④
+```
+
+1. digital data → digital signal: Encoding (part 2 of this chapter)
+2. digital data → analog signal: Modulation (part 3 of this chapter)
+3. analog data → digital signal: Digitization = PCM, Delta Modulation (part 4)
+4. analog data → analog signal: old AM/FM radio. Not covered in this chapter.
+
+## 1-2 Definitions
+
+1. Encoding path
+
+```
+g(t) ──[Encoder]── x(t) ──[channel]── x(t) ──[Decoder]── g(t)
+digital/analog      digital              digital      digital/analog
+```
+
+g(t): original data
+x(t): encoded digital signal (something like a square wave)
+The output is shown as a time-domain graph
+
+2. Modulation path
+
+```
+m(t) ──[Modulator]── s(t) ──[channel]── s(t) ──[Demodulator]── m(t)
+digital/analog  ↑     analog                analog          digital/analog
+                fc(t)
+                carrier
+```
+
+m(t): message (the data you want to send)
+fc(t): carrier (a constant sine wave)
+s(t): modulated analog signal
+S(f): its shape in the frequency domain (a peak around the carrier frequency fc)
+
+## 1-3 5 criteria for evaluating a good encoding
+
+| Criterion                                | What it looks at                                  | Why it matters                                                                                                                                                             |
+| ---------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Signal spectrum**                      | Where in the bandwidth the transmitted power lies | Concentrating it in the middle is efficient. With a DC component (near 0Hz), it can't pass through parts like transformers                                                 |
+| **Clocking**                             | How sender and receiver align bit boundaries      | Decides whether to use a separate external clock or embed sync information in the signal itself                                                                            |
+| **Error detection**                      | How errors are detected                           | Essentially the responsibility of an upper layer (data link control). But in some cases the encoding itself can detect some errors (e.g. Bipolar-AMI's polarity violation) |
+| **Signal interference & noise immunity** | Whether it survives well in a noisy environment   | Even at the same SNR, BER differs by code                                                                                                                                  |
+| **Cost & complexity**                    | How much it costs to implement                    | The higher the signaling rate, the higher the cost                                                                                                                         |
+
+### Key points
+
+- **"No DC component" under signal spectrum** is the hidden theme of all of chapter 5. The flow NRZ-L → AMI → Manchester → Scrambling is itself an evolution of "how do we get rid of DC".
+- **Clocking** too. NRZ-L's sync problem → Manchester's self-clocking → Scrambling's compromise.
+- Error detection being **the responsibility of the data link control layer** is the entrance to chapter 6. Chapter 5 is "making signals", chapter 6 is "verifying data".
+
+## 1-4 Differential Encoding
+
+- A method that interprets the signal by comparing it with the previous voltage to see whether it changed
+- Why it matters: with noise, absolute values wobble, but the change itself is detected relatively reliably
+- Level encoding: 0 = low, 1 = high (or the reverse). Represents data with absolute levels.
+
+### Advantages
+
+- In noisy environments, detecting transitions (voltage changes) is more reliable than comparing absolute values
+- Data can be recovered even if the cable polarity (sign of the voltage) is inverted
+
+### Disadvantages
+
+- easy to lose sense of polarity
+
+### Where Differential Encoding is used
+
+| Scheme                  | How differential is applied                                                     |
+| ----------------------- | ------------------------------------------------------------------------------- |
+| NRZI                    | transition on 1, hold on 0                                                      |
+| Differential Manchester | data represented by presence of a transition at bit start (present 0, absent 1) |
+| DPSK                    | data represented by phase change relative to the previous signal                |
+
+# 2. Digital → Digital Encoding
+
+## Introduction
+
+- We learn 4 ways to convert digital data -> digital signals
+
+1. NRZ family
+2. Multilevel Binary
+3. Manchester family
+4. Scrambling
+
+## 2-1 NRZ(No Return to Zero) family
+
+- The simplest method: 0 and 1 are simply represented by two different voltages.
+- The name Non-Return to Zero" means the voltage doesn't return to 0 (the neutral value) during a bit time
+- **Holds the voltage constant for the duration of one bit**
+
+### NRZ-L (Nonreturn to Zero - Level)
+
+- **0 = high level**
+- **1 = low level**
+- Advantages
+  1. Simple. The easiest circuit to implement.
+  2. Efficient. Minimal signal changes per bit (no change when 0s or 1s repeat).
+
+- Disadvantages — two of them
+  1. DC component exists: if many 0s or 1s appear, the average voltage is skewed to a nonzero value. → can't pass through parts like transformers.
+     - For example
+     ```
+     signal:  H H H H
+     voltage: +1 +1 +1 +1
+     average: +1V
+     ```
+     Here the average isn't 0, so there is a DC component
+  2. Loss of sync: if a long run of 0s or 1s occurs, the signal doesn't change, so the receiver loses track of "which bit it's on now"
+
+### NRZI (Nonreturn to Zero Inverted, "invert on ones")
+
+- The first appearance of differential encoding
+- Data is represented by whether or not there is a transition (voltage change) at the start of the bit.
+  - 0 = no transition (keeps the previous voltage)
+  - 1 = transition (flips low→high or high→low)
+  - So the sign switches whenever the bit is 1
+- Robust against noise
+
+### NRZ-L vs NRZI comparison
+
+| Item                | NRZ-L                       | NRZI                                         |
+| ------------------- | --------------------------- | -------------------------------------------- |
+| Representing 0      | high level                  | no transition                                |
+| Representing 1      | low level                   | transition                                   |
+| Encoding type       | level encoding              | differential encoding                        |
+| Sync loss condition | long run of 0s or 1s        | long run of 0s (1s change every time, so OK) |
+| Noise immunity      | weak (threshold comparison) | strong (transition detection)                |
+
+## 2-2 Multilevel Binary
+
+- NRZ uses only 2 voltage levels (high, low). Multilevel Binary uses 3 voltage levels
+  - positive (+), 0 (no signal), negative (−).
+- To partly solve NRZ-L's two drawbacks (DC component, sync problem).
+
+### Bipolar-AMI
+
+- Definition (AMI = Alternate Mark Inversion)
+- 0 = no line signal (voltage 0, nothing)
+- 1 = positive or negative pulse
+  - Consecutive 1s alternate in polarity (if the first 1 is +, the next 1 is -)
+
+### Advantages
+
+| Advantage                                     | Meaning                                                                                                                      |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| No loss of sync if a long string of 1s occurs | Even with consecutive 1s, the polarity changes every time, so transitions keep occurring → sync is kept (partly fixes NRZ-L) |
+| No net DC component                           | 1s alternate +/−, so the average voltage is close to 0 → can pass through transformers                                       |
+| Lower bandwidth                               | Can transmit with narrower bandwidth than NRZ at the same data rate                                                          |
+| Easy error detection                          | If a 1 breaks the +/− alternation rule = an error occurred → the encoding itself can detect some errors                      |
+
+### Disadvantages
+
+- Long runs of 0s still cause sync problems. 0 is "no signal", so if the signal is absent for a long time, the receiver loses the bit boundaries.
+  - This drawback is why Scrambling (2.4) appears later
+
+### Pseudoternary
+
+- Definition — the mirror image of Bipolar-AMI
+- 0 = positive or negative pulse (alternating)
+- 1 = no line signal
+- The roles of 0 and 1 are exactly swapped compared with AMI
+
+## Bipolar-AMI vs Pseudoternary
+
+| Item                 | Bipolar-AMI                             | Pseudoternary               |
+| -------------------- | --------------------------------------- | --------------------------- |
+| Representing 0       | no line signal                          | alternating +/− pulses      |
+| Representing 1       | alternating +/− pulses                  | no line signal              |
+| Inherent superiority | None — neither is better than the other | None                        |
+| Where used           | basis for some applications             | basis for some applications |
+
+## 2-3 Manchester family
+
+- Force a transition into the middle of every bit, no matter what. Whether 0 or 1
+- The signal always changes, so there is never a loss of sync. The signal itself even acts as the clock
+
+### Manchester
+
+**Rather than "the transition determines high/low", a transition occurs when it was High and changes to Low**
+
+- There is always a transition in the middle of every bit
+- low → high transition = 1
+- high → low transition = 0
+- Two roles of the mid-bit transition
+  1. Clocking (aligning bit boundaries): there is always a change in the middle of every bit, so the receiver tracks bit boundaries from it
+  2. Data: the direction of the change (up or down) determines the bit value
+  - → one transition carries clock + data at the same time. self-clocking.
+- Advantages
+  - No loss of sync
+  - No DC component
+
+- Disadvantage: needs 2 transitions per bit → the signal must change twice as fast → needs twice the bandwidth → expensive
+
+### Differential Manchester
+
+- Manchester + differential encoding
+
+- There is always a transition in the middle of every bit → used only for clocking
+- Data is represented by the presence or absence of a transition at the start of the bit
+- At the start (the start of a bit), if the bit is 0, there is a transition. Whether it was high or low
+
+### Manchester vs Differential Manchester
+
+| Item                 | Manchester                | Differential Manchester                   |
+| -------------------- | ------------------------- | ----------------------------------------- |
+| Mid-bit transition   | Yes (clocking + data)     | Yes (clocking only)                       |
+| Bit-start transition | No meaning                | Data (present = 0, absent = 1)            |
+| Representing 0       | high → low in the middle  | transition at the start                   |
+| Representing 1       | low → high in the middle  | no transition at the start                |
+| Encoding type        | level (direction matters) | differential (presence of change matters) |
+| Noise immunity       | Average                   | Stronger                                  |
+| Bandwidth            | Needs 2x                  | Needs 2x                                  |
+
+## 2-4 Scrambling
+
+- An idea that came from: why not just use an efficient scheme like AMI, and swap only the long runs of 0s for a different pattern?
+
+### Core mechanism
+
+- Normally, use an existing scheme like AMI as is (keeping bandwidth efficiency)
+- If too many 0s occur in a row (e.g. 8 in a row) → forcibly substitute that span with a different bit pattern agreed on in advance
+- The receiver recognizes that pattern → restores it back to the original run of 0s
+
+### Conditions the substitution pattern must satisfy
+
+- Provide enough transitions to keep the receiver's clock in sync (if the signal doesn't change for too long, the receiver loses track of "which bit it's on now", so voltage changes are deliberately introduced here and there)
+- The receiver must be able to recognize the pattern and restore the original
+- Same length as the original (no data rate penalty)
+
+### Scrambling Design Goals
+
+| Goal                                         | Meaning                                                                   |
+| -------------------------------------------- | ------------------------------------------------------------------------- |
+| No DC component                              | So it can pass through transformers                                       |
+| No long sequences of zero level line signals | Block runs of 0s to keep sync                                             |
+| No reduction in data rate                    | Substitution pattern is the same length as the original → throughput kept |
+| Error detection capability                   | Error detection built into the substitution pattern itself                |
+
+### Two representative schemes
+
+1. B8ZS (Bipolar with 8-Zeros Substitution)
+
+- Based on AMI
+- If 8 0s occur in a row → those 8 bits are substituted with a special pattern containing 2 code violations (pulses that break the AMI rule)
+- Mainly used in North America
+
+2. HDB3 (High-Density Bipolar 3-zeros)
+
+- Based on AMI
+- If 4 0s occur in a row → those 4 bits are substituted with a special pattern containing 1 code violation
+- Mainly used in Europe/Japan
+
+| Item                             | B8ZS          | HDB3          |
+| -------------------------------- | ------------- | ------------- |
+| Base encoding                    | Bipolar-AMI   | Bipolar-AMI   |
+| Substitution trigger             | 8 0s in a row | 4 0s in a row |
+| Code violations per substitution | 2             | 1             |
+| Main region of use               | North America | Europe/Japan  |
+
+- What is a code violation?
+  - AMI rule: "1s alternate +/−." → a pulse that deliberately breaks this rule
+  - This is the mechanism behind the error detection capability
+    - If a signal arrives that breaks the substitution rule → it is immediately detected as an error
+
+# 3. Digital data -> Analog signal encoding (Modulation)
+
+**There is a basic sine wave called the carrier, and 0 and 1 are represented by changing one of that sine wave's properties.**
+
+- There are ASK, FSK, PSK and QAM.
+
+```
+form of a sine wave
+
+s(t) = A sin(2πft + φ)
+
+Three things here can be changed.
+A  = amplitude
+f  = frequency
+φ  = phase
+```
+
+## 3-1 ASK
+
+- Represents 0/1 by changing the amplitude A
+- For 0, the carrier is sent weakly or not at all; for 1, it is sent strongly
+- ASK that represents 0 as no carrier is called **OOK**, On-Off Keying.
+  - 1 = carrier ON
+  - 0 = carrier OFF
+- The problem is that amplitude is vulnerable to noise. If the signal strength wobbles even slightly during communication, it's ambiguous "whether this is a large or small amplitude". So ASK is simple but not very robust
+
+## 3-2 FSK
+
+- Represents 0/1 by changing the frequency f
+
+### Bfsk: since it's Binary FSK, it uses only two frequencies to represent the binary data 0 and 1
+
+- 1 = higher frequency
+- 0 = lower frequency
+
+### MFSK: Multiple FSK: uses more than 2 frequencies
+
+For example, with 4 frequencies
+
+```
+MFSK, M = 4:
+
+00 = f1
+01 = f2
+10 = f3
+11 = f4
+```
+
+- Each symbol carries several bits, so bandwidth efficiency improves.
+- The drawback is that if the frequency spacing is narrow or there is noise, it becomes easy to confuse them.
+- A higher frequency means the wave oscillates more times in the same amount of time
+
+## 3-3 PSK
+
+- Represents 0/1 by changing the phase φ
+- Instead of changing amplitude or frequency, it changes the phase of the sine wave, simply put, the starting position of the wave.
+- 0 = reference phase (sin waveform)
+- 1 = phase inverted by 180 degrees (-sin waveform)
+- With PSK, even if the amplitude wobbles a bit, you only need to look at the phase difference, so it's relatively robust
+
+However, PSK also needs to know the reference phase.  
+Because the receiver has to compare "how far this has rotated from the original 0° reference". So establishing the reference is important.
+This leads directly to DPSK
+
+### DPSK
+
+- **Decides by whether the phase changed compared with the previous phase**
+  DPSK does not look at the absolute phase directly.
+  It compares with the phase of the previous signal to see whether it changed or not.
+
+If the initial phase is taken as 0° and the bit string is 0 1 1 0, it goes like this.
+
+Initial phase: 0°
+
+bit 0 → keep phase → 0°
+bit 1 → change phase by 180° → 180°
+bit 1 → change phase by 180° → 0°
+bit 0 → keep phase → 0°
+
+As a table
+
+bit: 0 1 1 0
+phase: 0° 180° 0° 0°
+
+The important point here is that 1 does not always mean a 180° waveform.
+1 means changing from the previous phase
+
+### QPSK
+
+- Quadrature Phase Shift Keying.
+- Uses 4 phases.
+- 1 symbol represents 2 bits.
+- Example: maps 00, 01, 11, 10 to 4 different phases.
+- Better bandwidth efficiency than BPSK.
+- The drawback is that, with more phase states, the receiver must distinguish phases more precisely.
+
+### OQPSK
+
+- Offset QPSK.
+- A variant of QPSK.
+- Delays one of the I and Q components by half a symbol time so they don't change at the same time.
+- In ordinary QPSK, if I/Q change simultaneously, a 180° phase jump can occur.
+- OQPSK staggers the change times to prevent large phase jumps and reduce the size of phase changes.
+- As a result the signal changes more smoothly and is more robust to amplifier nonlinearity in wireless transmission.
+
+## Performance comparison of modulation schemes
+
+Two key criteria
+
+1. Bandwidth
+   → how wide a frequency band it consumes
+
+2. Noise / Bit error rate
+   → how few errors it makes when there is noise
+
+## Digital-to-Analog Modulation performance comparison
+
+- The bandwidth of ASK/PSK is directly related to the bit rate.
+- FSK needs spacing between different frequencies, so it carries a bandwidth burden.
+- Noise performance generally improves in the order ASK &lt; FSK &lt; PSK.
+- PSK/QPSK tend to have better BER performance than ASK/FSK.
+- MFSK and MPSK involve a tradeoff.
+  - More bits can be carried per symbol, so bandwidth efficiency improves.
+  - Instead, there are more signal states to distinguish, making them more vulnerable to noise.
+
+## 3-5 QAM
+
+- A combination of ASK and PSK
+- Changes both amplitude and phase to pack multiple bits into a single signal state
+- For example, simple ASK/FSK/PSK can be thought of as carrying usually just 1 bit per symbol, while QAM can carry more, like 2, 4 or 6 bits per symbol. So bandwidth efficiency improves. In exchange, there are more signal states to distinguish, so it becomes more sensitive to noise
+
+For example, 16-QAM has 16 symbol states.
+
+16-QAM:
+16 distinct signal states
+= 2^4
+= 4 bits can be represented per symbol
+
+- Advantages of QAM
+- More bits can be sent in the same time, so bandwidth efficiency improves.
+
+- Disadvantages
+- The more signal states you create, the closer the states get to each other, so noise-induced errors increase.
+
+Few signal states:
+points are far apart → easy to distinguish → robust to noise
+
+Many signal states:
+points are close together → hard to distinguish → vulnerable to noise
+
+QAM is usually explained with a constellation diagram.
+Each point is one symbol
+
+```
+16-QAM example:
+
+        Q
+        ↑
+    •   •   •   •
+    •   •   •   •
+    •   •   •   •
+    •   •   •   •
+        └────────→ I
+distance from the origin to a point = amplitude
+angle from the origin to a point = phase
+
+I, Q = coordinate components
+amplitude = √(I² + Q²)
+phase = atan(Q / I)
+```
+
+# 4. Analog data -> Digital signal
+
+**How do we turn a continuous analog waveform into a digital signal of 0s and 1s?**
+
+- This is called Digitization.
+- Representative methods: PCM, Delta Modulation
+
+## 4-1 PCM(Pulse Code Modulation)
+
+PCM has three steps
+
+1. Sampling
+   - Marking points on the analog sine wave at fixed intervals
+   - Sampling theorem: if you sample an analog waveform often enough, you can redraw the original curve from just the sampled points
+     - highest frequency = B
+     - required sampling rate > 2B
+   - PAM is the state right after sampling: the samples represented as pulse heights
+2. Quantization
+   - A digital system can't handle infinitely fine values as they are. So they are rounded to the nearest predefined step (quantized code numbe)
+   - Quantization error: the information loss caused by rounding
+   - More levels reduce the error
+   - But more levels also increase the number of bits needed to represent each sample.
+   - PCM bit rate = sampling rate × bits per sample
+   - ex:
+   - 8000 samples/sec × 8 bits/sample
+   - = 64000 bits/sec
+   - = 64 kbps
+
+3. Encoding
+   - Converting the quantized numbers into binary code
+   - 1 → 0001
+   - - e.g.: 16 levels = 2^4 → 4 bits per sample.
+   - The important point here is that PCM's Encoding is different from line encoding like Manchester or NRZ.
+
+### Nonlinear Coding
+
+- Linear quantization divides the whole amplitude range into equally spaced levels.
+- Nonlinear coding uses different quantization spacing for different amplitude ranges.
+- Near small amplitudes, levels are placed densely to reduce the quantization error of small signals.
+- On the large-amplitude side, even with wide level spacing, the perceived error is relatively small.
+- Advantageous when small-signal quality matters, as with voice signals.
+- A related concept is companding.
+
+## 4-2 DM(Delta Modulation)
+
+- Delta Modulation approximates an analog signal with a staircase function.
+- It doesn't store the sample value itself, only whether to go up or down from the previous approximation.
+- Up is represented as 1, down as 0.
+- Only 1 bit is produced per sampling interval, so the structure is simpler than PCM.
+- The drawback is slope overload distortion, where the staircase can't keep up when the signal changes sharply. -> can be mitigated with ADM
+- Even when the signal is almost flat, granular noise can occur as the staircase jitters up and down.
+
+### Additional material: ADM(Advanced Delta Modulation)
+
+- Mitigates slope overload distortion
+- DM has a fixed step size.
+- ADM changes the step size depending on the direction of change.
+- If the same direction continues, it assumes the signal is changing quickly and increases the step size.
+- If the direction changes, it assumes the signal change is gentle or has turned, and decreases the step size.
+- Since p = 3/2 and q = 2/3, the step size can grow and then shrink back to its original size.
+- ADM can reduce the error relative to the original data compared with DM.

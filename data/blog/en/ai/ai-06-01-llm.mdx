@@ -1,0 +1,432 @@
+---
+title: 'LLM'
+date: '2026-06-16'
+tags: ['AI']
+draft: false
+summary: 'language model, LLM basics, transformer, attention, BERT/GPT, LLM training, multimodal LLM'
+---
+
+- [1. Language Model](#1-language-model)
+- [2. LLM(Large Language Model)](#2-llmlarge-language-model)
+  - [LLM basic concepts](#llm-basic-concepts)
+- [3. Transformer model](#3-transformer-model)
+  - [1. Self-attention operation](#1-self-attention-operation)
+  - [2. Positional embedding vector](#2-positional-embedding-vector)
+  - [3. Structure of a Transformer block](#3-structure-of-a-transformer-block)
+  - [4. mulit-head attention](#4-mulit-head-attention)
+  - [5. Encoder and decoder](#5-encoder-and-decoder)
+- [4. Models built on the Transformer](#4-models-built-on-the-transformer)
+  - [1. BERT(Bi-directional Encoder Representations from Transformers)](#1-bertbi-directional-encoder-representations-from-transformers)
+  - [2. GPT(Generative Pre-trained Transformer)](#2-gptgenerative-pre-trained-transformer)
+- [5. Training an LLM](#5-training-an-llm)
+  - [1. Pre-training](#1-pre-training)
+  - [2. SFT(supervised fine-tuning)](#2-sftsupervised-fine-tuning)
+  - [3. RLHF (reinforcement learning with human feedback)](#3-rlhf-reinforcement-learning-with-human-feedback)
+- [6. Multimodal LLM](#6-multimodal-llm)
+  - [How to feed images in](#how-to-feed-images-in)
+  - [VLM(Vision Language Model)](#vlmvision-language-model)
+
+# 1. Language Model
+
+A probabilistic model that predicts the most appropriate next word based on the context of the given text
+
+# 2. LLM(Large Language Model)
+
+A language model with a very large number of parameters, trained on a massive amount of text data
+
+Mainly implemented as Transformer-based models
+
+## LLM basic concepts
+
+### 1. Tokenization
+
+1. The step that splits a sentence into smaller units called tokens
+
+2. The split tokens are mapped to integer IDs according to a predefined vocabulary
+
+### 2. Embedding
+
+3. Converts each token into a numeric vector representation with hundreds or thousands of dimensions
+   - Similar concepts point in similar directions in vector space.
+   - The same word gets different vector values depending on context.
+
+### Conversion steps: token > integer ID > vocabulary (voca) > embedding vector
+
+### Transformer model
+
+The neural network architecture at the core of large language models
+
+Processes data (the tokens' embedding vectors) in parallel and understands context in depth
+
+Takes in the whole sentence at once, so training speed is greatly improved over earlier models
+
+Computes the probability distribution of the next token (word, next token)
+
+### Temperature
+
+Temperature controls the randomness of text generation by adjusting word probabilities before the model chooses a word
+
+High temperature (≥ 1): more diverse and creative output
+
+Low temperature (~0): more focused and predictable responses
+
+### Sampling
+
+1. Top-K sampling
+   - Limits the word pool
+   - Picks probabilistically among the top K words with the highest probability
+   - Fixed number of candidate words; with K=5, always 5 are chosen
+
+2. Top-p sampling
+   - Picks a word from a dynamically changing word pool, filled until the cumulative probability reaches p
+   - Variable number of candidate words; candidates are added until the cumulative probability reaches p.
+
+# 3. Transformer model
+
+Creates three kinds of vectors, Query, Key and Value, from each token's embedding vector, computes how related one token's Query is to every token's Key, then mixes the Values in proportion to that relevance to make a new vector
+
+Q(Query): the information I want to find
+
+K(Key): I am related to this kind of information
+
+V(Value): the content actually passed on
+
+## 1. Self-attention operation
+
+1. input1, input2, input3 come in
+   ```
+   Example
+   input = [1010, 0202, 1111]
+   ```
+2. Multiply each input by the trained weight matrices inside the model to make query, key, value
+   ```
+   Example
+   key = [[0,1,1], [4,4,0], [2,3,1]]
+   value = [[1,2,3], [2,8,0], [2,6,3]]
+   query = [[1,0,2], [2,2,2], [2,1,3]]
+   ```
+3. query1 is compared with every key (dot product of vectors)
+
+   ```
+   Example
+   query1 = [1, 0, 2]
+
+   key1 = [0, 1, 1]
+   key2 = [4, 4, 0]
+   key3 = [2, 3, 1]
+
+   query1 · key1
+   = [1, 0, 2] · [0, 1, 1]
+   = 1×0 + 0×1 + 2×1
+   = 2
+   score1 = 2
+
+   query1 · key2
+   = [1, 0, 2] · [4, 4, 0]
+   = 4 + 0 + 0
+   = 4
+   score2 = 4
+
+   query1 · key3
+   = [1, 0, 2] · [2, 3, 1]
+   = 2 + 0 + 2
+   =4
+   score3 = 4
+
+   score = [2, 4, 4]
+   ```
+
+4. The comparison produces scores
+
+5. Turn the scores into ratios with softmax
+
+   ```math
+   softmax(score_i) = \frac{e^{score_i}}{e^{score_1}+e^{score_2}+e^{score_3}}
+   ```
+
+   ```
+   Example
+   score1 = 2
+   score2 = 4
+   score3 = 4
+
+   query1 = [1,0,2]
+
+   e^2 ≈ 7.389
+   e^4 ≈ 54.598
+   e^4 ≈ 54.598
+
+   denominator = 7.389 + 54.598 + 54.598 = 116.585
+
+   softmax(2) = 7.389 / 116.585 ≈ 0.063
+   softmax(4) = 54.598 / 116.585 ≈ 0.468
+   softmax(4) = 54.598 / 116.585 ≈ 0.468
+
+   softmax([2, 4, 4]) ≈ [0.063, 0.468, 0.468]
+   ```
+
+6. Multiply every value by its ratio
+
+   ```
+   Example
+
+   multiplication1
+   0.063 × value1
+   = 0.063 × [1, 2, 3]
+   = [0.063, 0.126, 0.189]
+
+   multiplication2
+   0.468 × value2
+   = 0.468 × [2, 8, 0]
+   = [0.936, 3.744, 0]
+
+   multiplication3
+   0.468 × value3
+   = 0.468 × [2, 6, 3]
+   = [0.936, 2.808, 1.404]
+   ```
+
+7. Add the multiplied values to make output1
+
+   ```
+   Example
+   [0.063, 0.126, 0.189]
+   + [0.936, 3.744, 0]
+   + [0.936, 2.808, 1.404]
+
+   = [1.935, 6.678, 1.593]
+
+   output1 ≈ [1.935, 6.678, 1.593]
+   ```
+
+8. query2 and query3 make output2 and output3 the same way
+
+## 2. Positional embedding vector
+
+Self-Attention computes relationships between tokens.
+
+But without order information, the meaning of the sentence falls apart.
+
+So a positional embedding is added to each token embedding.
+
+As a result, the Transformer receives "word meaning + position" together.
+
+It must have the same dimension as the token embedding.
+
+## 3. Structure of a Transformer block
+
+### Self-Attention
+
+Computes how much each token should refer to the other tokens in the sentence
+
+### FFN(Feed Forward Network) or MLP
+
+If Self-Attention handled "the relationships between tokens", the FFN takes each token vector separately and transforms it once more
+
+Usually made of a linear layer, an activation function, and a linear layer
+
+### Skip Connection
+
+self-attention result + original input
+
+Preserves information from the previous layer and makes training stable
+
+### LayerNorm (normalization layer)
+
+Normalization that tidies vector values that get too large or uneven.
+
+As computations pile up, the distribution of values can shift, so it keeps things stable at every layer
+
+### Flow
+
+```
+Input vector (token embedding + positional embedding)
+↓
+Self-Attention
+↓
+Skip Connection + LayerNorm
+↓
+Feed Forward Network
+↓
+Skip Connection + LayerNorm
+↓
+Output vector
+```
+
+1. The input vector comes in
+
+2. Self-Attention reflects the relationships between tokens
+
+3. Add the original input
+   = Skip Connection
+
+4. Tidy the values
+   = LayerNorm
+
+5. The FFN processes each token vector once more
+
+6. Add the original value again
+   = Skip Connection
+
+7. Normalize again
+   = LayerNorm
+
+8. Pass it to the next Transformer block
+
+## 4. mulit-head attention
+
+A concept that came about because the self-attention approach can only focus strongly on one kind of relationship.
+
+- Linear projection
+  - Multiplying a vector by a weight matrix to move it into a different vector space
+  - It can reduce the dimension, increase it, or just change the direction within the same dimension.
+
+```
+Input X
+↓
+Create Q1, K1, V1 for head 1
+Create Q2, K2, V2 for head 2
+Create Q3, K3, V3 for head 3
+...
+↓
+Run self-attention separately in each head
+↓
+Concatenate the head outputs (concatenation)
+↓
+Linear transformation again
+↓
+multi-head attention output
+```
+
+## 5. Encoder and decoder
+
+**The encoder reads the input sentence and produces meaning vectors, and the decoder refers to the encoder's last layer when producing the output sentence**
+
+The way it refers here: Cross-Attention
+
+### Cross-Attention
+
+Output of the encoder's last layer = vectors summarizing the input sentence after reading it all
+
+Decoder Query = a request for the information needed at the position currently being output
+
+Encoder Key = a search tag indicating what information each input token holds
+
+Encoder Value = the input information actually passed to the decoder
+
+Cross-Attention = the process of searching the encoder Keys with the decoder Query and fetching the matching Values
+
+### Encoder-decoder inference
+
+Key and value vectors are created from the encoder's output for the given input
+
+# 4. Models built on the Transformer
+
+## 1. BERT(Bi-directional Encoder Representations from Transformers)
+
+A Transformer Encoder-based model
+
+Uses two sentences as input - feed in sentence A and sentence B and judge whether they are consecutive.
+
+### Attach a classification layer to a well-trained BERT language model to perform various NLP tasks (natural language processing tasks)
+
+Tasks such as sentence classification, sentiment analysis and next sentence prediction
+
+1. Next Sentence Prediction
+2. Autoencoding training: restore the hidden Masked tokens
+   - I ate [MASK]
+   - Infer the MASKed part from the context
+
+## 2. GPT(Generative Pre-trained Transformer)
+
+A Transformer Decoder-based model
+
+Auto-regressive model: generates the next token based on previous outputs
+
+The architecture used by most LLMs
+
+### GPT flow
+
+```
+Input words
+↓
+Convert words into embedding vectors
+↓
+Transformer decoder processes them
+↓
+Predict the next word
+↓
+Feed the predicted word back into the input and repeat generation
+```
+
+# 5. Training an LLM
+
+## 1. Pre-training
+
+The stage that learns next-token prediction on a large corpus, i.e. text on the scale of trillions of tokens (compressing world knowledge)
+
+1. Trained to predict the next word from previous words
+   - Learns everything from a single simple task: predicting the next token
+   - The labels are inherent in the data itself, so it is self-supervised
+
+2. Compressing the whole internet and melting it into the parameters
+3. At this stage it gains the basis for language structure, factual knowledge and reasoning ability
+4. Data quality filtering is decisive
+5. High-quality datasets go through deduplication, adult-content filters, language detection and quality classifiers
+
+- A model that has finished this stage is called a Base Model
+- It has knowledge but doesn't know well how to respond to instructions > SFT needed
+
+## 2. SFT(supervised fine-tuning)
+
+The stage where the model looks at pairs of questions and ideal responses and learns what format and attitude to answer with when given an instruction (format/attitude learning)
+
+- Data collection methods
+  1. Human-written: professional annotators write (question, ideal response) pairs directly. Best quality, highest cost.
+  2. Model-generated + human review: GPT-4 generates drafts → humans revise. The InstructGPT and Alpaca approach.
+  3. Self-Instruct: the model generates diverse instructions and responses on its own. Large variance in quality
+
+- Model after SFT: follows instructions, but may also follow harmful requests as is > RLHF needed
+
+## 3. RLHF (reinforcement learning with human feedback)
+
+Adjusts the model based on the answers people prefer (human preference alignment)
+
+- Data collection
+  - Generate several responses to the same question, and human raters mark preferences by pairwise comparison
+  - OpenAI's rater interface for InstructGPT
+
+Reinforcement learning of the model
+
+- Trained to produce results with high human preference while not drifting too far from the original model
+
+# 6. Multimodal LLM
+
+**A model that understands and generates many data formats in one model, not just text but also images, speech and video**
+
+- Modality: data format (text, speech, image, video)
+- Projection layer: an intermediate conversion layer that vectorizes another modality such as images or speech with an encoder, then shapes that vector into a form the LLM can take
+- Uses a large language model as the backbone; data from other modalities is vectorized with a separate encoder and fed into the large language model
+- Requires fine-tuning
+
+## How to feed images in
+
+1. Turn the chunk of pixels into image embedding vectors with an image encoder like ViT
+
+### Method 1. Put image vectors into the LLM like input tokens
+
+[image tokens] [describe] [this] [photo]
+
+Treats the image information as a kind of input token too, processed together with the text question that follows
+
+The Molmo model uses this approach
+
+### Method 2. Refer via Cross-Attention
+
+The NVLM model uses this approach
+
+## VLM(Vision Language Model)
+
+- A model designed to understand and process visual information such as images or video together with natural language (text)
+- Provides multifaceted reasoning, such as looking at an image and describing it or answering questions, as if it had "eyes"
+- Translates images into tokens the LLM can read

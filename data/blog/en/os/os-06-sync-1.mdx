@@ -1,0 +1,294 @@
+---
+title: 'sync-1'
+date: '2026-05-05'
+tags: ['OS']
+draft: false
+summary: 'sync, critical section, locks'
+---
+
+- [Synchronization](#syncrhonization)
+  - [What threads share and what they don't](#what-threads-share-and-what-they-dont)
+  - [Critical Section](#critical-section)
+  - [Requirements for a Critical Section](#requirements-for-a-critical-section)
+    - [1. mutual exclusion](#1mutual-exclusion)
+    - [2. Progress in synchronization](#2-progress-in-synchronization)
+    - [3. bounded waiting](#3-bounded-waiting)
+    - [4. performance](#4-performance)
+  - [Mechanisms for meeting the critical section requirements](#mechanisms-for-meeting-the-critical-section-requirements)
+  - [Locks](#locks)
+  - [Three ways to fix the problem with locks](#three-ways-to-fix-the-problem-with-locks)
+    - [1. Use an algorithm](#1-use-an-algorithm)
+    - [2. Hardware support](#2-hardware-support)
+    - [3. Turn interrupts off](#3-turn-interrupts-off)
+  - [Early algorithm](#early-algorithm-to-fix-the-acquire-problem)
+  - [Peterson's Algorithm](#petersons-algorithm)
+  - [Final](#final)
+
+# Syncrhonization
+
+**When several threads access one shared resource, how do we handle it?**
+
+- Thread execution can be interleaved arbitrarily, and each thread can run at a different speed
+
+### Problem: what happens if 1,000,000 won is withdrawn at the same time from two different ATMs (a situation that writes, not just reads)? (p.5)
+
+- **This problem situation itself is called a race condition**
+- In other words, you don't always get the same result; it depends on execution timing
+
+### The context switch problem.
+
+```c
+void *threadcount(void *data) {
+    int *count = (int *)data;
+    int i;
+    for (i=0; i<100; i++) {
+        *count = *count+1;
+    }
+}
+```
+
+```
+*count = *count+1; is split into 3 steps:
+1. (LOAD R1, MEM_count)
+! a context switch can happen here!
+2. (ADD R1, R1, 1)
+! a context switch can happen here!
+3.(STORE R1, MEM_count)
+So the result may not be the ideal one
+```
+
+## What threads share and what they don't?
+
+- Shared: code, global/static data, heap
+- Not shared: stack
+  - **Don't pass the address of a local variable on another thread's stack. Why: each thread has its own stack, but if you pass a pointer, other threads can access that address too**
+
+**The real criterion is whether multiple execution flows can access the same memory location**
+
+## Critical Section
+
+**A piece of code that touches a shared resource accessible by multiple threads**
+
+```c
+int withdraw(account, amount) {
+    balance = get_balance(account); // critical section
+    balance = balance - amount; // critical section
+    put_balance(account, balance);  // critical section
+
+    return balance;
+}
+```
+
+- When one thread is in the critical section, we need to keep other threads from entering. Otherwise a race condition occurs.
+
+## Requirements for a Critical Section
+
+### 1.mutual exclusion
+
+- When one thread is in the critical section, block other threads from entering
+
+### 2. Progress in synchronization
+
+1. If a thread is inside the critical section, it must finish and leave within a reasonable time
+2. A thread outside the critical section must not prevent other threads from entering the critical section.
+
+### 3/ bounded waiting
+
+- If a thread is waiting to enter the critical section, it must eventually get in.
+
+### 4. performance
+
+- Once inside the critical section, leave as quickly as possible
+
+## Mechanisms for meeting the critical section requirements
+
+### 1. Locks
+
+### 2. Semaphore
+
+### 3. Monitors
+
+### 4. Messages
+
+## Locks
+
+**Just lock the door**
+
+### case1: the lock is free
+
+1. No thread is running the critical section
+2. Some thread calls acquire()
+3. The lock is switched to the "held" state
+4. acquire() returns
+5. That thread runs the critical section code
+
+### case2: the lock is held
+
+1. Some thread is already running the critical section
+2. Another thread calls acquire()
+3. acquire() does not return right away
+4. With a spinlock, it keeps checking while it waits
+5. With a mutex, it goes into the waiting queue and sleeps
+
+### When the critcial section work is done
+
+1. Call release()
+2. Switch the lock to the free state
+3. If there are waiting threads, wake one up
+4. The woken thread completes acquire
+5. That thread enters the critical section
+
+### Problem
+
+```c
+void acquire (struct lock *l) {
+while (l->held);
+// What if a context switch happens here? We move from thread A to thread B, thread B sets held = 1 and enters the critcal section. Then another context switch brings us back to thread A, which then sets held = 1. So threads A and B end up in the critcal section at the same time.
+l->held = 1;
+}
+void release (struct lock *l) {
+l->held = 0;
+}
+```
+
+- So the acquire function for the lock would itself need a lock, recursively.
+- That's why we need an atomic operation (bundle it atomically so no context switch can happen in between)
+
+### Characteristics
+
+- You must call acquire() to enter the critical section
+- Waiting on a lock is either spinning with a spinlock (keeps using the CPU) or blocking with a mutex (uses less CPU)
+- Problem with spinlocks: they keep checking whether the lock has been released, so they eat a lot of CPU.
+
+## Three ways to fix the problem with locks
+
+### 1. Use an algorithm
+
+- Assume reading/writing a single variable is atomic
+
+1. Dekker's algorithm
+2. Peterson's algorithm
+3. Lamport's bakery algorithm (for more than two processes)
+
+### 2. Hardware support
+
+- Atomic instructions
+  - A context switch causes the problem, so bundle the whole thing into one
+    - Examples: test-and-set, swap
+
+### 3. Turn interrupts off
+
+- With interrupts off, timer interrupts don't come in.
+- Without timer interrupts, no forced context switch happens.
+- Without a context switch, the current thread can run the critical section to the end.
+
+```c
+void acquire (struct lock *l) {
+    cli(); // turn interrupts off with cli()
+}
+void release (struct lock *l) {
+    sti(); // turn interrupts on with sti()
+}
+```
+
+#### Why can't turning interrupts off be the solution?
+
+1. It only works in the kernel.
+   - Then can't the OS provide it as a system call? -> No. Why: security issues and bugs
+2. It isn't enough on a multiprocessor
+   - Turning off CPU0's interrupts doesn't stop the threads on CPU1
+3. If the critcial section is long, important events can be missed.
+
+## Early algorithm (to fix the acquire problem)
+
+```c
+// Initial value: false for both threads
+void acquire (int process) {
+    int other = 1 - process;    // assume 2 threads in total; other is the other thread's number, process is my thread's number
+    interested[process] = TRUE; // announce that my thread wants to enter the critical section
+    // context switch happens here -> thread 0 = true
+    // switch to thread 1
+    // thread 1 = true
+    // problem: thread 1 spins and waits, and thread 0 also spins and waits
+
+    while (interested[other]);  // if the other thread wants to enter the critcal section, my thread spins here and waits
+}
+void release (int process) {
+    interested[process] = FALSE;    // let go of my thread
+}
+// then move to the next thread and let it take over
+void acquire (int process) {
+    int other = 1 - process;
+    interested[process] = TRUE;
+    while (interested[other]);
+}
+void release (int process) {
+    interested[process] = FALSE;
+}
+// Flaw: it can't tell "wants to enter" apart from "has entered"
+```
+
+## Peterson's Algorithm
+
+- Assume reading and writing a single variable is atomic.
+- Feature: adds a variable called turn
+  **Why add it?**
+
+```
+Problem with the early algorithm:
+T0: interested[0] = TRUE
+T1: interested[1] = TRUE
+
+T0: the other one is TRUE too → wait
+T1: the other one is TRUE too → wait
+
+Result: neither can get in
+```
+
+```c
+int turn;
+int interested[2];
+interested[0]=FALSE; interested[1]=FALSE;
+
+void acquire (int process) {
+    int other = 1 – process;
+    interested[process] = TRUE;
+    turn = other;   // I want to enter the critical section too, but if the other one also wants in, I'll yield to it.
+    // What if a context switch happens here?
+    // with t0[other = 1, turn = 1, interested0 = true],
+    // t1[ther = 0, interested1 = true, turn = 0] while(interested[0]=true && 0=0)
+    // so t1 spins in the while loop
+    // back in t0, interested[1] = true, turn = 0, other = 1 (other is a local variable), so process0 works normally
+    while (interested[other] && turn == other); // wait if the other one wants in and it's also the other one's turn.
+    // The difference from the early algorithm is
+}
+void release (int process) {
+    interested[process] = FALSE;
+}
+```
+
+```
+Normal flow example:
+other = t1, process = t0
+interested[0] = true // interested[1] = false
+turn = t1
+while(interested[t1] && t1 == t1)
+-> so it enters the critical section
+
+Then release switches it to False
+```
+
+## Final
+
+```
+Takeaway from this part
+A lock can't just be built from a single variable.
+Because a context switch can sneak in between the check and the set.
+So implementing a lock needs one of the following:
+1. software-only algorithm
+2. hardware atomic instruction
+3. turning interrupts off
+But spinlocks and turning interrupts off are too low-level and too restrictive.
+So we usually use them as building blocks
+to build higher-level synchronization tools like mutex, semaphore and monitor.
+```

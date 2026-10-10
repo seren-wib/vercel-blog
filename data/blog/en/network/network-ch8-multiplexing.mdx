@@ -1,0 +1,81 @@
+---
+title: 'CH8. Multiplexing'
+date: '2026-06-13'
+tags: ['Network']
+draft: false
+summary: 'Multiplexing(MUX/DEMUX), FDM, TDM, WDM, Duplex(FDD/TDD), Multiple Channel Access(FDMA/TDMA)'
+---
+
+- [Multiplexing: a technique that lets multiple signals share one link](#multiplexing-a-technique-that-lets-multiple-signals-share-one-link)
+  - [Split into FDM and TDM by how the line (link) is divided](#split-into-fdm-and-tdm-by-how-the-line-link-is-divided)
+  - [1. FDM(Frequency Division Multiplexing) — divided by frequency](#1-fdmfrequency-division-multiplexing--divided-by-frequency)
+    - [FDM example](#fdm-example)
+  - [2. TDM (Time Division Multiplexing) — divided by time](#2-tdm-time-division-multiplexing--divided-by-time)
+  - [3. WDM(Wavelength Division Multiplexing) — the optical fiber version of FDM](#3-wdmwavelength-division-multiplexing--the-optical-fiber-version-of-fdm)
+  - [4. Duplex application](#4-duplex-application)
+  - [5. Multiple Channel Access application](#5-multiple-channel-access-application)
+
+# Multiplexing: a technique that lets multiple signals share one link
+
+Links are expensive, so having multiple signals share one line improves cost efficiency
+
+```
+input1 ─┐                                    ┌─ output1
+input2 ─┤                                    ├─ output2
+  ⋮     ├─[ MUX ]══ 1 link, n channels ══[ DEMUX ]┤   ⋮
+inputn ─┘                                    └─ outputn
+```
+
+- MUX (Multiplexer): bundles multiple inputs into one and puts them on the line
+
+- DEMUX (Demultiplexer): splits them back into n at the destination
+
+## Split into FDM and TDM by how the line (link) is divided
+
+## 1. FDM(Frequency Division Multiplexing) — divided by frequency
+
+![FDM](/static/images/network-ch8-multiplexing/fdm.png)
+
+- Divides the line's frequency band into several pieces and assigns a different frequency to each channel
+- All channels flow at the same time (each has its own frequency, so they don't mix)
+- A guard band (an empty frequency buffer zone) is placed between channels to prevent interference
+
+Same as radio, where many stations broadcast at the same time but don't mix because their frequencies differ (89.1, 91.9...)
+
+### FDM example
+
+![FDM-example](/static/images/network-ch8-multiplexing/fdm-example.png)
+
+## 2. TDM (Time Division Multiplexing) — divided by time
+
+![TDM](/static/images/network-ch8-multiplexing/tdm.png)
+
+- Time is chopped into small pieces (time slots) and the channels take turns monopolizing the line
+- Only one channel uses it at any instant, but it cycles so fast that they look like they're using it simultaneously
+- Analogy: scheduling one meeting room — team A at 9:00, team B at 9:10... and rotating it
+
+## 3. WDM(Wavelength Division Multiplexing) — the optical fiber version of FDM
+
+- Puts several different wavelengths (colors of light) on a single strand of optical fiber
+- The principle is exactly the same as FDM. (frequency = wavelength for light). The medium is just optical fiber and the signal is light
+- Commercial systems: 160 channels × 10 Gbps class. 1550 nm lasers → MUX combines them → an optical amplifier amplifies all wavelengths at once → DEMUX separates them
+
+![WDM](/static/images/network-ch8-multiplexing/wdm.png)
+
+## 4. Duplex application
+
+Separating two-way communication
+
+How to divide sending and receiving (both directions)
+
+1. FDD (Frequency-Division Duplex): separates the sending direction and the receiving direction by different frequencies
+2. TDD (Time-Division Duplex): separates them by time (time is split between sending and receiving)
+
+- Tp propagation delay, Tb burst transmission time, Tg guard time
+
+## 5. Multiple Channel Access application
+
+How to divide access when several terminals attach to one base station
+
+1. FDMA: assigns a different frequency band to each terminal (multiple access in the FDM style)
+2. TDMA: assigns a different time slot to each terminal (multiple access in the TDM style)

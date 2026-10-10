@@ -1,0 +1,765 @@
+---
+title: 'virtual memory 3'
+date: '2026-06-15'
+tags: ['OS']
+draft: false
+summary: 'page replacement algorithms, frame allocation, thrashing, working set, shared memory, COW, mmap'
+---
+
+- [1. Which page should be evicted from memory (Page Replacement)](#1-which-page-should-be-evicted-from-memory-page-replacement)
+  - [0. Belady's proof (who is the best victim?)](#0-beladys-proof-who-is-the-best-victim)
+  - [1. Belady's Algorithm(Optimal page replacement(OPT))](#1-beladys-algorithmoptimal-page-replacementopt)
+    - [Problem](#problem)
+    - [Serves as the baseline for the algorithms that follow](#serves-as-the-baseline-for-the-algorithms-that-follow)
+  - [2. FIFO(First-In First-Out)](#2-fifofirst-in-first-out)
+    - [Example](#example)
+  - [3. LRU(Least Recently Used)](#3-lruleast-recently-used)
+    - [Example](#example-1)
+    - [Approximating LRU](#approximating-lru)
+  - [4. Second chance(LRU clock)](#4-second-chancelru-clock)
+  - [5. NRU(Not Recently Used)](#5-nrunot-recently-used)
+    - [class](#class)
+  - [6. LFU(Least frequently used) & MFU(Most frequently used)](#6-lfuleast-frequently-used--mfumost-frequently-used)
+    - [The fatal flaw of LFU](#the-fatal-flaw-of-lfu)
+    - [aging (the has-been slayer)](#aging-the-has-been-slayer)
+- [2. Whose page, among the processes, should be evicted from memory (multiprogramming)(Allocation of Frames)](#2-whose-page-among-the-processes-should-be-evicted-from-memory-multiprogrammingallocation-of-frames)
+  - [0. The problem:](#0-the-problem)
+  - [1. Fixed space algorithms](#1-fixed-space-algorithms)
+  - [2. Variable space algorithms](#2-variable-space-algorithms)
+- [3. Before evicting, how do we detect and control the memory shortage itself](#3-before-evicting-how-do-we-detect-and-control-the-memory-shortage-itself)
+  - [0. THRASHING](#0-thrashing)
+  - [1. Working Set Model](#1-working-set-model)
+    - [1, working set: the set of pages a process needs](#1-working-set-the-set-of-pages-a-process-needs)
+    - [2. WS(t, w) = the set of pages used during the last w page references as of time t](#2-wst-w--the-set-of-pages-used-during-the-last-w-page-references-as-of-time-t)
+    - [3. WSS](#3-wss)
+    - [Working Set Page Replacement](#working-set-page-replacement)
+    - [Example (slide 24)](#example-slide-24)
+  - [2. PFF(Page Fault Frequency)](#2-pffpage-fault-frequency)
+    - [Exception (Belady's Anomaly)](#exception-beladys-anomaly)
+- [4. How to use less memory or share it with page table tricks (Advanced VM Functionality)](#4-how-to-use-less-memory-or-share-it-with-page-table-tricks-advanced-vm-functionality)
+  - [1. Shared Memory](#1-shared-memory)
+    - [1. Example](#1-example)
+    - [2. Problem](#2-problem)
+    - [3. How it's implemented](#3-how-its-implemented)
+    - [4. Protection permissions](#4-protection-permissions)
+    - [5. When Process A and B have the same virtual address VS different virtual addresses](#5-when-process-a-and-b-have-the-same-virtual-address-vs-different-virtual-addresses)
+  - [2. COW(Copy On Write)](#2-cowcopy-on-write)
+    - [1. The original fork](#1-the-original-fork)
+    - [2. So vfork() came along](#2-so-vfork-came-along)
+    - [3. The smarter COW](#3-the-smarter-cow)
+  - [3. MMAP(Memory-Mapped Files)](#3-mmapmemory-mapped-files)
+    - [1. Traditional file I/O](#1-traditional-file-io)
+    - [2. mmap](#2-mmap)
+    - [3. What mmap actually does](#3-what-mmap-actually-does)
+    - [4. When a page is evicted from memory](#4-when-a-page-is-evicted-from-memory)
+    - [5. Advantages](#5-advantages)
+    - [6. Disadvantages](#6-disadvantages)
+    - [note](#note)
+
+# 1. Which page should be evicted from memory (Page Replacement)
+
+**page replacement: refers to moving a page down from memory to disk**
+
+Cause of page replacement: not enough memory space
+
+page fault: the state where the virtual page the CPU is trying to access is not currently in physical memory
+
+## 0. Belady's proof (who is the best victim?)
+
+A proof showing that OPT, which removes the page that will be used again furthest in the future, is optimal
+
+## 1. Belady's Algorithm(Optimal page replacement(OPT))
+
+**Remove the page that won't be used for the longest time**
+
+The minimum number of faults depends on the program's reference pattern (workload)
+
+### Problem
+
+How do you predict the future
+
+### Serves as the baseline for the algorithms that follow
+
+## 2. FIFO(First-In First-Out)
+
+- Remove whichever came in first
+- Doesn't look at recent use
+- A page that came in long ago might still be hugely important right now, though
+
+### Example
+
+Reference string: 1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5
+
+#### With 3 frames
+
+1. [1, 2, 3] // 3 faults
+2. reference 4, remove 1 [2, 3, 4] // fault++
+3. reference 1, remove 2 [3, 4, 1] // fault++
+4. reference 2, remove 3 [4, 1, 2] // fault++
+5. reference 5, remove 4 [1, 2, 5] // fault++
+6. reference 1 hit
+7. reference 2 hit
+8. reference 3, remove 1 [2, 5, 3] // fault++
+9. reference 4, remove 2 [5, 3, 4] // fault++
+10. reference 5 hit
+
+Final: [5, 3, 4], total faults = 9
+
+#### With 4 frames
+
+1. [1 2 3 4] // 4 faults
+2. 1 hit, 2 hit
+3. reference 5, remove 1 and put in 5 [2, 3, 4, 5] // 1 fault
+4. reference 1, remove 2 and put in 1 [3, 4, 5, 1] // 1 fault
+5. reference 2, remove 3 and put in 2 [4, 5, 1, 2] // 1 fault
+6. reference 3, remove 4 and put in 3 [5, 1, 2, 3] // 1 fault
+7. reference 4, remove 5 and put in 4 [1, 2, 3, 4] // 1 fault
+8. reference 5, remove 1 and put in 5 [2, 3, 4, 5] // 1 fault
+
+So final = [2, 3, 4, 5], total faults = 10
+
+#### note: !!In FIFO, the number of page faults can increase even when the number of frames increases!!
+
+## 3. LRU(Least Recently Used)
+
+**Uses locality: a page used recently is likely to be used again**
+
+- Move the frame unused for the longest time down to disk
+- You have to keep things sorted by who was used most recently, and that's hard
+  - Implementation methods:
+    1. counter: Timestamp (store the time it was most recently used)
+    2. stack: keep the order of recent use (problem: the stack has to be reordered on every page access (overhead))
+    - So real OSes implement heuristics that behave similarly (approximate LRU)
+- In most cases it causes fewer page faults than FIFO
+
+### Example
+
+Reference string: 1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5
+
+**Like a sliding window, update one at a time even on a hit**
+
+#### 3 frame
+
+```
+[1, 2, 3]   //fault+3
+[2, 3, 4]   // fault +1
+[3, 4, 1]   // fault +1
+[4, 1, 2]   // fault +1
+[1, 2, 5]   // fault +1
+[2, 5, 1]   // hit
+[5, 1, 2]   // hit
+[1, 2, 3]   // fault +1
+[2, 3, 4]   // fault +1
+[3, 4, 5]   // fault +1
+```
+
+Final: page faults = 10
+
+#### 4 frame
+
+[1, 2, 3, 4] // fault +4
+[2, 3, 4, 1] // hit
+[3, 4, 1, 2] // hit
+[4, 1, 2, 5] // fault +1
+[4, 2, 5, 1] // hit (following what we've done so far it should be 1, 2, 5, 1, but since 1 is duplicated, keep 4 and only move 1's position)
+[4, 5, 1, 2] // hit
+[5, 1, 2, 3] // fault +1
+[1, 2, 3, 4] // fault +1
+[2, 3, 4, 5] // fault 1
+
+### Approximating LRU
+
+- R=1 means recently used
+- Periodically set the R bit to 0
+- If the R bit is 0, count++
+- So the one with the largest count can be considered unused for the longest.
+- Has the downside of increased memory usage
+
+## 4. Second chance(LRU clock)
+
+- Keep FIFO as is, but right before evicting, ask once with the R(reference) bit: "were you used recently?"
+- Lay out all the entries like a clock and check while going around
+- If the r bit is 0, don't do anything like count++; just take it out and put the new page in its place
+- If the r bit is 1, clear it
+- If one sweep takes 10 seconds and C is 0 and D is 1, then C had no access during those 10 seconds and D did
+- You just run the scan with no other setup. Low overhead, but not very accurate
+- The bigger the memory, the longer one sweep takes, so everything looks recently used. So accuracy drops
+- In pure clock, the hand moves only when a page fault happens
+
+## 5. NRU(Not Recently Used)
+
+**Where second chance looked at only 1 bit, R, NRU looks at two bits, R + M(modify bit)**
+
+### class
+
+| Class   | R   | M   | Meaning                              |
+| ------- | --- | --- | ------------------------------------ |
+| Class 0 | 0   | 0   | Not used recently + clean            |
+| Class 1 | 0   | 1   | Not used recently + modified (dirty) |
+| Class 2 | 1   | 0   | Used recently + clean                |
+| Class 3 | 1   | 1   | Used recently + modified             |
+
+**Eviction order starts from the lowest class number. 0 → 1 → 2 → 3**
+
+- R comes first, then M
+- Dirty ones have to be written to disk, so they're more expensive
+
+#### When a clock interrupt fires (only R is cleared to 0 = move left):
+
+- Class 2 --interrupt--> Class 0 (R cleared, M stays 0)
+- Class 3 --interrupt--> Class 1 (R cleared, M stays 1)
+
+### Algorithm: remove one at random from the lowest non-empty class. It doesn't care which one within the class
+
+### Advantages: easy to understand, reasonably efficient to implement, never optimal but decent enough performance
+
+## 6. LFU(Least frequently used) & MFU(Most frequently used)
+
+**Counts "how often (how many times) was it used" instead of "was it used recently"**
+
+- Attach a software counter to each page
+- On every clock interrupt, add the page's R bit to the counter
+- So the larger the counter, the more the page has been used
+
+### LFU: evict the page with the smallest counter
+
+### MFU: evict the page with the largest counter
+
+#### Why does MFU make sense?
+
+1. One with a small counter = likely a page that was just brought in.
+2. One with a large counter may be a dead page that was used a lot only early in the process and not afterward. // This is LFU's fatal flaw
+
+### The fatal flaw of LFU
+
+Pages used explosively early on and dead now stay in memory forever.
+
+What came along to fix this flaw is **aging**
+
+### aging (the has-been slayer)
+
+Before adding the R bit to the counter,
+
+1. first shift the counter right by 1 bit,
+2. and stick the R bit in the leftmost position (MSB).
+
+```
+Example
+clock tick     [0, 1, 2, 3, 4]
+
+page 1's r bit [0, 1, 1, 0, 1]
+
+Below is the counter sequence
+(1) 00000000
+(2) 10000000    // after a right shift, add r=1 to the msb
+(3) 11000000    // after a right shift, add r=1 to the msb
+(4) 01100000    // after a right shift, add r=0 to the msb
+(5) 10110000    // after a right shift, add r=1 to the msb
+```
+
+#### Differences between aging and LRU
+
+1. aging is an approximation of LRU
+2. The number of bits is finite
+3. It doesn't know the order within one tick: even if A was used first and B later within one clock period, aging only records "R=1 during that tick"
+
+# 2. Whose page, among the processes, should be evicted from memory (multiprogramming)(Allocation of Frames)
+
+## 0. The problem:
+
+Several processes are in memory at the same time.
+
+- P1
+- P2
+- P3
+
+All of them are using frames.
+
+Then a page fault occurs in P1
+
+If there's no free frame, a page has to be evicted, but
+
+should we evict one of P1's pages?
+
+Should we evict one of P2's pages?
+
+## 1. Fixed space algorithms
+
+For each process,
+
+- P1 : 10 frames
+- P2 : 15 frames
+- P3 : 20 frames
+
+a limit is set in advance like this.
+
+A page fault occurs
+
+If P1 is already using 10, only one of P1's pages is removed; P2 and P3 can't be touched - this is called **Local Replacement**.
+
+### It doesn't harm other processes, but a situation can occur where p1 is short on frames while p2 has frames to spare
+
+## 2. Variable space algorithms
+
+The number of frames isn't fixed.
+
+Depending on the situation
+
+- P1 : 10 → 15
+- P2 : 20 → 12
+
+it changes like this.
+
+When P1 page faults, a P2 page can be removed. - This is called **Global Replacement**.
+
+### Spare frames can be used efficiently, but one process can ruin the whole system.
+
+# 3. Before evicting, how do we detect and control the memory shortage itself
+
+## 0. THRASHING
+
+**A state where the operating system is so busy replacing pages between disk and memory that it barely gets to run the programs at all**
+
+- overcommited: when more memory is loaded than can actually be covered
+
+```
+Example cause
+
+If
+RAM = 8 pages
+working set the processes need = 20 pages
+
+need A → fault
+need B → fault
+need C → fault
+...
+
+Every time, the needed page isn't in memory, so it has to be read from disk.
+
+To read it in, an existing page has to be pushed out,
+
+and the page pushed out is needed again right away, so another fault occurs
+
+In the end:
+fault → page in
+fault → page out
+fault → page in
+fault → page out
+
+just repeats
+```
+
+**Solutions: swap out one whole process to free memory, buy more memory**
+
+## 1. Working Set Model
+
+### 1, working set: the set of pages a process needs
+
+- Why the working set is needed: we need to know whether a page will be used in the future, but we don't know the future, so we apply the **principle of locality**.
+
+### 2. WS(t, w) = the set of pages used during the last w page references as of time t
+
+```
+Example
+Recent page reference history
+A B C D B C E B
+
+w = 4
+
+Looking only at the last 4 references
+B C E B
+
+the pages that appear are
+`{B,C,E}`
+
+So
+WS(t,4) = `{B,C,E}`
+```
+
+If w is too small, needed pages can be missed; if it's too large, the working set gets excessively large and can waste memory.
+
+### 3. WSS
+
+A way to prevent Thrashing using the Working Set
+
+- **WSS (Working Set Size) = the number of pages in the Working Set**
+  - If WS(t,w) = `{A,B,C,D}`, then WSS = 4
+
+**With good locality, the WSS value gets smaller**
+
+#### Example of preventing Thrashing with WSS
+
+```
+e.g.:
+
+P1 = 10
+P2 = 8
+P3 = 12
+
+Then
+
+ΣWSS = 30
+
+If there are only 20 physical frames,
+
+30 > 20
+
+so
+
+not every Working Set can fit.
+
+That is, there's a risk of Thrashing
+
+The OS
+
+suspends one process..
+
+e.g.:
+
+suspend P3
+
+Then
+
+10 + 8 = 18
+
+so it fits in memory
+```
+
+### Working Set Page Replacement
+
+A technique that came about because storing exactly the last k references is expensive
+
+Here an **approximation** is used
+
+#### How it works
+
+1. Keep an R(reference) bit and Tlast (time of last use) in the PTE
+2. Periodically reset R=0
+3. case1: if R=1, set Tlast = current time
+4. case2: if R=0 and Tcurrent-Tlast>t, judge it to be outside the Working Set and Evict it
+5. case3: if R=0 and Tcurrent-Tlast < t, judge it to be inside the Working Set and keep it
+
+- The criteria for evicting
+
+1. Is R= 0?
+2. Then is Tcurrent - Tlast>t?
+3. If so, evict
+
+#### Example
+
+### Example (slide 24)
+
+Conditions: t(τ) = 600, Current virtual time = 2204
+
+Page table (Tlast, R):
+
+| Page | Tlast | R   |
+| ---- | ----- | --- |
+| a    | 2084  | 1   |
+| b    | 2003  | 1   |
+| c    | 1980  | 1   |
+| d    | 1213  | 0   |
+| e    | 2014  | 1   |
+| f    | 2020  | 1   |
+| g    | 2032  | 1   |
+| h    | 1620  | 0   |
+
+#### Solution
+
+**Step 1: update Tlast = 2204 for every page with R=1 → inside the working set, excluded from eviction candidates**
+
+- a, b, c, e, f, g (R=1) → used this tick, so they survive
+
+**Step 2: compute age (= Tcurrent - Tlast) only for pages with R=0**
+
+- d: age = 2204 - 1213 = 991 → 991 > 600 → **outside the working set → eviction candidate**
+- h: age = 2204 - 1620 = 584 → 584 < 600 → inside the working set → kept (just remembered as the smallest time)
+
+#### Conclusion
+
+**Page to evict = page d (R=0, age=991 > τ=600)**
+
+> Trap: h has R=0 so it gets past step 1, but its age of 584 doesn't exceed τ, so it survives.
+> R=0 doesn't automatically mean removal; it's evicted only if both **R=0 AND age>τ** hold.
+
+## 2. PFF(Page Fault Frequency)
+
+High Fault Rate → increase frames
+
+Low Fault Rate → decrease frames
+
+High Fault Rate + no frames to give → Suspend the process
+
+### Exception (Belady's Anomaly)
+
+Usually frames ↑ → Page Faults ↓ holds.
+
+But in FIFO there are cases where frames ↑ → Page Faults ↑.
+
+That is, "PFF is high, so add frames" may not always be the right answer with FIFO
+
+# 4. How to use less memory or share it with page table tricks (Advanced VM Functionality)
+
+## 1. Shared Memory
+
+**Two processes reference the same Physical Memory**
+
+Normally each has its own independent virtual address space so processes can't touch each other, but that makes sharing data hard
+
+### 1. Example
+
+```c
+// process A
+memcpy(shared_memory, "TEST", 5);
+```
+
+```c
+// process B
+printf("%s\n", shm);
+
+// output: TEST
+```
+
+### 2. Problem
+
+If processA and processB modify it at the same time, a Race Condition occurs
+
+So synchronization techniques like semaphores, mutexes and locks are needed
+
+### 3. How it's implemented
+
+Make different PTEs point to the same Physical Frame
+
+### 4. Protection permissions
+
+Even when looking at the same frame, the PTE permissions can be different.
+
+- A : Read/Write
+- B : Read Only
+
+### 5. When Process A and B have the same virtual address VS different virtual addresses
+
+#### 1. Different virtual addresses
+
+When
+
+A : 0x1000
+
+B : 0x9000
+
+the advantage is no address conflicts and flexibility.
+
+But if the shared memory contains a pointer like Node \*next, the address value breaks. Because the two have different base addresses
+
+#### 2. Same virtual address
+
+A : 0x1000
+
+B : 0x1000
+
+Both are mapped at the same location.
+
+Advantage
+
+Pointers can be used as is
+
+Disadvantage
+
+Laying out the address space is hard
+
+## 2. COW(Copy On Write)
+
+**On fork(), the real copy is postponed until a write happens**
+
+### 1. The original fork
+
+If the parent process is using 100MB of memory,
+
+fork() has to create Parent 100MB and Child 100MB.
+
+In principle the whole 100MB has to be copied
+
+Very slow and a waste of memory
+
+### 2. So vfork() came along
+
+Parent and child share the same address space
+
+No copy cost.
+
+#### Problem
+
+If the child does x = 10;, the parent's memory changes too
+
+So the parent is forcibly stopped
+
+until the child does
+
+exit()
+exec()
+
+.
+
+### 3. The smarter COW
+
+- Right after fork, both look at the same page
+
+```
+Parent
+  \
+   -> Physical Page
+  /
+Child
+```
+
+- But it's set to read only; if they only read, sharing it causes no problem
+
+#### A write happens
+
+Child tries to do x = 100;.
+
+But the page is Read Only
+
+So a Protection Fault occurs.
+
+Here the OS realizes "ah, now it's actually trying to modify it".
+
+##### What the OS does next
+
+1. Allocate a new page
+2. Copy the existing page
+3. Modify the Child PTE
+4. Change it to writable
+5. Re-execute the instruction
+
+#### Result
+
+```
+At first
+
+Parent -> Page A
+
+Child -> Page A
+```
+
+```
+After the child writes
+
+Parent -> Page A
+
+Child -> Page B
+
+Completely separated
+```
+
+#### Why this is fast
+
+With the original fork you'd have to copy 100mb, but with COW you only have to copy the pages actually modified
+
+## 3. MMAP(Memory-Mapped Files)
+
+**Let's use files like memory**
+
+### 1. Traditional file I/O
+
+```c
+fd = open("test.txt");
+read(fd, buf, 100);
+write(fd, buf, 100);
+close(fd);
+```
+
+### 2. mmap
+
+```c
+addr = mmap(...); // once you do this
+
+printf("%s", addr); // you can read the file just by using the pointer
+```
+
+### 3. What mmap actually does
+
+**Connects file ↔ virtual address space**
+
+```
+Example
+
+This
+
+test.txt
+
+offset 0
+offset 1
+offset 2
+...
+```
+
+```
+corresponds to this
+
+VA 0x1000
+VA 0x1001
+VA 0x1002
+...
+```
+
+So Virtual Address + N = File Offset + N
+
+#### It doesn't read the whole file from the start
+
+Initial state: PTE Valid = 0
+
+The first read causes an Invalid Page Access (something like a cold page fault)
+
+```
+Read that page of the file
+↓
+Load it into memory
+↓
+PTE Valid=1
+
+That is, it works like Demand paging
+```
+
+### 4. When a page is evicted from memory
+
+When **Mapped Page Eviction happens because memory is short**,
+
+- case1: Dirty=1 (modified), save memory → file
+- case2: Dirty=0 (not modified), just discard what's in memory (because the original is in the file)
+
+### 5. Advantages
+
+1. File = can be used as memory
+2. Previously there were several copies; copying is reduced
+   - Running read(fd, buf, 4096);
+     1. reads from disk into a kernel buffer
+     2. copies kernel buffer → buf
+     - at least one copy happens
+   - But with mmap
+   - addr = mmap(...);
+   - running printf("%c", addr[0]);
+   - just looks at the page in the Page Cache
+
+3. Files can be shared like shared mem
+
+### 6. Disadvantages
+
+1. The OS decides when to read, write and evict, so it's hard to control
+2. Can't be used on sequential data like pipes and sockets (they're read as a stream, so there's no offset to apply)
+
+### note
+
+backing store: the original copy to bring a page back from later when it is evicted from memory.
+
+#### Regular virtual memory
+
+- Anonymous Page = a regular virtual memory page not tied to a file (heap, stack, malloc, etc.)
+- When an Anonymous Page is evicted, the OS saves it to the Swap Area
+- So **for regular vm, backing store = the swap area**
+
+#### mmap pages
+
+But with mmap, even when a page is evicted, the original is considered to already exist as a file, so the backing store becomes a file such as a.txt
+
+That is, **for mmapped pages, the original file plays the role of backing store instead of the swap file**

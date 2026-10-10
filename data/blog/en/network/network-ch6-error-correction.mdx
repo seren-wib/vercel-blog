@@ -1,0 +1,339 @@
+---
+title: 'CH6. Error Detection & Correction'
+date: '2026-05-08'
+tags: ['Network']
+draft: false
+summary: 'parity check, CRC, checksum, FEC, Hamming distance, block code'
+---
+
+- [1. Types of errors](#1-types-of-errors)
+  - [1-1 What is an error?](#1-1-what-is-an-error)
+  - [1-2 Single bit error](#1-2-single-bit-error)
+  - [1-3 Burst error](#1-3-burst-error)
+- [2. Basic concepts of error detection](#2-basic-concepts-of-error-detection)
+- [3. Error detection techniques](#3-error-detection-techniques)
+  - [3-1 Parity Check](#3-1-parity-check)
+    - [Even Parity](#even-parity)
+    - [Odd Parity](#odd-parity)
+    - [Two-dimensional even parity](#two-dimensional-even-parity-scheme)
+  - [3-2 Internet Checksum](#3-2-the-internet-checksum)
+    - [ones-complement addition](#ones-complement-addition)
+  - [3-3 CRC](#3-3-crccyclic-redundancy-check)
+    - [Modulo-2 arithmetic](#calculation-1-modulo-2-arithmetic)
+    - [Polynomial representation](#calculation-2-polynomial-representation)
+- [4. Error correction](#4-error-correction)
+  - [4-1 FEC](#4-1-fecforward-error-correction)
+- [5. Block Code Principles](#5-block-code-principles)
+  - [5-1 Hamming distance](#5-1-hamming-distance)
+  - [5-2 redundancy](#5-2-redundancy-of-the-code)
+  - [5-3 code rate](#5-3-code-rate)
+  - [5-4 block code example](#5-4-block-code-example)
+
+# 1. Types of errors
+
+## 1-1 What is an error?
+
+**A bit changing between transmission and reception**
+There are single-bit errors and burst errors.
+
+## 1-2 Single bit error
+
+- Only one bit changes without affecting the neighboring bits: an "isolated error"
+
+## 1-3 Burst error
+
+- **Errors occurring within a span of B consecutive bits**
+- The range from the first wrong bit to the last wrong bit is the length of the burst
+- Causes: impulse noise and fading in mobile wireless environments
+  - impulse noise: noise that spikes momentarily
+  - fading: the signal weakening with distance or time in a wireless environment
+- **The effect of a burst error grows as the data rate gets higher**
+  - Why: the higher the data rate, the more bits are sent per second
+- It depends on how long the noise lasts, and how much data passes during that time
+
+# 2. Basic concepts of error detection
+
+- Transmitted frames can end up with errors
+- frame: a bundle of bits
+- Error detection usually checks whether this frame is intact, not each individual bit.
+- Pb: the probability that a bit error is received. Usually called BER
+- P1: the probability that a frame arrives with no bit errors. Moves opposite to Pb.
+- P2: the probability that, even with an error detection algorithm in use, a frame arrives with one or more undetected errors
+
+```
+data: k bits
+E = f(data): n-k bits
+transmitted frame: data + E = n bits
+If the E attached by the sender equals the E newly computed by the receiver, no error is assumed; if they differ, an error is assumed.
+```
+
+# 3. Error detection techniques
+
+## 3-1 Parity Check
+
+- The simplest error detection
+- Adds a check bit after the original data
+
+### Even Parity
+
+- 0 if the total number of 1s is even, 1 if odd
+- So if the total number of 1s comes out odd, an error is assumed.
+  - Why: if it's odd, a 1 is added so the result must always be even
+
+### Odd Parity
+
+- 1 if the total number of 1s is even, 0 if odd
+- So if the total number of 1s comes out even, an error is assumed.
+  - Why: if it's even, a 1 is added so the result must always be odd
+
+### Problems with parity check
+
+- Cannot detect an error when an even number of bits are flipped
+
+### Two-dimensional even parity scheme
+
+- Instead of attaching a single parity bit at the end of one line, the data is laid out like a matrix and both row parity and column parity are attached
+- Advantage: a single-bit error can be located - and it can even be corrected by flipping the bit
+- Disadvantage: patterns appear where several bits are corrupted in a geometric, rectangle-like shape. In that case each row and each column can get an even number of errors
+- So it is just as weak when errors cleverly occur in even numbers
+
+## 3-2 The Internet Checksum
+
+- An error detecting code used in several Internet standard protocols, including IP, TCP and UDP
+- Used in actual Internet protocol layers
+- CRC in lower layers and other checks in upper layers are used alongside it, so this alone does not catch everything perfectly
+
+### ones-complement operation
+
+- Inverting all the bits, the ones' complement
+
+### ones-complement addition
+
+- There is one difference from ordinary binary addition: when a carry overflows out of the left end, i.e. the most significant position, that carry is not discarded but added back at the right end
+
+```
+  1110
++ 0011
+------
+ 10001
+
+ A carry of 1 appeared beyond the 4-bit range. In ordinary addition the result would be the 5-bit 10001, but in ones-complement addition the overflowed carry 1 is added back to the 4-bit result 0001
+
+  0001
++    1
+------
+  0010
+```
+
+```
+Data words the sender has:
+
+0001, F203, F204, F4F5, ...
+
+↓ ones' complement addition
+
+compute sum
+
+↓ ones' complement
+
+generate checksum
+
+↓ transmit
+
+data words + checksum
+```
+
+- If the result is FFFF, i.e. all bits are 1, no error is assumed. Strictly speaking, it means "no error was detected"
+- This is better than parity because it looks at the sum relationship of words, not just whether the number of 1s is odd or even
+- CRC is stronger at detecting specific error patterns
+- Think of checksum as more advanced than parity, a step before moving on to CRC.
+
+## 3-3 CRC(Cyclic Redundancy Check)
+
+- One of the most common and powerful error-detecting codes
+- The point is that it doesn't just add up the data as numbers; it treats the bit string like a polynomial and performs division
+- The sender has a k-bit block of data. It creates an (n-k)-bit FCS, Frame Check Sequence, and attaches it. The result is a frame with a total length of n bits.
+
+```
+original data: k bits
+FCS:       n-k bits
+
+transmitted frame = data + FCS
+condition: the transmitted frame must be exactly divisible by the divisor
+```
+
+- The receiver divides the received frame by the same divisor.
+- If there is no remainder, i.e. the remainder is 0, it assumes there is no error.
+- If the remainder is not 0, it concludes that bits were corrupted during transmission
+
+### Calculation 1. Modulo-2 arithmetic
+
+- Binary addition, but without producing a carry. This is effectively XOR
+
+```
+0 + 0 = 0
+0 + 1 = 1
+1 + 0 = 1
+1 + 1 = 0
+```
+
+### Calculation 2. Polynomial representation
+
+- Expressed as a polynomial in X
+- Think of the leftmost term as the highest degree.
+- Only the positions holding a 1 are written as polynomial terms
+
+```
+ 11001
+= 1·X^4 + 1·X^3 + 0·X^2 + 0·X^1 + 1·X^0
+= X^4 + X^3 + 1
+```
+
+### Example
+
+data = 110101
+generator (the divisor) = 10011
+
+```If the generator is 10011, it is 5 bits long and of degree 4.
+So append four 0s after the data.
+
+110101 + 0000
+= 1101010000
+
+Now do modulo-2 division of 1101010000 by 10011.
+(take the data from the top, the size of the generator at a time)
+Every "subtraction" in this division is XOR.
+
+11010
+10011
+-----
+01001
+
+drop the leading 0 - 1001
+the generator is 5 bits, so 1 more bit is needed
+what we used first went up to 11010, so bring down the next unused bit, the 6th bit
+
+remaining value:       1001
+next bit:              1
+appended:         10011
+
+ 10011
+^10011
+------
+ 00000
+
+can't divide any further, so stop XOR
+cut the most significant bit 0 off 00000, and that is the fcs = 0000
+remainder = 0000
+
+So the data finally transmitted is
+data + FCS
+110101 + 0000
+= 1101010000
+```
+
+# 4. Error correction
+
+## 4-1 FEC(Forward Error Correction)
+
+**The receiver fixes errors itself, without retransmission**
+
+- Normally when an error is detected, the receiver tells the sender this frame was wrong and asks it to resend. But there are 2 problems with this.
+  - It may not be suitable for wireless applications
+    1. Because the BER of a wireless link can be high
+       - What happens when BER is high: frames you send often have errors. Requesting a retransmission every time leads to far too many retransmissions
+    2. Because the propagation delay can be very long compared with the transmission time of a single frame
+       - Propagation delay is the time it actually takes for a signal to travel from sender to receiver. Transmission time is the time it takes to push one frame onto the line. For example, sending one frame can take a very short time, while the signal reaching a far distance and the response coming back can take much longer.
+- In FEC, the sender doesn't send only the original data. It sends it with redundant information included from the start, so even if a few errors are mixed in, the receiver can use that redundant information to estimate and fix the original data.
+  - The term that comes up here is codeword
+
+### codeword
+
+```
+k-bit data block
+
+↓ FEC encoder
+
+n-bit codeword
+
+where n > k
+n is larger than k because error correction requires redundant bits
+```
+
+# 5. Block Code Principles
+
+## 5-1 Hamming distance
+
+- d(v1, v2) is defined as the number of bits in which two n-bit binary sequences v1 and v2 differ. Simply put, you line up the two bit strings, compare them position by position, and count how many positions differ
+
+### Example
+
+```
+v1 = 10110
+v2 = 10011
+
+1 0 1 1 0
+1 0 0 1 1
+    ↑   ↑
+
+2 positions differ. So the Hamming distance is 2
+
+d(10110, 10011) = 2
+When the received bit string is slightly corrupted, the receiver estimates the original data by checking "which valid codeword is this received value closest to"
+```
+
+## 5-2 redundancy of the code
+
+- The ratio of redundant bits to data bits
+- redundancy = (n - k) / k
+  - k: original data bits, n: total number of codeword bits
+- In FEC this seems to just mean the error correction bits, divided by the original bit count to get a ratio
+
+## 5-3 code rate
+
+- code rate = data bits/codeword bits
+  - Divide the original data by the original data plus the error correction bits, to see what share of all transmitted data is original data
+- This value is also a measure of "how much additional bandwidth is needed to keep the same data rate as without the code"
+  - The higher the code rate, the better the bandwidth efficiency, but the weaker the error correction capability
+
+## 5-4 block code example
+
+Data: 00, 01, 10, 11
+Codeword: 00000, 00111, 11001, 11110
+
+1. Mapping
+   00 → 00000
+   01 → 00111
+   10 → 11001
+   11 → 11110
+
+2. Comparing Hamming distances
+   00000 vs 00111 → 3 bits differ
+   00000 vs 11001 → 3 bits differ
+   00000 vs 11110 → 4 bits differ
+   00111 vs 11001 → 4 bits differ
+   00111 vs 11110 → 3 bits differ
+   11001 vs 11110 → 3 bits differ
+
+The sender has agreed to send only the 4 codewords above, so if some other value arrives, it is replaced with the codeword whose Hamming distance to the erroneous value is smallest among those 4.
+Even the closest codewords differ by at least 3 bits, so the minimum distance of this code is 3
+
+3. Finding correction
+
+- If it's wrong, recover to the closest original codeword
+- ⌊(d - 1) / 2⌋: up to how many bit errors can be corrected? - d = minimum Hamming distance - so (3-1)/2 gives 1. - up to 1 bit can be **corrected**
+  Example:
+  Received value: 00001
+
+distance 1 from 00000
+distance 2 from 00111
+distance 2 from 11001
+distance 5 from 11110
+So the receiver fixes it, thinking "ah, it must have been 00000 originally"
+
+4. Detection
+   d - 1:
+   so
+   3-1=2
+
+- Up to 2-bit errors can be **detected**.

@@ -180,8 +180,8 @@ const projectsData: Project[] = [
     size: 'standard',
     period: { kr: '2026.03 – 2026.06', en: 'Mar – Jun 2026' },
     role: {
-      kr: '문서 · 프론트엔드 · 인증 · CI · 오픈소스 웹 수업 팀 프로젝트 (4인, 커밋 168개 중 94개)',
-      en: 'Docs · Front-end · Auth · CI · Open-source web course team project (team of 4, 94 of 168 commits)',
+      kr: '팀장 · 문서 · 프론트엔드 · 인증 · CI · 오픈소스 웹 수업 팀 프로젝트 (4인, 커밋 168개 중 94개)',
+      en: 'Team lead · Docs · Front-end · Auth · CI · Open-source web course team project (team of 4, 94 of 168 commits)',
     },
     summary: {
       kr: '브라우저에서 코드를 작성하고 실행하고 저장하는 온라인 코드 에디터.',

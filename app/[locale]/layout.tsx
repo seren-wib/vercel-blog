@@ -9,8 +9,11 @@ import Header from '@/components/Header'
 import SectionContainer from '@/components/SectionContainer'
 import Footer from '@/components/Footer'
 import siteMetadata from '@/data/siteMetadata'
-import { ThemeProviders } from './theme-providers'
+import { ThemeProviders } from 'app/theme-providers'
 import { Metadata } from 'next'
+import { notFound } from 'next/navigation'
+import { getDictionary, isLocale, localeInfo } from '@/data/i18n'
+import { feedPath } from 'app/seo'
 
 const space_grotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -18,52 +21,69 @@ const space_grotesk = Space_Grotesk({
   variable: '--font-space-grotesk',
 })
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteMetadata.siteUrl),
-  title: {
-    default: siteMetadata.title,
-    template: `%s | ${siteMetadata.title}`,
-  },
-  description: siteMetadata.description,
-  openGraph: {
-    title: siteMetadata.title,
-    description: siteMetadata.description,
-    url: './',
-    siteName: siteMetadata.title,
-    images: [siteMetadata.socialBanner],
-    locale: 'ko_KR',
-    type: 'website',
-  },
-  alternates: {
-    canonical: './',
-    types: {
-      'application/rss+xml': `${siteMetadata.siteUrl}/feed.xml`,
+export async function generateMetadata(props: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await props.params
+  if (!isLocale(locale)) return {}
+  const { description } = getDictionary(locale)
+  return {
+    metadataBase: new URL(siteMetadata.siteUrl),
+    title: {
+      default: siteMetadata.title,
+      template: `%s | ${siteMetadata.title}`,
     },
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+    description,
+    openGraph: {
+      title: siteMetadata.title,
+      description,
+      url: './',
+      siteName: siteMetadata.title,
+      images: [siteMetadata.socialBanner],
+      locale: localeInfo[locale].ogLocale,
+      type: 'website',
+    },
+    alternates: {
+      canonical: './',
+      types: {
+        'application/rss+xml': `${siteMetadata.siteUrl}${feedPath(locale)}`,
+      },
+    },
+    robots: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
     },
-  },
-  twitter: {
-    title: siteMetadata.title,
-    card: 'summary_large_image',
-    images: [siteMetadata.socialBanner],
-  },
+    twitter: {
+      title: siteMetadata.title,
+      card: 'summary_large_image',
+      images: [siteMetadata.socialBanner],
+    },
+  }
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout(props: {
+  children: React.ReactNode
+  params: Promise<{ locale: string }>
+}) {
+  const { children } = props
+  const { locale } = await props.params
+  if (!isLocale(locale)) notFound()
   const basePath = process.env.BASE_PATH || ''
+  const searchConfig = {
+    ...siteMetadata.search,
+    kbarConfig: { searchDocumentsPath: `${basePath}/search-${locale}.json` },
+  }
 
   return (
     <html
-      lang={siteMetadata.language}
+      lang={localeInfo[locale].htmlLang}
       className={`${space_grotesk.variable} scroll-smooth`}
       suppressHydrationWarning
     >
@@ -98,16 +118,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <meta name="msapplication-TileColor" content="#000000" />
       <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fff" />
       <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000" />
-      <link rel="alternate" type="application/rss+xml" href={`${basePath}/feed.xml`} />
+      <link rel="alternate" type="application/rss+xml" href={`${basePath}${feedPath(locale)}`} />
       <body className="bg-white pl-[calc(100vw-100%)] text-black antialiased dark:bg-gray-950 dark:text-white">
         <ThemeProviders>
           <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
           <SectionContainer>
-            <SearchProvider searchConfig={siteMetadata.search as SearchConfig}>
-              <Header />
+            <SearchProvider searchConfig={searchConfig as SearchConfig}>
+              <Header locale={locale} />
               <main className="mb-auto">{children}</main>
             </SearchProvider>
-            <Footer />
+            <Footer locale={locale} />
           </SectionContainer>
         </ThemeProviders>
       </body>

@@ -1,0 +1,249 @@
+---
+title: 'CH2. Software Development Methodologies and Process Models'
+date: '2026-10-09'
+tags: ['Software Engineering']
+draft: false
+summary: 'Deliverables of each SDLC phase, function-, data- and object-oriented development methodologies, the four categories of life cycle processes, comparison of waterfall, prototyping, spiral, V-model, iterative incremental, agile (Scrum) and XP'
+---
+
+# 2. Software Development Methodologies and Process Models
+
+## 2.1 Process
+
+### 2.1.1 What Is a Process?
+
+**Process in software engineering: each work phase of the software development process**
+
+### 2.1.2 Phased Development Process (SDLC) and Main Deliverables
+
+1. Planning: system definition, **system request**, project management plan
+2. Requirements analysis: **requirements specification**, **unit test plan**, **system proposal**, draft user manual, requirements review report
+3. Design: **software design description (SDD)**, design review report, test case generation, **integration test plan**
+4. Implementation (coding) and testing: program code, unit test report, integration test report, system test report
+5. Deployment: system installation plan, installation test report, acceptance test report
+6. Maintenance: maintenance plan, maintenance result report
+
+## 2.2 Software Development Approaches
+
+**Function-oriented development methodology, data-oriented development methodology, object-oriented development methodology**
+
+### 2.2.1 Function-Oriented Development Methodology
+
+- Solves a problem by decomposing it around functions and processing procedures and modularizing it.
+- Characteristics: stepwise refinement + top-down
+- Drawback: one function handles many pieces of data, so the system gets tangled and scalability and maintainability drop sharply
+
+### 2.2.2 Data-Oriented Development Methodology
+
+- The forerunner of object orientation
+- Decomposes a problem around data and attaches the functions that data needs. So the system naturally splits into data (structures) + related programs.
+- Main use: mostly used in game programming, which handles large amounts of data.
+- Advantages
+  1. Exploits the CPU's locality of reference; once this is optimized, parallel processing on multiple CPUs becomes easy.
+  2. Uses memory caching efficiently, so processing time goes down
+
+### 2.2.3 Object-Oriented Development Methodology
+
+- Decomposes a problem around objects, then views the problem domain as a set of object classes and models & implements it
+
+#### Compared with Data-Oriented
+
+- Similarity: in both, data (data structures) and the operations that process it travel together.
+- Difference: object orientation has information hiding through encapsulation, inheritance and polymorphism; data-oriented does not.
+
+- So object-oriented is better in most cases.
+
+## 2.3 Types of Software Life Cycle Processes
+
+- The "process" in 2.1 meant a development phase (stage), but here the scope is widened: every activity across the whole software life cycle (contracting, supply, technical management, planning, development, operation, retirement) is classified as a process
+
+#### Four Categories
+
+1. Agreement processes
+   - **Acquisition** (buyer side), **supply** (seller side)
+   - Purchase/sale contracts
+
+2. Organizational project-enabling processes
+   - Life cycle model management, infrastructure, quality, knowledge and portfolio management
+   - Support at the organization level so that projects can be carried out
+
+3. Technical management processes
+   - **Risk management**, **configuration management**, information management, measurement, **quality assurance**
+   - Manage a single project
+
+4. Technical processes
+   - Business analysis, stakeholder needs and requirements definition, system/SW requirements definition, architecture design, design definition, system analysis, **implementation**, **integration**, verification and validation, operation, **deployment**, **maintenance**, **disposal**
+   - The actual development (all the SDLC phases belong here)
+
+## 2.4 Software Development Process Models
+
+- General SDLC process: **requirements analysis → design → development (implementation) → testing → deployment → maintenance**
+  - Testing: unit testing, integration testing, system testing
+  - Deployment: installation testing, acceptance testing
+- The SDLC has 6–8 phases depending on the publishing organization
+- 7 representative models: waterfall, rapid prototyping, spiral, V-model, iterative incremental, agile, extreme programming (XP)
+
+### 2.4.1 Waterfall Model
+
+**Definition: requirements analysis → design → implementation → testing → deployment → maintenance**
+
+- You can go back to a previous phase, but it is costly
+
+1. Suitable projects
+   1. **Projects with few requirement changes**
+   2. Small projects with a short schedule and low risk
+2. Drawbacks
+   1. Long development cycle (working SW can only be seen at the final phase)
+   2. Unsuitable when requirements change a lot
+   3. Hard to measure progress per phase
+
+### 2.4.2 Prototyping Model (rapid prototyping model)
+
+```text
+Definition
+
+Requirements gathering → Quick decision → ┬ Refine requirements with customer ┬ → Customer evaluation of prototype → Design → Implementation → Maintenance
+                                          └ Build prototype                   ┘
+```
+
+- Requirements refinement and prototype building split off in parallel and merge again at customer evaluation.
+- **An approach that requires building a working system prototype before entering actual development**
+- Advantages
+  1. The model's mock-up can be checked early in the project
+  2. Missing features are easy to find; **suitable when requirements change often**
+  3. Errors are detected earlier, before completion; lower maintenance cost
+  4. Suitable for developing application systems
+- Drawbacks
+  1. Takes a lot of time
+  2. A bad prototype sometimes becomes the final product
+  3. Requires extensive collaboration with the client
+  4. **Easy to get absorbed in just coding**
+
+### 2.4.3 Spiral Model
+
+- **Risk-driven**
+- **Planning → Risk Analysis → Engineering → Evaluation → planning again …**
+- Advantages
+  - Suitable for **large projects with unclear requirements**
+  - Low risk
+  - Strong incorporation of customer feedback
+- Drawbacks
+  - Costly if iterated too much
+  - Unsuitable for small projects
+
+### 2.4.4 V-Model
+
+- **An extended form of the waterfall model**
+
+```text
+Requirements analysis ······ Acceptance test design ·······→ Acceptance (approval) test
+  System design ············ System test design ···········→ System test
+    Architecture design ···· Integration test design ····→ Integration test
+      Module design ········ Unit test design ···········→ Unit test
+                               Coding
+```
+
+- Difference from waterfall: waterfall goes through the requirements analysis document and test plan, design specification, code and testing (unit and integration testing) phases in each software development cycle, whereas the V-model produces, step by step, the requirements analysis document and acceptance test plan, the system design document and system test plan, the architecture design and integration test plan, the module design and unit test plan, the code implementation, and so on.
+
+### 2.4.5 Iterative Incremental Process Model
+
+- **A combination of the SDLC iterative model + the incremental model**
+  - Incremental model: adding features a little at a time
+
+- Advantages
+  - Suitable for requirement changes in small to medium-sized products
+  - Periodic risk analysis
+  - Early defect detection
+  - Easy product management
+- Drawbacks
+  - Requirements must be understood rigorously
+  - Must keep asking the client for feedback
+  - Resources are consumed quickly if the completed versions are not reviewed
+
+#### 4 Phases
+
+1. Inception: preliminary requirements analysis
+2. Elaboration: software architecture design
+3. Construction: develop versions and architecture, incorporate client feedback
+4. Transition: deliver the version to the production environment
+
+### 2.4.6 Agile Model
+
+- Scrum: small development teams
+- Sprint: a small unit of work lasting 2–4 weeks; one Scrum team can run several sprints in parallel
+- Life cycle of one sprint: planning → design → implementation → testing → deployment → review
+- Scrum team makeup: usually 7 people or fewer
+  - Large: 1 Scrum Master + 1 Product Owner + 5 developers
+  - Small: 1 Scrum Master + 1 Product Owner + 3 developers
+
+#### 8 Steps of Running Scrum
+
+1. **Write the product backlog**: list the stakeholders' requirements and assign priorities in descending order
+2. **Sprint planning meeting**: the Scrum Master, Product Owner and development team decide what to do (what) and how (how)
+3. **Write the sprint backlog**: split this sprint's work from the product backlog into small tasks. The task-board format = **Scrum board**
+4. **Daily Scrum meeting**: 15 minutes standing, every day. Share what was done yesterday, what will be done today and problems. No more than 2 hours per week. The status board has To do / In progress / Done
+5. **Develop a working product**: each sprint, complete and release the working product targeted for it
+6. **Sprint review**: present the implemented features to the customer and stakeholders and get feedback
+7. **Sprint retrospective**: on the slides it appears with the same sentence as step 6
+8. **Repeat with the next sprint**
+
+- Product backlog = list of requirements for the whole product / Sprint backlog = list of work for this sprint
+
+#### Pros and Cons
+
+- Advantages
+  - Working products are delivered frequently → **high customer satisfaction**
+  - Quick response to market changes, on-time delivery
+  - Easy to get feedback from stakeholders and users
+  - Values collaboration over processes and tools; **face-to-face conversation** is the best means of communication
+  - Emphasizes code quality from the start; problems are solved before they grow
+- Drawbacks
+  - Requires an **experienced, highly skilled team** (no room for newcomers)
+  - **Hard to focus on documentation and design**
+  - Goes off track if the customer's final goal is unclear
+  - Intense sprints wear the team out
+  - For large products, estimating the initial effort is difficult
+
+#### Agile vs Spiral
+
+|                      | Agile                                   | Spiral                                                                  |
+| -------------------- | --------------------------------------- | ----------------------------------------------------------------------- |
+| Main principle       | Remove unnecessary activities → agility | Risk handling                                                           |
+| Customer interaction | Frequent                                | Relatively little                                                       |
+| Documentation        | Not relied on                           | Appropriate documentation needed                                        |
+| Weakness             | Hard to plan and manage, scope can grow | Costs a lot of money and time, needs high-level planning and management |
+
+#### XP (Extreme Programming)
+
+- One of the agile methodologies, proposed by **Kent Beck**
+- Purpose: deliver the high-quality SW the customer wants in a short time
+- Suitable for small teams. Values source code over documents, and individual responsibility and courage
+- 5 phases: **release planning → design → iterative coding → testing → listening and customer agreement**
+  - Release planning: the customer presents requirements as **user stories**
+  - Design: **simplicity**
+  - Iterative coding: **pair programming**, continuous integration, collective code ownership
+  - Testing: **the core of XP**. Unit + acceptance tests, integration several times a day
+- Terms
+  - User story: a short, informal description by the customer of a needed feature
+  - Metaphor: a vision of how the system works
+  - Spike: a discussion that makes unclear requirements clear. A very simple program, so similar to a prototype
+- Characteristics: emphasis on testing (write test code while coding), an **on-site customer** is required, no individual code ownership (the whole team owns it)
+
+### Model Comparison Table
+
+|                    | Waterfall                                                                            | Prototyping                                                                                                                           | Spiral                                              | V-model                                            | Iterative incremental                               | Agile                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------- |
+| Keywords           | Sequential                                                                           | Prototype, customer evaluation                                                                                                        | Risk-driven                                         | Extended waterfall, design↔test pairs              | Iterative + incremental combined, versions          | Scrum, sprints, small releases                                             |
+| Phases             | Requirements analysis → design → implementation → testing → deployment → maintenance | Requirements gathering → quick decision → refinement/prototype building → customer evaluation → design → implementation → maintenance | Planning → risk analysis → engineering → evaluation | Design on the left / coding / testing on the right | Inception → elaboration → construction → transition | Sprint: planning → design → implementation → testing → deployment → review |
+| Requirements       | Clear, few changes                                                                   | Unclear, change often                                                                                                                 | Unclear, keep being added                           | Clear                                              | Changes are easy to handle                          | Embraces change                                                            |
+| Suitable size      | Small                                                                                | Application systems                                                                                                                   | Large                                               | -                                                  | Small to medium                                     | Large, if it can be split into small pieces                                |
+| Working SW visible | Final phase                                                                          | Early (prototype)                                                                                                                     | A prototype every loop                              | Final phase                                        | Every version                                       | Every sprint                                                               |
+| Key advantage      | Easy to manage, well documented                                                      | Finds missing features, detects errors early                                                                                          | Lower risk                                          | Test plan for every phase                          | Easy progress management                            | Customer satisfaction, fast response                                       |
+| Key drawback       | Visible late, weak to change, progress hard to measure                               | Takes a lot of time, a poor prototype becomes the final product                                                                       | Costly, needs a team skilled in risk assessment     | -                                                  | Feedback burden, eats up resources                  | Needs a highly skilled team, neglects documentation and design             |
+
+## 2.5 Points to Watch in Software Development Process Models
+
+- You need to **thoroughly understand the 3 basic models (waterfall, prototyping, iterative incremental)**
+- Because even when you apply spiral, V-model, agile or XP, **internally they partly apply the basic models**
+  - Example 1: waterfall or prototyping is applied in the spiral model's **engineering phase**
+  - Example 2: each **sprint** in agile (Scrum, 5–8 people) actually runs on a basic model too

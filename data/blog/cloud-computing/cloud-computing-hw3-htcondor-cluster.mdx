@@ -155,7 +155,7 @@ systemctl status condor --no-pager
 
 condor_master 아래에 collector·negotiator·schedd가 떠서 central manager와 submit 역할이 모두 동작한다.
 
-![main condor 서비스](/static/images/cloud-computing/hw3-01.webp)
+![main condor 서비스](/static/images/cloud-computing-hw3-htcondor-cluster/01.webp)
 
 _main: condor 서비스 active, collector·negotiator·schedd 실행 (central manager + submit)_
 
@@ -178,11 +178,11 @@ systemctl status condor --no-pager
 
 work2는 `UID_DOMAIN = work2.cloud.org`로 바꿔서 실행했다. 두 노드 모두 condor_startd가 떴고, `/var/log/condor/`에 MasterLog·StartLog 같은 로그 파일이 생겼다.
 
-![work1 condor 서비스](/static/images/cloud-computing/hw3-02.webp)
+![work1 condor 서비스](/static/images/cloud-computing-hw3-htcondor-cluster/02.webp)
 
 _work1: condor 서비스 active, startd 실행 (execute)_
 
-![work2 condor 서비스](/static/images/cloud-computing/hw3-03.webp)
+![work2 condor 서비스](/static/images/cloud-computing-hw3-htcondor-cluster/03.webp)
 
 _work2: condor 서비스 active, startd 실행 (execute)_
 
@@ -192,7 +192,7 @@ main에서 `condor_status`를 실행하면 실행 노드 두 대(`slot1@work1.cl
 
 슬라이드와 달리 Arch가 X86_64가 아니라 aarch64고, Mem이 3653이 아니라 1696(MB)이다. ARM64 환경이고 VM마다 메모리를 2GB로 줬기 때문이다.
 
-![condor_status](/static/images/cloud-computing/hw3-04.webp)
+![condor_status](/static/images/cloud-computing-hw3-htcondor-cluster/04.webp)
 
 _main에서 condor_status: slot1@work1, slot1@work2 두 대가 Unclaimed / Idle (Arch aarch64)_
 
@@ -308,15 +308,15 @@ head -n 20 log.txt
 
 제출 1초 만에 work2에서 실행되기 시작해서 약 10초 뒤 끝났다. `out.txt`의 두 시각이 10초 차이 나고 `error.txt`는 0바이트다. `log.txt`에는 제출(000) → 입력 파일 전송(040) → 실행 시작(001, work2.cloud.org) 순서로 남는다.
 
-![작업 1 제출](/static/images/cloud-computing/hw3-05.webp)
+![작업 1 제출](/static/images/cloud-computing-hw3-htcondor-cluster/05.webp)
 
 _작업 1 제출과 condor_q: 실행 중(RUN 1) → 완료(대기열 비어 있음)_
 
-![작업 1 결과](/static/images/cloud-computing/hw3-06.webp)
+![작업 1 결과](/static/images/cloud-computing-hw3-htcondor-cluster/06.webp)
 
 _작업 1 결과: out.txt에 10초 간격 시각 2줄, error.txt 0바이트_
 
-![작업 1 log](/static/images/cloud-computing/hw3-07.webp)
+![작업 1 log](/static/images/cloud-computing-hw3-htcondor-cluster/07.webp)
 
 _작업 1 log.txt: work2.cloud.org(192.168.56.103)에서 실행_
 
@@ -351,11 +351,11 @@ queue
 
 `condor_q`에서 대기(IDLE 1) → 실행(RUN 1) → 완료가 차례로 보였고, 결과는 `Total Sum = 55`였다.
 
-![작업 2 제출](/static/images/cloud-computing/hw3-08.webp)
+![작업 2 제출](/static/images/cloud-computing-hw3-htcondor-cluster/08.webp)
 
 _작업 2 제출과 condor_q: IDLE → RUN → 완료_
 
-![작업 2 결과](/static/images/cloud-computing/hw3-09.webp)
+![작업 2 결과](/static/images/cloud-computing-hw3-htcondor-cluster/09.webp)
 
 _작업 2 결과: Sum from 1 to 10, Total Sum = 55_
 
@@ -367,11 +367,11 @@ _작업 2 결과: Sum from 1 to 10, Total Sum = 55_
 
 그런데 10개가 전부 같은 `out.txt`·`error.txt`·`log.txt`를 쓴다. 그래서 out.txt와 error.txt는 하나만 남아 서로 덮어써지고, log.txt에는 10개 작업 기록이 한 파일에 섞여 쌓인다. 이 문제를 작업 4~6에서 푼다.
 
-![작업 3 condor_q](/static/images/cloud-computing/hw3-10.webp)
+![작업 3 condor_q](/static/images/cloud-computing-hw3-htcondor-cluster/10.webp)
 
 _작업 3 condor_q: 10개 제출, 4개씩 실행 (DONE 2, RUN 4, IDLE 4)_
 
-![작업 3 결과](/static/images/cloud-computing/hw3-11.webp)
+![작업 3 결과](/static/images/cloud-computing-hw3-htcondor-cluster/11.webp)
 
 _작업 3 결과: out.txt는 하나뿐, 10개 작업이 work1·work2에 5개씩 실행됨_
 
@@ -398,7 +398,7 @@ ERROR: on Line 12 of read.jds: Extra data found after queue statement
 ERROR: Failed to parse command file (line 12).
 ```
 
-![작업 4 제출 오류](/static/images/cloud-computing/hw3-12.webp)
+![작업 4 제출 오류](/static/images/cloud-computing-hw3-htcondor-cluster/12.webp)
 
 _슬라이드의 jds(queue 2번)는 제출 오류_
 
@@ -424,11 +424,11 @@ queue initialdir from (
 
 고친 jds로 제출하니 작업 2개가 동시에 돌았고, `run_0`과 `run_1`에 결과 파일이 따로 생겼다. 로그를 보면 run_0은 work2, run_1은 work1에서 실행됐다.
 
-![작업 4 제출](/static/images/cloud-computing/hw3-13.webp)
+![작업 4 제출](/static/images/cloud-computing-hw3-htcondor-cluster/13.webp)
 
 _고친 jds로 제출, 작업 2개 IDLE → RUN 2 → 완료_
 
-![작업 4 결과](/static/images/cloud-computing/hw3-14.webp)
+![작업 4 결과](/static/images/cloud-computing-hw3-htcondor-cluster/14.webp)
 
 _run_0, run_1에 결과 파일이 따로 생기고 error.txt는 비어 있다._
 
@@ -450,11 +450,11 @@ queue 10
 
 10개 작업의 out·error·log 파일 30개가 따로 생겼고, `out.0.txt`~`out.9.txt` 모두 `Total Sum = 55`였다.
 
-![작업 5 condor_q](/static/images/cloud-computing/hw3-15.webp)
+![작업 5 condor_q](/static/images/cloud-computing-hw3-htcondor-cluster/15.webp)
 
 _작업 5 condor_q: RUN 4 / IDLE 6 → DONE 8 / RUN 2 → 완료_
 
-![작업 5 결과](/static/images/cloud-computing/hw3-16.webp)
+![작업 5 결과](/static/images/cloud-computing-hw3-htcondor-cluster/16.webp)
 
 _작업 번호별 파일 30개, out 10개 모두 55_
 
@@ -473,11 +473,11 @@ initialdir = run_$(Process)
 queue 2
 ```
 
-![작업 6 제출](/static/images/cloud-computing/hw3-17.webp)
+![작업 6 제출](/static/images/cloud-computing-hw3-htcondor-cluster/17.webp)
 
 _작업 6 제출과 condor_q: 작업 2개 IDLE → RUN 2 → 완료_
 
-![작업 6 결과](/static/images/cloud-computing/hw3-18.webp)
+![작업 6 결과](/static/images/cloud-computing-hw3-htcondor-cluster/18.webp)
 
 _run_0, run_1에 각각 out·error·log 생성_
 
@@ -492,13 +492,13 @@ image_size = 28
 
 나머지 줄은 작업 2의 argument.jds와 같다.
 
-![작업 7 IDLE](/static/images/cloud-computing/hw3-19.webp)
+![작업 7 IDLE](/static/images/cloud-computing-hw3-htcondor-cluster/19.webp)
 
 _Arch == "INTEL" 조건, 76초가 지나도 IDLE_
 
 `condor_q -better-analyze`를 돌리면 이유가 나온다. `Arch == "INTEL"`에 맞는 슬롯이 0개고, 슬롯 2개가 모두 작업의 요구 조건 때문에 거절했다.
 
-![better-analyze](/static/images/cloud-computing/hw3-20.webp)
+![better-analyze](/static/images/cloud-computing-hw3-htcondor-cluster/20.webp)
 
 _condor_q -better-analyze: 맞는 슬롯 0개, 2개 슬롯 모두 거절_
 
@@ -520,7 +520,7 @@ condor_rm 8.0
 condor_submit requirement.jds
 ```
 
-![작업 7 정상 종료](/static/images/cloud-computing/hw3-21.webp)
+![작업 7 정상 종료](/static/images/cloud-computing-hw3-htcondor-cluster/21.webp)
 
 _Arch == "aarch64"로 고친 작업 9.0: 정상 종료, Total Sum = 55_
 
@@ -670,7 +670,7 @@ root@192.168.56.101's password:
 Permission denied, please try again.
 ```
 
-![root 접속 거부](/static/images/cloud-computing/hw3-22.webp)
+![root 접속 거부](/static/images/cloud-computing-hw3-htcondor-cluster/22.webp)
 
 _기본 설정(permitrootlogin without-password): 호스트에서 root 접속 거부_
 
@@ -687,7 +687,7 @@ permitrootlogin yes
 
 다시 `ssh root@192.168.56.101`을 치니 root 비밀번호로 접속돼서 프롬프트가 `[root@main ~]#`으로 바뀌었다. 접속 메시지의 "1 failed login attempt"는 바꾸기 전에 거부된 시도다.
 
-![root 접속 성공](/static/images/cloud-computing/hw3-23.webp)
+![root 접속 성공](/static/images/cloud-computing-hw3-htcondor-cluster/23.webp)
 
 _PermitRootLogin yes 적용 후 호스트에서 root 접속 성공_
 
@@ -706,7 +706,7 @@ permitrootlogin without-password
 
 그런데 이 Total 2는 **슬롯 수, 즉 노드 수**지 CPU 수가 아니다. 노드별 CPU 수는 `condor_status -af Name Cpus Memory`로 따로 봤다. 아래 화면은 Ch5-5에서 main에도 실행 역할을 추가한 뒤에 찍어서 main까지 세 줄이 나오지만, work1·work2의 Cpus는 모두 2다. CPU가 노드마다 2개인데 슬롯은 노드마다 하나씩만 보인다.
 
-![condor_status -af](/static/images/cloud-computing/hw3-24.webp)
+![condor_status -af](/static/images/cloud-computing-hw3-htcondor-cluster/24.webp)
 
 _condor_status -af Name Cpus Memory: 노드마다 Cpus 2, Memory 1696MB, 슬롯은 slot1 하나_
 
@@ -745,7 +745,7 @@ use role:get_htcondor_execute
 
 재시작 후 main에는 collector, negotiator, schedd와 함께 condor_startd가 떴다. 재시작 직후 `condor_status`에는 `slot1@main.cloud.org` 하나만 보였는데, collector가 다시 시작되면서 work1·work2 정보가 사라졌기 때문이다. 실행 노드는 주기적으로 자기 상태를 collector에 다시 보고하니까 약 2분 뒤 세 노드가 다 나타나서 Total 3이 됐다.
 
-![슬롯 3개](/static/images/cloud-computing/hw3-25.webp)
+![슬롯 3개](/static/images/cloud-computing-hw3-htcondor-cluster/25.webp)
 
 _main에 execute 역할 추가 후 condor_status: slot1@main, slot1@work1, slot1@work2, Total 3_
 

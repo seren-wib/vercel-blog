@@ -115,7 +115,7 @@ REJ(Reject): HDLC랑 Go-back-N에서 쓰는 구체적인 NAK 형태
 - 단점
   - 프레임 하나 보내고 ACK가 돌아올 때까지 링크가 놀 수 있다. 특히 거리가 멀어서 propagation delay가 크면, 실제 데이터 전송 시간보다 기다리는 시간이 더 길어질 수 있다. 그래서 link utilization 문제가 나온다.
 
-![link utilization](/static/images/network/ch7-stop-and-wait-Flow-Control.png)
+![link utilization](/static/images/network-ch7-data-link/stop-and-wait-flow-control.png)
 
 - T: 송신자
 - R: 수신자
@@ -157,7 +157,7 @@ REJ(Reject): HDLC랑 Go-back-N에서 쓰는 구체적인 NAK 형태
 - 프레임 번호: 0~7 순환 (k=3, modulo 8)
 - window 크기: 7 (파란 칸 = 현재 window)
 
-![sliding Windows Flow Control](/static/images/network/ch7-sliding-window-Flow-Control.png)
+![sliding Windows Flow Control](/static/images/network-ch7-data-link/sliding-window-flow-control.png)
 
 #### ① 초기 상태
 
@@ -279,7 +279,7 @@ ARQ의 목적은 unreliable data link를 reliable data link처럼 보이게 만�
 | **ACK1** | "다음에 1번 기대" = **0번 잘 받음** |
 | **ACK0** | "다음에 0번 기대" = **1번 잘 받음** |
 
-![stop-and-wait ARQ](/static/images/network/ch7-stop-and-wait-ARQ.png)
+![stop-and-wait ARQ](/static/images/network-ch7-data-link/stop-and-wait-arq.png)
 
 #### 단계별 흐름
 
@@ -359,7 +359,7 @@ B는 번호를 보고 "아까 받은 1번이네" 하고 **버림(discard)**.
 송신자는 Frame 3부터 다시 보낸다.
 ```
 
-![Sliding-Window-ARQ](/static/images/network/ch7-Sliding-Window-ARQ.png)
+![Sliding-Window-ARQ](/static/images/network-ch7-data-link/sliding-window-arq.png)
 
 ## 3. Selective-Reject ARQ
 
@@ -430,21 +430,21 @@ control field를 보고 어떤 frame인지 알아낸다
 - Information Field있음
 - 길이 가변
 
-![I-frame](/static/images/network/ch7-I-frame.png)
+![I-frame](/static/images/network-ch7-data-link/i-frame.png)
 
-![I-frame-control-field](/static/images/network/ch7-I-frame-control-field.png)
+![I-frame-control-field](/static/images/network-ch7-data-link/i-frame-control-field.png)
 
 ### S-frame
 
-![S-frame](/static/images/network/ch7-S-frame.png)
+![S-frame](/static/images/network-ch7-data-link/s-frame.png)
 
-![S-frame-control-field](/static/images/network/ch7-S-frame-control-field.png)
+![S-frame-control-field](/static/images/network-ch7-data-link/s-frame-control-field.png)
 
 ### U-frame
 
 - 일부 information field 있음
 
-![U-frame-control-field](/static/images/network/ch7-U-frame-control-field.png)
+![U-frame-control-field](/static/images/network-ch7-data-link/u-frame-control-field.png)
 
 ### Bit Stuffing
 

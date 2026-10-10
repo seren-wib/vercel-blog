@@ -47,19 +47,19 @@ sudo hostnamectl set-hostname main.cloud.org
 
 work1, work2도 IP를 `.102`, `.103`으로, 호스트네임을 `work1.cloud.org`, `work2.cloud.org`로 바꿔서 똑같이 실행했다.
 
-![설정 전 main, enp2s0은 UP이지만 IP가 없음](/static/images/cloud-computing/hw2-01.webp)
+![설정 전 main, enp2s0은 UP이지만 IP가 없음](/static/images/cloud-computing-hw2-kvm-vm-cluster/01.webp)
 
 _설정 전 main. enp2s0은 UP이지만 IP가 없다._
 
-![main 고정 IP 지정 후](/static/images/cloud-computing/hw2-02.webp)
+![main 고정 IP 지정 후](/static/images/cloud-computing-hw2-kvm-vm-cluster/02.webp)
 
 _main: enp2s0 = 192.168.56.101/24, hostname = main.cloud.org_
 
-![work1 고정 IP](/static/images/cloud-computing/hw2-03.webp)
+![work1 고정 IP](/static/images/cloud-computing-hw2-kvm-vm-cluster/03.webp)
 
 _work1: enp2s0 = 192.168.56.102/24_
 
-![work2 고정 IP](/static/images/cloud-computing/hw2-04.webp)
+![work2 고정 IP](/static/images/cloud-computing-hw2-kvm-vm-cluster/04.webp)
 
 _work2: enp2s0 = 192.168.56.103/24_
 
@@ -75,27 +75,27 @@ sudo grub2-mkconfig -o /boot/grub2/grub.cfg
 sudo reboot
 ```
 
-![/etc/default/grub](/static/images/cloud-computing/hw2-05.webp)
+![/etc/default/grub](/static/images/cloud-computing-hw2-kvm-vm-cluster/05.webp)
 
 _GRUB_TIMEOUT=0, 커널 인자에 pci=nomsi 유지_
 
-![grub2-mkconfig](/static/images/cloud-computing/hw2-06.webp)
+![grub2-mkconfig](/static/images/cloud-computing-hw2-kvm-vm-cluster/06.webp)
 
 _grub2-mkconfig로 grub.cfg 재생성_
 
-![재부팅 시 GRUB 메뉴 없이 부팅](/static/images/cloud-computing/hw2-07.webp)
+![재부팅 시 GRUB 메뉴 없이 부팅](/static/images/cloud-computing-hw2-kvm-vm-cluster/07.webp)
 
 _재부팅하면 GRUB 메뉴 없이 곧바로 커널 부팅이 시작된다._
 
-![부팅 완료 후 로그인 프롬프트](/static/images/cloud-computing/hw2-08.webp)
+![부팅 완료 후 로그인 프롬프트](/static/images/cloud-computing-hw2-kvm-vm-cluster/08.webp)
 
 _부팅 완료 후 로그인 프롬프트_
 
-![/proc/cmdline](/static/images/cloud-computing/hw2-09.webp)
+![/proc/cmdline](/static/images/cloud-computing-hw2-kvm-vm-cluster/09.webp)
 
 _/proc/cmdline: 재부팅 후에도 pci=nomsi가 적용돼 있다._
 
-![grub.cfg set timeout=0](/static/images/cloud-computing/hw2-10.webp)
+![grub.cfg set timeout=0](/static/images/cloud-computing-hw2-kvm-vm-cluster/10.webp)
 
 _생성된 grub.cfg의 67·71행 `set timeout=0`_
 
@@ -111,7 +111,7 @@ sudo virt-clone --original rocky-base --name work2 --auto-clone
 virsh list --all
 ```
 
-![virt-clone으로 3대 생성](/static/images/cloud-computing/hw2-11.webp)
+![virt-clone으로 3대 생성](/static/images/cloud-computing-hw2-kvm-vm-cluster/11.webp)
 
 _virt-clone으로 main·work1·work2 생성, `virsh list --all`에 4대가 보인다._
 
@@ -126,15 +126,15 @@ grep GRUB_TIMEOUT /etc/default/grub
 sudo grep -n "set timeout=" /boot/grub2/grub.cfg
 ```
 
-![main GRUB 확인](/static/images/cloud-computing/hw2-12.webp)
+![main GRUB 확인](/static/images/cloud-computing-hw2-kvm-vm-cluster/12.webp)
 
 _main: GRUB_TIMEOUT=0, grub.cfg set timeout=0_
 
-![work1 GRUB 확인](/static/images/cloud-computing/hw2-13.webp)
+![work1 GRUB 확인](/static/images/cloud-computing-hw2-kvm-vm-cluster/13.webp)
 
 _work1: 동일_
 
-![work2 GRUB 확인](/static/images/cloud-computing/hw2-14.webp)
+![work2 GRUB 확인](/static/images/cloud-computing-hw2-kvm-vm-cluster/14.webp)
 
 _work2: 동일_
 
@@ -152,15 +152,15 @@ sudo tee -a /etc/hosts > /dev/null <<'EOF'
 EOF
 ```
 
-![main /etc/hosts](/static/images/cloud-computing/hw2-15.webp)
+![main /etc/hosts](/static/images/cloud-computing-hw2-kvm-vm-cluster/15.webp)
 
 _main의 /etc/hosts (8~10행)_
 
-![work1 /etc/hosts](/static/images/cloud-computing/hw2-16.webp)
+![work1 /etc/hosts](/static/images/cloud-computing-hw2-kvm-vm-cluster/16.webp)
 
 _work1의 /etc/hosts_
 
-![work2 /etc/hosts](/static/images/cloud-computing/hw2-17.webp)
+![work2 /etc/hosts](/static/images/cloud-computing-hw2-kvm-vm-cluster/17.webp)
 
 _work2의 /etc/hosts_
 
@@ -168,7 +168,7 @@ _work2의 /etc/hosts_
 
 호스트(Ubuntu)의 가상 브리지 virbr56(192.168.56.1)에서 세 VM의 IP로 ping을 보냈다. 세 대 모두 패킷 손실 0%였다.
 
-![호스트에서 ping](/static/images/cloud-computing/hw2-18.webp)
+![호스트에서 ping](/static/images/cloud-computing-hw2-kvm-vm-cluster/18.webp)
 
 _호스트 → 192.168.56.101~103 ping, 모두 0% packet loss_
 
@@ -178,15 +178,15 @@ _호스트 → 192.168.56.101~103 ping, 모두 0% packet loss_
 
 자기 자신한테는 약 0.1~0.4ms, 다른 VM으로는 약 3~9ms가 나왔다. 중첩 가상화를 거치는 만큼 VM 사이 지연이 더 크다.
 
-![main에서 hostname ping](/static/images/cloud-computing/hw2-19.webp)
+![main에서 hostname ping](/static/images/cloud-computing-hw2-kvm-vm-cluster/19.webp)
 
 _main에서 hostname으로 ping_
 
-![work1에서 hostname ping](/static/images/cloud-computing/hw2-20.webp)
+![work1에서 hostname ping](/static/images/cloud-computing-hw2-kvm-vm-cluster/20.webp)
 
 _work1에서 hostname으로 ping_
 
-![work2에서 hostname ping](/static/images/cloud-computing/hw2-21.webp)
+![work2에서 hostname ping](/static/images/cloud-computing-hw2-kvm-vm-cluster/21.webp)
 
 _work2에서 hostname으로 ping_
 
@@ -194,7 +194,7 @@ _work2에서 hostname으로 ping_
 
 호스트에서 세 VM에 비밀번호로 SSH 접속하고 `hostname`으로 맞는 VM인지 확인했다. 첫 접속이라 호스트 키 확인 질문이 나와서 `yes`로 known_hosts에 등록했다.
 
-![비밀번호 SSH 접속](/static/images/cloud-computing/hw2-22.webp)
+![비밀번호 SSH 접속](/static/images/cloud-computing-hw2-kvm-vm-cluster/22.webp)
 
 _호스트 → main·work1·work2 SSH 접속 (비밀번호 인증)_
 
@@ -213,15 +213,15 @@ ssh-copy-id yoosung@192.168.56.102
 ssh-copy-id yoosung@192.168.56.103
 ```
 
-![ed25519 키 쌍 생성](/static/images/cloud-computing/hw2-23.webp)
+![ed25519 키 쌍 생성](/static/images/cloud-computing-hw2-kvm-vm-cluster/23.webp)
 
 _호스트에서 ed25519 키 쌍 생성 (개인키 id_ed25519, 공개키 id_ed25519.pub)_
 
-![ssh-copy-id](/static/images/cloud-computing/hw2-24.webp)
+![ssh-copy-id](/static/images/cloud-computing-hw2-kvm-vm-cluster/24.webp)
 
 _ssh-copy-id로 공개키 등록. VM마다 "Number of key(s) added: 1"_
 
-![키 인증 접속](/static/images/cloud-computing/hw2-25.webp)
+![키 인증 접속](/static/images/cloud-computing-hw2-kvm-vm-cluster/25.webp)
 
 _호스트 → 세 VM 키 인증 접속. 비밀번호 없이 각 hostname이 출력된다._
 
@@ -237,15 +237,15 @@ ssh-copy-id work2
 
 main 기준이고, work1은 main·work2, work2는 main·work1로 대상만 바꿔서 실행했다.
 
-![main에서 work1, work2](/static/images/cloud-computing/hw2-26.webp)
+![main에서 work1, work2](/static/images/cloud-computing-hw2-kvm-vm-cluster/26.webp)
 
 _main → work1, work2 (비밀번호 없이 접속)_
 
-![work1에서 main, work2](/static/images/cloud-computing/hw2-27.webp)
+![work1에서 main, work2](/static/images/cloud-computing-hw2-kvm-vm-cluster/27.webp)
 
 _work1 → main, work2_
 
-![work2에서 main, work1](/static/images/cloud-computing/hw2-28.webp)
+![work2에서 main, work1](/static/images/cloud-computing-hw2-kvm-vm-cluster/28.webp)
 
 _work2 → main, work1_
 

@@ -1,0 +1,195 @@
+---
+title: 'MySQL Cheatsheet (macOS)'
+date: '2026-10-09'
+tags: ['SQL']
+summary: 'MySQL installation and service management, connecting, DBs/tables, CRUD, backups, user privileges, password reset'
+draft: false
+---
+
+> For personal reference. Expanded from the original: `3-1/오픈소스 웹소프트웨어/mysql-test/mysql-setup.md`.
+
+---
+
+## 1. Installation & Service Management
+
+```bash
+brew install mysql
+brew services start mysql      # start (also registers it to run automatically at boot)
+brew services stop mysql       # stop
+brew services restart mysql    # restart
+brew services list             # check status (started / stopped)
+mysql --version                # check the installed version
+```
+
+---
+
+## 2. Connecting
+
+```bash
+mysql -u root -p               # connect as root (enter password)
+mysql -u root -p db_name         # select a DB right while connecting
+mysql -h 127.0.0.1 -P 3306 -u root -p   # specify host/port
+exit                           # or quit, \q
+```
+
+---
+
+## 3. Databases / Tables
+
+```sql
+SHOW DATABASES;                -- list DBs
+CREATE DATABASE mydb;          -- create a DB
+CREATE DATABASE mydb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;  -- safe for Korean text
+DROP DATABASE mydb;            -- ⚠️ deletes the entire DB
+USE mydb;                      -- select a DB
+SELECT DATABASE();             -- check the currently selected DB
+
+SHOW TABLES;                   -- list tables
+DESCRIBE table_name;            -- table structure (can be shortened to DESC)
+SHOW CREATE TABLE table_name;   -- show the table's CREATE statement as is
+DROP TABLE table_name;          -- ⚠️ delete a table
+TRUNCATE TABLE table_name;      -- empty all data only (structure is kept)
+```
+
+---
+
+## 4. Working with Data (CRUD)
+
+```sql
+-- Read
+SELECT * FROM table_name;
+SELECT column1, column2 FROM table_name WHERE condition;
+SELECT * FROM table_name ORDER BY column DESC LIMIT 10;
+SELECT COUNT(*) FROM table_name;
+
+-- Insert (※ column names must be wrapped in parentheses)
+INSERT INTO table_name (column1, column2) VALUES (value1, value2);
+INSERT INTO table_name (column1, column2) VALUES (value1, value2), (value3, value4);  -- several rows at once
+
+-- Update (⚠️ forget WHERE and every row changes)
+UPDATE table_name SET column1 = value WHERE condition;
+
+-- Delete (⚠️ forget WHERE and every row is deleted)
+DELETE FROM table_name WHERE condition;
+```
+
+> The original had it written as `INSERT INTO table_name VALUES value`, but the values need parentheses `()`, and
+> specifying columns also needs `(column)` parentheses. The above is the correct syntax.
+
+---
+
+## 5. Running from a File / Backups
+
+```bash
+# Initialize/run from a .sql file (in the terminal, before connecting to mysql)
+mysql -u root -p db_name < init.sql
+
+# Back up a DB (dump)
+mysqldump -u root -p db_name > backup.sql
+
+# Restore a backup
+mysql -u root -p db_name < backup.sql
+```
+
+```sql
+-- Run a file while connected to mysql
+SOURCE /path/init.sql;
+```
+
+---
+
+## 6. Users / Privileges
+
+```sql
+SELECT user, host FROM mysql.user;     -- list users
+SELECT CURRENT_USER();                 -- the user currently connected
+
+-- Create a user
+CREATE USER 'app'@'localhost' IDENTIFIED BY 'password';
+
+-- Grant privileges (an entire specific DB)
+GRANT ALL PRIVILEGES ON mydb.* TO 'app'@'localhost';
+FLUSH PRIVILEGES;                      -- apply privilege changes
+
+-- Delete a user
+DROP USER 'app'@'localhost';
+```
+
+---
+
+## 7. Cautions
+
+- The `root` password is **global to the PC**: it affects every project using the same MySQL.
+- After changing the password, each project's `.env` / DB config file must be updated too.
+- `UPDATE` / `DELETE` **apply to every row if you forget `WHERE`**. Make a habit of checking the targets with `SELECT` before running them.
+- `DROP` / `TRUNCATE` are hard to undo. Back up first.
+
+---
+
+## 8. Resetting a Lost Password
+
+### 1) Stop MySQL
+
+```bash
+brew services stop mysql
+```
+
+### 2) Run with authentication bypassed
+
+```bash
+mysqld_safe --skip-grant-tables &
+```
+
+After waiting about 5 seconds:
+
+```bash
+mysql -u root
+```
+
+### 3) Reset the password
+
+```sql
+FLUSH PRIVILEGES;
+SET GLOBAL validate_password.policy = LOW;
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'new_password';
+FLUSH PRIVILEGES;
+exit
+```
+
+> Default password policy: requires a combination of uppercase + lowercase + digits + special characters.
+> Lowering it with `validate_password.policy = LOW` allows simple passwords too.
+
+### 4) Clean up and restart
+
+```bash
+pkill mysqld_safe; pkill mysqld
+brew services start mysql
+```
+
+### 5) Confirm you can connect with the new password
+
+```bash
+mysql -u root -p
+```
+
+---
+
+## 9. Troubleshooting (Common Issues)
+
+```bash
+# When the server won't start: check for processes already running
+ps aux | grep mysql
+
+# Check who is using port 3306
+lsof -i :3306
+
+# "Can't connect to local MySQL server" → check the service first
+brew services list
+```
+
+| Symptom                         | Cause/Fix                                                |
+| ------------------------------- | -------------------------------------------------------- |
+| `Access denied for user 'root'` | Wrong password → reset as in section 8                   |
+| `Can't connect ... socket`      | Server not running → `brew services start mysql`         |
+| Garbled Korean text (`???`)     | Set the DB/table charset to `utf8mb4`                    |
+| `Unknown database`              | Check the name with `SHOW DATABASES;`, `CREATE DATABASE` |

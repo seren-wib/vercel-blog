@@ -1,0 +1,101 @@
+---
+title: 'HW1. Definition of Cloud Computing and Virtualization'
+date: '2026-10-09'
+tags: ['Cloud Computing']
+draft: false
+summary: 'Definition of cloud computing, ways to scale performance (clustering, virtualization), CPU/memory/I/O virtualization, how HPC, HTC, grid and cloud relate, three key issues in data center operation'
+---
+
+For the first Cloud Computing assignment, I wrote up the five exercises from Chapter 1 of the textbook.
+
+# 1. Definition of Cloud Computing
+
+**Renting computing resources whenever you need them.** It is utility computing: you pay for what you use, like electricity, gas or water. It started with the utility computing John McCarthy described in 1961.
+
+| Source             | Definition                                                                                            |
+| ------------------ | ----------------------------------------------------------------------------------------------------- |
+| NIST               | Defined by 5 essential characteristics, 3 service models and 4 deployment models                      |
+| Gartner            | A style of computing in which scalable and elastic IT-enabled capabilities are delivered as a service |
+| Forrester Research | Standardized IT capability delivered via Internet technologies in a pay-per-use, self-service way     |
+
+Related keywords
+
+- On-Demand Service, Flexibility, resource reuse
+- Virtualization, Data Center
+- IaaS, PaaS, SaaS
+- Private, public, hybrid cloud
+- Amazon EC2, Google, Azure
+
+# 2. Ways to Increase Computing Performance and Capacity
+
+The first thing that comes to mind is upgrading parts like the CPU and memory. But there is a limit to how far a single computer can grow.
+
+So there are two directions.
+
+- **Clustering**: tie several computers together and use them for one purpose. Combining machines to raise performance is built on **orchestration**.
+- **Resource partitioning**: split one computer's resources and use them for several purposes. This is built on **virtualization**.
+
+# 3. Three Categories of Computer Virtualization
+
+Virtualization is divided into **CPU virtualization, memory virtualization and I/O virtualization**.
+
+## Virtualization Approaches
+
+Divided by whether the guest OS is modified.
+
+- **Full virtualization**: the guest OS is not modified.
+- **Para virtualization**: the guest OS is modified.
+
+## Hypervisor
+
+The software that implements virtualization. There are two kinds depending on where it is installed.
+
+- **Type 1 (native)**: the hypervisor is installed directly on the hardware, and virtual machines run on top of it.
+- **Type 2 (hosted)**: hardware → host OS → hypervisor → guest OS, in that order.
+
+## How Each Category Is Virtualized
+
+**CPU virtualization**
+
+- The hypervisor handles privileged instructions executed by the guest OS on its behalf.
+- If the guest is not modified, the hypervisor traps the instructions and emulates them.
+- If the guest is modified, those instructions are replaced with hypercalls that request the hypervisor directly.
+
+**Memory virtualization**
+
+- Address translation gains one more level: guest virtual address → guest physical address → real physical address.
+- The hypervisor manages this translation with **shadow page tables**. Physical addresses inside a VM are fake, so a separate table maps guest virtual addresses straight to real addresses.
+- Alternatively, a modified guest asks the hypervisor when it changes its page tables.
+
+**I/O virtualization**
+
+- Multiple VMs share physical devices such as disks and network cards.
+- The hypervisor either emulates the device in software, or a virtualization-specific driver (virtio, etc.) is installed in the guest to communicate directly.
+
+# 4. How HPC, HTC, Grid and Cloud Connect
+
+| Keyword         | One-line description                                                          |
+| --------------- | ----------------------------------------------------------------------------- |
+| HPC             | Goal is fast computation. Supercomputers                                      |
+| HTC             | Goal is throughput. Raises utilization of idle resources to process many jobs |
+| Grid computing  | Ties together idle computers scattered around the world. Orchestration-based  |
+| Cloud computing | Splits one computer's resources into virtual machines. Virtualization-based   |
+
+The goal of **HPC** is to finish a single computation quickly. Supercomputers fall into this category.
+
+If the goal is throughput, you use **HTC**. Since many jobs have to be processed, the key is making the most of idle resources.
+
+**Grid computing** and **cloud computing** belong to HTC. Both play the same role of using idle resources, but they are implemented differently.
+
+- A grid **ties together** idle computers scattered around the world. So it is built on orchestration.
+- A cloud uses a hypervisor to **split** one computer's resources into virtual machines. That is virtualization.
+
+# 5. Three Key Issues in Data Center Operation and the Cloud
+
+| Issue                                          | How the cloud solves it                                                                                     |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Finding idle resources (utilization)           | Virtualization splits idle resources into virtual machines and offers them to users as a service            |
+| Isolating problem services (service stability) | The hypervisor isolates virtual machines from each other, so A's work does not affect B                     |
+| Fast recovery                                  | Save virtual machines as images, then quickly recover by launching a new one or moving it to another server |
+
+All three issues can be solved with virtualization. It is thanks to the properties of virtual machines: resources can be split finely, VMs are isolated from each other, and a whole VM can be moved as a single file.

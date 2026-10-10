@@ -12,7 +12,7 @@ iCloud `UNIV` 폴더의 강의 정리 문서를 블로그 글로 옮겨 배포�
 | -------------- | ------------------------------------------------------------------------- |
 | UNIV 루트      | `~/Library/Mobile Documents/com~apple~CloudDocs/UNIV`                     |
 | 정리 문서      | `UNIV/<학기>/<과목>/docs/*.md` (예: `3-2/데이터베이스시스템/docs/ch2.md`) |
-| 정리 문서 그림 | `UNIV/<학기>/<과목>/docs/img/` (본문에서 상대 경로로 링크)                |
+| 정리 문서 그림 | `UNIV/<학기>/<과목>/img/` (본문에서 `../img/<파일>`로 링크)               |
 | 폴더 규칙      | `UNIV/CLAUDE.md` (파일명 규칙, AI 생성 태그 형식)                         |
 
 - 링크(심볼릭 링크)는 걸지 않는다. Vercel 빌드 환경엔 iCloud 경로가 없으므로 **파일을 복사**해 온다.
@@ -69,7 +69,7 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 
 ### 이미지
 
-1. 본문의 이미지 링크(`![...](img/x.svg)`, `<img src=...>`)를 전부 찾는다.
+1. 본문의 이미지 링크(`![...](../img/x.svg)`, `<img src=...>`)를 전부 찾는다.
 2. 원본 파일을 `public/static/images/<category>/`로 복사한다. 파일명은 `<장>-<내용>.<ext>` (예: `ch2-logic-gates.svg`).
 3. 본문 경로를 `/static/images/<category>/<파일명>`으로 바꾼다.
 4. HEIC는 `sips -s format jpeg <in> --out <out>.jpg`로 변환한다.

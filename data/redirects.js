@@ -73,9 +73,13 @@ const renamedPosts = {
 
 const encodePath = (postPath) => postPath.split('/').map(encodeURIComponent).join('/')
 
+/**
+ * Old post URLs go straight to the Korean post (posts were Korean-only before /kr and /en existed).
+ * URLs without a locale prefix that are not listed here are sent to /kr by middleware.ts.
+ */
 const postRedirects = Object.entries({ ...movedPosts, ...renamedPosts }).map(([from, to]) => ({
   source: `/blog/${encodePath(from)}`,
-  destination: `/blog/${encodePath(to)}/`,
+  destination: `/kr/blog/${encodePath(to)}/`,
   permanent: true,
 }))
 
@@ -83,23 +87,24 @@ const postRedirects = Object.entries({ ...movedPosts, ...renamedPosts }).map(([f
  * Tag pages were replaced by category pages. Every tag slug matches a category folder name.
  */
 const tagRedirects = [
-  { source: '/tags', destination: '/blog/category/', permanent: true },
-  { source: '/tags/:tag', destination: '/blog/category/:tag/', permanent: true },
+  { source: '/tags', destination: '/kr/blog/category/', permanent: true },
+  { source: '/tags/:tag', destination: '/kr/blog/category/:tag/', permanent: true },
   {
     source: '/tags/:tag/page/:page',
-    destination: '/blog/category/:tag/page/:page/',
+    destination: '/kr/blog/category/:tag/page/:page/',
     permanent: true,
   },
 ]
 
 /**
- * The full post list moved from /blog to the landing page. Page 1 of the list is / itself.
+ * The full post list lives on each locale's landing page. Page 1 of the list is the landing page itself.
  */
 const listRedirects = [
-  { source: '/blog', destination: '/', permanent: true },
-  { source: '/blog/page/1', destination: '/', permanent: true },
-  { source: '/blog/page/:page', destination: '/page/:page/', permanent: true },
-  { source: '/page/1', destination: '/', permanent: true },
+  { source: '/blog', destination: '/kr/', permanent: true },
+  { source: '/blog/page/1', destination: '/kr/', permanent: true },
+  { source: '/blog/page/:page', destination: '/kr/page/:page/', permanent: true },
+  { source: '/page/1', destination: '/kr/', permanent: true },
+  { source: '/:locale(kr|en)/page/1', destination: '/:locale/', permanent: true },
 ]
 
 module.exports = [...postRedirects, ...tagRedirects, ...listRedirects]

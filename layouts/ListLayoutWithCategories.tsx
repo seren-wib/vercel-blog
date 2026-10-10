@@ -6,15 +6,16 @@ import { CoreContent } from 'pliny/utils/contentlayer'
 import type { Blog } from 'contentlayer/generated'
 import Link from '@/components/Link'
 import Category from '@/components/Category'
-import siteMetadata from '@/data/siteMetadata'
 import categoryData from 'app/category-data.json'
 import { getCategoryLabel, sortCategories } from '@/data/categories'
+import { getDictionary, localeInfo, localePath, type Locale } from '@/data/i18n'
 
 interface PaginationProps {
   totalPages: number
   currentPage: number
 }
 interface ListLayoutProps {
+  locale: Locale
   posts: CoreContent<Blog>[]
   title: string
   description?: string
@@ -22,13 +23,14 @@ interface ListLayoutProps {
   pagination?: PaginationProps
 }
 
-function Pagination({ totalPages, currentPage }: PaginationProps) {
+function Pagination({ totalPages, currentPage, locale }: PaginationProps & { locale: Locale }) {
   const pathname = usePathname()
+  const dict = getDictionary(locale)
   const segments = pathname.split('/')
   const lastSegment = segments[segments.length - 1]
   const basePath = pathname
     .replace(/\/?page\/\d+\/?$/, '') // Remove any trailing /page
-    .replace(/\/$/, '') // Remove trailing slash, so the landing page becomes ''
+    .replace(/\/$/, '') // Remove trailing slash, so the landing page becomes '/<locale>'
   const prevPage = currentPage - 1 > 0
   const nextPage = currentPage + 1 <= totalPages
 
@@ -37,7 +39,7 @@ function Pagination({ totalPages, currentPage }: PaginationProps) {
       <nav className="flex justify-between">
         {!prevPage && (
           <button className="cursor-auto disabled:opacity-50" disabled={!prevPage}>
-            Previous
+            {dict.previous}
           </button>
         )}
         {prevPage && (
@@ -45,20 +47,18 @@ function Pagination({ totalPages, currentPage }: PaginationProps) {
             href={currentPage - 1 === 1 ? `${basePath}/` : `${basePath}/page/${currentPage - 1}`}
             rel="prev"
           >
-            Previous
+            {dict.previous}
           </Link>
         )}
-        <span>
-          {currentPage} of {totalPages}
-        </span>
+        <span>{dict.pageOf(currentPage, totalPages)}</span>
         {!nextPage && (
           <button className="cursor-auto disabled:opacity-50" disabled={!nextPage}>
-            Next
+            {dict.next}
           </button>
         )}
         {nextPage && (
           <Link href={`${basePath}/page/${currentPage + 1}`} rel="next">
-            Next
+            {dict.next}
           </Link>
         )}
       </nav>
@@ -67,6 +67,7 @@ function Pagination({ totalPages, currentPage }: PaginationProps) {
 }
 
 export default function ListLayoutWithCategories({
+  locale,
   posts,
   title,
   description,
@@ -74,9 +75,12 @@ export default function ListLayoutWithCategories({
   pagination,
 }: ListLayoutProps) {
   const pathname = usePathname()
-  const categoryCounts = categoryData as Record<string, number>
+  const dict = getDictionary(locale)
+  const categoryCounts = (categoryData as Record<string, Record<string, number>>)[locale] ?? {}
   const sortedCategories = sortCategories(Object.keys(categoryCounts))
   const currentCategory = decodeURI(pathname.split('/blog/category/')[1] ?? '').split('/')[0]
+  const home = localePath(locale)
+  const isAllPosts = pathname.replace(/\/$/, '') === home || pathname.startsWith(`${home}/page/`)
 
   const displayPosts = initialDisplayPosts.length > 0 ? initialDisplayPosts : posts
 
@@ -92,11 +96,11 @@ export default function ListLayoutWithCategories({
               {description}
             </p>
           )}
-          <nav aria-label="Categories" className="mt-4 flex flex-wrap gap-2 sm:hidden">
+          <nav aria-label={dict.categories} className="mt-4 flex flex-wrap gap-2 sm:hidden">
             {sortedCategories.map((c) => (
               <Link
                 key={c}
-                href={`/blog/category/${c}`}
+                href={localePath(locale, `/blog/category/${c}`)}
                 className={`rounded-full border px-3 py-1 text-sm ${
                   c === currentCategory
                     ? 'border-primary-500 text-primary-500'
@@ -111,18 +115,18 @@ export default function ListLayoutWithCategories({
         <div className="flex sm:space-x-24">
           <div className="hidden h-full max-h-screen max-w-[280px] min-w-[280px] flex-wrap overflow-auto rounded-sm bg-gray-50 pt-5 shadow-md sm:flex dark:bg-gray-900/70 dark:shadow-gray-800/40">
             <div className="px-6 py-4">
-              {pathname === '/' || pathname.startsWith('/page/') ? (
-                <h3 className="text-primary-500 font-bold uppercase">All Posts</h3>
+              {isAllPosts ? (
+                <h3 className="text-primary-500 font-bold uppercase">{dict.allPosts}</h3>
               ) : (
                 <Link
-                  href="/"
+                  href={home}
                   className="hover:text-primary-500 dark:hover:text-primary-500 font-bold text-gray-700 uppercase dark:text-gray-300"
                 >
-                  All Posts
+                  {dict.allPosts}
                 </Link>
               )}
               <h3 className="mt-6 text-xs font-bold tracking-wide text-gray-500 uppercase dark:text-gray-400">
-                Categories
+                {dict.categories}
               </h3>
               <ul>
                 {sortedCategories.map((c) => (
@@ -133,9 +137,9 @@ export default function ListLayoutWithCategories({
                       </h3>
                     ) : (
                       <Link
-                        href={`/blog/category/${c}`}
+                        href={localePath(locale, `/blog/category/${c}`)}
                         className="hover:text-primary-500 dark:hover:text-primary-500 px-3 py-2 text-sm font-medium text-gray-500 uppercase dark:text-gray-300"
-                        aria-label={`View ${getCategoryLabel(c)} posts`}
+                        aria-label={dict.viewCategoryPosts(getCategoryLabel(c))}
                       >
                         {`${getCategoryLabel(c)} (${categoryCounts[c]})`}
                       </Link>
@@ -153,10 +157,10 @@ export default function ListLayoutWithCategories({
                   <li key={path} className="py-5">
                     <article className="flex flex-col space-y-2 xl:space-y-0">
                       <dl>
-                        <dt className="sr-only">Published on</dt>
+                        <dt className="sr-only">{dict.publishedOn}</dt>
                         <dd className="text-base leading-6 font-medium text-gray-500 dark:text-gray-400">
                           <time dateTime={date} suppressHydrationWarning>
-                            {formatDate(date, siteMetadata.locale)}
+                            {formatDate(date, localeInfo[locale].dateLocale)}
                           </time>
                         </dd>
                       </dl>
@@ -168,7 +172,7 @@ export default function ListLayoutWithCategories({
                             </Link>
                           </h2>
                           <div className="flex flex-wrap">
-                            <Category category={category} />
+                            <Category category={category} locale={locale} />
                           </div>
                         </div>
                         <div className="prose max-w-none text-gray-500 dark:text-gray-400">
@@ -181,7 +185,11 @@ export default function ListLayoutWithCategories({
               })}
             </ul>
             {pagination && pagination.totalPages > 1 && (
-              <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} />
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                locale={locale}
+              />
             )}
           </div>
         </div>

@@ -14,6 +14,14 @@ import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
 import { sortByChapter } from '@/data/categories'
+import { localeInfo, locales, type Locale, asLocale } from '@/data/i18n'
+import { feedPath, languageAlternates } from 'app/seo'
+
+const findPost = (locale: Locale, slug: string) =>
+  allBlogs.find((p) => p.locale === locale && p.slug === slug)
+
+/** Locales that have this post, for hreflang and the language switch */
+const postLocales = (slug: string) => locales.filter((l) => findPost(l, slug))
 
 const defaultLayout = 'PostLayout'
 const layouts = {
@@ -23,11 +31,11 @@ const layouts = {
 }
 
 export async function generateMetadata(props: {
-  params: Promise<{ slug: string[] }>
+  params: Promise<{ locale: string; slug: string[] }>
 }): Promise<Metadata | undefined> {
   const params = await props.params
   const slug = decodeURI(params.slug.join('/'))
-  const post = allBlogs.find((p) => p.slug === slug)
+  const post = findPost(asLocale(params.locale), slug)
   const authorList = post?.authors || ['default']
   const authorDetails = authorList.map((author) => {
     const authorResults = allAuthors.find((p) => p.slug === author)
@@ -57,7 +65,7 @@ export async function generateMetadata(props: {
       title: post.title,
       description: post.summary,
       siteName: siteMetadata.title,
-      locale: 'ko_KR',
+      locale: localeInfo[asLocale(params.locale)].ogLocale,
       type: 'article',
       publishedTime: publishedAt,
       modifiedTime: modifiedAt,
@@ -71,17 +79,26 @@ export async function generateMetadata(props: {
       description: post.summary,
       images: imageList,
     },
+    alternates: {
+      canonical: './',
+      languages: languageAlternates(`/blog/${slug}/`, postLocales(slug)),
+      types: {
+        'application/rss+xml': `${siteMetadata.siteUrl}${feedPath(asLocale(params.locale))}`,
+      },
+    },
   }
 }
 
-export const generateStaticParams = async () => {
-  return allBlogs.map((p) => ({ slug: p.slug.split('/').map((name) => decodeURI(name)) }))
-}
+export const generateStaticParams = async () =>
+  allBlogs.map((p) => ({
+    locale: p.locale,
+    slug: p.slug.split('/').map((name) => decodeURI(name)),
+  }))
 
-export default async function Page(props: { params: Promise<{ slug: string[] }> }) {
+export default async function Page(props: { params: Promise<{ locale: string; slug: string[] }> }) {
   const params = await props.params
   const slug = decodeURI(params.slug.join('/'))
-  const post = allBlogs.find((p) => p.slug === slug) as Blog
+  const post = findPost(asLocale(params.locale), slug) as Blog
   // Filter out drafts in production
   if (!post || allCoreContent([post]).length === 0) {
     return notFound()
@@ -89,7 +106,7 @@ export default async function Page(props: { params: Promise<{ slug: string[] }> 
 
   // Previous/next chapter within the same category
   const chapters = sortByChapter(
-    allCoreContent(allBlogs.filter((p) => p.category === post.category))
+    allCoreContent(allBlogs.filter((p) => p.locale === post.locale && p.category === post.category))
   )
   const postIndex = chapters.findIndex((p) => p.slug === slug)
   const prev = chapters[postIndex - 1]

@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import type { Toc } from 'pliny/mdx-plugins'
+import { usePathname } from 'next/navigation'
+import { getDictionary, localeFromPathname } from '@/data/i18n'
+
+function useContentsLabel() {
+  return getDictionary(localeFromPathname(usePathname())).contents
+}
 
 const MAX_DEPTH = 4
 
@@ -67,12 +73,13 @@ export function TocSidebar({ toc, className = '' }: Props) {
   const headings = toc.filter((h) => h.depth <= MAX_DEPTH)
   const [ids] = useState(() => headings.map((h) => h.url.replace(/^#/, '')))
   const activeId = useActiveHeading(ids)
+  const label = useContentsLabel()
   if (headings.length === 0) return null
 
   return (
-    <nav aria-label="Table of contents" className={className}>
+    <nav aria-label={label} className={className}>
       <h2 className="mb-3 text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
-        Contents
+        {label}
       </h2>
       <div className="max-h-[70vh] overflow-y-auto pr-2">
         <TocList toc={headings} activeId={activeId} />
@@ -84,6 +91,7 @@ export function TocSidebar({ toc, className = '' }: Props) {
 /** Collapsible table of contents shown above the post (below xl). */
 export function TocInline({ toc, className = '' }: Props) {
   const headings = toc.filter((h) => h.depth <= MAX_DEPTH)
+  const label = useContentsLabel()
   if (headings.length === 0) return null
 
   return (
@@ -91,7 +99,7 @@ export function TocInline({ toc, className = '' }: Props) {
       className={`rounded-md border border-gray-200 px-4 py-3 dark:border-gray-700 ${className}`}
     >
       <summary className="cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-300">
-        Contents
+        {label}
       </summary>
       <div className="mt-3">
         <TocList toc={headings} />

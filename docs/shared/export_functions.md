@@ -71,7 +71,6 @@
 | `components/Comments.tsx`            | `Comments` (default)            | default | Giscus 댓글               |
 | `components/ScrollTopAndComment.tsx` | `ScrollTopAndComment` (default) | default | 스크롤 상단/댓글 버튼     |
 | `components/TableWrapper.tsx`        | `TableWrapper` (default)        | default | 스크롤 가능한 테이블 래퍼 |
-| `components/LayoutWrapper.tsx`       | `LayoutWrapper` (default)       | default | Header + Footer 래퍼      |
 | `components/SectionContainer.tsx`    | `SectionContainer` (default)    | default | 최대 너비 컨테이너        |
 | `components/MDXComponents.tsx`       | `components` (default)          | default | MDX 커스텀 컴포넌트 맵    |
 | `components/social-icons/index.tsx`  | `SocialIcon` (default)          | default | 소셜 아이콘               |

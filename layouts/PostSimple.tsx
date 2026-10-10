@@ -1,5 +1,6 @@
 import { ReactNode } from 'react'
 import { formatDate } from 'pliny/utils/formatDate'
+import { getDictionary, localeInfo, type Locale } from '@/data/i18n'
 import { CoreContent } from 'pliny/utils/contentlayer'
 import type { Blog } from 'contentlayer/generated'
 import Comments from '@/components/Comments'
@@ -28,9 +29,11 @@ export default function PostLayout({ content, next, prev, children }: LayoutProp
             <div className="space-y-1 border-b border-gray-200 pb-10 text-center dark:border-gray-700">
               <dl>
                 <div>
-                  <dt className="sr-only">Published on</dt>
+                  <dt className="sr-only">{getDictionary(content.locale as Locale).publishedOn}</dt>
                   <dd className="text-base leading-6 font-medium text-gray-500 dark:text-gray-400">
-                    <time dateTime={date}>{formatDate(date, siteMetadata.locale)}</time>
+                    <time dateTime={date}>
+                      {formatDate(date, localeInfo[content.locale as Locale].dateLocale)}
+                    </time>
                   </dd>
                 </div>
               </dl>

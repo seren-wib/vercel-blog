@@ -80,14 +80,20 @@ async function createTagCount(allBlogs) {
   writeFileSync('./app/tag-data.json', formatted)
 }
 
+const locales = ['kr', 'en']
+const isPublished = (file) => !isProduction || file.draft !== true
+
 /**
- * Count posts per category (first folder under data/blog) and write to json file
+ * Count posts per locale and category (data/blog/<locale>/<category>) and write to json file
  */
 async function createCategoryCount(allBlogs) {
-  const categoryCount: Record<string, number> = {}
+  const categoryCount: Record<string, Record<string, number>> = Object.fromEntries(
+    locales.map((locale) => [locale, {}])
+  )
   allBlogs.forEach((file) => {
-    if (file.category && (!isProduction || file.draft !== true)) {
-      categoryCount[file.category] = (categoryCount[file.category] || 0) + 1
+    if (file.category && categoryCount[file.locale] && isPublished(file)) {
+      const counts = categoryCount[file.locale]
+      counts[file.category] = (counts[file.category] || 0) + 1
     }
   })
   const formatted = await prettier.format(JSON.stringify(categoryCount, null, 2), {
@@ -96,15 +102,31 @@ async function createCategoryCount(allBlogs) {
   writeFileSync('./app/category-data.json', formatted)
 }
 
+/**
+ * Slugs that exist in each locale, so the language switch can tell whether a translation exists
+ */
+async function createTranslationIndex(allBlogs) {
+  const index = Object.fromEntries(
+    locales.map((locale) => [
+      locale,
+      allBlogs
+        .filter((file) => file.locale === locale && isPublished(file))
+        .map((file) => file.slug)
+        .sort(),
+    ])
+  )
+  const formatted = await prettier.format(JSON.stringify(index, null, 2), { parser: 'json' })
+  writeFileSync('./app/translation-data.json', formatted)
+}
+
 function createSearchIndex(allBlogs) {
-  if (
-    siteMetadata?.search?.provider === 'kbar' &&
-    siteMetadata.search.kbarConfig.searchDocumentsPath
-  ) {
-    writeFileSync(
-      `public/${path.basename(siteMetadata.search.kbarConfig.searchDocumentsPath)}`,
-      JSON.stringify(allCoreContent(sortPosts(allBlogs)))
-    )
+  if (siteMetadata?.search?.provider === 'kbar') {
+    for (const locale of locales) {
+      writeFileSync(
+        `public/search-${locale}.json`,
+        JSON.stringify(allCoreContent(sortPosts(allBlogs.filter((file) => file.locale === locale))))
+      )
+    }
     console.log('Local search index generated...')
   }
 }
@@ -128,9 +150,27 @@ export const Blog = defineDocumentType(() => ({
   },
   computedFields: {
     ...computedFields,
-    category: {
+    // data/blog/<locale>/<category>/<file>.mdx
+    locale: {
       type: 'string',
       resolve: (doc) => doc._raw.sourceFileDir.split('/')[1] ?? '',
+    },
+    category: {
+      type: 'string',
+      resolve: (doc) => doc._raw.sourceFileDir.split('/')[2] ?? '',
+    },
+    // <category>/<file>, shared by a post and its translation
+    slug: {
+      type: 'string',
+      resolve: (doc) => doc._raw.flattenedPath.split('/').slice(2).join('/'),
+    },
+    // URL path without the leading slash: <locale>/blog/<category>/<file>
+    path: {
+      type: 'string',
+      resolve: (doc) => {
+        const [, locale, ...rest] = doc._raw.flattenedPath.split('/')
+        return [locale, 'blog', ...rest].join('/')
+      },
     },
     structuredData: {
       type: 'json',
@@ -142,7 +182,11 @@ export const Blog = defineDocumentType(() => ({
         dateModified: doc.lastmod || doc.date,
         description: doc.summary,
         image: doc.images ? doc.images[0] : siteMetadata.socialBanner,
-        url: `${siteMetadata.siteUrl}/${doc._raw.flattenedPath}/`,
+        url: (() => {
+          const [, locale, ...rest] = doc._raw.flattenedPath.split('/')
+          return `${siteMetadata.siteUrl}/${[locale, 'blog', ...rest].join('/')}/`
+        })(),
+        inLanguage: doc._raw.sourceFileDir.split('/')[1] === 'en' ? 'en' : 'ko',
       }),
     },
   },
@@ -203,6 +247,7 @@ export default makeSource({
     const { allBlogs } = await importData()
     createTagCount(allBlogs)
     createCategoryCount(allBlogs)
+    createTranslationIndex(allBlogs)
     createSearchIndex(allBlogs)
   },
 })

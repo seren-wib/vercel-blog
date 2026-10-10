@@ -1,0 +1,286 @@
+---
+title: 'virtual memory 1'
+date: '2026-06-15'
+tags: ['OS']
+draft: false
+summary: 'hex, paging, virtual address, page table, demand paging, segmentation'
+---
+
+- [0. HEX](#0-hex)
+- [1. Paging](#1-paging)
+  - [1. Concept](#1-concept)
+    - [Additional concepts from the user's point of view](#additional-concepts-from-the-users-point-of-view)
+    - [Advantages](#advantages)
+    - [Disadvantages](#disadvantages)
+  - [2. virtual address](#2-virtual-address)
+    - [Components](#components)
+  - [3. page table](#3-page-table)
+  - [4. Components of a PTE(Page Table Entries)](#4-components-of-a-ptepage-table-entries)
+    - [When the valid bit is 0(invalid)](#when-the-valid-bit-is-0invalid)
+  - [5. Terminology](#5-terminology)
+    - [One book](#one-book)
+    - [Page 5 of the book](#page-5-of-the-book)
+      - [The 10th word on page 5 of the book](#the-10th-word-on-page-5-of-the-book)
+  - [6. The whole paging flow](#6-the-whole-paging-flow)
+- [2. demanding paging](#2-demanding-paging)
+  - [1. Page fault handling steps](#1-page-fault-handling-steps)
+  - [2. Why this works -- Locality](#2-why-this-works----locality)
+  - [3. Cold start](#3-cold-start)
+- [3. Segmentation](#3-segmentation)
+  - [1. Translation process](#1-translation-process)
+- [4. Paging vs Segmentation differences in detail](#4-paging-vs-segmentation-differences-in-detail)
+  - [1. Structure and performance differences](#1-structure-and-performance-differences)
+  - [2. Capability and purpose differences](#2-capability-and-purpose-differences)
+- [5. Conclusion: Segmentation with Paging (hybrid)](#5-conclusion-segmentation-with-paging-hybrid)
+
+# 0. HEX
+
+- `0x`: a marker meaning "this is hexadecimal"
+- Example
+  - `0x4AFE = 4×4096(16^3) + 10×256(16^2) + 15×16(16^1) + 14×1(16^0) = 19198`
+- One digit is 4 bits (because it's base 16)
+
+# 1. Paging
+
+## 1. Concept
+
+**virtual memory → page table → physical memory**
+
+- Lets the memory a process uses be split up and placed at noncontiguous locations in physical memory.
+- Cut virtual-mem and physical-mem into chunks of the same size (4kb is common)
+- The operating system keeps track of all free frames.
+- Sets up a page table to translate virtual addresses into physical addresses.
+- If you exit a program and restart it, the vm gives the same values but the actual physical memory is different.
+
+### Additional concepts from the user's point of view
+
+- The user sees only contiguous memory.
+  - Virtual address space (VAS)
+- In reality, pages are stored scattered across all of physical memory.
+  - A mapping exists that translates virtual addresses into physical addresses.
+  - This mapping is invisible to the program.
+- Process A can't access process B, so protection is solved naturally too.
+- Process A must not be able to know process B's memory layout or page mapping information.
+  - Why:
+    - it could read another process's data
+    - it could modify another process's data
+    - the security and stability of the whole system could break
+- So it's never shown to user level.
+
+### Advantages
+
+1. Physical memory allocation is easy.
+2. No external fragmentation.
+3. Page out (pushing pages down to disk when memory is full) is easy.
+4. Page protection is easy (because it uses the protection bit + valid bit).
+5. Page sharing is easy (because the OS just has to make page tables point to the same PFN).
+
+### Disadvantages
+
+1. Internal fragmentation can occur (not a big problem since it's 4kb) + it's used together with segmentation later, so it rarely happens
+2. Every memory access has to happen twice, so it's 2x slower
+   - Solution: use a TLB
+3. Page tables are too large → solutions: multi-level / inverted page table
+
+## 2. virtual address
+
+**A virtual address is a location in the virtual address space a process generates**
+
+### Components
+
+- Made up of a VPN and an offset.
+- 32 bits in total.
+- Of these, the offset is tied to the page size.
+  - If the page size is 2^n, the offset gets n bits.
+- The VPN is 32-n bits.
+  - If the page size is 4kb, since 2^12=4kb, VPN = 20bit, offset = 12bit.
+
+## 3. page table
+
+- Managed by the OS.
+- Each process has its own page table (because each process's address space must be independent and protected).
+- The VPN is mapped to a PFN by the page table.
+- VPNs and PTEs (page table entry = one slot in the page table) correspond one to one.
+
+## 4. Components of a PTE(Page Table Entries)
+
+| V    | R    | M    | Prot | PFN(Page Frame Number) |
+| ---- | ---- | ---- | ---- | ---------------------- |
+| 1bit | 1bit | 1bit | 2bit | 20bit                  |
+
+- V(Valid bit):
+  - If 1, take out the PFN and translate from the VPN; if 0, there's a problem and it's handed to the OS (trap)
+    - 1 means valid: this page is a legitimate page inside the process's address space
+    - 0 means invalid: outside the address space; there are 2 cases
+      - Never allocated in the first place (Never allocated) — a bogus address, something like a NULL pointer. Touching it is an illegal access
+      - Evicted to disk (page out to disk) — legitimate, but pushed down to disk for lack of space. Touching it causes a page fault → pulled back up
+- R(Reference): whether the page has ever been accessed
+- M(Modify/dirty): whether anything was written to this page - written back to disk only when dirty
+- Prot: R/W/X permissions
+  - Each page has protection bits, so even for a legitimate page it sets in fine detail "which operations are allowed (read-only, read-write, execute-only)".
+- PFN: physical frame number
+
+### When the valid bit is 0(invalid)
+
+1. Physical memory is accessed for the first time via the page table
+2. It's not in memory
+3. It's on disk
+4. Bring it from disk into memory (page fault)
+
+## 5. Terminology
+
+### One book
+
+- virtual memory
+- physical memory
+
+### Page 5 of the book
+
+- page: one slot of vm
+- page table
+- frame: one slot of physical mem
+
+#### The 10th word on page 5 of the book
+
+- virtual address(VPN+offset)
+- PTE
+- physical address(PFN+offset)
+
+## 6. The whole paging flow
+
+```text
+ex:
+page = 4096byte
+
+0   0 ~ 4095
+1   4096 ~ 8191
+2   8192 ~ 12287
+3   12288 ~ 16383
+4   16384 ~ 20479
+
+virtual address = 0x4AFE = 19198
+19198//4096 = 4 = 0x00004(20bit)
+so VPN = 0x00004(20bit)
+
+so the page it falls in = page 4
+
+19198 % 4096 = 2814= 0xAFE
+so offset = 0xAFE
+
+If the page table looks like this
+
+0   2|7
+1   D|0
+2   3|1
+3   F|E
+4   B|6 it goes here
+5   A|4
+
+This virtual address looks up slot [4] of the page table.
+Then VPN 0X00004 is mapped to PFN 0xB6
+
+So the resulting physical address is B6AFE (because the offset is kept)
+```
+
+# 2. demanding paging
+
+**Instead of loading the whole program into memory, load only the pages actually touched, as needed (on demand).**
+
+- Less I/O, less memory used, more users accommodated, better responsiveness.
+
+If a page isn't in memory → the PTE's valid=0, and the OS writes in the PTE **"where on disk this page is (swap location)"**.
+
+Touching that page → page fault (trap)
+
+**This isn't an error like a segfault; it's recoverable, normal behavior.**
+
+The OS handles it and re-executes the instruction that faulted. The app doesn't even know it happened. (transparent)
+
+## 1. Page fault handling steps
+
+1. Address reference (the CPU accesses a page)
+2. Trap(Page fault) (valid = 0 → handed to the OS)
+3. Look it up on disk: check the swap file location
+4. Move it from disk into a frame -- but what if there's no free frame here? Someone has to be evicted (page replacement algorithm)
+5. Update the PTE: valid=1, link the frame
+6. Restart the instruction
+
+## 2. Why this works -- Locality
+
+- Doesn't loading only when needed keep causing page faults?
+  - No. Because of locality
+    1. Temporal locality: data just used is likely to be used again.
+    2. Spatial locality: places near what was just used are likely to be used next.
+
+## 3. Cold start
+
+When a process first starts, its page table is all valid=0
+
+At startup it has to just take the cold page faults head-on
+
+Why it's called demand: pages aren't all loaded in advance; they're loaded only when a demand comes in (when a fault happens)
+
+# 3. Segmentation
+
+Whereas paging cuts memory into identical slots ignoring meaning, segmentation **cuts memory into logical units of meaning.**
+
+virtual address = [ Segment# | Offset ] // segment number + offset
+
+- Segment# = consists of base and limit
+  - base: where this segment starts in physical memory
+  - limit: how long this segment is ← this is new
+    - Why limit is needed: each segment has a different size
+- It's an extended version of variable partitions.
+
+### Advantages
+
+1. Since they're logical units, they're easy to grow and shrink.
+2. Protection comes naturally (R/W/X permissions per segment).
+3. Sharing is clean.
+
+### Disadvantages
+
+1. External fragmentation occurs - because segments vary in size. But since segments are large, it's not a big problem
+2. The segment table is large (kept in main memory, with a hardware cache to make up for speed) (but it's generally smaller than a page table)
+
+## 1. Translation process
+
+**logical address → space segment table → physical memory**
+
+1. Virtual address [segment#|Offset]
+2. Segment table [Seg#](limit, base)
+3. Check whether the offset is smaller than the limit
+4. **If the offset is larger than the limit, protection fault**
+   - Why the offset must not exceed the limit: the limit is the total memory size allocated to that virtual address
+5. Physical address = base + offset
+
+# 4. Paging vs Segmentation differences in detail
+
+## 1. Structure and performance differences
+
+| Item                           | Paging                              | Segmentation                      |
+| ------------------------------ | ----------------------------------- | --------------------------------- |
+| Block size                     | Fixed (4KB~64KB)                    | Variable                          |
+| Addressing                     | page number + offset                | segment# + offset                 |
+| Replacement                    | Easy (all the same size)            | Hard (must find a hole that fits) |
+| Fragmentation                  | Internal                            | External                          |
+| Disk transfer                  | Efficient (optimized for page size) | Inefficient (transfer sizes vary) |
+| Linear address spaces          | 1                                   | Several                           |
+| Transparent to the programmer? | Yes (invisible)                     | No (visible)                      |
+
+## 2. Capability and purpose differences
+
+| Question                                              | Paging                     | Segmentation                                       |
+| ----------------------------------------------------- | -------------------------- | -------------------------------------------------- |
+| Total address space > physical memory possible?       | Yes                        | Yes (but it can be inefficient)                    |
+| Separate protection for code/data?                    | No                         | Yes                                                |
+| Easy to accommodate data structures that change size? | No                         | Yes                                                |
+| Easy code sharing?                                    | No                         | Yes                                                |
+| Why was it invented?                                  | Large linear address space | Logically independent spaces (sharing, protection) |
+
+# 5. Conclusion: Segmentation with Paging (hybrid)
+
+- **Paged Segments: segmentation + paging. Segments are sized as multiples of the page size**
+- Segments become **"pageable"** — instead of moving a whole segment, it's loaded and evicted in page-sized pieces
+- As a result, external fragmentation is eliminated (segmentation's fatal weakness is solved by paging)
+  - Internal fragmentation can still exist.

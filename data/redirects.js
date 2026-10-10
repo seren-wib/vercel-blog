@@ -92,4 +92,14 @@ const tagRedirects = [
   },
 ]
 
-module.exports = [...postRedirects, ...tagRedirects]
+/**
+ * The full post list moved from /blog to the landing page. Page 1 of the list is / itself.
+ */
+const listRedirects = [
+  { source: '/blog', destination: '/', permanent: true },
+  { source: '/blog/page/1', destination: '/', permanent: true },
+  { source: '/blog/page/:page', destination: '/page/:page/', permanent: true },
+  { source: '/page/1', destination: '/', permanent: true },
+]
+
+module.exports = [...postRedirects, ...tagRedirects, ...listRedirects]

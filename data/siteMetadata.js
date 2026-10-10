@@ -3,8 +3,9 @@ const siteMetadata = {
   title: 'dev-blog',
   author: 'seren-wib',
   headerTitle: 'DevBlog',
-  description: 'dev blog',
-  language: 'en-us',
+  description:
+    "A developer's notebook — deep dives into computer science coursework, from networks and operating systems to cloud computing and software engineering, alongside hands-on notes from real projects, debugging sessions and tools I build along the way.",
+  language: 'ko',
   theme: 'system', // system, dark or light
   siteUrl: 'https://kibotos.dev',
   siteRepo: 'https://github.com/seren-wib/vercel-blog',

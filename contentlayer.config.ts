@@ -142,7 +142,7 @@ export const Blog = defineDocumentType(() => ({
         dateModified: doc.lastmod || doc.date,
         description: doc.summary,
         image: doc.images ? doc.images[0] : siteMetadata.socialBanner,
-        url: `${siteMetadata.siteUrl}/${doc._raw.flattenedPath}`,
+        url: `${siteMetadata.siteUrl}/${doc._raw.flattenedPath}/`,
       }),
     },
   },

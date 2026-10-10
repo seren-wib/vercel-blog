@@ -1,0 +1,427 @@
+---
+title: 'Unity Basic Structure Overview'
+date: '2026-05-10'
+tags: ['Unity']
+draft: false
+summary: "An overview of Unity's basic structure, centered on Scene, GameObject and Component"
+---
+
+- [Unity Basic Structure Overview](#unity-basic-structure-overview)
+  - [1. Basic Project Folder Structure](#1-basic-project-folder-structure)
+    - [Scenes](#scenes)
+    - [Scripts](#scripts)
+    - [Sprites](#sprites)
+    - [Prefabs](#prefabs)
+  - [2. Project - Scene - GameObject Structure](#2-project---scene---gameobject-structure)
+    - [Project](#project)
+    - [Scene](#scene)
+    - [GameObject](#gameobject)
+  - [3. GameObject and Component](#3-gameobject-and-component)
+  - [4. How a C# Script Gets Attached](#4-how-a-c-script-gets-attached)
+  - [5. Roles of the Unity Editor and VS Code](#5-roles-of-the-unity-editor-and-vs-code)
+  - [6. How Backgrounds and Structures Are Made](#6-how-backgrounds-and-structures-are-made)
+  - [7. Overall Summary](#7-overall-summary)
+
+# Unity Basic Structure Overview
+
+Unity does not work by making a game with code alone;
+it works by **placing GameObjects in a Scene and attaching Components to the GameObjects to build functionality**.
+
+## 1. Basic Project Folder Structure
+
+The folders you mainly use in a Unity project are inside `Assets`.
+
+```
+Assets/
+├─ Scenes/
+├─ Scripts/
+├─ Sprites/
+└─ Prefabs/
+```
+
+### Scenes
+
+A `Scene` is not the whole game but a **bundle of objects** loaded at once within the game.
+
+For example, as the game grows, you can split it into scenes like this.
+
+```
+Assets/Scenes/
+├─ MainMenu.unity
+├─ GameScene.unity
+└─ GameOver.unity
+```
+
+Each scene holds the GameObjects it needs separately.
+
+```
+GameScene
+├─ Main Camera
+├─ Player
+├─ Enemy
+└─ UI
+```
+
+In other words, an object like `Player` is not saved as a separate standalone file; it is saved inside the current scene file.
+
+```
+Assets/Scenes/SampleScene.unity
+└─ the Player object's data is stored in here
+```
+
+### Scripts
+
+The `Scripts` folder stores C# code files.
+
+```
+Assets/Scripts/
+└─ PlayerMove.cs
+```
+
+Scripts are used to create behavior by attaching them to GameObjects.
+
+For example, if you attach `PlayerMove.cs` to the `Player` object, that object moves according to the code.
+
+The important point here is that a script file does not run on its own;
+it only runs once it is attached to a GameObject as a Component in the Unity Editor.
+
+### Sprites
+
+A `Sprite` is an image resource attached to a 2D object.
+
+For example, if there is a player image, you can store it like this.
+
+```
+Assets/Sprites/
+└─ player.png
+```
+
+A Sprite by itself is just an image.
+It has no functionality like movement, collision or health.
+
+To make a Sprite visible on screen, the GameObject needs a `SpriteRenderer` component.
+
+```
+Player
+├─ Transform
+└─ SpriteRenderer
+   └─ displays player.png on screen
+```
+
+### Prefabs
+
+A `Prefab` is a GameObject's configuration saved as a reusable source file.
+
+For example, say the `Player` object is configured like this.
+
+```
+Player
+├─ Transform
+├─ SpriteRenderer
+│  └─ player.png
+├─ Rigidbody2D
+├─ BoxCollider2D
+└─ PlayerMove.cs
+```
+
+Dragging this object into the `Prefabs` folder creates a `Player.prefab` file.
+
+```
+Assets/Prefabs/
+└─ Player.prefab
+```
+
+A Prefab does not actually merge the scripts and images into one.
+Precisely, it stores **which components are attached, which Sprites and Scripts it references, and what each value is**.
+
+```
+Player.prefab
+├─ GameObject name
+├─ List of attached Components
+├─ Component settings
+└─ Referenced assets
+   ├─ player.png
+   └─ PlayerMove.cs
+```
+
+In other words, a Prefab is a reusable source that stores "the configuration of a finished object".
+
+## 2. Project - Scene - GameObject Structure
+
+Unity's structure can be understood like this.
+
+```
+Project
+└─ Scene
+   └─ GameObject
+      └─ Component
+```
+
+### Project
+
+A `Project` means the whole game.
+
+```
+First2DGame/
+├─ Assets/
+├─ Packages/
+└─ ProjectSettings/
+```
+
+A project contains scenes, scripts, images, sounds, settings files and so on.
+
+### Scene
+
+A `Scene` is a bundle of objects loaded at once within the game.
+
+For example, the menu screen, the actual game screen and the game over screen can each be split into different scenes.
+
+```
+Project
+├─ MainMenu Scene
+├─ Game Scene
+└─ GameOver Scene
+```
+
+That said, a small game can be made with just one scene.
+
+At first, it is fine to start by putting Player, Enemy, UI and everything else into a single `SampleScene`.
+
+```
+SampleScene
+├─ Main Camera
+├─ Player
+├─ Enemy
+├─ Wall
+└─ UI
+```
+
+A scene is not the screen image itself.
+A scene is a file that stores "which objects exist, where they are, and which components they have".
+
+What actually appears on screen is captured and shown by the `Camera` in the Scene.
+
+```
+Scene
+├─ Player
+├─ Enemy
+└─ Camera
+   └─ shows the picture in the Game View
+```
+
+### GameObject
+
+A `GameObject` is an object that exists in a scene.
+
+For example:
+
+```
+Player
+Enemy
+Bullet
+Wall
+Camera
+UI
+```
+
+A GameObject is close to an empty shell; the actual functionality comes from attaching Components.
+
+For example, Player is not just an object with a name; it is an object with several Components attached.
+
+```
+Player
+├─ Transform
+├─ SpriteRenderer
+└─ PlayerMove.cs
+```
+
+The name `Player` here is not required.
+You can rename it to something like `Hero`, `Character` or `MyBox`.
+
+What matters is not the name but which Components are attached.
+
+## 3. GameObject and Component
+
+In Unity, objects are made from combinations of Components.
+
+For example, `Player` can be configured like this.
+
+```
+Player
+├─ Transform
+├─ SpriteRenderer
+├─ Rigidbody2D
+├─ BoxCollider2D
+└─ PlayerMove.cs
+```
+
+The role of each Component is as follows.
+
+| Component      | Role                                                                     |
+| -------------- | ------------------------------------------------------------------------ |
+| Transform      | Position, rotation and scale info. Exists on every GameObject by default |
+| SpriteRenderer | Displays a 2D image on screen                                            |
+| Rigidbody2D    | Makes it subject to the 2D physics engine                                |
+| BoxCollider2D  | Sets the collision area                                                  |
+| PlayerMove.cs  | Movement code written by hand                                            |
+
+In other words, building functionality in Unity usually means repeating this process.
+
+```
+Create a GameObject
+→ Attach the needed Components
+→ Set the Component values
+→ Write a C# Script
+→ Attach the Script to the GameObject
+→ Run it and check
+```
+
+## 4. How a C# Script Gets Attached
+
+A script like `PlayerMove.cs` is a C# code file.
+
+For example, the following code handles player movement.
+
+```csharp
+using UnityEngine;
+
+public class PlayerMove : MonoBehaviour
+{
+    public float speed = 5f;
+
+    void Update()
+    {
+        float x = Input.GetAxisRaw("Horizontal");
+        float y = Input.GetAxisRaw("Vertical");
+
+        Vector3 direction = new Vector3(x, y, 0).normalized;
+        transform.position += direction * speed * Time.deltaTime;
+    }
+}
+```
+
+If this code only exists as a file, it does nothing.
+
+It only runs once `PlayerMove.cs` is attached as a Component to the `Player` GameObject in the Unity Editor.
+
+```
+Player
+├─ Transform
+├─ SpriteRenderer
+└─ PlayerMove.cs
+```
+
+When `PlayerMove.cs` is attached to Player, `transform` in the code means Player's Transform.
+
+In other words, the code below means "change the position of the GameObject this script is attached to".
+
+```csharp
+transform.position += direction * speed * Time.deltaTime;
+```
+
+So if you attach the same script to Enemy, Enemy moves, and if you attach it to Player, Player moves.
+
+The code does not automatically find an object with a particular name;
+**it operates relative to the GameObject it is attached to.**
+
+## 5. Roles of the Unity Editor and VS Code
+
+The Unity Editor and VS Code have different roles.
+
+| Unity Editor                                   | VS Code          |
+| ---------------------------------------------- | ---------------- |
+| Edit Scenes                                    | Write C# Scripts |
+| Create GameObjects                             | Write game logic |
+| Add Components                                 |                  |
+| Configure Sprites, Prefabs, Colliders, Cameras |                  |
+| Test-run the game                              |                  |
+
+For example, the `Player` object itself does not appear in VS Code as a `Player.cs` file.
+That is because `Player` is GameObject data stored inside `SampleScene.unity`.
+
+On the other hand, `PlayerMove.cs` is an actual C# code file, so you can see it in VS Code.
+
+```
+Assets/
+├─ Scenes/
+│  └─ SampleScene.unity   ← stores the Player object's data
+└─ Scripts/
+   └─ PlayerMove.cs       ← Player's behavior code
+```
+
+## 6. How Backgrounds and Structures Are Made
+
+Not everything needs to be a standalone GameObject.
+
+| Kind                                         | Method              |
+| -------------------------------------------- | ------------------- |
+| Things that move and act                     | GameObject + Script |
+| Floors, walls, backgrounds placed repeatedly | Tilemap             |
+| Large backgrounds that are only an image     | SpriteRenderer      |
+
+For example, a 2D map is usually built with a Tilemap.
+
+```
+SampleScene
+├─ Main Camera
+├─ Grid
+│  ├─ Ground Tilemap
+│  └─ Wall Tilemap
+├─ Player
+└─ EnemySpawner
+```
+
+Making 1000 floor tiles each a separate GameObject is very wasteful.
+So a single Tilemap is made to manage lots of tile data.
+
+**Bad approach**
+
+```
+Wall_001 GameObject
+Wall_002 GameObject
+Wall_003 GameObject
+...
+Wall_500 GameObject
+```
+
+**Good approach**
+
+```
+Wall Tilemap GameObject
+└─ data for 500 wall tiles
+```
+
+## 7. Overall Summary
+
+Unity's core structure is as follows.
+
+| Concept    | Description                                                |
+| ---------- | ---------------------------------------------------------- |
+| Project    | The whole game                                             |
+| Scene      | A bundle of objects loaded at once                         |
+| GameObject | An object in a scene                                       |
+| Component  | A feature attached to a GameObject                         |
+| Script     | A Component you make yourself                              |
+| Sprite     | A 2D image resource                                        |
+| Prefab     | A reusable source that stores a GameObject's configuration |
+
+At first, you only need to understand this flow.
+
+1. Create a Player GameObject in the Scene.
+2. Attach a SpriteRenderer to Player so it is visible on screen.
+3. Write PlayerMove.cs.
+4. Attach PlayerMove.cs to Player as a Component.
+5. When run, Unity calls Update() every frame.
+6. The code changes Player's transform.position.
+7. Unity redraws the changed position on screen.
+
+In conclusion, Unity development is this loop.
+
+```
+Create a GameObject
+→ Attach Components
+→ Write a Script
+→ Attach the Script to the GameObject
+→ Reuse it as a Prefab
+→ Test it in the Scene
+```

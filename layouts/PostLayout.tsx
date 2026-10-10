@@ -10,6 +10,7 @@ import Category from '@/components/Category'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 import { TocInline, TocSidebar } from '@/components/TableOfContents'
+import { getDictionary, localeInfo, type Locale } from '@/data/i18n'
 
 const editUrl = (path) => `${siteMetadata.siteRepo}/blob/main/data/${path}`
 const discussUrl = (path) =>
@@ -32,6 +33,8 @@ interface LayoutProps {
 
 export default function PostLayout({ content, authorDetails, next, prev, children }: LayoutProps) {
   const { filePath, path, slug, date, title, category, toc } = content
+  const locale = content.locale as Locale
+  const dict = getDictionary(locale)
   const basePath = path.split('/')[0]
 
   return (
@@ -43,10 +46,13 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
             <div className="space-y-1 text-center">
               <dl className="space-y-10">
                 <div>
-                  <dt className="sr-only">Published on</dt>
+                  <dt className="sr-only">{dict.publishedOn}</dt>
                   <dd className="text-base leading-6 font-medium text-gray-500 dark:text-gray-400">
                     <time dateTime={date}>
-                      {new Date(date).toLocaleDateString(siteMetadata.locale, postDateTemplate)}
+                      {new Date(date).toLocaleDateString(
+                        localeInfo[locale].dateLocale,
+                        postDateTemplate
+                      )}
                     </time>
                   </dd>
                 </div>
@@ -101,10 +107,10 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
               </div>
               <div className="pt-6 pb-6 text-sm text-gray-700 dark:text-gray-300">
                 <Link href={discussUrl(path)} rel="nofollow">
-                  Discuss on Twitter
+                  {dict.discussOnTwitter}
                 </Link>
                 {` • `}
-                <Link href={editUrl(filePath)}>View on GitHub</Link>
+                <Link href={editUrl(filePath)}>{dict.viewOnGitHub}</Link>
               </div>
               {siteMetadata.comments && (
                 <div
@@ -120,10 +126,10 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                 {category && (
                   <div className="py-4 xl:py-8">
                     <h2 className="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
-                      Category
+                      {dict.category}
                     </h2>
                     <div className="flex flex-wrap">
-                      <Category category={category} />
+                      <Category category={category} locale={locale} />
                     </div>
                   </div>
                 )}
@@ -132,7 +138,7 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                     {prev && prev.path && (
                       <div>
                         <h2 className="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
-                          Previous Article
+                          {dict.previousArticle}
                         </h2>
                         <div className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400">
                           <Link href={`/${prev.path}`}>{prev.title}</Link>
@@ -142,7 +148,7 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                     {next && next.path && (
                       <div>
                         <h2 className="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
-                          Next Article
+                          {dict.nextArticle}
                         </h2>
                         <div className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400">
                           <Link href={`/${next.path}`}>{next.title}</Link>
@@ -156,9 +162,9 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                 <Link
                   href={`/${basePath}`}
                   className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-                  aria-label="Back to the blog"
+                  aria-label={dict.backToBlog}
                 >
-                  &larr; Back to the blog
+                  &larr; {dict.backToBlog}
                 </Link>
               </div>
               <TocSidebar toc={toc} className="hidden pt-8 xl:sticky xl:top-8 xl:block" />

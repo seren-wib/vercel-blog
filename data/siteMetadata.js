@@ -4,7 +4,7 @@ const siteMetadata = {
   author: 'seren-wib',
   headerTitle: 'DevBlog',
   description: 'dev blog',
-  language: 'en-us',
+  language: 'ko',
   theme: 'system', // system, dark or light
   siteUrl: 'https://kibotos.dev',
   siteRepo: 'https://github.com/seren-wib/vercel-blog',

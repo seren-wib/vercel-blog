@@ -1,0 +1,71 @@
+---
+title: 'CH9. Switched Network (1)'
+date: '2026-10-09'
+tags: ['Network']
+draft: false
+summary: 'Circuit Switching(Establish/Transfer/Disconnect), Blocking & Non-blocking network, Space Division switching, Packet Switching'
+---
+
+# Switched network
+
+## 1. Circuit Switching
+
+**A method that lays down a path in advance, like a telephone line, and travels only along that path**
+
+- Suited to voice traffic
+- Once data transmission is under way, no other logic needs to be considered (transparent)
+- Suited to analog communication, poorly suited to digital communication
+
+### 1. Dedicated path + 3 phases
+
+#### 1. Establish (connection setup)
+
+- As the signal sent by the caller passes through the switching nodes one by one to reach the receiver, a channel is allocated at each node, completing the end-to-end path
+- The circuit is held only once the receiver responds
+
+#### 2. Transfer (data transfer)
+
+- Data now flows as if the two devices were connected by a wire. (No re-routing is needed, and intermediate nodes do not need to look at addresses)
+- There is no transmission delay and no delay variation (jitter).
+
+#### 3, Disconnect (connection release)
+
+- When the call ends, the circuit is torn down and the channels and resources it held are returned. Other devices can now use this path
+
+#### Drawbacks
+
+1. Setup takes time
+2. Once held, it occupies capacity even while no data is being sent, which is wasteful
+
+### 2. Blocking & non-blocking
+
+**What happens to a new connection request when all paths are in use?**
+
+#### Blocking network
+
+- If all paths are already in use, the new connection is refused
+- Based on the assumption that phone calls are short by nature and that only a small fraction of all telephones are in a call at the same time
+
+#### Non-blocking network
+
+- A structure in which all stations can be connected at the same time
+- As long as the other party is free, any connection request is always accepted.
+- Unlike phone calls, data communication stays connected for a long time once established, so this approach is used
+
+### 3. Space Division switching
+
+Transfers signals over physically separate paths
+
+### 4. Time Division switching
+
+## 2. Packet Switching
+
+Information is chopped into small pieces, each given just an address and sent off, and the nodes find the way on their own
+
+### 1. Better line efficiency (link sharing + buffering)
+
+### 2. Datagram
+
+### 3. Virtual Circuits
+
+## 3. Comparison table

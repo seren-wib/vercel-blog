@@ -113,7 +113,7 @@ export default async function RootLayout(props: {
       <link
         rel="mask-icon"
         href={`${basePath}/static/favicons/safari-pinned-tab.svg`}
-        color="#5bbad5"
+        color="#000000"
       />
       <meta name="msapplication-TileColor" content="#000000" />
       <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fff" />

@@ -19,7 +19,7 @@ export default function NotFound() {
         <p className="mb-8">{dict.notFoundBody}</p>
         <Link
           href={localePath(locale)}
-          className="focus:shadow-outline-blue inline rounded-lg border border-transparent bg-blue-600 px-4 py-2 text-sm leading-5 font-medium text-white shadow-xs transition-colors duration-150 hover:bg-blue-700 focus:outline-hidden dark:hover:bg-blue-500"
+          className="inline rounded-lg border border-transparent bg-gray-900 px-4 py-2 text-sm leading-5 font-medium text-white shadow-xs transition-colors duration-150 hover:bg-gray-700 focus:outline-hidden dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
         >
           {dict.backToHome}
         </Link>

@@ -1,7 +1,7 @@
 ---
 name: seren-wib
 avatar: /static/images/avatar.png
-occupation: Computer Science Undergraduate
+occupation: Software Undergraduate
 company:
 email:
 twitter:
@@ -9,56 +9,65 @@ linkedin:
 github: https://github.com/seren-wib/
 ---
 
-Hi, I'm **seren-wib**, a third-year computer science student who learns by building and writing things down.
-I turn lecture notes into structured posts, wire up side projects end to end, and spend a fair amount of time
-making my own development environment (and AI coding agents) work the way I want.
+Hi, I'm **seren-wib**, a third-year student in the School of Software at Chungbuk National University who learns by
+building and writing things down.
+I build web apps end to end in small teams, keep them honest with CI and pull-request rules, and spend a fair amount
+of time making AI coding agents work the way I want. Lecture notes end up here as structured posts.
 
 ## Focus
 
-- **Computer science fundamentals**: networks, operating systems, computer systems, cloud computing and software engineering, written up chapter by chapter on this blog
-- **Backend and web**: REST APIs, authentication, relational databases and the React front ends that sit on top of them
-- **Infrastructure**: Linux, virtualization and small clusters, from a laptop VM to a scheduled job queue
-- **AI-assisted development**: agent workflows, project rules and verification loops that keep generated code honest
+- **Full-stack web**: React front ends on top of Express or Django back ends, with JWT auth and relational databases
+- **CI and team workflow**: GitHub Actions on every pull request, protected branches, issue- and PR-based collaboration
+- **AI agents**: rule-based agent harnesses, project rules and verification loops for AI coding tools
+- **Computer science fundamentals**: course notes written up chapter by chapter on this blog
 
 ## Skills
 
-- **Languages**: Python, JavaScript, TypeScript, C#, SQL
-- **Frontend**: React, Next.js, Vite, Tailwind CSS
-- **Backend**: FastAPI, SQLAlchemy, Node.js, Express, JWT auth
-- **Database**: PostgreSQL, MySQL
-- **Infra & DevOps**: Linux (Ubuntu, WSL), KVM, HTCondor, Vercel, GitHub Actions
-- **Tools**: Git, Unity, Bruno, DBeaver, Claude Code, Codex
+- **Languages**: JavaScript, TypeScript, Python, SQL
+- **Frontend**: React, Vite, Next.js, Tailwind CSS, Monaco Editor
+- **Backend**: Node.js, Express, Django, JWT auth, bcrypt
+- **Database**: MySQL, SQLite
+- **Testing**: Jest, Supertest, Vitest, React Testing Library
+- **Infra & DevOps**: GitHub Actions, Docker, Vercel, Linux (Ubuntu, WSL)
+- **Tools**: Git, Bruno, DBeaver, Claude Code, Codex, Antigravity
 
 ## Projects
 
+### [Online Code Editor](https://github.com/seren-wib/opensource-web-azas)
+
+A browser-based code editor where users write, run and save code, built by a team of four (I built most of the front end).
+React, Vite and Monaco Editor on an Express + MySQL back end, with code running in per-language Docker containers.
+Every pull request runs through GitHub Actions CI (Jest, Supertest, Vitest, MySQL service container), and `main` is
+protected so nothing merges until it passes.
+
 ### [kibotos.dev](https://github.com/seren-wib/vercel-blog)
 
-This blog. Next.js 15, Contentlayer and Tailwind CSS on Vercel, with category-based navigation, per-post tables of contents,
-chapter ordering and a publishing pipeline that turns course notes into posts. Every change goes through a PR with lint,
-type check and build in CI.
+This blog, built with Next.js 15, Contentlayer and Tailwind CSS on Vercel, plus a pipeline that turns course notes into posts.
+Every change ships through a pull request with lint, type check and build in CI.
 
-### Online Code Editor
+### [SCPC 2026 AI Agent Harness](https://github.com/seren-wib/scpc-2026-agent-harness)
 
-A browser-based code editor where users write and run code. React, Vite and Monaco Editor on the front end, Express and
-MySQL with JWT authentication on the back end, code execution through the Judge0 API, tested with Jest, Supertest and Vitest.
+A rule-based harness for the SCPC 2026 qualifier (DACON) that decides how a personal-device agent should handle a request,
+written in plain Python with no dependencies. Final score **0.8408** (baseline 0.5206).
 
-### HTCondor Cluster on Apple Silicon
+### [Coffee Shop](https://github.com/seren-wib/coffee-shop)
 
-Three KVM virtual machines on an Apple Silicon Mac, networked into an HTCondor cluster that schedules and runs batch jobs.
-Written up in [HW2](/blog/cloud-computing/cloud-computing-hw2-kvm-vm-cluster/) and [HW3](/blog/cloud-computing/cloud-computing-hw3-htcondor-cluster/).
+A coffee-bean online shop for the Software Engineering term project (in progress), built by a team of three.
+I build the React + Vite front end on top of a Django back end.
 
-### FastAPI CRUD API
+### [Atlas Odyssey](https://github.com/seren-wib/atlas-odyssey)
 
-A REST API for posts built with FastAPI, SQLAlchemy and PostgreSQL, covering request-scoped DB sessions and the full CRUD cycle.
+A personal learning atlas that maps what I've learned and shows what's left, my solo entry for the 2026 CUVIC Vibe Coding
+Contest (in progress). The repo is set up for AI-agent-driven development: protected `develop`/`main` rulesets, PR-only
+merges and a test-first workflow.
 
-### AI Agent Pipeline Templates
+### [Amazon Price Scraper](https://github.com/seren-wib/amazon-price-scraper)
 
-Single-agent and multi-agent (PM, backend, frontend, review) project templates for AI coding agents, built around a
-test-first flow and a fixed verification order: lint, type check, unit and integration tests, build, E2E.
+Scrapes Amazon search results through ScraperAPI, stores them in SQLite and CSV, and charts prices in a Streamlit dashboard.
 
 ## Education
 
-- **B.S. in Computer Science** (in progress, third year)
+- **Chungbuk National University**, School of Software (third year, enrolled)
 
 ## Experience
 

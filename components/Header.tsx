@@ -10,7 +10,8 @@ import { getDictionary, localePath, type Locale } from '@/data/i18n'
 
 const Header = ({ locale }: { locale: Locale }) => {
   const dict = getDictionary(locale)
-  let headerClass = 'flex items-center w-full bg-white dark:bg-gray-950 justify-between py-10'
+  let headerClass =
+    'flex items-center w-full bg-gray-50 dark:bg-gray-900 justify-between py-8 mb-8 border-b border-gray-200 dark:border-gray-800'
   if (siteMetadata.stickyNav) {
     headerClass += ' sticky top-0 z-50'
   }
@@ -20,7 +21,13 @@ const Header = ({ locale }: { locale: Locale }) => {
       <Link href={localePath(locale)} aria-label={siteMetadata.headerTitle}>
         <div className="flex items-center justify-between">
           <div className="mr-3">
-            <Image src="/static/images/logo.png" alt="logo" width={40} height={40} />
+            <Image
+              src="/static/images/logo.png"
+              alt="logo"
+              width={40}
+              height={40}
+              className="mix-blend-multiply dark:mix-blend-normal"
+            />
           </div>
           {typeof siteMetadata.headerTitle === 'string' ? (
             <div className="hidden h-6 text-2xl font-semibold sm:block">
@@ -37,7 +44,7 @@ const Header = ({ locale }: { locale: Locale }) => {
             <Link
               key={link.key}
               href={localePath(locale, link.href)}
-              className="hover:text-primary-500 dark:hover:text-primary-400 m-1 font-medium text-gray-900 dark:text-gray-100"
+              className="hover:text-primary-500 dark:hover:text-primary-400 m-1 font-medium text-gray-600 dark:text-gray-300"
             >
               {dict.nav[link.key]}
             </Link>

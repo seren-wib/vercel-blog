@@ -1,0 +1,622 @@
+---
+title: 'AI agent'
+date: '2026-06-16'
+tags: ['AI']
+draft: false
+summary: 'AI agent concepts, agent types, components, runtime, MCP/A2A, frameworks, prompt engineering'
+---
+
+- [AI agent](#ai-agent)
+  - [1. Plain LLM vs Agentic LLM (LLM-based agent)](#1-plain-llm-vs-agentic-llm-llm-based-agent)
+  - [2. Types of agents](#2-types-of-agents)
+  - [3. Components of an agent](#3-components-of-an-agent)
+  - [4. Agent runtime](#4-agent-runtime)
+  - [5. Single agent and multi-agent](#5-single-agent-and-multi-agent)
+  - [6. Agent communication](#6-agent-communication)
+  - [7. Development frameworks](#7-development-frameworks)
+- [Prompt Engineering](#prompt-engineering)
+  - [1. Prompt components](#1-prompt-components)
+  - [2. General principles of prompt design](#2-general-principles-of-prompt-design)
+  - [3. Useful example instructions for prompt design](#3-useful-example-instructions-for-prompt-design)
+  - [4. Prompt engineering techniques](#4-prompt-engineering-techniques)
+
+# AI agent
+
+A software system that perceives its environment, makes a plan, and uses tools to achieve goals autonomously
+
+## 1. Plain LLM vs Agentic LLM (LLM-based agent)
+
+| Category              | Plain LLM                   | Agentic LLM                                          |
+| --------------------- | --------------------------- | ---------------------------------------------------- |
+| Basic behavior        | Generates a single response | Performs a task over multiple steps                  |
+| Use of external tools | Not possible or limited     | Possible (search, calculation, code execution, etc.) |
+| Problem-solving style | Reacts to the given input   | Sets goals and proceeds proactively                  |
+| Execution flow        | One-shot                    | Runs in a repeated loop until the goal is met        |
+
+## 2. Types of agents
+
+- Evolution 1 > 5
+
+1. Simple-Reflex Agent
+   - When a condition is seen, takes a predefined action
+   - Changes direction when it hits a wall
+2. Model-based Reflex Agent
+   - Current input + internal state/world model → choose action
+   - Moves while remembering wall positions and where it has been
+3. Goal-based Agent
+   - Actions are judged by whether they achieve the goal
+   - Moves toward the goal of cleaning the whole room
+4. Utility-based Agent
+   - Chooses the action with the highest satisfaction/utility among possible actions
+   - Chooses the optimal path considering battery, time and efficiency
+5. LLM-based Agent / Agentic LLM
+   - An agent that uses an LLM like a brain and adds tools, memory and planning to perform tasks
+   - Understands complex instructions like "Clean the living room first, go over dusty spots twice, and if the battery runs low, recharge and continue", makes a plan, and carries it out using tools and sensors
+
+## 3. Components of an agent
+
+### 1. Knowledge base and reasoning engine (LLM)
+
+- Acts as the brain
+- Understands what the user says, interprets the current situation, decides what to do next, and finally generates the answer
+
+### 2. Tool use
+
+- Calls external tools
+- A tool is a kind of function
+- Tool call = func call
+
+### 3. Memory
+
+- Short-term memory: the current session
+- Long-term memory: things like user preferences
+
+### 4. Planning
+
+- Breaks a complex goal into small tasks and orders them
+
+### 5. Runtime
+
+- Connects the LLM, Tools, Memory and Planning and makes them work
+- Manages the agent loop and handles the event queue, asynchronous execution and error recovery
+
+#### The basic agent loop
+
+1. Receive user input
+2. Understand the current situation
+3. Make a plan
+4. Call the needed tools
+5. Observe the tool results
+6. Decide the next action
+7. Repeat until the goal is achieved
+8. Generate the final answer
+
+### Agent reasoning patterns
+
+#### ReAct(Reasoning + Acting)
+
+Think → use a tool → observe the result → think again.
+
+#### CoT(Chain-of-Thought)
+
+Reasoning step by step in sequence.
+
+#### ToT(Tree-of-Thoughts)
+
+Exploring and comparing multiple solution paths like a tree.
+
+#### MCTS(Monte Carlo Tree Search)
+
+A search method that finds good paths by simulating multiple choices.
+
+Strong for games and optimization problems, but needs an evaluation function.
+
+## 4. Agent runtime
+
+Infrastructure that coordinates LLM calls, tool execution, memory management, error handling, loop control and so on
+
+### 1. Characteristics when moving from the cloud to a local environment
+
+1. System Access
+   The agent can access the real environment, such as local files, the terminal and email.
+
+2. Security
+   Running locally can help protect sensitive information.
+   However, as local access rights grow, so does the risk.
+
+3. Persistence
+   Can perform long-running tasks lasting hours or days.
+
+### 2. Main elements of an agent runtime
+
+1. Event system
+   - event loop, queue system
+2. Context management
+3. Routing
+4. Tool use
+   - MCP(Model Context Protocol)
+5. Capability extension
+   - Skills, hooks
+6. UI and collaboration
+   - External channels
+   - Agent-to-agent communication: A2A(agent-to-agent), ACP(agent communication protocol)
+
+#### Flow
+
+```
+A user request comes in
+→ Registered as a task event
+→ Load the needed context
+→ Route to whichever tool/agent will handle it
+→ Run the tool
+→ Feed the result back into the context
+→ Collaborate with other agents or UI channels if needed
+→ Generate the final response
+```
+
+## 5. Single agent and multi-agent
+
+- Single: works alone
+- Multi: made up of multiple interacting agents
+
+## 6. Agent communication
+
+### Model Context Protocol (MCP)
+
+- A standard protocol that connects LLM applications with external data sources and tools
+- Acts as a common interface between AI models and external systems
+- The traditional API approach needs a separate connection for each tool
+- MCP lets various tools be connected in a uniform way
+- A concept that standardizes an agent's Tool Use and Context connections
+
+#### MCP structure
+
+```
+MCP Host    // The outer environment that runs the LLM, like Claude Desktop, Cursor or your own app
+├─ MCP Client   // Component inside the Host that manages a 1:1 connection with an MCP Server. Not managed by the user
+│  └─ MCP Server    // Provides the actual functionality
+│     ├─ Tools  // Executable functions (ex: search_file(), query_db())
+│     ├─ Resources  // Readable data (ex: files, documents, DB)
+│     └─ Prompts    // Reusable prompt templates
+```
+
+##### Example
+
+```
+User:
+"Look up the 10 most recent sign-ups in the DB"
+
+Host:
+Claude Desktop or Cursor
+
+MCP Client:
+Manages the connection to the DB MCP Server
+
+MCP Server:
+Provides the query_db(sql) tool
+
+Tool:
+query_db("SELECT ... LIMIT 10")
+
+Result:
+Returns the DB query result
+
+LLM:
+Reads the result and answers the user
+```
+
+#### MCP communication channels
+
+##### SSE(Server-Sent Events)
+
+- HTTP-based
+- Accessed via a URL
+- The server must already be running
+- Suited to remote/always-on servers
+
+###### Example
+
+```
+Claude Host
+→ http://localhost:3000/mcp
+→ MCP Server
+→ Returns the tool execution result
+```
+
+##### Stdio
+
+- Based on standard input/output
+- The Host launches the local process directly
+- Not an HTTP service
+- Suited to local tools or CLI-based MCP servers
+
+###### Example
+
+```
+Claude Host
+→ runs python weather_server.py
+→ sends a get_weather request via stdin
+→ receives the result via stdout
+```
+
+### A2A(Agent-to-Agent)
+
+A standard protocol for agents to communicate with each other
+
+Lets different agents publish their capabilities, communicate directly with other agents, and hand tasks back and forth
+
+#### Differences from MCP
+
+- MCP
+  - Agent ↔ tools / data / APIs
+  - The agent holds tools in its hand
+  - Vertical connection
+- A2A
+  - Agent ↔ agent
+  - Agents hand work to each other
+  - Horizontal connection
+
+#### Agent Card
+
+An agent's self-description
+
+Expresses the agent's capabilities and connection info in JSON.
+
+- Example
+
+```json
+{
+  "name": "BackendAgent",
+  "description": "An agent that implements the Express API and DB logic",
+  "capabilities": {
+    "streaming": true,
+    "stateTransitionHistory": true
+  },
+  "skills": [
+    {
+      "id": "create_api",
+      "name": "Create API Endpoint",
+      "description": "Creates API endpoints that meet the requirements."
+    }
+  ]
+}
+```
+
+## 7. Development frameworks
+
+### LangChain
+
+LangChain is an open-source framework for developing LLM applications.
+
+It supports LLM connections, prompt templates, chain composition, external data connections, memory management and more.
+
+- RAG(Retrieval-Augmented Generation): generation augmented by retrieval
+
+- Example of building a RAG workflow with the LangChain framework:
+  - Load documents with a Document Loader,
+  - split them with a Splitter,
+  - store them as embeddings in a Vector Database,
+  - and retrieve documents related to the question to use in the LLM's answer.
+
+- LangChain basic structure: PromptTemplate + LLM + Chain
+
+### LangGraph
+
+If LangChain is "a framework for connecting LLM task components", LangGraph is a framework for controlling that workflow more explicitly as a graph structure
+
+- Automatically saves state after each task > the agent remembers previous conversation history and state
+- Researcher: a node in charge of gathering information
+- Router: a node that decides which node to send to next
+
+```
+Example
+User question:
+"Find the cause of the login error in this project"
+
+Router:
+This is a code analysis task.
+→ Send to the Code Analysis Agent
+
+Code Analysis Agent:
+Analyzes files and logs
+
+Router:
+It needs testing.
+→ Send to the Test Agent
+
+Test Agent:
+Runs the tests and returns the results
+```
+
+#### Components
+
+##### 1. Node
+
+A single task step
+
+Examples:
+
+- Receive user input
+- Search documents
+- Generate an LLM answer
+- Run code
+- Test
+- Review
+
+##### 2. Edge
+
+The connection path that decides which node to go to next
+
+Example:
+
+Input node → preprocessing node → answer generation node → end
+
+##### 3. State
+
+Information kept as the workflow progresses
+
+Examples:
+
+- Conversation history
+- User request
+- Search results
+- Tool execution results
+- Error logs
+- Current task step
+
+# Prompt Engineering
+
+Prompt: a sentence containing the information passed to a language model
+
+## 1. Prompt components
+
+1. Instruction: tells the language model the specific task you want it to perform
+
+- Summarize the text below in three sentences
+
+2. Context: external information or additional context for shaping the model's answer into the desired form
+
+- The target readers are high school students, and difficult terms should be avoided
+
+3. Input data: the question you want an answer to
+
+- "Artificial intelligence learns from large amounts of data to find patterns and..."
+
+4. Output indicator: specifies the output format
+
+- Write the output as a numbered list
+
+5. Identify the given text and classify the sentiment to respond with as positive, negative ...
+6. Subclassify within the given sentiment (if negative: anger, irritation, annoyance, etc.)
+
+- Prompts have no fixed format; if expressed consistently, the language model can understand them
+
+## 2. General principles of prompt design
+
+1. Iterative improvement: start simple and keep grinding until you get the best result
+2. Use specific instruction words: use command words that instruct the language model (ex: write, classify, order, etc.)
+3. Detailed questions and instructions: the more detailed and specific the instruction, the better the answer quality
+4. Avoid vague expressions: use specific, direct expressions
+5. Say what to do instead of what not to do: "do ~" performs better than "do not do ~"
+6. For complex tasks, clearly describe the process to follow: express concrete steps using numbering, etc.
+
+## 3. Useful example instructions for prompt design
+
+### 1. Specifying language style and format
+
+An example that controls output style: formal language, bullet format, giving both terms, length limits, etc.
+
+```markdown
+## General Instructions
+
+- Use formal language.
+- Provide answers in a bullet-point format.
+- When discussing technical concepts, include both the Korean term and its English equivalent in parentheses.
+
+## Response Requirements
+
+- Answer should not exceed 300 words.
+- Include examples to illustrate complex points.
+- Use Markdown headers for organization.
+```
+
+### 2. Requesting detailed explanations of technical content
+
+An example that has difficult concepts explained step by step with easy terms and analogies.
+
+```markdown
+## Technical Explanation Instructions
+
+- Explain technical concepts in simple terms.
+- Use analogies to make the explanation more relatable.
+- Break down the explanation into step-by-step processes.
+
+## Additional Requirements
+
+- For each technical term, provide a brief definition.
+- Include a practical example of how the concept is applied in real life.
+- If relevant, link to official documentation or further reading (note: assume links will be added manually).
+```
+
+### 3. Instructions for creative tasks
+
+An example that sets the direction of creative output by specifying the story setting, point of view, tone and writing style.
+
+```markdown
+## Creative Writing Instructions
+
+- Write a short story set in a futuristic world.
+- The narrative should be from the perspective of a non-human character.
+- Incorporate themes of technology and isolation.
+
+## Style and Tone
+
+- The tone should be reflective and slightly melancholic.
+- Use descriptive language to create vivid imagery.
+- Dialogues should be minimal but impactful.
+```
+
+### 4. Data analysis requests
+
+An example that specifies a summary of key findings, visualizations, patterns/anomalies, and the report structure.
+
+```markdown
+## Data Analysis Request Instructions
+
+- Provide a summary of the key findings from the data provided.
+- Use charts or graphs to illustrate data points (note: assume visual aids will be created based on instructions).
+- Highlight any patterns, anomalies, or interesting insights.
+
+## Presentation and Format
+
+- Begin with a brief introduction to the data set.
+- Organize the analysis into sections: Overview, Key Findings, Visual Aids, and Conclusion.
+- Conclude with recommendations based on the analysis.
+```
+
+## 4. Prompt engineering techniques
+
+### 1. Zero-shot Prompting
+
+Prompting without examples
+
+### 2. Few-shot Prompting
+
+Provide a few examples
+
+### 3. Chain-of-Thought/CoT Prompting
+
+- Present linked thoughts. step-by-step explanation
+- Explain in logical order
+- Training on code provides stepwise, procedural patterns, so it may have contributed to building CoT ability.
+
+```
+Example
+Requirement:
+
+Users must be able to log in with an email and password.
+
+Steps:
+1. The user enters an email and password.
+2. Check that the email format is valid.
+3. Find the user with that email in the DB.
+4. If there is no user, return login failure.
+5. If the user exists, compare the password.
+6. If the password matches, issue a JWT.
+7. Return the token to the client.
+```
+
+#### Few-shot CoT
+
+- Provide at least one example of the reasoning process
+
+```
+Example
+Q: Cheolsu has 3 apples and buys 2 more. How many apples are there?
+
+A: Cheolsu has 3 apples at first.
+He buys 2 more apples.
+So 3 + 2 = 5.
+The answer is 5.
+
+Q: Younghee had 10 pencils. She gave 4 to a friend. How many are left?
+
+A: Younghee had 10 pencils at first.
+She gave 4 to a friend, so subtract.
+So 10 - 4 = 6.
+The answer is 6.
+
+Q: Minsu has 7 notebooks and buys 3 more. How many notebooks are there?
+
+A:
+```
+
+#### Zero-shot CoT (2022)
+
+- No examples; add the sentence below at the end of the first prompt
+  - "Let's think step by step." (trigger sentence/magic sentence)
+
+- To get the answer out, apply a prompt that adds the sentence below to the prompt and output
+  - "Therefore, the answer (arabic numerals) is"
+
+```
+Example
+Q: Cheolsu has 3 apples and buys 2 more. Then he eats 1. How many apples are there?
+
+Let's think step by step.
+```
+
+### 4. Self-Consistency (2022) technique
+
+Generate several results with the same prompt, and the user or ChatGPT picks the good one
+
+### 5. Tree of thoughts (ToT, 2023) prompting
+
+Explores multiple problem-solving approaches at once, compares the pros and cons of each path, and picks a suitable answer
+
+```
+Example
+
+Path A: math/theory focused
+- Linear algebra, probability, calculus
+- Machine learning theory
+- Deep learning architectures
+- Reading papers
+
+Path B: implementation/project focused
+- Python, PyTorch
+- Implementing a simple neural network
+- Mini Transformer implementation
+- RAG/chatbot project
+
+Path C: product/application focused
+- Using APIs
+- Prompt engineering
+- LangChain/LangGraph
+- Deploying services
+
+Path D: job/portfolio focused
+- CS basics
+- CRUD + AI features combined
+- Organizing GitHub
+- Blogging
+
+
+Path A:
+Theory gets strong, but the initial barrier is high and results come late.
+Path B:
+Skills build fast and you get results, but theoretical understanding may stay shallow.
+Path C:
+You can build services quickly, but may stay at using tools without knowing how models work.
+Path D:
+Good for jobs/portfolio, but may lack depth in generative AI itself.
+```
+
+### 6. Graph of thoughs (2023)
+
+- Uses a graph as the problem-solving structure
+- Thoughts don't just end as independent branches; they can merge, be revised, and go back to earlier steps.
+
+### 7. ReAct(Reason + Act)
+
+After the model generates a response to the given input, it repeatedly evaluates that response itself and acts on it, such as revising the response, requesting additional information, or trying a different approach
+
+### 8. Reflexion
+
+ReAct with self-evaluation, self-reflection and memory added
+
+```
+a define the task,
+b generate a trajectory,
+c evaluate,
+d perform reflection,
+e generate the next trajectory
+
+1. The Actor acts
+2. The Environment gives a result or reward
+3. The Evaluator judges success/failure
+4. Self-reflection puts the cause of failure or improvements into words
+5. That content is stored in Memory
+6. On the next attempt, the Actor refers to that memory
+7. Repeat until success
+```

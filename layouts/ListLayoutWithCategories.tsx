@@ -17,6 +17,7 @@ interface PaginationProps {
 interface ListLayoutProps {
   posts: CoreContent<Blog>[]
   title: string
+  description?: string
   initialDisplayPosts?: CoreContent<Blog>[]
   pagination?: PaginationProps
 }
@@ -26,9 +27,8 @@ function Pagination({ totalPages, currentPage }: PaginationProps) {
   const segments = pathname.split('/')
   const lastSegment = segments[segments.length - 1]
   const basePath = pathname
-    .replace(/^\//, '') // Remove leading slash
-    .replace(/\/page\/\d+\/?$/, '') // Remove any trailing /page
-    .replace(/\/$/, '') // Remove trailing slash
+    .replace(/\/?page\/\d+\/?$/, '') // Remove any trailing /page
+    .replace(/\/$/, '') // Remove trailing slash, so the landing page becomes ''
   const prevPage = currentPage - 1 > 0
   const nextPage = currentPage + 1 <= totalPages
 
@@ -42,7 +42,7 @@ function Pagination({ totalPages, currentPage }: PaginationProps) {
         )}
         {prevPage && (
           <Link
-            href={currentPage - 1 === 1 ? `/${basePath}/` : `/${basePath}/page/${currentPage - 1}`}
+            href={currentPage - 1 === 1 ? `${basePath}/` : `${basePath}/page/${currentPage - 1}`}
             rel="prev"
           >
             Previous
@@ -57,7 +57,7 @@ function Pagination({ totalPages, currentPage }: PaginationProps) {
           </button>
         )}
         {nextPage && (
-          <Link href={`/${basePath}/page/${currentPage + 1}`} rel="next">
+          <Link href={`${basePath}/page/${currentPage + 1}`} rel="next">
             Next
           </Link>
         )}
@@ -69,6 +69,7 @@ function Pagination({ totalPages, currentPage }: PaginationProps) {
 export default function ListLayoutWithCategories({
   posts,
   title,
+  description,
   initialDisplayPosts = [],
   pagination,
 }: ListLayoutProps) {
@@ -86,6 +87,11 @@ export default function ListLayoutWithCategories({
           <h1 className="text-3xl leading-9 font-extrabold tracking-tight text-gray-900 sm:hidden sm:text-4xl sm:leading-10 md:text-6xl md:leading-14 dark:text-gray-100">
             {title}
           </h1>
+          {description && (
+            <p className="mt-2 text-lg leading-7 text-gray-500 sm:mt-0 dark:text-gray-400">
+              {description}
+            </p>
+          )}
           <nav aria-label="Categories" className="mt-4 flex flex-wrap gap-2 sm:hidden">
             {sortedCategories.map((c) => (
               <Link
@@ -105,13 +111,11 @@ export default function ListLayoutWithCategories({
         <div className="flex sm:space-x-24">
           <div className="hidden h-full max-h-screen max-w-[280px] min-w-[280px] flex-wrap overflow-auto rounded-sm bg-gray-50 pt-5 shadow-md sm:flex dark:bg-gray-900/70 dark:shadow-gray-800/40">
             <div className="px-6 py-4">
-              {pathname === '/blog' ||
-              pathname === '/blog/' ||
-              pathname.startsWith('/blog/page') ? (
+              {pathname === '/' || pathname.startsWith('/page/') ? (
                 <h3 className="text-primary-500 font-bold uppercase">All Posts</h3>
               ) : (
                 <Link
-                  href={`/blog`}
+                  href="/"
                   className="hover:text-primary-500 dark:hover:text-primary-500 font-bold text-gray-700 uppercase dark:text-gray-300"
                 >
                   All Posts

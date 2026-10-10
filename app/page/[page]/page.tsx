@@ -7,7 +7,8 @@ const POSTS_PER_PAGE = 5
 
 export const generateStaticParams = async () => {
   const totalPages = Math.ceil(allBlogs.length / POSTS_PER_PAGE)
-  const paths = Array.from({ length: totalPages }, (_, i) => ({ page: (i + 1).toString() }))
+  // Page 1 is the landing page itself (/page/1 redirects to /)
+  const paths = Array.from({ length: totalPages - 1 }, (_, i) => ({ page: (i + 2).toString() }))
 
   return paths
 }
@@ -19,7 +20,7 @@ export default async function Page(props: { params: Promise<{ page: string }> })
   const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE)
 
   // Return 404 for invalid page numbers or empty pages
-  if (pageNumber <= 0 || pageNumber > totalPages || isNaN(pageNumber)) {
+  if (pageNumber <= 1 || pageNumber > totalPages || isNaN(pageNumber)) {
     return notFound()
   }
   const initialDisplayPosts = posts.slice(

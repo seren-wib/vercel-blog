@@ -26,7 +26,7 @@ const Header = ({ locale }: { locale: Locale }) => {
               alt="logo"
               width={40}
               height={40}
-              className="mix-blend-multiply dark:mix-blend-normal"
+              className="dark:invert"
             />
           </div>
           {typeof siteMetadata.headerTitle === 'string' ? (

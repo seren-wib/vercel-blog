@@ -66,6 +66,11 @@ const labels = {
   viewOnGitHub: 'View on GitHub',
   backToHome: 'Back to homepage',
   projectsIntro: "Things I've built or am building.",
+  building: 'Building',
+  shipped: 'Shipped',
+  featuredProject: 'Featured',
+  privateRepo: 'Private',
+  techStack: 'Tech stack',
 }
 
 const dictionaries = {

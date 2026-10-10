@@ -28,7 +28,7 @@ app/layout.tsx (RootLayout)
     │   │   └── ScrollTopAndComment
     │   ├── [어바웃] AuthorLayout
     │   │   └── SocialIcon
-    │   └── [프로젝트] Card
+    │   └── [프로젝트] ProjectCard / ProjectBrief
     └── Footer
 ```
 
@@ -85,17 +85,15 @@ app/layout.tsx (RootLayout)
 | ------ | -------- | ---- | ------ |
 | `text` | `string` | ✅   | 태그명 |
 
-### Card
+### ProjectCard / ProjectBrief
 
-- 위치: `components/Card.tsx`
-- 역할: 프로젝트 카드 (이미지 + 제목 + 설명 + 링크)
+- 위치: `components/ProjectCard.tsx`
+- 역할: 프로젝트 탭 카드. `size`가 `featured`면 강조 카드, `standard`면 일반 카드(역할·요약·핵심 작업·스택), `brief`는 `ProjectBrief`로 한 줄 표시. 문구 안 `` `code` ``와 `**굵게**`만 렌더링한다
 
-| prop          | 타입     | 필수 | 설명          |
-| ------------- | -------- | ---- | ------------- |
-| `title`       | `string` | ✅   | 프로젝트명    |
-| `description` | `string` | ✅   | 설명          |
-| `imgSrc`      | `string` |      | 썸네일 이미지 |
-| `href`        | `string` |      | 프로젝트 링크 |
+| prop      | 타입      | 필수 | 설명                          |
+| --------- | --------- | ---- | ----------------------------- |
+| `project` | `Project` | ✅   | `data/projectsData.ts`의 항목 |
+| `locale`  | `Locale`  | ✅   | 문구 언어 (`kr`, `en`)        |
 
 ### Image
 

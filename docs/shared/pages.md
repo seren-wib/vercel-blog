@@ -23,7 +23,7 @@
 | `/[locale]/blog/category/[category]`             | 카테고리별 포스트                | 장 순서(파일명 자연 정렬)로 나열                                                    | 아니오    |
 | `/[locale]/blog/category/[category]/page/[page]` | 카테고리별 포스트 (페이지네이션) | 5개/페이지                                                                          | 아니오    |
 | `/[locale]/about`                                | 어바웃                           | 저자 프로필 (`kr`: `data/authors/kr/default.mdx`, `en`: `data/authors/default.mdx`) | 아니오    |
-| `/[locale]/projects`                             | 프로젝트                         | 프로젝트 카드 갤러리 (projectsData.ts 기반)                                         | 아니오    |
+| `/[locale]/projects`                             | 프로젝트                         | Building / Shipped 두 섹션, 포트폴리오 카드 (projectsData.ts)                       | 아니오    |
 
 > 현재 인증이 필요한 페이지 없음. 모든 콘텐츠 공개.
 

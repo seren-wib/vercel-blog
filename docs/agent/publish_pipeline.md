@@ -12,7 +12,7 @@ iCloud `UNIV` 폴더의 강의 정리 문서를 블로그 글로 옮겨 배포�
 | -------------- | ------------------------------------------------------------------------- |
 | UNIV 루트      | `~/Library/Mobile Documents/com~apple~CloudDocs/UNIV`                     |
 | 정리 문서      | `UNIV/<학기>/<과목>/docs/*.md` (예: `3-2/데이터베이스시스템/docs/ch2.md`) |
-| 정리 문서 그림 | `UNIV/<학기>/<과목>/docs/img/` (본문에서 상대 경로로 링크)                |
+| 정리 문서 그림 | `UNIV/<학기>/<과목>/img/` (본문에서 `../img/<파일>`로 링크)               |
 | 폴더 규칙      | `UNIV/CLAUDE.md` (파일명 규칙, AI 생성 태그 형식)                         |
 
 - 링크(심볼릭 링크)는 걸지 않는다. Vercel 빌드 환경엔 iCloud 경로가 없으므로 **파일을 복사**해 온다.
@@ -39,8 +39,9 @@ iCloud `UNIV` 폴더의 강의 정리 문서를 블로그 글로 옮겨 배포�
 ### 파일명
 
 - 확장자는 반드시 `.mdx` (`contentlayer.config.ts`의 `filePathPattern: 'blog/**/*.mdx'` — `.md`는 사이트에 안 뜬다).
-- kebab-case, 공백 금지. **파일명이 카테고리 안 장 순서를 정한다** (숫자는 수치로 비교: `ch2` < `ch10`). 장 번호를 앞에 둔다: `ch1-big-picture.mdx`, `ch2-data-representation.mdx`.
-- 같은 장의 부록처럼 본문 뒤에 와야 하면 장 번호 뒤에 글자를 붙인다: `ch4-transmission-media` 다음 `ch4a-appendix-antenna-propagation`.
+- 형식은 `<category>-<장>-<내용>.mdx`. 영어 소문자·숫자·하이픈만 쓴다 (한글·대문자·공백 금지). 내용 부분은 글 주제를 영어로 옮긴다 (`딥러닝` → `deep-learning`). 카테고리를 앞에 붙여 파일명(slug)이 블로그 전체에서 겹치지 않게 한다: `computer-systems-ch1-big-picture.mdx`, `network-ch7-data-link.mdx`.
+- **파일명이 카테고리 안 장 순서를 정한다** (숫자는 수치로 비교: `ch2` < `ch10`). 카테고리 접두사 바로 뒤에 장 번호를 둔다.
+- 같은 장의 부록처럼 본문 뒤에 와야 하면 장 번호 뒤에 글자를 붙인다: `network-ch4-transmission-media` 다음 `network-ch4a-appendix-antenna-propagation`.
 - 파일명(slug)이 URL이 되므로 한 번 발행한 글의 파일명을 바꾸면 `data/redirects.js`에 예전 주소를 추가한다.
 
 ### frontmatter
@@ -69,9 +70,9 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 
 ### 이미지
 
-1. 본문의 이미지 링크(`![...](img/x.svg)`, `<img src=...>`)를 전부 찾는다.
-2. 원본 파일을 `public/static/images/<category>/`로 복사한다. 파일명은 `<장>-<내용>.<ext>` (예: `ch2-logic-gates.svg`).
-3. 본문 경로를 `/static/images/<category>/<파일명>`으로 바꾼다.
+1. 본문의 이미지 링크(`![...](../img/x.svg)`, `<img src=...>`)를 전부 찾는다.
+2. 원본 파일을 글 하나당 폴더 하나인 `public/static/images/<slug>/`로 복사한다. `<slug>`는 글 파일명에서 `.mdx`를 뺀 것 (예: `public/static/images/computer-systems-ch2-data-representation/`). 폴더가 글을 가리키므로 파일명엔 장·카테고리 접두사를 붙이지 않고 내용만 소문자 kebab-case로 쓴다 (예: `logic-gates.svg`).
+3. 본문 경로를 `/static/images/<slug>/<파일명>`으로 바꾼다.
 4. HEIC는 `sips -s format jpeg <in> --out <out>.jpg`로 변환한다.
 5. 링크는 있는데 원본 파일이 없으면 발행 전에 사용자에게 알린다.
 
@@ -79,14 +80,14 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 
 원본(`UNIV/<학기>/<과목>/hw/hwN/`)은 그대로 두고, 블로그 글(mdx)과 이미지는 이 레포에만 둔다. 레포 쪽 결과물을 UNIV에 다시 쓰지 않는다.
 
-- **파일명**: 장이 아니라 과제 번호로 `hwN-<내용>.mdx` (예: `hw2-kvm-vm-cluster.mdx`). 제목은 `HWN. <내용>`.
+- **파일명**: 장이 아니라 과제 번호로 `<category>-hwN-<내용>.mdx` (예: `cloud-computing-hw2-kvm-vm-cluster.mdx`). 제목은 `HWN. <내용>`.
 - **본문 읽기**: `pdftotext -layout`으로 뽑아 **모든 페이지를 끝까지** 읽는다. 과제 안내 PDF(`2026-F-*-HWN.pdf`)도 같이 읽어 항목을 확인한다.
 - **다시 쓰기**: 보고서 형식을 블로그 글로 바꾼다. 빼는 것: 표지·학번·이름, `답:` 표시, 목차, "Reading Assignment" 같은 제출용 항목, 교수님께 드리는 말(승인·피드백 감사 등). 남기는 것: 실습 과정, 명령어(코드 블록), 문제 해결 과정, 연습문제 답(질문을 헤딩으로).
 - **이미지 추출**:
   - docx가 있으면 `unzip`해서 `word/media/`의 원본을 쓴다. 본문 순서는 `word/document.xml`의 `r:embed` 순서와 `word/_rels/document.xml.rels`로 확인한다.
   - PDF만 있으면 `pdfimages -list`로 확인하고 `pdfimages -png`로 뽑는다. smask(투명도 마스크)가 짝으로 있으면 `magick <img> <mask> -alpha off -compose CopyOpacity -composite -background white -alpha remove`로 합친다.
   - 표지 로고(첫 페이지 204×204 같은 작은 이미지)는 뺀다.
-  - `cwebp -q 82`로 webp 변환해 `public/static/images/<category>/hwN-01.webp`처럼 그림 번호순으로 저장한다.
+  - `cwebp -q 82`로 webp 변환해 `public/static/images/<slug>/01.webp`처럼 그림 번호순으로 저장한다.
   - 몇 장은 직접 열어 그림 번호와 맞는지, 학번 같은 개인정보가 찍혔는지 확인한다.
 - **캡션**: 이미지 아래 기울임 한 줄 (prettier가 `_캡션_`으로 맞춘다).
 - **코드 블록**: 언어가 없으면 `text`를 붙인다 (기본값이 js라 색이 잘못 칠해진다). 파일 이름은 ` ```bash:date.sh ` 형식.
@@ -107,7 +108,8 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 ## 블로그 구조
 
 - **카테고리**: `data/blog/<category>/` 폴더 = 카테고리. `category` 필드는 `contentlayer.config.ts`에서 폴더 이름으로 계산하고, 글 수는 빌드 때 `app/category-data.json`에 기록된다. 표시 이름과 사이드바 순서는 `data/categories.ts`.
-- **URL**: 글 `/blog/<category>/<file>/`, 카테고리 목록 `/blog/category/<category>/`. 폴더 분리 전 주소와 예전 태그 페이지(`/tags/...`)는 `data/redirects.js`에서 308 리다이렉트.
+- **URL**: 글 `/blog/<category>/<slug>/` (slug에 카테고리 접두사가 들어 있어 `/blog/network/network-ch7-data-link/` 형태), 카테고리 목록 `/blog/category/<category>/`. 폴더 분리 전 주소, 카테고리 접두사를 붙이기 전 주소, 예전 태그 페이지(`/tags/...`)는 `data/redirects.js`에서 308 리다이렉트.
+- **이미지**: `public/static/images/<slug>/`에 글별로 둔다. 사이트 공용 이미지(`avatar.png`, `logo.png`, `twitter-card.png`)만 `public/static/images/` 바로 아래에 있다.
 - **태그 없음**: 화면 분류는 카테고리 하나만 쓴다. 태그 페이지·사이드바 태그 목록·헤더 Tags 메뉴는 없앴다.
 - **장 순서**: 카테고리 페이지와 글 하단 이전/다음 링크는 `sortByChapter`(파일명 자연 정렬). 블로그 전체 목록은 날짜순.
 - **목차**: `components/TableOfContents.tsx`. 데스크톱은 왼쪽 사이드바에 고정 + 현재 섹션 강조, 모바일은 본문 위 접이식. `#`~`####` 헤딩 대상.
@@ -120,6 +122,8 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 - 목차와 카테고리 장 순서는 필수.
 - `date`는 발행하는 날.
 - URL은 `/blog/<category>/<slug>`로 바꾼다 (기존 URL은 리다이렉트).
+- 글 파일명(slug)은 전부 `<category>-` 접두사로 시작한다. URL에 카테고리가 두 번 들어가는 건 감수한다.
+- 이미지는 카테고리가 아니라 글 단위 폴더(`public/static/images/<slug>/`)로 묶는다.
 - 카테고리는 과목 단위로 나눈다.
 - 문서 전체를 AI가 작성한 정리 문서는 블로그에 올리지 않는다. 사용자 필기에 일부 AI 보충이 들어간 건 괜찮다.
 - 가져오기 범위는 사용자가 지정한 문서만.

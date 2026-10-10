@@ -47,7 +47,7 @@ export function switchLocalePath(pathname: string, target: Locale) {
  */
 const labels = {
   nav: {
-    home: 'Home',
+    blog: 'Blog',
     projects: 'Projects',
     about: 'About',
   },

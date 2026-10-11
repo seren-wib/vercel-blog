@@ -14,9 +14,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   /** One entry per locale that has `path`, each pointing at the others as alternates */
   const entries = (path: string, available: readonly Locale[], lastModified: string) => {
-    const languages = Object.fromEntries(
+    const languages: Record<string, string> = Object.fromEntries(
       available.map((l) => [localeInfo[l].hreflang, `${siteUrl}${localePath(l, path)}`])
     )
+    if (available.includes('en')) {
+      languages['x-default'] = `${siteUrl}${localePath('en', path)}`
+    }
     return available.map((locale) => ({
       url: `${siteUrl}${localePath(locale, path)}`,
       lastModified,

@@ -1,8 +1,8 @@
 {
   "kr": {
-    "ai": 5,
     "cloud-computing": 3,
     "computer-systems": 2,
+    "ai": 5,
     "git": 1,
     "network": 9,
     "os": 10,
@@ -15,8 +15,8 @@
     "cloud-computing": 3,
     "computer-systems": 2,
     "git": 1,
-    "os": 10,
     "network": 9,
+    "os": 10,
     "software-engineering": 2,
     "sql": 1,
     "unity": 2

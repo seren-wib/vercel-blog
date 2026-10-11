@@ -21,7 +21,7 @@ export function isLocale(value: string | undefined): value is Locale {
 
 /** Prefix a site path with the locale: localePath('kr', '/latest') -> '/kr/latest' */
 export function localePath(locale: Locale, path = '/') {
-  const rest = path === '/' ? '' : path.startsWith('/') ? path : `/${path}`
+  const rest = path === '/' ? '/' : path.startsWith('/') ? path : `/${path}`
   return `/${locale}${rest}`
 }
 

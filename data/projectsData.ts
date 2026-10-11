@@ -21,33 +21,6 @@ export interface Project {
 const projectsData: Project[] = [
   // Building
   {
-    title: 'agent-commonplace',
-    status: 'building',
-    size: 'standard',
-    period: { kr: '2026.10 –', en: 'Oct 2026 –' },
-    role: { kr: '개인 오픈소스 · MIT', en: 'Personal open source · MIT' },
-    summary: {
-      kr: 'Claude Code, Codex, Antigravity가 여러 컴퓨터에서 같은 지시문과 메모리를 쓰게 하는 CLI. 에이전트 훅과 비공개 git 레포 하나로 동기화합니다. 제 dotfiles에서 쓰던 동기화 훅을 누구나 설치할 수 있게 다시 짰습니다.',
-      en: 'A CLI that gives Claude Code, Codex and Antigravity the same instructions and memory on every machine, synced through agent hooks and one private git repo. A rewrite of the sync hook from my dotfiles that anyone can install.',
-    },
-    highlights: {
-      kr: [
-        '세션 시작 때 pull, 응답마다 commit·push. 세 에이전트의 서로 다른 훅 형식(Claude·Codex의 SessionStart/Stop, Antigravity의 PreInvocation)을 명령 하나로 등록',
-        '프로젝트 메모리는 git remote로 짝지어 컴퓨터마다 경로가 달라도 같은 폴더를 공유. 심볼릭 링크 권한이 없는 Windows에선 junction으로 대체하고, 내용이 다른 파일은 `.from-<host>`로 남김',
-        '동시에 뜬 훅끼리 FETCH_HEAD를 두고 경합하던 문제를 공유 락으로 해결',
-        '의존성 0개, Node 22+. 두 컴퓨터 e2e를 포함한 테스트 24개가 Ubuntu·macOS·Windows × Node 22/24 CI에서 통과',
-      ],
-      en: [
-        "Pulls when a session starts, commits and pushes after each reply. One command registers the three agents' different hook formats (SessionStart/Stop for Claude and Codex, PreInvocation for Antigravity)",
-        'Project memory is matched by git remote, so the same folder is shared even when paths differ per machine. Falls back to junctions on Windows without symlink rights and keeps differing files as `.from-<host>`',
-        'A shared lock stops hooks that start together from racing on FETCH_HEAD',
-        'Zero dependencies, Node 22+. 24 tests, including a two-machine e2e, pass in CI on Ubuntu, macOS and Windows × Node 22/24',
-      ],
-    },
-    stack: ['Node.js', 'Git', 'Claude Code', 'Codex', 'GitHub Actions'],
-    href: 'https://github.com/seren-wib/agent-commonplace',
-  },
-  {
     title: 'Atlas Odyssey',
     status: 'building',
     size: 'standard',
@@ -173,6 +146,33 @@ const projectsData: Project[] = [
     },
     stack: ['Python', 'JavaScript', 'HTML/CSS', 'JSONL', 'Claude Code'],
     href: 'https://github.com/seren-wib/my-status-public',
+  },
+  {
+    title: 'agent-commonplace',
+    status: 'shipped',
+    size: 'standard',
+    period: { kr: '2026.10', en: 'Oct 2026' },
+    role: { kr: '개인 오픈소스 · MIT', en: 'Personal open source · MIT' },
+    summary: {
+      kr: 'Claude Code, Codex, Antigravity가 여러 컴퓨터에서 같은 지시문과 메모리를 쓰게 하는 CLI. 에이전트 훅과 비공개 git 레포 하나로 동기화합니다. 제 dotfiles에서 쓰던 동기화 훅을 누구나 설치할 수 있게 다시 짰습니다.',
+      en: 'A CLI that gives Claude Code, Codex and Antigravity the same instructions and memory on every machine, synced through agent hooks and one private git repo. A rewrite of the sync hook from my dotfiles that anyone can install.',
+    },
+    highlights: {
+      kr: [
+        '세션 시작 때 pull, 응답마다 commit·push. 세 에이전트의 서로 다른 훅 형식(Claude·Codex의 SessionStart/Stop, Antigravity의 PreInvocation)을 명령 하나로 등록',
+        '프로젝트 메모리는 git remote로 짝지어 컴퓨터마다 경로가 달라도 같은 폴더를 공유. 심볼릭 링크 권한이 없는 Windows에선 junction으로 대체하고, 내용이 다른 파일은 `.from-<host>`로 남김',
+        '동시에 뜬 훅끼리 FETCH_HEAD를 두고 경합하던 문제를 공유 락으로 해결',
+        '의존성 0개, Node 22+. 두 컴퓨터 e2e를 포함한 테스트 24개가 Ubuntu·macOS·Windows × Node 22/24 CI에서 통과',
+      ],
+      en: [
+        "Pulls when a session starts, commits and pushes after each reply. One command registers the three agents' different hook formats (SessionStart/Stop for Claude and Codex, PreInvocation for Antigravity)",
+        'Project memory is matched by git remote, so the same folder is shared even when paths differ per machine. Falls back to junctions on Windows without symlink rights and keeps differing files as `.from-<host>`',
+        'A shared lock stops hooks that start together from racing on FETCH_HEAD',
+        'Zero dependencies, Node 22+. 24 tests, including a two-machine e2e, pass in CI on Ubuntu, macOS and Windows × Node 22/24',
+      ],
+    },
+    stack: ['Node.js', 'Git', 'Claude Code', 'Codex', 'GitHub Actions'],
+    href: 'https://github.com/seren-wib/agent-commonplace',
   },
   {
     title: 'SCPC 2026 AI Agent Harness',

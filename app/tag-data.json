@@ -1,11 +1,11 @@
 {
-  "ai": 5,
-  "cloud-computing": 3,
-  "computer-systems": 2,
-  "git": 1,
-  "os": 10,
-  "network": 9,
-  "software-engineering": 2,
-  "sql": 1,
-  "unity": 2
+  "ai": 10,
+  "cloud-computing": 6,
+  "computer-systems": 4,
+  "git": 2,
+  "network": 18,
+  "os": 20,
+  "software-engineering": 4,
+  "sql": 2,
+  "unity": 4
 }

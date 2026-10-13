@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 300" font-family="Apple SD Gothic Neo, Malgun Gothic, sans-serif" font-size="14">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker></defs>
+  <rect width="520" height="300" fill="#fff"/>
+  <g stroke="#333" stroke-width="1.5">
+    <line x1="260" y1="70" x2="120" y2="150"/>
+    <line x1="260" y1="70" x2="400" y2="150" marker-end="url(#a)"/>
+    <line x1="260" y1="70" x2="260" y2="185" marker-end="url(#a)"/>
+  </g>
+  <rect x="190" y="30" width="140" height="40" rx="8" fill="#2b5d8a"/>
+  <text x="260" y="56" text-anchor="middle" fill="#fff" font-weight="bold">수석 프로그래머</text>
+  <rect x="40" y="150" width="160" height="40" rx="8" fill="#e6f0fa" stroke="#2b5d8a" stroke-width="1.5"/>
+  <text x="120" y="175" text-anchor="middle" font-weight="bold">프로젝트 보조</text>
+  <text x="120" y="210" text-anchor="middle" font-size="12" fill="#555">기술적 동료 (Backup)</text>
+  <rect x="330" y="150" width="150" height="40" rx="8" fill="#e6f0fa" stroke="#2b5d8a" stroke-width="1.5"/>
+  <text x="405" y="175" text-anchor="middle" font-weight="bold">프로젝트 비서</text>
+  <text x="405" y="210" text-anchor="middle" font-size="12" fill="#555">관리·행정 지원</text>
+  <rect x="190" y="190" width="140" height="40" rx="8" fill="#f3f3f3" stroke="#777" stroke-width="1.5"/>
+  <text x="260" y="215" text-anchor="middle" font-weight="bold">전문가 풀</text>
+  <text x="260" y="250" text-anchor="middle" font-size="12" fill="#555">관리자 · 테스터 · 프로그래머 등</text>
+  <text x="260" y="268" text-anchor="middle" font-size="12" fill="#555">직접 구현</text>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 150" font-family="Apple SD Gothic Neo, Malgun Gothic, sans-serif" font-size="13">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2b5d8a"/></marker>
+  </defs>
+  <rect width="700" height="150" fill="#fff"/>
+  <ellipse cx="100" cy="75" rx="80" ry="34" fill="#e6f0fa" stroke="#2b5d8a" stroke-width="1.5"/>
+  <text x="100" y="80" text-anchor="middle" font-weight="bold">Component A</text>
+  <ellipse cx="350" cy="75" rx="80" ry="34" fill="#2b5d8a"/>
+  <text x="350" y="80" text-anchor="middle" font-weight="bold" fill="#fff">Interface</text>
+  <ellipse cx="600" cy="75" rx="80" ry="34" fill="#e6f0fa" stroke="#2b5d8a" stroke-width="1.5"/>
+  <text x="600" y="80" text-anchor="middle" font-weight="bold">Component B</text>
+  <line x1="185" y1="64" x2="265" y2="64" stroke="#2b5d8a" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="225" y="54" text-anchor="middle">Input</text>
+  <line x1="265" y1="86" x2="185" y2="86" stroke="#2b5d8a" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="225" y="106" text-anchor="middle">Message</text>
+  <line x1="435" y1="64" x2="515" y2="64" stroke="#2b5d8a" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="475" y="54" text-anchor="middle">Output</text>
+  <line x1="515" y1="86" x2="435" y2="86" stroke="#2b5d8a" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="475" y="106" text-anchor="middle">Message</text>
+</svg>

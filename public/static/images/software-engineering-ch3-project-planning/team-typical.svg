@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 280" font-family="Apple SD Gothic Neo, Malgun Gothic, sans-serif" font-size="13">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker></defs>
+  <rect width="600" height="280" fill="#fff"/>
+  <rect x="15" y="15" width="410" height="250" fill="none" stroke="#888" stroke-dasharray="4 3"/>
+  <text x="220" y="38" text-anchor="middle" fill="#555">Offshore (개발 거점)</text>
+  <rect x="455" y="15" width="130" height="250" fill="none" stroke="#888" stroke-dasharray="4 3"/>
+  <text x="520" y="38" text-anchor="middle" fill="#555">On-site</text>
+  <rect x="35" y="70" width="370" height="36" rx="4" fill="#e6f0fa" stroke="#2b5d8a" stroke-width="1.5"/>
+  <text x="220" y="93" text-anchor="middle" font-weight="bold">소프트웨어 개발팀</text>
+  <rect x="475" y="68" width="90" height="40" rx="4" fill="#fdf0e0" stroke="#c07a1e" stroke-width="1.5"/>
+  <text x="520" y="93" text-anchor="middle" font-weight="bold">고객 (Client)</text>
+  <line x1="408" y1="88" x2="472" y2="88" stroke="#333" stroke-width="1.5" marker-start="url(#a)" marker-end="url(#a)"/>
+  <g stroke="#2b5d8a" stroke-width="1.2"><line x1="75" y1="106" x2="75" y2="190"/><line x1="148" y1="106" x2="148" y2="190"/><line x1="221" y1="106" x2="221" y2="190"/><line x1="294" y1="106" x2="294" y2="190"/><line x1="367" y1="106" x2="367" y2="190"/></g>
+  <g fill="#f3f7fb" stroke="#2b5d8a" stroke-width="1.5">
+    <rect x="42" y="190" width="66" height="46" rx="4"/><rect x="115" y="190" width="66" height="46" rx="4"/><rect x="188" y="190" width="66" height="46" rx="4"/><rect x="261" y="190" width="66" height="46" rx="4"/><rect x="334" y="190" width="66" height="46" rx="4"/>
+  </g>
+  <g text-anchor="middle" font-size="12">
+    <text x="75" y="209">프로젝트</text><text x="75" y="225">관리자</text>
+    <text x="148" y="209">업무</text><text x="148" y="225">분석가</text>
+    <text x="221" y="209">SW</text><text x="221" y="225">설계자</text>
+    <text x="294" y="217">개발자</text>
+    <text x="367" y="209">QA</text><text x="367" y="225">담당자</text>
+  </g>
+</svg>

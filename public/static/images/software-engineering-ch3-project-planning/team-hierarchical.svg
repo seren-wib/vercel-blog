@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 300" font-family="Apple SD Gothic Neo, Malgun Gothic, sans-serif" font-size="14">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker></defs>
+  <rect width="520" height="300" fill="#fff"/>
+  <g stroke="#333" stroke-width="1.5">
+    <line x1="200" y1="60" x2="110" y2="140"/><line x1="200" y1="60" x2="290" y2="140"/>
+    <line x1="110" y1="140" x2="60" y2="230"/><line x1="110" y1="140" x2="160" y2="230"/>
+    <line x1="290" y1="140" x2="240" y2="230"/><line x1="290" y1="140" x2="340" y2="230"/>
+  </g>
+  <g stroke="#555" stroke-width="1.2" stroke-dasharray="5 4" marker-start="url(#a)" marker-end="url(#a)">
+    <line x1="85" y1="230" x2="135" y2="230"/><line x1="265" y1="230" x2="315" y2="230"/>
+  </g>
+  <g fill="#e6f0fa" stroke="#2b5d8a" stroke-width="2">
+    <circle cx="200" cy="50" r="22"/>
+    <circle cx="110" cy="140" r="20"/><circle cx="290" cy="140" r="20"/>
+    <circle cx="60" cy="230" r="18"/><circle cx="160" cy="230" r="18"/><circle cx="240" cy="230" r="18"/><circle cx="340" cy="230" r="18"/>
+  </g>
+  <g fill="#222">
+    <text x="380" y="45" font-weight="bold">팀 리더</text><text x="380" y="63" font-size="12" fill="#555">전체 프로젝트를 넓게 이해</text>
+    <text x="380" y="135" font-weight="bold">시니어 프로그래머</text><text x="380" y="153" font-size="12" fill="#555">기능별 서브팀장</text>
+    <text x="380" y="225" font-weight="bold">주니어 프로그래머</text><text x="380" y="243" font-size="12" fill="#555">가장 상세한 지식</text>
+  </g>
+  <text x="260" y="285" text-anchor="middle" font-size="12" fill="#555">트리 구조 · 기능별 서브팀 · 대규모 프로젝트에 적합</text>
+</svg>

@@ -1,0 +1,279 @@
+---
+title: 'CH3. Project Planning and Cost Estimation'
+date: '2026-10-13'
+tags: ['Software Engineering']
+draft: false
+summary: 'Projects and the 4M, system request, PM life cycle and roles, WBS, CPM, PERT and Gantt charts, scheduling, cost estimation models (COCOMO, FPA, IFPUG), function points (ILF, EIF, EI, EO, EQ), team structures (hierarchical, chief programmer, matrix, democratic), risk management, feasibility analysis, project management standards'
+---
+
+# 3. Project Planning and Cost Estimation
+
+## 3.1 What Is a Project?
+
+**Task**: a fragmentary piece of work with few time or budget constraints
+
+**Project**: planned work that must achieve a specific goal within limited time and cost
+
+- It is completed by a project team led by a project manager (PM) and needs resources.
+
+**Work**: a single unit of work performed inside a project
+
+| 4 elements of a production system (4M) | Production resources (4M) |
+| -------------------------------------- | ------------------------- |
+| Man                                    | Man                       |
+| Machine                                | Machine                   |
+| Material                               | Material                  |
+| **Method**                             | **Money**                 |
+
+- The first three are the same and **only the last one differs**: a production system has Method, production resources have Money
+
+**Essentials for a successful SW project**: people, resources (lab equipment, materials), capital, technology, time
+
+**What goes into a SW project plan**: work plan, work method (technology) plan, resource plan, organization plan, schedule, budget plan, risk management plan, maintenance plan
+
+## 3.2 Project Identification
+
+**System Request**: a document explaining why the system should be built and what value it creates
+
+- Components: project sponsor, business need, business requirements, business value, special issues
+
+**Work plan**: provides the WBS (work breakdown structure)
+
+**Feasibility analysis**
+
+- **Components: economic feasibility, technical feasibility, organizational feasibility, legal and environmental feasibility, schedule feasibility**
+
+## 3.3 Project Management and the Project Manager
+
+**Project management life cycle**: initiation → planning → execution → maintenance
+
+**Project management**: **managing a project to reach its goals under the given constraints**
+
+- Components: work planning, risk assessment, resource estimation, organization, resource acquisition, work direction, progress tracking, result analysis
+
+**Main roles of the project manager (PM)**
+
+1. **Planning, winning the contract, preparation**
+
+- Contract support, planning, writing the **proposal**, writing the **WBS**, assigning work, securing resources, cost estimation, scheduling, risk management
+
+2. **Management**
+
+- Managing overall progress: design, construction, testing, approval, etc.
+- Budget management, progress management, keeping the work on course, performance reporting
+
+3. **Maintenance**
+
+- Result analysis, acceptance support, maintenance support, sales support for finding new projects
+
+## 3.4 Work Planning and Scheduling
+
+Typical management tools: **WBS, CPM network, Gantt chart, PERT chart**
+
+**WBS**: the project plan broken down into levels
+
+**CPM network**: represented by a PERT chart.
+
+- It visualizes well but can miss some factors.
+
+**PERT chart**: a graphical representation of the timeline of individual tasks
+
+1. Components
+
+- Node: event or milestone (circle or rectangle)
+- Vector: lines showing tasks and the dependencies (precedence) between them
+
+2. How to draw it
+   1. List the subtasks
+   2. Draw the CPM network diagram
+      - Find every possible path in the CPM network and find the **critical path** (the longest path)
+
+**Gantt chart**: a bar chart showing the project schedule
+
+**Schedule**: a list of the activities, deliverables and milestones in a project
+
+- Components: start and end dates, resources and similar information
+- Process: plan schedule management → define activities → sequence activities → estimate resources → estimate durations → develop the schedule
+- Types
+  1. Master: a simple task list with a timeline
+  2. Milestone: summary tasks
+  3. Detailed: tracks every activity, used in large projects
+- 7 principles: gather stakeholder input, refer to past projects, account for risks, account for non-working time, define the critical path, record assumptions, include milestones
+
+## 3.5 Software Development Cost Factors
+
+**Research and planning, technology used, project size, UI/UX requirements, staff employment model, scale of maintenance and support**
+
+## 3.6 Types of Project Cost Estimation Models and the Procedure
+
+### Cost estimation models
+
+1. Heuristic techniques
+   - **COCOMO** (Constructive Cost Model): the representative heuristic technique, a LOC-based cost estimation regression model
+     - LOC (Line of Code) = counting how many lines the program has
+2. Analytical estimation techniques
+   - Function Point Analysis (FPA): computes cost from the number and complexity of functions
+   - Putnam model: a parametric model that estimates effort, time and defects
+   - Price-To-Win estimation model: based on market conditions and competitors' prices
+   - Machine learning based models
+   - **IFPUG** (International Function Point Users Group): the function point measurement standard provided by the International Function Point Users Group
+
+### 5 steps to prepare a cost estimate
+
+**Big picture (module map) → what to build it with (technology) → what to build (SRS) → how it looks (UI) → split the work and price it (WBS)**
+
+1. Write the project overview and a high-level module map
+
+- Use cases, classes, methods, DB, UI, infrastructure and so on all go in here
+
+2. Research and choose the required technology
+3. Draft the SRS (software requirements specification)
+
+- Requirement set, constraints, target users and so on
+
+4. Detailed UI design
+5. Write the WBS
+
+## 3.7 LOC-Based Project Cost Estimation
+
+- Basic COCOMO: reflects only a few constants (effort and schedule are the key variables)
+  - Has estimation methods for organic, semi-detached and embedded systems
+- Intermediate COCOMO: additionally reflects 15 software engineering cost attributes
+- Detailed COCOMO: splits the whole software into several modules and estimates and applies effort multipliers
+
+## 3.8 Function Point-Based Project Cost Estimation
+
+**Function Point (FP)**: a unit that measures the amount of functionality a system provides to users
+
+- How many functions there are and how complex they are
+- Industry standard
+
+**5 components**
+
+| Category              | Type                              | Meaning                                                              |
+| --------------------- | --------------------------------- | -------------------------------------------------------------------- |
+| Data functions        | **ILF** (Internal Logical File)   | Classes and tables defined **inside our system**                     |
+|                       | **EIF** (External Interface File) | Only references something defined **in an external system**          |
+| Transaction functions | **EI** (External Input)           | Operations that bring data in: **insert, delete, update**            |
+|                       | **EO** (External Output)          | Operations that send data to a screen, printer or file (reports)     |
+|                       | **EQ** (External Inquiry)         | A **search** operation with both input and output (SQL search query) |
+
+- ILF vs EIF: told apart by **who defined it**
+- One search = EQ (inquiry) + EO (output)
+
+**Supporting terms**
+
+| Term                           | Meaning                                           | Example                                                             |
+| ------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------- |
+| **RET** (Record Element Type)  | Number of **subclasses** of an ILF or EIF         | Employee → full-time, part-time = 2                                 |
+| **FTR** (File Type Referenced) | Number of **files referenced** by an EI, EO or EQ | Student + department lookup = 2                                     |
+| **DET** (Data Element Type)    | Number of **attributes**                          | Student (ID, name, address, phone, resident number, department) = 6 |
+
+**5 steps of function point estimation**
+
+1. Identify the function point types
+2. Rate the complexity (simple / average / complex)
+3. Compute the unadjusted function points (UFP)
+4. Apply the total degree of influence of system characteristics (TDI)
+5. Compute the final function points
+
+## 3.9 Organization Planning
+
+Ways to structure a team: **hierarchical, chief programmer, matrix, democratic**
+
+**Hierarchical team**: tree structure, a sub-team leader for each functional sub-team
+
+- Lower levels have detailed knowledge, upper levels understand the whole broadly
+- Suited to large projects
+
+![Hierarchical team](/static/images/software-engineering-ch3-project-planning/team-hierarchical.svg)
+
+**Chief programmer team**: centered on the chief programmer
+
+- Chief: planning, specification, design (up to implementation)
+- Backup: technical peer
+- Secretary: supports administrative work
+- Specialists: do the implementation
+
+![Chief programmer team](/static/images/software-engineering-ch3-project-planning/team-chief-programmer.svg)
+
+**Matrix team**: people belong to both a department (technology) and a project
+
+- Project teams disband when the project ends, so skills don't accumulate → this solves that
+- US aerospace industry in the 1950s; in Korea, LG
+
+![Matrix team](/static/images/software-engineering-ch3-project-planning/team-matrix.svg)
+
+**Democratic team**: everyone discusses one-on-one
+
+- The leader decides only when there is no consensus
+
+![Democratic team](/static/images/software-engineering-ch3-project-planning/team-democratic.svg)
+
+**Typical SW development team**: PM, business analyst, SW architect, developers, QA, etc.
+
+- The development team (offshore) communicates with the client (on-site)
+
+![Typical SW development team](/static/images/software-engineering-ch3-project-planning/team-typical.svg)
+
+**Agile development team**: typical team + PM, UX/UI designer, QA engineer
+
+## 3.10 Risk Management Planning
+
+**Risk management plan**: a plan to find risks in advance, meet deadlines, communicate, and allocate money to eliminating risks
+
+**Technical risk**: risk caused by technical problems or faulty tools
+
+- Factors: poor code quality, constantly changing requirements, wrong technology choices, integration problems
+- Mitigation: get all existing documents and discuss problems with the previous team. New technology makes the risk bigger
+
+**Operational risk**: risk that arises in the process when development goals are unclear
+
+- Factors: unreasonable or inaccurate deadlines, wrong time estimates, lower productivity (delays, staff burnout), poor management, scope changes (scope creep), no communication with stakeholders, communication mistakes
+- Rushing by skipping important stages, lack of skilled developers, and unstable workloads are also risks
+
+**Business risk**: risk that arises from the company's business interests and operations
+
+- Factors: unmet stakeholder expectations, undefined metrics, inconsistent priorities, budget problems, low engagement, no partnership agreement, unpredictable external risks
+- No partnership agreement → solved with a written contract
+- External risks: changes in law, government regulations, economic changes, natural disasters, etc. → minimized with insurance and staying up to date
+
+## 3.11 Business Feasibility Analysis
+
+**Feasibility analysis**: reviewing and evaluating every aspect of a project
+
+- Types: economic, technical, organizational, legal and environmental, schedule
+
+**Economic feasibility**: whether it makes money
+
+- Criteria: present value (PV), net present value (NPV), return on investment (ROI), break-even point (BEP)
+- PV: future money converted to its value today
+- NPV: present value of money coming in - present value of money going out
+- ROI: return relative to investment
+- BEP: revenue = total cost, the point with neither loss nor profit
+
+**Technical feasibility**: whether it can be built technically
+
+- The organization's technical skill, availability of existing technology, ability to meet HW and SW requirements, ability to secure resources and technology, maintainability
+
+**Organizational feasibility**: whether the organization can support it
+
+- The sponsor's willingness to invest, managers' understanding and budget, user level, staffing (in-house and external), employees' willingness to accept it and their skills, ability to handle new technology, job security
+
+**Legal feasibility**: whether there are no legal restrictions and ethical standards are met
+
+- Contracts, data protection law, medical law, certificates, licenses, copyright, local ordinances, etc.
+
+**Schedule feasibility**: whether it can be finished before the deadline
+
+- Missing the deadline can mean the project fails its purpose
+
+## 3.12 Project Management Standards
+
+**Standards**: rules everyone on the project follows
+
+- Types: document templates, work procedures, software requirements specification (SRS), software design description (SDD), UI design, coding
+
+![Project management standards](/static/images/software-engineering-ch3-project-planning/pm-standards.svg)
+
+- SRS → information needed for the design phase, SDD → information needed for the implementation phase

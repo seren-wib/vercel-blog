@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 560" font-family="Apple SD Gothic Neo, Malgun Gothic, sans-serif" font-size="12">
+  <rect width="760" height="560" fill="#fff"/>
+  <rect x="230" y="14" width="300" height="38" rx="8" fill="#2b5d8a"/>
+  <text x="380" y="39" text-anchor="middle" fill="#fff" font-size="15" font-weight="bold">System Proposal</text>
+
+  <!-- column 1 -->
+  <g>
+    <rect x="20" y="70" width="230" height="120" rx="6" fill="#f3f7fb" stroke="#2b5d8a" stroke-width="1.5"/>
+    <rect x="20" y="70" width="230" height="26" rx="6" fill="#e6f0fa" stroke="#2b5d8a" stroke-width="1.5"/>
+    <text x="135" y="88" text-anchor="middle" font-weight="bold" font-size="13">1. Proposal Summary</text>
+    <text x="32" y="116">1.1 Development Goals</text>
+    <text x="32" y="136">1.2 Development Content</text>
+    <text x="32" y="156">1.3 WBS</text>
+    <text x="32" y="176">1.4 Glossary</text>
+
+    <rect x="20" y="205" width="230" height="120" rx="6" fill="#f3f7fb" stroke="#2b5d8a" stroke-width="1.5"/>
+    <rect x="20" y="205" width="230" height="26" rx="6" fill="#e6f0fa" stroke="#2b5d8a" stroke-width="1.5"/>
+    <text x="135" y="223" text-anchor="middle" font-weight="bold" font-size="13">2. System Request</text>
+    <text x="32" y="251">2.1 Project Sponsor</text>
+    <text x="32" y="271">2.2 System Users</text>
+    <text x="32" y="291">2.3 Business Need</text>
+    <text x="32" y="311">2.4 Special Issues, Constraints</text>
+
+    <rect x="20" y="340" width="230" height="100" rx="6" fill="#f3f7fb" stroke="#2b5d8a" stroke-width="1.5"/>
+    <rect x="20" y="340" width="230" height="26" rx="6" fill="#e6f0fa" stroke="#2b5d8a" stroke-width="1.5"/>
+    <text x="135" y="358" text-anchor="middle" font-weight="bold" font-size="13">3. Requirements Analysis</text>
+    <text x="32" y="386">3.1 Functional</text>
+    <text x="32" y="406">3.2 Non-functional</text>
+    <text x="32" y="426">3.3 Domain</text>
+
+    <rect x="20" y="455" width="230" height="80" rx="6" fill="#f3f7fb" stroke="#2b5d8a" stroke-width="1.5"/>
+    <rect x="20" y="455" width="230" height="26" rx="6" fill="#e6f0fa" stroke="#2b5d8a" stroke-width="1.5"/>
+    <text x="135" y="473" text-anchor="middle" font-weight="bold" font-size="13">4. Work Plan</text>
+    <text x="32" y="501">4.1 CPM Network, Task List</text>
+    <text x="32" y="521">4.2 Gantt Chart Schedule</text>
+  </g>
+
+  <!-- column 2 -->
+  <g>
+    <rect x="265" y="70" width="230" height="80" rx="6" fill="#f3f7fb" stroke="#2b5d8a" stroke-width="1.5"/>
+    <rect x="265" y="70" width="230" height="26" rx="6" fill="#e6f0fa" stroke="#2b5d8a" stroke-width="1.5"/>
+    <text x="380" y="88" text-anchor="middle" font-weight="bold" font-size="13">5. Organization, Job Description</text>
+    <text x="277" y="116">5.1 Staffing</text>
+    <text x="277" y="136">5.2 Job Description</text>
+
+    <rect x="265" y="165" width="230" height="120" rx="6" fill="#f3f7fb" stroke="#2b5d8a" stroke-width="1.5"/>
+    <rect x="265" y="165" width="230" height="26" rx="6" fill="#e6f0fa" stroke="#2b5d8a" stroke-width="1.5"/>
+    <text x="380" y="183" text-anchor="middle" font-weight="bold" font-size="13">6. Feasibility Analysis</text>
+    <text x="277" y="211">6.1 Economic</text>
+    <text x="277" y="231">6.2 Technical</text>
+    <text x="277" y="251">6.3 Organizational</text>
+    <text x="277" y="271">6.4 Legal</text>
+
+    <rect x="265" y="300" width="230" height="40" rx="6" fill="#e6f0fa" stroke="#2b5d8a" stroke-width="1.5"/>
+    <text x="380" y="325" text-anchor="middle" font-weight="bold" font-size="13">7. User Interface Spec</text>
+
+    <rect x="265" y="355" width="230" height="80" rx="6" fill="#fdf6ec" stroke="#c07a20" stroke-width="1.5"/>
+    <rect x="265" y="355" width="230" height="26" rx="6" fill="#fbe9cf" stroke="#c07a20" stroke-width="1.5"/>
+    <text x="380" y="373" text-anchor="middle" font-weight="bold" font-size="13">8. Functional Modeling</text>
+    <text x="277" y="401">8.1 Use-Case Diagram</text>
+    <text x="277" y="421">8.2 Use-Case Description</text>
+
+    <rect x="265" y="450" width="230" height="100" rx="6" fill="#fdf6ec" stroke="#c07a20" stroke-width="1.5"/>
+    <rect x="265" y="450" width="230" height="26" rx="6" fill="#fbe9cf" stroke="#c07a20" stroke-width="1.5"/>
+    <text x="380" y="468" text-anchor="middle" font-weight="bold" font-size="13">9. Structural Modeling</text>
+    <text x="277" y="494">9.1 Class Diagram</text>
+    <text x="277" y="512">9.2 CRC Cards, Class Spec</text>
+    <text x="277" y="530">9.3 DB Schema  9.4 Data Structure</text>
+  </g>
+
+  <!-- column 3 -->
+  <g>
+    <rect x="510" y="70" width="230" height="100" rx="6" fill="#fdf6ec" stroke="#c07a20" stroke-width="1.5"/>
+    <rect x="510" y="70" width="230" height="26" rx="6" fill="#fbe9cf" stroke="#c07a20" stroke-width="1.5"/>
+    <text x="625" y="88" text-anchor="middle" font-weight="bold" font-size="13">10. Behavioral Modeling</text>
+    <text x="522" y="116">10.1 Sequence Diagram</text>
+    <text x="522" y="136">10.2 Activity Diagram</text>
+    <text x="522" y="156">10.3 Method Algorithm Spec</text>
+
+    <rect x="510" y="185" width="230" height="160" rx="6" fill="#f3f7fb" stroke="#2b5d8a" stroke-width="1.5"/>
+    <rect x="510" y="185" width="230" height="26" rx="6" fill="#e6f0fa" stroke="#2b5d8a" stroke-width="1.5"/>
+    <text x="625" y="203" text-anchor="middle" font-weight="bold" font-size="13">11. Technical Management</text>
+    <text x="522" y="231">11.1 Standard Methodology</text>
+    <text x="522" y="251">11.2 Change Management</text>
+    <text x="522" y="271">11.3 Risk Management</text>
+    <text x="522" y="291">11.4 Progress Management</text>
+    <text x="522" y="311">11.5 Reporting Schedule</text>
+    <text x="522" y="331">11.6 Problem Resolution</text>
+
+    <rect x="510" y="360" width="230" height="36" rx="6" fill="#e6f0fa" stroke="#2b5d8a" stroke-width="1.5"/>
+    <text x="625" y="383" text-anchor="middle" font-weight="bold" font-size="13">12. Maintenance Plan</text>
+    <rect x="510" y="406" width="230" height="36" rx="6" fill="#e6f0fa" stroke="#2b5d8a" stroke-width="1.5"/>
+    <text x="625" y="429" text-anchor="middle" font-weight="bold" font-size="13">13. Installation, Acceptance Plan</text>
+    <rect x="510" y="452" width="230" height="36" rx="6" fill="#e6f0fa" stroke="#2b5d8a" stroke-width="1.5"/>
+    <text x="625" y="475" text-anchor="middle" font-weight="bold" font-size="13">14. Other Risks, Constraints</text>
+    <rect x="510" y="498" width="230" height="36" rx="6" fill="#fff" stroke="#2b5d8a" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <text x="625" y="521" text-anchor="middle" font-size="13">Appendix, References</text>
+  </g>
+</svg>

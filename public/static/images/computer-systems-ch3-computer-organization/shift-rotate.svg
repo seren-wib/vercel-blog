@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="360" viewBox="0 0 760 360" font-family="Pretendard, -apple-system, BlinkMacSystemFont, AppleGothic, sans-serif" font-size="13">
+  <rect width="760" height="360" fill="#ffffff" rx="8"/>
+  <defs>
+    <marker id="arrowB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowO" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#ea580c"/>
+    </marker>
+    <marker id="arrowG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#16a34a"/>
+    </marker>
+  </defs>
+
+  <text x="380" y="30" text-anchor="middle" font-size="16" font-weight="bold" fill="#1e293b">오른쪽 자리이동 3가지 비교 (Logical vs Arithmetic vs Rotate)</text>
+
+  <!-- 1. Logical Shift Right (SHR) -->
+  <rect x="30" y="50" width="700" height="90" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="50" y="76" font-size="14" font-weight="bold" fill="#1d4ed8">① 논리적 오른쪽 이동 (Logical Shift Right, SHR)</text>
+  <text x="50" y="98" fill="#475569">• 왼쪽 빈자리에 항상 <tspan font-weight="bold" fill="#1d4ed8">0</tspan> 삽입, 오른쪽 끝 비트는 버려짐 (unsigned 정수 ÷2 효과)</text>
+  <text x="50" y="122" font-family="Menlo, Consolas, monospace" font-size="14" fill="#0f172a">00110110 (54)  ──( &gt;&gt; 1 )──▶  <tspan font-weight="bold" fill="#2563eb">0</tspan>0011011 (27)   [밀려난 0 버림]</text>
+
+  <!-- 2. Arithmetic Shift Right (SAR) -->
+  <rect x="30" y="152" width="700" height="95" rx="8" fill="#fff7ed" stroke="#fed7aa" stroke-width="1.5"/>
+  <text x="50" y="178" font-size="14" font-weight="bold" fill="#c2410c">② 산술적 오른쪽 이동 (Arithmetic Shift Right, SAR)</text>
+  <text x="50" y="200" fill="#475569">• 왼쪽 빈자리에 <tspan font-weight="bold" fill="#c2410c">최상위 부호 비트(MSB)를 복제</tspan>해 삽입 (2의 보수 signed 부호 유지, ÷2 효과)</text>
+  <text x="50" y="226" font-family="Menlo, Consolas, monospace" font-size="14" fill="#0f172a"><tspan font-weight="bold" fill="#ea580c">1</tspan>1110100 (-12) ──( SAR 1 )─▶  <tspan font-weight="bold" fill="#ea580c">1</tspan>1111010 (-6)    [부호 비트 1 복제]</text>
+
+  <!-- 3. Rotate Right (ROR) -->
+  <rect x="30" y="259" width="700" height="86" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5"/>
+  <text x="50" y="285" font-size="14" font-weight="bold" fill="#15803d">③ 오른쪽 회전 (Rotate Right, ROR)</text>
+  <text x="50" y="307" fill="#475569">• 밀려난 최하위 비트를 버리지 않고 <tspan font-weight="bold" fill="#15803d">반대쪽 끝(최상위 자리)으로 다시 넣음</tspan></text>
+  <text x="50" y="331" font-family="Menlo, Consolas, monospace" font-size="14" fill="#0f172a">0110010<tspan font-weight="bold" fill="#16a34a">1</tspan>       ──( ROR 1 )─▶  <tspan font-weight="bold" fill="#16a34a">1</tspan>0110010        [끝 비트 1이 맨 앞으로 회전]</text>
+</svg>
+

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="520" viewBox="0 0 760 520" font-family="Pretendard, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif" font-size="14">
+  <rect width="760" height="520" fill="#ffffff" rx="8"/>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#2563eb"/>
+    </marker>
+  </defs>
+
+  <text x="380" y="32" text-anchor="middle" font-size="17" font-weight="bold" fill="#1e293b">How an I/O request reaches the device</text>
+
+  <!-- Software side -->
+  <text x="40" y="66" font-size="12" font-weight="bold" fill="#7c3aed">SOFTWARE (executed by CPU)</text>
+  <rect x="60" y="78" width="300" height="40" rx="8" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="2"/>
+  <text x="210" y="103" text-anchor="middle" fill="#1e293b">Application program</text>
+  <line x1="210" y1="118" x2="210" y2="140" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <rect x="60" y="144" width="300" height="40" rx="8" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="2"/>
+  <text x="210" y="169" text-anchor="middle" fill="#1e293b">Operating system (file system)</text>
+  <line x1="210" y1="184" x2="210" y2="206" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <rect x="60" y="210" width="300" height="40" rx="8" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="2"/>
+  <text x="210" y="235" text-anchor="middle" fill="#1e293b">Device driver</text>
+
+  <text x="390" y="100" font-size="13" fill="#475569">e.g. fprintf(fp, "Hello\n")</text>
+  <text x="390" y="166" font-size="13" fill="#475569">handles the write request</text>
+  <text x="390" y="226" font-size="13" fill="#475569">turns the request into</text>
+  <text x="390" y="244" font-size="13" fill="#475569">controller commands</text>
+
+  <!-- Divider -->
+  <line x1="30" y1="272" x2="730" y2="272" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <text x="40" y="294" font-size="12" font-weight="bold" fill="#0f766e">HARDWARE</text>
+
+  <!-- Driver -> controller -->
+  <line x1="210" y1="250" x2="210" y2="306" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="224" y="292" font-size="12" fill="#1d4ed8">CPU reads / writes registers</text>
+
+  <!-- Controller -->
+  <rect x="60" y="310" width="300" height="140" rx="10" fill="#f0fdfa" stroke="#14b8a6" stroke-width="2"/>
+  <rect x="60" y="310" width="300" height="34" rx="10" fill="#14b8a6"/>
+  <text x="210" y="333" text-anchor="middle" font-size="15" font-weight="bold" fill="#ffffff">I/O Controller</text>
+  <rect x="76" y="354" width="268" height="26" rx="5" fill="#ffffff" stroke="#5eead4"/>
+  <text x="88" y="372" font-size="13" fill="#1e293b">Control Register</text>
+  <rect x="76" y="386" width="268" height="26" rx="5" fill="#ffffff" stroke="#5eead4"/>
+  <text x="88" y="404" font-size="13" fill="#1e293b">Status Register</text>
+  <rect x="76" y="418" width="268" height="26" rx="5" fill="#ffffff" stroke="#5eead4"/>
+  <text x="88" y="436" font-size="13" fill="#1e293b">Data Register / Buffer</text>
+
+  <text x="390" y="372" font-size="13" fill="#475569">command: start, reset</text>
+  <text x="390" y="404" font-size="13" fill="#475569">state: Ready / Busy / Error</text>
+  <text x="390" y="436" font-size="13" fill="#475569">data being sent or received</text>
+  <line x1="350" y1="367" x2="382" y2="367" stroke="#cbd5e1"/>
+  <line x1="350" y1="399" x2="382" y2="399" stroke="#cbd5e1"/>
+  <line x1="350" y1="431" x2="382" y2="431" stroke="#cbd5e1"/>
+
+  <!-- Controller -> device -->
+  <line x1="210" y1="450" x2="210" y2="468" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <rect x="60" y="472" width="300" height="38" rx="8" fill="#fff7ed" stroke="#f97316" stroke-width="2"/>
+  <text x="210" y="496" text-anchor="middle" fill="#1e293b">Peripheral device (SSD, printer, ...)</text>
+  <text x="390" y="496" font-size="13" fill="#475569">real data transfer + Handshaking</text>
+</svg>

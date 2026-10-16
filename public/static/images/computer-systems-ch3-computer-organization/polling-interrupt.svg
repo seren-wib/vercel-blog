@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="380" viewBox="0 0 760 380" font-family="Pretendard, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="760" height="380" fill="#ffffff" rx="8"/>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#dc2626"/>
+    </marker>
+  </defs>
+
+  <!-- Polling -->
+  <text x="20" y="34" font-size="16" font-weight="bold" fill="#1e293b">Polling: CPU keeps asking "Ready?"</text>
+  <text x="20" y="80" font-weight="bold" fill="#475569">CPU</text>
+  <text x="20" y="130" font-weight="bold" fill="#475569">Device</text>
+
+  <rect x="110" y="58" width="70" height="34" rx="5" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="145" y="80" text-anchor="middle" fill="#1e293b">request</text>
+  <rect x="190" y="58" width="96" height="34" rx="5" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="238" y="80" text-anchor="middle" fill="#92400e">Status? Busy</text>
+  <rect x="294" y="58" width="96" height="34" rx="5" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="342" y="80" text-anchor="middle" fill="#92400e">Status? Busy</text>
+  <rect x="398" y="58" width="96" height="34" rx="5" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="446" y="80" text-anchor="middle" fill="#92400e">Status? Busy</text>
+  <rect x="502" y="58" width="104" height="34" rx="5" fill="#dcfce7" stroke="#22c55e"/>
+  <text x="554" y="80" text-anchor="middle" fill="#166534">Status? Ready</text>
+  <rect x="614" y="58" width="120" height="34" rx="5" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="674" y="80" text-anchor="middle" fill="#1e293b">next work</text>
+
+  <rect x="190" y="110" width="304" height="30" rx="5" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="342" y="130" text-anchor="middle" fill="#334155">working ...</text>
+  <rect x="502" y="110" width="60" height="30" rx="5" fill="#dcfce7" stroke="#22c55e"/>
+  <text x="532" y="130" text-anchor="middle" fill="#166534">done</text>
+  <line x1="180" y1="92" x2="192" y2="108" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <path d="M 190 152 L 190 160 L 494 160 L 494 152" fill="none" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="342" y="178" text-anchor="middle" fill="#dc2626">CPU time spent only on checking</text>
+
+  <line x1="20" y1="198" x2="740" y2="198" stroke="#e2e8f0" stroke-width="1.5"/>
+
+  <!-- Interrupt -->
+  <text x="20" y="230" font-size="16" font-weight="bold" fill="#1e293b">Interrupt: device tells CPU "Done"</text>
+  <text x="20" y="276" font-weight="bold" fill="#475569">CPU</text>
+  <text x="20" y="336" font-weight="bold" fill="#475569">Device</text>
+
+  <rect x="110" y="254" width="70" height="34" rx="5" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="145" y="276" text-anchor="middle" fill="#1e293b">request</text>
+  <rect x="190" y="254" width="304" height="34" rx="5" fill="#dcfce7" stroke="#22c55e"/>
+  <text x="342" y="276" text-anchor="middle" fill="#166534">other work (CPU not waiting)</text>
+  <rect x="502" y="254" width="104" height="34" rx="5" fill="#fee2e2" stroke="#dc2626"/>
+  <text x="554" y="276" text-anchor="middle" fill="#991b1b">ISR</text>
+  <rect x="614" y="254" width="120" height="34" rx="5" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="674" y="276" text-anchor="middle" fill="#1e293b">resume work</text>
+
+  <rect x="190" y="316" width="304" height="30" rx="5" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="342" y="336" text-anchor="middle" fill="#334155">working ...</text>
+  <line x1="180" y1="288" x2="192" y2="314" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="502" y1="331" x2="510" y2="292" stroke="#dc2626" stroke-width="2.5" marker-end="url(#arrowRed)"/>
+  <text x="518" y="322" fill="#dc2626" font-weight="bold">interrupt request</text>
+  <text x="502" y="366" font-size="12" fill="#64748b">ISR = interrupt service routine</text>
+</svg>

@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="900" height="560" fill="#ffffff"/>
+
+  <!-- ===== Row 1: 1:N, total participation, attribute migrated to N-side ===== -->
+  <text x="20" y="30" font-weight="bold" fill="#c0392b">1:N  (WORKS_FOR)</text>
+  <text x="20" y="48" fill="#555">every employee works for exactly one department, a department has many employees</text>
+
+  <!-- EMPLOYEE -->
+  <rect x="60" y="80" width="120" height="40" fill="#fff" stroke="#222" stroke-width="1.5"/>
+  <text x="120" y="105" text-anchor="middle" font-weight="bold">EMPLOYEE</text>
+  <!-- total participation: double line -->
+  <line x1="180" y1="96" x2="300" y2="96" stroke="#222" stroke-width="1.5"/>
+  <line x1="180" y1="104" x2="300" y2="104" stroke="#222" stroke-width="1.5"/>
+  <text x="285" y="88" text-anchor="end" font-weight="bold">N</text>
+  <!-- diamond -->
+  <path d="M300,100 L360,70 L420,100 L360,130 z" fill="#fff" stroke="#222" stroke-width="1.5"/>
+  <text x="360" y="104" text-anchor="middle" font-size="11">WORKS_FOR</text>
+  <!-- total on both sides (slide 74) -->
+  <line x1="420" y1="96" x2="540" y2="96" stroke="#222" stroke-width="1.5"/>
+  <line x1="420" y1="104" x2="540" y2="104" stroke="#222" stroke-width="1.5"/>
+  <text x="435" y="92" font-weight="bold">1</text>
+  <!-- DEPARTMENT -->
+  <rect x="540" y="80" width="130" height="40" fill="#fff" stroke="#222" stroke-width="1.5"/>
+  <text x="605" y="105" text-anchor="middle" font-weight="bold">DEPARTMENT</text>
+  <!-- migrated attribute -->
+  <ellipse cx="120" cy="160" rx="42" ry="14" fill="#fdecea" stroke="#c0392b" stroke-width="1.5"/>
+  <text x="120" y="164" text-anchor="middle" fill="#c0392b" font-size="12">Start_date</text>
+  <line x1="120" y1="120" x2="120" y2="146" stroke="#c0392b" stroke-width="1.5"/>
+  <text x="700" y="90" fill="#555" font-size="12">double line = total participation</text>
+  <text x="700" y="106" fill="#555" font-size="12">single line = partial participation</text>
+  <text x="180" y="165" fill="#c0392b" font-size="12">1:N attribute moves to the N-side entity</text>
+
+  <!-- ===== Row 2: 1:1 with (min,max) ===== -->
+  <text x="20" y="215" font-weight="bold" fill="#d68910">1:1  (MANAGES)</text>
+  <text x="20" y="233" fill="#555">a department has exactly one manager, an employee manages at most one department</text>
+
+  <rect x="60" y="260" width="120" height="40" fill="#fff" stroke="#222" stroke-width="1.5"/>
+  <text x="120" y="285" text-anchor="middle" font-weight="bold">EMPLOYEE</text>
+  <line x1="180" y1="280" x2="300" y2="280" stroke="#222" stroke-width="1.5"/>
+  <text x="215" y="272" font-weight="bold">(0,1)</text>
+  <path d="M300,280 L360,250 L420,280 L360,310 z" fill="#fff" stroke="#222" stroke-width="1.5"/>
+  <text x="360" y="284" text-anchor="middle" font-size="11">MANAGES</text>
+  <line x1="420" y1="276" x2="540" y2="276" stroke="#222" stroke-width="1.5"/>
+  <line x1="420" y1="284" x2="540" y2="284" stroke="#222" stroke-width="1.5"/>
+  <text x="470" y="268" font-weight="bold">(1,1)</text>
+  <rect x="540" y="260" width="130" height="40" fill="#fff" stroke="#222" stroke-width="1.5"/>
+  <text x="605" y="285" text-anchor="middle" font-weight="bold">DEPARTMENT</text>
+  <ellipse cx="360" cy="340" rx="42" ry="14" fill="#fef6e4" stroke="#d68910" stroke-width="1.5"/>
+  <text x="360" y="344" text-anchor="middle" fill="#d68910" font-size="12">Start_date</text>
+  <line x1="360" y1="310" x2="360" y2="326" stroke="#d68910" stroke-width="1.5"/>
+  <text x="700" y="272" fill="#555" font-size="12">(min, max) = same thing as</text>
+  <text x="700" y="288" fill="#555" font-size="12">participation + cardinality</text>
+  <text x="420" y="344" fill="#d68910" font-size="12">1:1 attribute can go to either entity</text>
+
+  <!-- ===== Row 3: M:N, attribute stays on relationship ===== -->
+  <text x="20" y="395" font-weight="bold" fill="#27ae60">M:N  (WORKS_ON)</text>
+  <text x="20" y="413" fill="#555">an employee works on many projects, a project has many employees</text>
+
+  <rect x="60" y="440" width="120" height="40" fill="#fff" stroke="#222" stroke-width="1.5"/>
+  <text x="120" y="465" text-anchor="middle" font-weight="bold">EMPLOYEE</text>
+  <line x1="180" y1="456" x2="300" y2="456" stroke="#222" stroke-width="1.5"/>
+  <line x1="180" y1="464" x2="300" y2="464" stroke="#222" stroke-width="1.5"/>
+  <text x="285" y="448" text-anchor="end" font-weight="bold">M</text>
+  <path d="M300,460 L360,430 L420,460 L360,490 z" fill="#fff" stroke="#222" stroke-width="1.5"/>
+  <text x="360" y="464" text-anchor="middle" font-size="11">WORKS_ON</text>
+  <line x1="420" y1="456" x2="540" y2="456" stroke="#222" stroke-width="1.5"/>
+  <line x1="420" y1="464" x2="540" y2="464" stroke="#222" stroke-width="1.5"/>
+  <text x="435" y="448" font-weight="bold">N</text>
+  <rect x="540" y="440" width="130" height="40" fill="#fff" stroke="#222" stroke-width="1.5"/>
+  <text x="605" y="465" text-anchor="middle" font-weight="bold">PROJECT</text>
+  <ellipse cx="360" cy="520" rx="36" ry="14" fill="#edf7ee" stroke="#27ae60" stroke-width="1.5"/>
+  <text x="360" y="524" text-anchor="middle" fill="#27ae60" font-size="12">Hours</text>
+  <line x1="360" y1="490" x2="360" y2="506" stroke="#27ae60" stroke-width="1.5"/>
+  <text x="420" y="524" fill="#27ae60" font-size="12">M:N attribute stays on the relationship</text>
+
+  <!-- ===== Recursive, right column ===== -->
+  <text x="700" y="395" font-weight="bold" fill="#7d3c98">Recursive  (SUPERVISION)</text>
+  <rect x="720" y="420" width="110" height="36" fill="#fff" stroke="#222" stroke-width="1.5"/>
+  <text x="775" y="443" text-anchor="middle" font-weight="bold" font-size="12">EMPLOYEE</text>
+  <path d="M775,500 L815,525 L775,550 L735,525 z" fill="#fff" stroke="#222" stroke-width="1.5"/>
+  <text x="775" y="529" text-anchor="middle" font-size="9">SUPERVISION</text>
+  <line x1="745" y1="456" x2="745" y2="520" stroke="#222" stroke-width="1.5"/>
+  <line x1="805" y1="456" x2="805" y2="520" stroke="#222" stroke-width="1.5"/>
+  <text x="740" y="490" text-anchor="end" font-size="10" fill="#7d3c98">supervisor 1</text>
+  <text x="810" y="490" font-size="10" fill="#7d3c98">supervisee N</text>
+</svg>

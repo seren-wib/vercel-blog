@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="420" viewBox="0 0 820 420" font-family="Helvetica, Arial, sans-serif" font-size="15">
+  <rect width="820" height="420" fill="#ffffff"/>
+  <g stroke="#222" stroke-width="1.6" fill="none">
+    <!-- entity -> attributes -->
+    <line x1="410" y1="80" x2="110" y2="180"/>
+    <line x1="410" y1="80" x2="260" y2="180"/>
+    <line x1="410" y1="80" x2="410" y2="180"/>
+    <line x1="410" y1="80" x2="560" y2="180"/>
+    <line x1="410" y1="80" x2="710" y2="180" stroke-dasharray="7 5"/>
+    <!-- composite -->
+    <line x1="260" y1="200" x2="190" y2="320"/>
+    <line x1="260" y1="200" x2="330" y2="320"/>
+  </g>
+
+  <!-- Entity -->
+  <rect x="330" y="40" width="160" height="50" fill="#fff" stroke="#222" stroke-width="2"/>
+  <text x="410" y="71" text-anchor="middle" font-weight="bold" font-size="17">EMPLOYEE</text>
+
+  <!-- Key attribute -->
+  <ellipse cx="110" cy="200" rx="55" ry="24" fill="#fff" stroke="#222" stroke-width="1.6"/>
+  <text x="110" y="206" text-anchor="middle" text-decoration="underline">Ssn</text>
+
+  <!-- Composite attribute -->
+  <ellipse cx="260" cy="200" rx="55" ry="24" fill="#fff" stroke="#222" stroke-width="1.6"/>
+  <text x="260" y="206" text-anchor="middle">Name</text>
+  <ellipse cx="190" cy="340" rx="50" ry="22" fill="#fff" stroke="#222" stroke-width="1.6"/>
+  <text x="190" y="346" text-anchor="middle">Fname</text>
+  <ellipse cx="330" cy="340" rx="50" ry="22" fill="#fff" stroke="#222" stroke-width="1.6"/>
+  <text x="330" y="346" text-anchor="middle">Lname</text>
+
+  <!-- Multivalued attribute (double ellipse) -->
+  <ellipse cx="410" cy="200" rx="60" ry="28" fill="#fff" stroke="#222" stroke-width="1.6"/>
+  <ellipse cx="410" cy="200" rx="52" ry="21" fill="#fff" stroke="#222" stroke-width="1.6"/>
+  <text x="410" y="206" text-anchor="middle">Phone</text>
+
+  <!-- Stored attribute -->
+  <ellipse cx="560" cy="200" rx="55" ry="24" fill="#fff" stroke="#222" stroke-width="1.6"/>
+  <text x="560" y="206" text-anchor="middle">Bdate</text>
+
+  <!-- Derived attribute (dashed) -->
+  <ellipse cx="710" cy="200" rx="55" ry="24" fill="#fff" stroke="#222" stroke-width="1.6" stroke-dasharray="7 5"/>
+  <text x="710" y="206" text-anchor="middle">Age</text>
+
+  <!-- labels -->
+  <g fill="#666" font-size="12">
+    <text x="110" y="245" text-anchor="middle">key (underlined)</text>
+    <text x="260" y="290" text-anchor="middle">composite</text>
+    <text x="410" y="248" text-anchor="middle">multivalued (double oval)</text>
+    <text x="560" y="245" text-anchor="middle">stored (simple)</text>
+    <text x="710" y="245" text-anchor="middle">derived (dashed)</text>
+    <text x="410" y="28" text-anchor="middle">entity (rectangle)</text>
+  </g>
+</svg>

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="330" viewBox="0 0 760 330" font-family="Pretendard, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="760" height="330" fill="#ffffff" rx="8"/>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <!-- Parallel -->
+  <text x="20" y="32" font-size="16" font-weight="bold" fill="#1e293b">Parallel: 4 bits "1010" on 4 wires at once</text>
+  <rect x="20" y="50" width="90" height="110" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="65" y="110" text-anchor="middle" font-weight="bold" fill="#166534">Sender</text>
+  <rect x="650" y="50" width="90" height="110" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+  <text x="695" y="110" text-anchor="middle" font-weight="bold" fill="#1e40af">Receiver</text>
+
+  <text x="124" y="70" font-size="12" fill="#475569">bit 3</text>
+  <line x1="160" y1="66" x2="646" y2="66" stroke="#ef4444" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="380" y="56" width="40" height="20" rx="3" fill="#fee2e2"/><text x="400" y="71" text-anchor="middle" font-weight="bold">1</text>
+  <text x="124" y="96" font-size="12" fill="#475569">bit 2</text>
+  <line x1="160" y1="92" x2="646" y2="92" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="380" y="82" width="40" height="20" rx="3" fill="#fef3c7"/><text x="400" y="97" text-anchor="middle" font-weight="bold">0</text>
+  <text x="124" y="122" font-size="12" fill="#475569">bit 1</text>
+  <line x1="160" y1="118" x2="646" y2="118" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="380" y="108" width="40" height="20" rx="3" fill="#dcfce7"/><text x="400" y="123" text-anchor="middle" font-weight="bold">1</text>
+  <text x="124" y="148" font-size="12" fill="#475569">bit 0</text>
+  <line x1="160" y1="144" x2="646" y2="144" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="380" y="134" width="40" height="20" rx="3" fill="#dbeafe"/><text x="400" y="149" text-anchor="middle" font-weight="bold">0</text>
+  <text x="400" y="180" text-anchor="middle" font-weight="bold" fill="#1e293b">time: T</text>
+  <text x="740" y="180" text-anchor="end" font-size="12" fill="#dc2626">Skew: bits may arrive at different times</text>
+
+  <line x1="20" y1="198" x2="740" y2="198" stroke="#e2e8f0" stroke-width="1.5"/>
+
+  <!-- Serial -->
+  <text x="20" y="228" font-size="16" font-weight="bold" fill="#1e293b">Serial: same 4 bits on 1 lane, one after another</text>
+  <rect x="20" y="246" width="90" height="50" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="65" y="276" text-anchor="middle" font-weight="bold" fill="#166534">Sender</text>
+  <rect x="650" y="246" width="90" height="50" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+  <text x="695" y="276" text-anchor="middle" font-weight="bold" fill="#1e40af">Receiver</text>
+  <text x="124" y="275" font-size="12" fill="#475569">lane 0</text>
+  <line x1="170" y1="271" x2="646" y2="271" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="200" y="259" width="100" height="24" rx="3" fill="#fee2e2" stroke="#ef4444"/><text x="250" y="276" text-anchor="middle" font-weight="bold">1</text>
+  <rect x="310" y="259" width="100" height="24" rx="3" fill="#fef3c7" stroke="#f59e0b"/><text x="360" y="276" text-anchor="middle" font-weight="bold">0</text>
+  <rect x="420" y="259" width="100" height="24" rx="3" fill="#dcfce7" stroke="#22c55e"/><text x="470" y="276" text-anchor="middle" font-weight="bold">1</text>
+  <rect x="530" y="259" width="100" height="24" rx="3" fill="#dbeafe" stroke="#3b82f6"/><text x="580" y="276" text-anchor="middle" font-weight="bold">0</text>
+  <text x="250" y="302" text-anchor="middle" font-size="12" fill="#64748b">T</text>
+  <text x="360" y="302" text-anchor="middle" font-size="12" fill="#64748b">T</text>
+  <text x="470" y="302" text-anchor="middle" font-size="12" fill="#64748b">T</text>
+  <text x="580" y="302" text-anchor="middle" font-size="12" fill="#64748b">T</text>
+  <text x="415" y="322" text-anchor="middle" font-weight="bold" fill="#1e293b">time: 4T (fewer wires, no skew between wires)</text>
+</svg>

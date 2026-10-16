@@ -1,22 +1,24 @@
 {
   "kr": {
     "ai": 5,
+    "cloud-computing": 3,
+    "database-systems": 1,
     "git": 1,
     "computer-systems": 2,
-    "cloud-computing": 3,
+    "sql": 1,
     "network": 9,
     "software-engineering": 4,
     "os": 10,
-    "sql": 1,
     "unity": 2
   },
   "en": {
     "ai": 5,
+    "database-systems": 1,
     "cloud-computing": 3,
     "computer-systems": 2,
-    "network": 9,
-    "git": 1,
     "os": 10,
+    "git": 1,
+    "network": 9,
     "software-engineering": 4,
     "sql": 1,
     "unity": 2

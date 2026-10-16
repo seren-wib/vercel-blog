@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="520" viewBox="0 0 860 520" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="860" height="520" fill="#ffffff"/>
+  <g transform="translate(0,100)">
+
+  <!-- Relationship type header -->
+  <rect x="20" y="16" width="820" height="44" rx="6" fill="#f5eefa" stroke="#7d3c98"/>
+  <text x="30" y="34" font-weight="bold" fill="#7d3c98">Relationship type WORKS_FOR = name + participating entity types (EMPLOYEE, DEPARTMENT)</text>
+  <text x="30" y="52" fill="#7d3c98" font-size="12">degree = 2 (binary)   role of EMPLOYEE = worker, role of DEPARTMENT = employer</text>
+
+  <!-- Column titles -->
+  <g text-anchor="middle" font-weight="bold">
+    <text x="160" y="92">EMPLOYEE</text>
+    <text x="430" y="92">WORKS_FOR</text>
+    <text x="700" y="92">DEPARTMENT</text>
+  </g>
+  <g text-anchor="middle" font-size="11" fill="#555">
+    <text x="160" y="108">entity set</text>
+    <text x="430" y="108">relationship set</text>
+    <text x="700" y="108">entity set</text>
+  </g>
+
+  <!-- Ovals -->
+  <ellipse cx="160" cy="240" rx="70" ry="120" fill="#eef4fb" stroke="#2e86c1" stroke-width="1.5"/>
+  <ellipse cx="430" cy="240" rx="70" ry="120" fill="#f5eefa" stroke="#7d3c98" stroke-width="1.5"/>
+  <ellipse cx="700" cy="220" rx="70" ry="90" fill="#edf7ee" stroke="#27ae60" stroke-width="1.5"/>
+
+  <!-- Employees e1..e5 -->
+  <g fill="#222">
+    <circle cx="190" cy="150" r="3"/><text x="150" y="154" text-anchor="end">e1 Kim</text>
+    <circle cx="190" cy="195" r="3"/><text x="150" y="199" text-anchor="end">e2 Lee</text>
+    <circle cx="190" cy="240" r="3"/><text x="150" y="244" text-anchor="end">e3 Park</text>
+    <circle cx="190" cy="285" r="3"/><text x="150" y="289" text-anchor="end">e4 Choi</text>
+    <circle cx="190" cy="330" r="3"/><text x="150" y="334" text-anchor="end">e5 Jung</text>
+  </g>
+
+  <!-- Relationship instances r1..r5 -->
+  <g fill="#222">
+    <circle cx="430" cy="150" r="3"/><text x="430" y="140" text-anchor="middle">r1</text>
+    <circle cx="430" cy="195" r="3"/><text x="430" y="185" text-anchor="middle">r2</text>
+    <circle cx="430" cy="240" r="3"/><text x="430" y="230" text-anchor="middle">r3</text>
+    <circle cx="430" cy="285" r="3"/><text x="430" y="275" text-anchor="middle">r4</text>
+    <circle cx="430" cy="330" r="3"/><text x="430" y="320" text-anchor="middle">r5</text>
+  </g>
+
+  <!-- Departments d1..d3 -->
+  <g fill="#222">
+    <circle cx="670" cy="170" r="3"/><text x="690" y="174">d1 Research</text>
+    <circle cx="670" cy="220" r="3"/><text x="690" y="224">d2 Admin</text>
+    <circle cx="670" cy="270" r="3"/><text x="690" y="274">d3 HQ</text>
+  </g>
+
+  <!-- Lines employee -> r -->
+  <g stroke="#555" stroke-width="1.2">
+    <line x1="190" y1="150" x2="430" y2="150"/>
+    <line x1="190" y1="195" x2="430" y2="195"/>
+    <line x1="190" y1="240" x2="430" y2="240"/>
+    <line x1="190" y1="285" x2="430" y2="285"/>
+    <line x1="190" y1="330" x2="430" y2="330"/>
+  </g>
+  <!-- Lines r -> department -->
+  <g stroke="#555" stroke-width="1.2">
+    <line x1="430" y1="150" x2="670" y2="170"/>
+    <line x1="430" y1="195" x2="670" y2="170"/>
+    <line x1="430" y1="240" x2="670" y2="220"/>
+    <line x1="430" y1="285" x2="670" y2="170"/>
+    <line x1="430" y1="330" x2="670" y2="270"/>
+  </g>
+
+  <!-- highlight r1 -->
+  <circle cx="430" cy="150" r="9" fill="none" stroke="#c0392b" stroke-width="2"/>
+
+  <!-- Bottom notes -->
+  <g font-size="12">
+    <text x="20" y="390" fill="#c0392b">relationship instance r1 = (e1, d1): "Kim works for Research"</text>
+    <text x="20" y="408" fill="#555">relationship set = {r1, r2, r3, r4, r5}.  d1 appears in r1, r2, r4 (one department, many employees), each e appears once (one employee, one department) = 1:N</text>
+  </g>
+  </g>
+
+  <!-- ER diagram notation of the same relationship -->
+  <text x="20" y="22" font-weight="bold" fill="#333">ER diagram (type level): what you draw in the exam</text>
+  <rect x="200" y="36" width="110" height="36" fill="#fff" stroke="#222" stroke-width="1.5"/>
+  <text x="255" y="59" text-anchor="middle" font-weight="bold">EMPLOYEE</text>
+  <line x1="310" y1="50" x2="380" y2="50" stroke="#222" stroke-width="1.5"/>
+  <line x1="310" y1="58" x2="380" y2="58" stroke="#222" stroke-width="1.5"/>
+  <text x="365" y="44" text-anchor="end" font-weight="bold">N</text>
+  <path d="M380,54 L430,28 L480,54 L430,80 z" fill="#fff" stroke="#222" stroke-width="1.5"/>
+  <text x="430" y="58" text-anchor="middle" font-size="10">WORKS_FOR</text>
+  <line x1="480" y1="50" x2="550" y2="50" stroke="#222" stroke-width="1.5"/>
+  <line x1="480" y1="58" x2="550" y2="58" stroke="#222" stroke-width="1.5"/>
+  <text x="492" y="46" font-weight="bold">1</text>
+  <rect x="550" y="36" width="120" height="36" fill="#fff" stroke="#222" stroke-width="1.5"/>
+  <text x="610" y="59" text-anchor="middle" font-weight="bold">DEPARTMENT</text>
+  <text x="20" y="96" fill="#555" font-size="12">Instance diagram (set level, slides 55-63): the same relationship with its actual members shown, used only to explain constraints</text>
+  <line x1="430" y1="80" x2="430" y2="104" stroke="#888" stroke-dasharray="4 3"/>
+</svg>

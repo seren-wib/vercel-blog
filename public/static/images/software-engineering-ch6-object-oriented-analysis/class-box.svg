@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="300" viewBox="0 0 760 300" font-family="Helvetica, Arial, sans-serif" font-size="12">
+<defs>
+  <marker id="open" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L10,6 L0,12" fill="none" stroke="#333" stroke-width="1.4"/></marker>
+  <marker id="tri" markerWidth="16" markerHeight="16" refX="15" refY="8" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L15,8 L0,16 Z" fill="#fff" stroke="#333" stroke-width="1.4"/></marker>
+  <marker id="dia" markerWidth="22" markerHeight="12" refX="1" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,6 L11,0 L21,6 L11,12 Z" fill="#fff" stroke="#333" stroke-width="1.4"/></marker>
+  <marker id="fdia" markerWidth="22" markerHeight="12" refX="1" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M1,6 L11,0 L21,6 L11,12 Z" fill="#333" stroke="#333" stroke-width="1.4"/></marker>
+</defs>
+<style>
+  .cb { fill:#fdf8e1; stroke:#333; stroke-width:1.3; }
+  .ac { fill:#eef4fb; stroke:#333; stroke-width:1.3; }
+  .ln { stroke:#333; stroke-width:1.3; fill:none; }
+  .dash { stroke:#333; stroke-width:1.3; fill:none; stroke-dasharray:6 4; }
+  .m { font-size:12px; fill:#c62828; font-weight:bold; }
+  .nt { fill:#555; font-size:12px; }
+</style>
+<rect class="cb" x="40" y="30" width="300" height="216"/><text x="190" y="46" text-anchor="middle" font-weight="bold">Student</text><line class="ln" x1="40" y1="54" x2="340" y2="54"/><text x="48" y="70">- id: String  // student no.</text><text x="48" y="86">- name: String</text><text x="48" y="102">- address: String</text><text x="48" y="118">- tel: String</text><text x="48" y="134">- dno: int  // dept no.</text><line class="ln" x1="40" y1="142" x2="340" y2="142"/><text x="48" y="158">+ insert(): int</text><text x="48" y="174">+ delete(): int</text><text x="48" y="190">+ update(): int</text><text x="48" y="206">+ retrieve(): String</text><text x="48" y="222">+ getName(id: String): String</text><text x="48" y="238">+ setName(id: String, name: String): void</text><line class="dash" x1="345" y1="42" x2="400" y2="42"/><text x="410" y="40" font-weight="bold" font-size="13">1. Class name</text><text class="nt" x="410" y="57">top box, first letter uppercase</text><line class="dash" x1="345" y1="99" x2="400" y2="99"/><text x="410" y="97" font-weight="bold" font-size="13">2. Attributes</text><text class="nt" x="410" y="114">first letter lowercase, usually private (-)</text><line class="dash" x1="345" y1="192" x2="400" y2="192"/><text x="410" y="190" font-weight="bold" font-size="13">3. Operations (methods)</text><text class="nt" x="410" y="207">camelCase; basic set = insert, delete, update, retrieve</text><text class="nt" x="40" y="274">- private   + public   # protected.  In analysis the operations box may stay empty (slide p.47 right).</text></svg>

@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 350" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="760" height="350" fill="#fff"/>
+
+  <!-- titles -->
+  <text x="195" y="32" text-anchor="middle" font-size="15" font-weight="bold" fill="#2e7d32">GOOD: High Cohesion + Low Coupling</text>
+  <text x="565" y="32" text-anchor="middle" font-size="15" font-weight="bold" fill="#c62828">BAD: Low Cohesion + High Coupling</text>
+  <line x1="380" y1="20" x2="380" y2="250" stroke="#ccc" stroke-dasharray="4 4"/>
+
+  <!-- module boxes -->
+  <g fill="#f5f5f5" stroke="#555" stroke-width="1.5">
+    <rect x="40" y="70" width="90" height="160" rx="8"/>
+    <rect x="150" y="70" width="90" height="160" rx="8"/>
+    <rect x="260" y="70" width="90" height="160" rx="8"/>
+    <rect x="410" y="70" width="90" height="160" rx="8"/>
+    <rect x="520" y="70" width="90" height="160" rx="8"/>
+    <rect x="630" y="70" width="90" height="160" rx="8"/>
+  </g>
+  <g text-anchor="middle" font-size="12" fill="#333">
+    <text x="85" y="62">Module A</text><text x="195" y="62">Module B</text><text x="305" y="62">Module C</text>
+    <text x="455" y="62">Module A</text><text x="565" y="62">Module B</text><text x="675" y="62">Module C</text>
+  </g>
+
+  <!-- GOOD: cohesion links (inside) -->
+  <g stroke="#333" stroke-width="2.5">
+    <line x1="85" y1="115" x2="85" y2="195"/>
+    <line x1="195" y1="115" x2="195" y2="195"/>
+    <line x1="305" y1="115" x2="305" y2="195"/>
+  </g>
+  <!-- GOOD: coupling links (between) -->
+  <g stroke="#e53935" stroke-width="2">
+    <line x1="99" y1="155" x2="181" y2="155"/>
+    <line x1="209" y1="155" x2="291" y2="155"/>
+  </g>
+  <!-- GOOD: elements, one color per module = one purpose -->
+  <g stroke="#333" stroke-width="1">
+    <circle cx="85" cy="115" r="14" fill="#64b5f6"/><circle cx="85" cy="155" r="14" fill="#64b5f6"/><circle cx="85" cy="195" r="14" fill="#64b5f6"/>
+    <circle cx="195" cy="115" r="14" fill="#ffb74d"/><circle cx="195" cy="155" r="14" fill="#ffb74d"/><circle cx="195" cy="195" r="14" fill="#ffb74d"/>
+    <circle cx="305" cy="115" r="14" fill="#81c784"/><circle cx="305" cy="155" r="14" fill="#81c784"/><circle cx="305" cy="195" r="14" fill="#81c784"/>
+  </g>
+
+  <!-- BAD: coupling links (related parts split across modules) -->
+  <g stroke="#e53935" stroke-width="2">
+    <line x1="455" y1="115" x2="565" y2="195"/><line x1="565" y1="195" x2="675" y2="155"/>
+    <line x1="455" y1="155" x2="565" y2="115"/><line x1="565" y1="115" x2="675" y2="195"/>
+    <line x1="455" y1="195" x2="565" y2="155"/><line x1="565" y1="155" x2="675" y2="115"/>
+  </g>
+  <!-- BAD: elements, mixed purposes in each module -->
+  <g stroke="#333" stroke-width="1">
+    <circle cx="455" cy="115" r="14" fill="#64b5f6"/><circle cx="455" cy="155" r="14" fill="#ffb74d"/><circle cx="455" cy="195" r="14" fill="#81c784"/>
+    <circle cx="565" cy="115" r="14" fill="#ffb74d"/><circle cx="565" cy="155" r="14" fill="#81c784"/><circle cx="565" cy="195" r="14" fill="#64b5f6"/>
+    <circle cx="675" cy="115" r="14" fill="#81c784"/><circle cx="675" cy="155" r="14" fill="#64b5f6"/><circle cx="675" cy="195" r="14" fill="#ffb74d"/>
+  </g>
+
+  <!-- panel notes -->
+  <g text-anchor="middle" font-size="12" fill="#333">
+    <text x="195" y="252">Each module = one purpose (one color)</text>
+    <text x="565" y="252">Each module mixes purposes, related parts scattered</text>
+  </g>
+
+  <!-- legend -->
+  <g font-size="13" fill="#333">
+    <line x1="60" y1="292" x2="100" y2="292" stroke="#333" stroke-width="2.5"/>
+    <text x="110" y="296"><tspan font-weight="bold">Cohesion</tspan>: links INSIDE a module (higher = better)</text>
+    <line x1="60" y1="322" x2="100" y2="322" stroke="#e53935" stroke-width="2"/>
+    <text x="110" y="326"><tspan font-weight="bold">Coupling</tspan>: links BETWEEN modules (lower = better)</text>
+    <circle cx="520" cy="292" r="7" fill="#64b5f6" stroke="#333"/><circle cx="540" cy="292" r="7" fill="#ffb74d" stroke="#333"/><circle cx="560" cy="292" r="7" fill="#81c784" stroke="#333"/>
+    <text x="575" y="296">Color = purpose</text>
+  </g>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="740" height="298" viewBox="0 0 740 298" font-family="Helvetica, Arial, sans-serif" font-size="12">
+<defs>
+  <marker id="fill" markerWidth="12" markerHeight="10" refX="11" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L11,5 L0,10 Z" fill="#333"/></marker>
+  <marker id="open" markerWidth="12" markerHeight="10" refX="11" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L11,5 L0,10" fill="none" stroke="#333" stroke-width="1.3"/></marker>
+</defs>
+<style>
+  .ob { fill:#eaf4e4; stroke:#333; stroke-width:1.3; }
+  .mn { fill:#e3edf7; stroke:#333; stroke-width:1.3; }
+  .life { stroke:#888; stroke-width:1.1; stroke-dasharray:4 4; }
+  .msg { stroke:#333; stroke-width:1.3; fill:none; }
+  .ret { stroke:#333; stroke-width:1.1; fill:none; stroke-dasharray:5 4; }
+  .ln { stroke:#333; stroke-width:1.3; fill:none; }
+  .t { text-anchor:middle; fill:#222; }
+  .nt { fill:#555; font-size:12px; }
+  .an { fill:#c62828; font-size:12px; font-weight:bold; }
+</style>
+<circle cx="70" cy="28" r="8" class="ln" fill="#fff"/><line class="ln" x1="70" y1="36" x2="70" y2="52"/><line class="ln" x1="58" y1="42" x2="82" y2="42"/><line class="ln" x1="70" y1="52" x2="60" y2="66"/><line class="ln" x1="70" y1="52" x2="80" y2="66"/><text class="t" x="70" y="82">Staff</text><line class="life" x1="70" y1="88" x2="70" y2="288"/><rect class="mn" x="180" y="20" width="120" height="40"/><text class="t" x="240" y="37">Login</text><text class="t" x="240" y="51">Menu</text><line class="life" x1="240" y1="60" x2="240" y2="288"/><rect class="ob" x="350" y="20" width="120" height="40"/><text class="t" x="410" y="44">:Employee</text><line class="life" x1="410" y1="60" x2="410" y2="288"/><line class="msg" x1="70" y1="100" x2="240" y2="100" marker-end="url(#fill)"/><text class="t" x="155" y="95">login(id, pwd)</text><line class="msg" x1="240" y1="130" x2="410" y2="130" marker-end="url(#fill)"/><text class="t" x="325" y="125">check(id, pwd)</text><path class="msg" d="M410,160 C450,160 450,190 414,190" marker-end="url(#fill)"/><text x="450" y="179">verify</text><line class="ret" x1="410" y1="208" x2="240" y2="208" marker-end="url(#open)"/><text class="t" x="325" y="203">ok</text><line class="ret" x1="240" y1="238" x2="70" y2="238" marker-end="url(#open)"/><text class="t" x="155" y="233">ok</text><line class="ln" x1="470" y1="40" x2="494" y2="40" stroke="#c62828" stroke-dasharray="2 3"/><text class="an" x="500" y="44">Object</text><text class="nt" x="500" y="59">:ClassName = an object of that class</text><line class="ln" x1="414" y1="76" x2="494" y2="76" stroke="#c62828" stroke-dasharray="2 3"/><text class="an" x="500" y="80">Lifeline</text><text class="nt" x="500" y="95">dashed, time flows downward</text><line class="ln" x1="414" y1="130" x2="494" y2="130" stroke="#c62828" stroke-dasharray="2 3"/><text class="an" x="500" y="134">Message</text><text class="nt" x="500" y="149">solid arrow = method call</text><line class="ln" x1="500" y1="175" x2="494" y2="175" stroke="#c62828" stroke-dasharray="2 3"/><text class="an" x="500" y="179">Self call</text><text class="nt" x="500" y="194">processing inside one object</text><line class="ln" x1="244" y1="238" x2="494" y2="238" stroke="#c62828" stroke-dasharray="2 3"/><text class="an" x="500" y="242">Reply</text><text class="nt" x="500" y="257">dashed arrow = return value</text><text class="an" x="10" y="284" text-anchor="start"></text></svg>

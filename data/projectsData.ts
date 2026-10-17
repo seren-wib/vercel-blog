@@ -117,6 +117,33 @@ const projectsData: Project[] = [
 
   // Shipped
   {
+    title: 'Stairno',
+    status: 'shipped',
+    size: 'standard',
+    period: { kr: '2026.10', en: 'Oct 2026' },
+    role: { kr: '개인 브랜드 · 허브 사이트', en: 'Personal brand · hub site' },
+    summary: {
+      kr: '제가 만드는 게임과 도구를 묶는 브랜드 Stairno의 허브 사이트. 소개와 Works·Games·Labs 세 프로젝트로 가는 링크만 두고, 판매나 접수는 각 프로젝트 사이트에 맡겼습니다.',
+      en: 'The hub site for Stairno, the brand my games and tools ship under. It only introduces the brand and links to the three projects (Works, Games, Labs); sales and intake live on their own sites.',
+    },
+    highlights: {
+      kr: [
+        '히어로 전체를 하프톤 점 캔버스로 그림. 첫 접속 때 워드마크가 감긴 지구가 돌다가 점이 흩어지며 계단과 글자로 다시 조립되고, 클릭하면 점이 물결처럼 퍼짐',
+        '섹션 단위 풀페이지 스크롤, 섹션 제목도 점 글자, 헤더는 현재 섹션을 따라가는 스크롤스파이',
+        '한국어·영어, 다크·라이트 모드. 외부 스크립트와 추적 도구, 쿠키 없이 정적 페이지로만 구성',
+        'TDD로 작업해 단위·컴포넌트·통합 테스트 123개. GitHub Actions에서 통과한 빌드만 Cloudflare Pages에 올라감',
+      ],
+      en: [
+        'The whole hero is a halftone-dot canvas. On first visit a globe wrapped in the wordmark spins, then its dots scatter and reassemble into stairs and letters; clicks send a ripple through the dots',
+        'Section-by-section full-page scrolling, dot-lettered section headings and a header scrollspy that follows the current section',
+        'Korean and English, dark and light modes. Static pages only: no third-party scripts, trackers or cookies',
+        'Built test-first: 123 unit, component and integration tests. Only builds that pass GitHub Actions reach Cloudflare Pages',
+      ],
+    },
+    stack: ['Astro', 'TypeScript', 'Canvas', 'Vitest', 'Cloudflare Pages'],
+    href: 'https://stairno.com',
+  },
+  {
     title: 'my-status',
     status: 'shipped',
     size: 'featured',

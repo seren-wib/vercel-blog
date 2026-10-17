@@ -4,23 +4,23 @@
     "cloud-computing": 4,
     "computer-systems": 3,
     "database-systems": 1,
-    "git": 1,
-    "network": 9,
+    "software-engineering": 5,
     "sql": 1,
+    "git": 1,
     "unity": 2,
-    "software-engineering": 4,
+    "network": 9,
     "os": 10
   },
   "en": {
     "ai": 5,
     "cloud-computing": 4,
     "computer-systems": 3,
-    "git": 1,
-    "network": 9,
     "database-systems": 1,
-    "os": 10,
+    "software-engineering": 5,
+    "git": 1,
     "sql": 1,
+    "network": 9,
     "unity": 2,
-    "software-engineering": 4
+    "os": 10
   }
 }

@@ -1,0 +1,126 @@
+---
+title: 'Development and Operations Basics Glossary'
+date: '2026-10-20'
+tags: ['DevOps']
+draft: false
+summary: 'Repos, commits, branches, PRs, issues, Git Flow, versions and tags, hotfixes, TDD, kinds of tests, CI/CD, deploying, production and local, secrets, databases, schemas and migrations, transactions, cron, specifications, acceptance checklists, rehearsals and AI coding agents, explained so that non-developers can follow'
+---
+
+> Terms about how code is managed, how it is checked, and how it gets onto the live service. The Git commands themselves are in the [Git / GitHub Cheatsheet](/en/blog/git/git-cheatsheet/).
+
+## 1. Managing code
+
+### Repo
+
+**A store that holds code together with its change history (a repository).** It is managed with a tool called Git and kept on a site like GitHub. You download the same repo onto several computers (say, a Windows desktop and a MacBook) by **cloning** it, upload your changes to GitHub by **pushing**, and fetch them on the other computer by **pulling**.
+
+### Commit
+
+**A record that saves a set of code changes as one unit.** It carries a description like "add the sign-in page". Like a save point in a game, you can go back to that point at any time or undo just that one change.
+
+### Branch
+
+**A workspace kept apart from the main line.** You build a new feature without touching the main line's code and join it in when it is done (**merging**). If it fails, you just throw the branch away.
+
+### PR
+
+**A request saying "please merge this branch into the main line" (Pull Request).** You write what changed and why, and merge after the automated checks ([CI](#ci)) pass. Even working alone, PRs leave a description and a check record for every change.
+
+### Issue
+
+**A card for one to-do item or bug.** A problem like "the sign-in page is a 404" goes on an issue, and the PR that fixes it is linked with "this PR closes that issue".
+
+### Git Flow
+
+**A rule for splitting branches by purpose.** It keeps the code running in production apart from the code being built.
+
+| Branch      | Purpose                                                                        |
+| ----------- | ------------------------------------------------------------------------------ |
+| `main`      | The version running in production. Anything merged here is [deployed](#deploy) |
+| `develop`   | Where the next release is assembled. Everyday work lands here                  |
+| `feature/*` | Where one feature is built. Goes into `develop` when done                      |
+| `release/*` | Release preparation. Deployed when it goes into `main`                         |
+| `hotfix/*`  | An urgent fix to the production version. Cut from `main` and fixed right away  |
+
+Even if `develop` holds half of the next release, an urgent bug can be fixed with a `hotfix` on the production version alone.
+
+### Version number
+
+**A release number like `v0.4.2`.** The three numbers separated by dots are, in order, MAJOR (big changes), MINOR (new features) and PATCH (bug fixes). A leading 0 means "not officially launched yet". The commit at the moment of release gets a version label, called a **tag**.
+
+## 2. Checking code
+
+### TDD
+
+**Test-Driven Development: write the test before the code.**
+
+1. Write a test that says "it should behave like this". There is no code yet, so it fails, of course
+2. Write just enough code to make that test pass
+3. Tidy up the code while keeping the test passing
+
+The test becomes a promise that "this feature behaves like this", and if a later change breaks that promise, the test tells you right away.
+
+### Kinds of tests
+
+| Kind             | What it checks                                             | Analogy                         |
+| ---------------- | ---------------------------------------------------------- | ------------------------------- |
+| Unit test        | Does a single function behave correctly                    | Inspecting one part             |
+| Integration test | Do several parts work together, including the DB           | Inspecting the assembled engine |
+| Component test   | Is a single screen drawn correctly                         | Inspecting one dashboard gauge  |
+| End-to-end (E2E) | Does it work from start to finish on a real server runtime | Test-driving the finished car   |
+
+Further down the table, tests get closer to reality but also slower and harder to write. So you have many of the upper kinds and few of the lower. And no test guarantees "it really works at the production address". That is the job of a [rehearsal](#rehearsal).
+
+### CI
+
+**Something that runs tests and checks automatically every time code is pushed (Continuous Integration).** The machine runs them every time, even when a person forgets. If the checks fail, merging into `main` is blocked. On GitHub, **GitHub Actions** does this. Together with automatically putting merged code into production, it is called **CI/CD** (Continuous Delivery/Deployment).
+
+## 3. Shipping to production
+
+### Deploy
+
+**Putting finished code onto the live service's servers.** The deployed, real service environment is called **production**, and running things on your own computer is called **local**. Things that work locally but not in production happen more often than you would think.
+
+### Secret
+
+**A secret value that must not be written in the code.** Payment provider keys, DB connection details, signing secrets and the like. Anything in the repo is visible to everyone, so secrets go only into the server's settings. Many services (Cloudflare included) **never show a secret again** once it is stored. So you must first write it down in a **password manager** (a vault for secrets such as 1Password or Bitwarden) before storing it. Otherwise nobody will know the original value.
+
+### Cron
+
+**A job that runs automatically at set times.** A reservation like "run this every day at midnight". `0 0 * * *` means every day at 00:00, and `* * * * *` means every minute.
+
+## 4. Data
+
+### DB
+
+**Where data is stored (a database).** Users, orders and payment records live in tables much like spreadsheets. The language for asking or changing data in a DB is **SQL**, and one request is a **query**. SQL commands are in the [SQL Cheatsheet](/en/blog/sql/sql-mysql-cheatsheet/).
+
+### Schema and migration
+
+**A schema is the blueprint of the DB's tables, and a migration is a change to that blueprint.** Changes like "add a failure reason column to the orders table" are kept as numbered files, and at deploy time the ones not yet applied are applied in order. It is how you change the structure while keeping production data safe.
+
+### Transaction
+
+**Bundling several operations so that "all happen or none happen".** In a bank transfer, "take from A" and "put into B" must both happen or both not happen. If something fails midway, the earlier steps are undone too. A **read-only transaction** is one in which writes are blocked entirely. It is used to look into the production DB without changing data by mistake.
+
+## 5. Documents and checks
+
+### Specifications
+
+**Documents that say what to build and how.** These are the deliverables taught in a software engineering course.
+
+- **Project plan**: why, scope, risks, cost, decision log
+- **SRS** (Software Requirements Specification): what to build. Each item gets a number like `FR-3` (functional requirement 3). More in [Software Engineering chapter 4](/en/blog/software-engineering/software-engineering-ch4-requirements-analysis/#433-step-3-requirements-specification-software-requirements-specification-srs)
+- **SDD** (Software Design Description): how to build it. Structure, DB and API design
+
+### Acceptance checklist
+
+**The list of checks that "accepts a stage as done".** Each item is checked one by one in production and ticked with a date. Only when all are ticked does the next stage start.
+
+### Rehearsal
+
+**A dress rehearsal on the real service environment.** Tests run in fake environments, but a rehearsal is done on the production servers. For payments, that means triggering payments on the production server with test keys and checking each result (order status, emails, DB records) by eye.
+
+### AI coding agent
+
+**An AI that reads code, writes it and runs commands on a person's instructions.** Unlike getting code snippets in a chat, it looks at the whole repo, runs the tests and even commits. The person sets the rules and makes the decisions, and the agent works by those rules. The rules are written in documents inside the repo (`CLAUDE.md`, `CONTRIBUTING.md`).

@@ -1,0 +1,113 @@
+---
+title: 'Online Payments Basics Glossary'
+date: '2026-10-20'
+tags: ['Payments']
+draft: false
+summary: 'Payment providers (PG), test mode and sandbox, payment windows, payment approval, billing keys, subscriptions and renewals, webhooks, signature verification, idempotency, entitlements, the order state machine, adapters and minor-unit amounts, explained so that non-developers can follow'
+---
+
+> Terms you need to understand what happens behind the scenes when a website takes a card payment. The examples follow the Stairno account center.
+
+## 1. Who takes the money
+
+### Payment provider
+
+**A company that processes payments between card issuers and shops (a PG, Payment Gateway).** A small shop cannot sign contracts with dozens of card companies one by one, so it signs with one provider and the provider connects it to the card companies. The shop pays a few percent per transaction as a fee.
+
+Stairno uses **Toss Payments** for domestic payments (Korean won, KRW) and **PayPal** for international payments (US dollars, USD).
+
+### Payment window
+
+**The provider's screen that takes the card number.** Also called a widget. It looks like part of the shop's site, but the provider built it, so the card number goes straight to the provider and the shop's server never sees it. Stairno has **no code at all** that takes card numbers, expiry dates or CVCs. No card data held means no card data to leak.
+
+### Test mode
+
+**Practice payments where no real money moves.** Providers hand out practice keys (**test keys**). Payments made with them go through exactly the same steps as real ones, but no money moves. PayPal calls the same idea a **sandbox**. The **live keys** that take real money are only issued after business registration and a contract with the provider.
+
+## 2. The order of a single payment
+
+### Payment approval
+
+**The step where the shop asks the provider to "please finalize this payment".** A card payment has two steps.
+
+1. The user enters a card in the payment window and authenticates. No money has left yet
+2. The shop's server asks the provider for **approval**. This is when the money leaves
+
+In step 2 the shop's server **checks the amount again**. Step 1 happens in the user's browser, so someone could tamper with the browser and turn a 10,000 won item into 100 won. The server catches "this order is 10,000 won but 100 won came in" and refuses to approve.
+
+### Writing amounts
+
+**An amount is always a pair: an integer in the smallest unit and a currency code.** 1,000 won is `1000 KRW` and 1 dollar is `100 USD` (in cents). Decimal arithmetic on computers has rounding errors (0.1 + 0.2 does not come out as exactly 0.3), so money is never computed as decimals. Won and dollars are never added together either.
+
+### Refund
+
+**Cancelling an approved payment and returning the money.** The shop asks the provider to cancel, and the provider returns the money through the card company. At Stairno the user **requests** a refund, and the operator reviews it and approves or rejects it.
+
+## 3. Saved cards and recurring payments
+
+### Billing key
+
+**A key that stands in for a registered card.** Once a card is registered, the provider gives back a billing key instead of the card number. The shop stores only the billing key and, for the next payment, asks "charge 1,000 won to this billing key". The user does not re-enter the card, and the shop never holds the card number. The screen shows only the card issuer and the last four digits.
+
+### Subscriptions and renewals
+
+**Charging the same amount automatically every period.** The first charge happens right when the subscription starts, and after that the server charges the billing key whenever a period ends (a **renewal**). If a renewal fails, say because the card is over its limit, the subscription is not cut off immediately. The server tries again a few days later, and if it keeps failing, the subscription **expires**. Each failure sends the user a "please check your card" email.
+
+## 4. How the provider and the shop talk
+
+### Webhook
+
+**A phone call from the provider to the shop's server.** Normally the shop calls the provider, but when something happens on the provider's side first, such as "a payment just completed" or "a refund went through", the provider sends a notice to an address the shop registered in advance. Even if the user closes the window right after paying, the shop still learns the result through the webhook.
+
+### Signature verification
+
+**Checking that a webhook really came from the provider.** Anyone can learn the webhook address, so anyone could send a fake notice ("payment completed"). That is why providers sign their notices and shops trust only notices whose signature checks out. For Toss, the shop asks Toss for the payment's state again after receiving a notice. For PayPal, the shop asks PayPal to verify the signature.
+
+### Idempotency
+
+**The property that receiving the same request several times has the same result as receiving it once.** On a shaky network a provider may send the same webhook twice or three times. Processing it twice (granting access twice, sending the email twice) would be an incident. So each notice's event number is recorded, and numbers already processed are ignored. It is like an elevator button: press it several times and the elevator still comes once.
+
+## 5. After the payment
+
+### Entitlement
+
+**The record of "may this person use this product?"** A completed payment creates an entitlement, a refund revokes it (`revoked`), and when a subscription ends, its entitlement expires too. The site that sells a product does not dig through payment history. It just asks the API "may this person use this product?".
+
+### Order state machine
+
+**A predefined set of states an order can be in, with rules for moving between them.** A Stairno order moves like this.
+
+```text
+pending ──payment approved──> paid ──entitlement granted──> fulfilled ──refund──> refunded
+   │
+   ├──declined or amount mismatch──> failed
+   └──not paid within 30 minutes──> expired
+```
+
+| State       | Meaning                                     |
+| ----------- | ------------------------------------------- |
+| `pending`   | Order created, waiting for payment          |
+| `paid`      | Money received, entitlement not granted yet |
+| `fulfilled` | Payment and entitlement both done           |
+| `refunded`  | Refunded                                    |
+| `failed`    | Payment failed                              |
+| `expired`   | Not paid in time, so it expired             |
+
+There is also a path straight from `paid` to `refunded` (a refund before the entitlement is granted). Any move without an arrow is refused. For example, you cannot go from `refunded` to `fulfilled`. That makes odd states like "refunded but still entitled" impossible.
+
+### Adapter
+
+**A middle piece that makes different things look the same.** The same idea as the plug adapter you take abroad. Toss and PayPal take completely different requests, but an adapter wraps both into the same set of operations: "approve payment", "cancel", "verify webhook".
+
+- The order state machine only knows the adapter and does not know whether it is Toss or PayPal
+- Adding another provider means writing one more adapter
+- Tests plug in a **fake adapter** instead of a real provider. Situations like "decline the next payment" or "pretend the provider is down" can be created at will, without real money
+
+### Payment switch
+
+**A setting that turns off payments only.** At Stairno, when the setting `PAYMENTS_MODE` is `off`, sign-in still works and only payment requests answer "not available right now" (503). It exists so that a provider or DB outage stops payments without taking the whole site down.
+
+## 6. Posts that use these terms
+
+- [Stairno 4. Building payments (test mode)](/en/blog/stairno/stairno-04-payments/)
+- [Stairno 4a. The production payment rehearsal](/en/blog/stairno/stairno-04a-payment-rehearsal/)

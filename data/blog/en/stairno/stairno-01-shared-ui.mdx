@@ -1,0 +1,104 @@
+---
+title: 'Stairno 1. The Shared Design Package'
+date: '2026-10-20'
+tags: ['Stairno']
+draft: false
+summary: 'Roadmap step 1. Pulling the colors, fonts, header, footer, theme and language switches of the hub stairno.com out into the @stairno/ui package, and checking that not a single pixel changed. Then adding the account menu to the package'
+---
+
+> Roadmap step 1: making every Stairno site use exactly the same look. The big picture is in [Stairno 0. The whole roadmap](/en/blog/stairno/stairno-00-roadmap/).
+
+## In one line
+
+The "look" (colors, fonts, header, footer, buttons) that was baked into the hub site was moved out into a separate box of parts. Now a new site just takes that box and starts out looking like the hub. While it was being moved, the hub did not change by a single pixel.
+
+## 1. The starting point: the hub stairno.com
+
+Before step 1 there was the hub, an introduction site built and published in a single day on 17 October.
+
+- **Built with**: pages prebuilt with [Astro](/en/blog/stairno/stairno-00-roadmap/#8-tools-in-this-series) and uploaded to [Cloudflare Pages](/en/blog/cloudflare/cloudflare-00-basics/#pages). A static site with no sign-in and no DB
+- **Design**: black and white only. A night sky and a staircase drawn in small dots, with a star climbing the stairs. Even the heading letters form from gathering dots. The font is Pretendard
+- **Features**: switching between Korean and English, switching between light and dark themes (following the computer's setting at first), mobile layouts
+- **Documents**: even this small site got a project plan, requirements specification, design specification and test-and-deploy document first
+
+## 2. The problem: four sites mean four looks
+
+On 18 October I decided: "Every Stairno site looks exactly like the hub. No per-site colors or headers."
+
+But the hub's look was mixed into the hub's code. What happens if each new site copies that code?
+
+1. At first all four look the same
+2. You change one header button on the hub
+3. You have to make the same change on the other three, and you forget one
+4. A few months later, every site looks slightly different
+
+So the look is managed in **one place only**. That is the shared design package `@stairno/ui` (repo `stairno-ui`).
+
+## 3. What was pulled out
+
+| Pulled out          | What it is                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------ |
+| Design tokens       | Named values for colors, spacing, corner rounding and so on, used like `--bg` (background color) |
+| Base styles         | Fonts, text sizes, content width, fixed header, footer, button shapes                            |
+| Header and footer   | The bands at the top and bottom of the screen. The site passes in the text and links             |
+| Theme switch button | Switches between light and dark and remembers the choice                                         |
+| Language switch     | Links that move between `/ko` and `/en`                                                          |
+| Font loading        | Where and how to fetch Pretendard                                                                |
+
+**Some things stayed behind.** The dot lettering and the night-sky animation are the hub's own first impression, so they stayed in the hub. Floating dot letters on a screen like the account center would only get in the way.
+
+**The shared parts do not know "what to show".** The header only knows "take menu items and draw them", and the site using it decides what goes in the menu. That is how the hub's menu and the account center's menu can differ while sharing one header.
+
+## 4. How it is shared: version labels
+
+Other sites install the package straight from its [GitHub repo](/en/blog/devops/devops-00-basics/#repo). They always pin a version label (a [tag](/en/blog/devops/devops-00-basics/#version-number)).
+
+```bash
+npm install github:seren-wib/stairno-ui#v0.2.2
+```
+
+Install without a label and you get "whatever the latest code is at that moment". Then the hub runs yesterday's code, the account center runs today's, and one day the look changes even though nobody bumped a version. With a label, each site records "I use v0.2.2", and changing the look is a separate change that bumps the label on that site.
+
+Changing the look always goes in the same order.
+
+1. Change `stairno-ui` and test it
+2. Put a new version label on it
+3. Bump the dependency to the new version on each site
+
+## 5. The check: did a single pixel change?
+
+The success condition for this work was "the hub looks as if nothing changed". Lots of code moved, but the screen had to stay the same. It was checked in three layers.
+
+1. **Comparing the output files.** Built the hub before and after and compared the results. The HTML differed only in a script's indentation, and the CSS only in two blocks of the same rule merged into one. The rules themselves were identical
+2. **Comparing screenshots.** Took 12 shots, light and dark × desktop (1280px) and mobile (360px) × the Korean, English and 404 pages, and compared before and after pixel by pixel. **All 12 had zero pixels of difference**
+3. **Checking behavior and tests.** Clicked the theme button, checked the choice is remembered, the header changing on scroll and the language links by hand. Automated tests passed: 118 in the hub and 43 in the package
+
+In the early hours of 18 October, `stairno-ui` `v0.1.0` was released and the change that switched the hub over to it was merged. Roadmap step 1 done.
+
+## 6. Afterwards: adding the account menu
+
+That afternoon, while working on step 3, one more part went into the package: the **account menu**.
+
+The original decision was "no sign-in related screens on the hub at all". But once the account center existed, it felt awkward that the hub, the brand's front page, did not show "am I signed in?" or "where is the account center?". So the decision changed. The hub also gets one round account button on the right of its header, but account screens and payments still stay off the hub.
+
+This button had to look **exactly the same** on the hub, the account center and every future site, so of course it was built in the shared package.
+
+- **Signed in**: the button shows the first letter of the name. Clicking opens a card with the name, the email, "Manage account" and "Log out"
+- **Signed out**: a person icon. Clicking shows "Log in" and "Sign up"
+- **Sites without a server, like the hub**: the browser asks the shared API directly "who is signed in right now?". If there is no answer within 3 seconds, or it fails, it simply shows the signed-out state
+- **Usable with the keyboard alone**: opening it moves focus to the first link, and Esc or a click outside closes it and returns focus to the button ([accessibility](/en/blog/web/web-00-basics/#accessibility))
+
+To build and check this part, I created a fresh practice site following the README's instructions, attached the menu, and took 16 shots across signed in / signed out / hub mode × light and dark × desktop and mobile.
+
+| Version  | What changed                                                                                                    |
+| -------- | --------------------------------------------------------------------------------------------------------------- |
+| `v0.1.0` | The first version pulled out of the hub                                                                         |
+| `v0.2.0` | Account menu added                                                                                              |
+| `v0.2.1` | Fixed an empty band under the footer on short pages                                                             |
+| `v0.2.2` | Sites can choose where the header's brand logo points. In the account center, clicking the logo goes to the hub |
+
+## 7. What is left
+
+- **The first paint waits for the font.** While the Pretendard font stylesheet loads, drawing stops for about 0.9 seconds. It is the main reason the account center's sign-in page scored 91 in English and 81–85 in Korean for [Lighthouse](/en/blog/web/web-00-basics/#lighthouse) performance, short of the target of 90. Changing it to draw first without waiting for the font is an open issue in `stairno-ui`
+
+Next: [Stairno 2. The plan and the cross-domain sign-in experiment](/en/blog/stairno/stairno-02-account-plan/)

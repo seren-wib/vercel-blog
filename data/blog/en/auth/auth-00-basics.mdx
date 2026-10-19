@@ -1,0 +1,100 @@
+---
+title: 'Sign-in Basics Glossary'
+date: '2026-10-20'
+tags: ['Auth']
+draft: false
+summary: 'Authentication and authorization, OIDC, OAuth, tokens (access, refresh, site), JWT, JWKS, PKCE, hashing, rate limiting and breached password checks, explained so that non-developers can follow'
+---
+
+> Terms you need to understand how sign-in works, especially how "one account signs you into several sites" works. More basic terms like cookies, sessions and redirects are in the [Web Basics Glossary](/en/blog/web/web-00-basics/).
+
+## 1. Basic ideas
+
+### Authentication and authorization
+
+**Authentication is "who are you", authorization is "what may you do".** Signing in with an email and a password is authentication. Stopping a signed-in person from seeing "someone else's order" is authorization. In a building, checking the access card is authentication, and deciding which floors that card opens is authorization.
+
+### Hash
+
+**A value scrambled so that it cannot be turned back.** Passwords are not stored as typed. They are turned into a hash and stored that way. When you sign in, the password you type is hashed the same way and compared with the stored value. Even if the whole DB leaks, the original passwords cannot be read.
+
+Stairno uses a method called **scrypt**. It is deliberately expensive to compute, which slows down attackers who try password candidates one by one. The price is that the server also spends noticeable compute time on every sign-in.
+
+### Rate limiting
+
+**Briefly blocking a source that tries too many times.** It stops attacks that try thousands of passwords. It is applied to sign-in, sign-up, password reset mail and the like.
+
+### Breached password check
+
+**Refusing, at sign-up, a password that has already leaked somewhere else.** The password is compared against a public list of leaked passwords. Only the first part of its hash is sent, not the password itself, so the password does not leak in the process.
+
+## 2. Signing into several sites with one account
+
+### OAuth
+
+**A standard for allowing an app to use part of your account.** A screen like "May this app read your Google Calendar?" is OAuth. Instead of giving the app your password, you give it a [token](#token) limited to what you allowed.
+
+### OIDC
+
+**The standard way of "getting your identity confirmed somewhere else and coming back" (OpenID Connect).** It adds "who this person is" on top of OAuth. "Sign in with Google" is the best-known example.
+
+There are two roles.
+
+- **OIDC provider**: the ID office. It actually takes the sign-in and issues proof of "this person is so-and-so". At Stairno the account center (the API) plays this role
+- **OIDC client**: the side that picks up the ID. Sites such as Labs and Works. A site registers with the provider in advance and gets a `client_id` (the site's name tag) and a `client_secret` (the site's password)
+
+Step by step, the flow looks like this.
+
+1. The user clicks "Sign in with Stairno" on a site
+2. The site sends the user to the account center (a redirect)
+3. The user signs in at the account center. If already signed in, this step is skipped
+4. The account center sends the user back to the site with a one-time **code**
+5. The site's server hands that code to the account center and exchanges it for a [token](#token)
+6. The site checks the token and creates **its own** [session](/en/blog/web/web-00-basics/#session) with **its own cookie**
+
+The key point is that no cookie is shared. Each site keeps only its own cookie and meets the account center only through redirects. So it does not matter that browsers block [third-party cookies](/en/blog/web/web-00-basics/#third-party-cookie).
+
+### Token
+
+**A certificate that says "this person (or this site) may do this".** You attach it to a request, and the API checks it before acting. Tokens expire. Three kinds appear at Stairno.
+
+| Token         | Whose certificate | Lifetime | Used for                                                                  |
+| ------------- | ----------------- | -------- | ------------------------------------------------------------------------- |
+| Access token  | The user          | 1 hour   | When a site calls the API on the user's behalf                            |
+| Refresh token | The user          | 90 days  | Getting a new access token after the old one expires                      |
+| Site token    | The site itself   | Short    | When a site says "I am a registered Stairno site" (creating orders, etc.) |
+
+In OAuth terms, the way a site gets its site token is called **client credentials**. It is a token obtained with only the site's name tag and password, with no user involved.
+
+### JWT
+
+**A token format signed so that it cannot be forged (JSON Web Token).** The token itself says whose it is, which API it is for and when it expires, and it carries the issuer's digital signature. The receiver knows it is genuine by checking the signature, without looking anything up in a DB. Change a single character and the signature no longer matches.
+
+### JWKS
+
+**The list of public keys used to check JWT signatures (JSON Web Key Set).** Signing works as "lock with a private key, check with a public key". The account server signs tokens with its private key and publishes the public key at a fixed address (`/auth/jwks`) for anyone to read. The API and the sites use that public key to check signatures.
+
+At Stairno, the private key is stored in the DB **encrypted**, and the value used for that encryption is the server [secret](/en/blog/devops/devops-00-basics/#secret) `BETTER_AUTH_SECRET`. Lose that value and the private key in the DB can no longer be decrypted.
+
+### Discovery document
+
+**A notice in which an OIDC provider publishes "these are my addresses".** It lists the sign-in page, the token endpoint, the JWKS address and so on. A site can connect to the provider by reading this one document. Its address is fixed by the standard (`/.well-known/openid-configuration`).
+
+### PKCE
+
+**A safeguard that makes a code useless even if it is intercepted mid-sign-in (pronounced "pixy").** What if someone steals the one-time code from step 4 of the OIDC flow above? PKCE blocks it like this.
+
+1. When the site starts the sign-in, it makes a secret value and sends only its "fingerprint" (a hash) to the account center
+2. When it later exchanges the code for a token, it also hands over the original secret value
+3. The account center checks that the fingerprint of that value matches the one it received first
+
+Someone who stole only the code does not know the original secret value, so they cannot get a token.
+
+### Consent screen
+
+**The screen that asks "May this site receive your name and email?"** It is essential for apps from other companies, but Stairno sites all belong to the same brand, so they are registered as trusted from the start and skip this screen.
+
+## 3. Posts that use these terms
+
+- [Stairno 2. The plan and the cross-domain sign-in experiment](/en/blog/stairno/stairno-02-account-plan/)
+- [Stairno 3. Building sign-in and going live](/en/blog/stairno/stairno-03-login/)

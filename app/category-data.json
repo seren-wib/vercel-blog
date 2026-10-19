@@ -1,26 +1,38 @@
 {
   "kr": {
     "ai": 5,
+    "auth": 1,
+    "cloudflare": 1,
+    "database-systems": 1,
+    "devops": 1,
+    "git": 1,
     "cloud-computing": 4,
     "computer-systems": 3,
-    "database-systems": 1,
-    "software-engineering": 6,
-    "sql": 1,
-    "unity": 2,
     "network": 9,
     "os": 10,
-    "git": 1
+    "payments": 1,
+    "software-engineering": 6,
+    "stairno": 6,
+    "unity": 2,
+    "sql": 1,
+    "web": 1
   },
   "en": {
     "ai": 5,
-    "computer-systems": 3,
     "cloud-computing": 4,
-    "git": 1,
+    "auth": 1,
+    "cloudflare": 1,
+    "computer-systems": 3,
+    "database-systems": 1,
+    "devops": 1,
     "network": 9,
-    "software-engineering": 6,
-    "sql": 1,
-    "unity": 2,
+    "git": 1,
     "os": 10,
-    "database-systems": 1
+    "payments": 1,
+    "sql": 1,
+    "software-engineering": 6,
+    "stairno": 6,
+    "unity": 2,
+    "web": 1
   }
 }

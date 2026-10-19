@@ -1,0 +1,93 @@
+---
+title: 'Cloudflare Basics Glossary'
+date: '2026-10-20'
+tags: ['Cloudflare']
+draft: false
+summary: 'Cloudflare, DNS and Registrar, Pages, Workers, workerd, cold starts, the free plan CPU limit, data centers, regions and latency, Placement, R2, Cron Triggers, wrangler, Workers secrets and Email Routing, explained so that non-developers can follow'
+---
+
+> Every Stairno site and API runs on Cloudflare. This post collects the Cloudflare terms that come up along the way. General development and operations terms are in the [Development and Operations Basics Glossary](/en/blog/devops/devops-00-basics/).
+
+## 1. What Cloudflare does
+
+### Cloudflare
+
+**A company with data centers around the world that delivers websites quickly and safely.** It started by standing in front of sites to block attacks and serve files from nearby locations (a CDN), and today it sells domains, hosts static sites, runs server code and stores files, all in one place. Everything at Stairno, from domains to servers, is on Cloudflare. The free tier is generous, so starting alone costs almost nothing.
+
+### DNS and Registrar
+
+**DNS is the phone book that turns a domain name into a real server address, and a registrar is where you buy domains.** Stairno's four domains were bought from Cloudflare Registrar. Once a domain is bought there, Cloudflare also runs its DNS, and a [subdomain](/en/blog/web/web-00-basics/#domain) such as `account.stairno.com` appears by adding one line to the DNS.
+
+### Pages
+
+**Hosting for prebuilt files (static sites).** Used for sites that show everyone the same thing, like an introduction page. The hub `stairno.com` started here.
+
+### WAF
+
+**A firewall in front of a site that filters out suspicious requests (Web Application Firewall).** It blocks known attack patterns and excessive requests before they reach the server.
+
+## 2. Workers: where server code runs
+
+### Workers
+
+**A service where you upload code and Cloudflare runs it, without renting a server machine.** A normal server means renting a machine, keeping it on 24 hours a day and managing it yourself. With Workers, code runs only when a request comes in, and there is no machine to manage. The Stairno account center (`account.stairno.com`) and the shared API (`api.stairno.com`) are one Worker each.
+
+A newly uploaded Worker gets a temporary address of the form `<name>.<account name>.workers.dev`. You check things on that address before attaching a real domain.
+
+### workerd
+
+**The engine that actually runs code inside Workers.** It is open source, so you can run the same engine on your own computer. It is similar to the usual server engine (Node.js) but not identical, so code that works on Node.js sometimes behaves differently on workerd.
+
+### Cold start
+
+**The moment server code that has been idle for a while wakes up to take its first request.** If a request is handled before the wake-up preparation is complete, odd bugs tend to appear. Workers wake up very quickly.
+
+### Free plan CPU limit
+
+**The compute time one request may use on the Workers free plan: 10 ms (0.01 seconds).** Waiting time (such as waiting for the DB) is not counted, only pure computation. Most requests use less than 1 ms, but deliberately heavy computation like password [hashing](/en/blog/auth/auth-00-basics/#hash) goes far over the limit. The paid plan (5 dollars a month) has a much larger limit.
+
+### Cron Triggers
+
+**A setting that runs a Worker automatically at set times.** Cloudflare's version of [cron](/en/blog/devops/devops-00-basics/#cron). It can be changed in the dashboard, and the next deploy overwrites it with the setting written in the code.
+
+### wrangler
+
+**The command-line tool for Workers.** It runs a Worker locally (`wrangler dev`), deploys (`wrangler deploy`), shows live logs (`wrangler tail`) and stores secrets (`wrangler secret put`).
+
+### Workers secrets
+
+**Secret values stored only for a Worker.** The code mentions only the name, and the value is stored separately at Cloudflare. Once stored, Cloudflare **never shows the value again.** You can replace it but never read the original back, so write it down in a password manager before storing it.
+
+## 3. Distance and speed
+
+### Data centers and regions
+
+**A data center is a building full of server machines, and a region is an area with several of them.** AWS (Amazon's cloud) names its Singapore region `ap-southeast-1` and its US East region `us-east-1`, for example. Neon, the database service Stairno uses, runs on rented AWS machines, and Stairno's DB is in the AWS Singapore region.
+
+### Latency
+
+**The time a request takes to go out and come back.** Even light has a speed limit, so distance makes things slow. A round trip from Korea to Los Angeles (LAX, as Cloudflare names that data center) takes about 0.2 seconds on its own. Which data center a request enters is decided by the Cloudflare plan and the internet provider, and the site cannot change it.
+
+### Placement
+
+**A setting that decides where a Worker runs.** By default a Worker runs in the data center the request entered. But if the code calls the DB several times, it is faster to run next to the DB, because round trips get shorter. So you can say "run this Worker near the AWS Singapore region". The trade-off is that requests that never call the DB take one more long trip and get slower.
+
+## 4. Other services
+
+### R2
+
+**Cloudflare's file storage.** Large files (for example, installers for desktop programs) are uploaded here for download. Downloads are not billed (free egress).
+
+### Email Routing
+
+**Forwarding mail sent to an address on your domain to another mailbox.** It gives you an address like `contact@yourdomain` without running a mail server.
+
+### Web Analytics
+
+**Cloudflare inserting a script into pages to count visits.** Depending on the site's settings, Cloudflare may insert it automatically.
+
+## 5. Posts that use these terms
+
+- [Stairno 0. The whole roadmap](/en/blog/stairno/stairno-00-roadmap/)
+- [Stairno 3. Building sign-in and going live](/en/blog/stairno/stairno-03-login/)
+- [Stairno 4a. The production payment rehearsal](/en/blog/stairno/stairno-04a-payment-rehearsal/)

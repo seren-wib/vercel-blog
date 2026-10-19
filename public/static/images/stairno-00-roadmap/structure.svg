@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="520" viewBox="0 0 860 520" role="img" aria-label="Stairno 전체 구조: 허브 stairno.com 아래에 Works, Games, Labs 세 사이트가 있고, 허브를 포함한 모든 사이트가 계정 센터 account.stairno.com과 공용 API api.stairno.com을 부른다. API 뒤에는 DB(Neon), 메일(Resend), 결제사(토스페이먼츠, PayPal), 파일 저장소(R2)가 있다. 모든 사이트의 모양은 공용 디자인 패키지 @stairno/ui 하나에서 온다.">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#57606a"/>
+    </marker>
+    <style>
+      .t { font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif; fill: #1f2328; }
+      .h { font-size: 15px; font-weight: 700; }
+      .s { font-size: 12px; fill: #57606a; }
+      .l { font-size: 11.5px; fill: #57606a; }
+      .cap { font-size: 12px; font-weight: 700; fill: #57606a; letter-spacing: 0.04em; }
+      .live { fill: #ffffff; stroke: #1f2328; stroke-width: 2; }
+      .plan { fill: #ffffff; stroke: #8c959f; stroke-width: 1.5; stroke-dasharray: 6 4; }
+      .svc { fill: #ffffff; stroke: #d0d7de; stroke-width: 1.5; }
+      .band { fill: #eef1f4; stroke: none; }
+      .line { stroke: #57606a; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect x="1" y="1" width="858" height="518" rx="16" fill="#f6f8fa" stroke="#d0d7de"/>
+
+  <!-- Row labels -->
+  <text class="t cap" x="24" y="34">사이트</text>
+  <text class="t cap" x="24" y="268">계정과 결제</text>
+  <text class="t cap" x="24" y="420">API 뒤의 서비스</text>
+
+  <!-- Hub -->
+  <rect class="live" x="320" y="20" width="220" height="64" rx="10"/>
+  <text class="t h" x="430" y="47" text-anchor="middle">stairno.com</text>
+  <text class="t s" x="430" y="67" text-anchor="middle">허브 · 소개와 링크, 계정 메뉴</text>
+
+  <!-- Projects -->
+  <rect class="plan" x="60" y="128" width="220" height="70" rx="10"/>
+  <text class="t h" x="170" y="156" text-anchor="middle">stairnoworks.com</text>
+  <text class="t s" x="170" y="176" text-anchor="middle">Works · 외주 접수, 견적, 선금</text>
+
+  <rect class="plan" x="320" y="128" width="220" height="70" rx="10"/>
+  <text class="t h" x="430" y="156" text-anchor="middle">stairnogames.com</text>
+  <text class="t s" x="430" y="176" text-anchor="middle">Games · 게임 Vane</text>
+
+  <rect class="plan" x="580" y="128" width="220" height="70" rx="10"/>
+  <text class="t h" x="690" y="156" text-anchor="middle">stairnolabs.com</text>
+  <text class="t s" x="690" y="176" text-anchor="middle">Labs · 제품 카탈로그와 스토어</text>
+
+  <!-- Hub to projects -->
+  <path class="line" d="M370 84 C 330 104, 230 110, 190 126"/>
+  <path class="line" d="M430 84 L430 126"/>
+  <path class="line" d="M490 84 C 530 104, 630 110, 670 126"/>
+  <text class="t l" x="560" y="104">링크로 이동</text>
+
+  <!-- Account band -->
+  <rect class="band" x="40" y="240" width="780" height="120" rx="12"/>
+  <rect class="live" x="130" y="262" width="260" height="76" rx="10"/>
+  <text class="t h" x="260" y="290" text-anchor="middle">account.stairno.com</text>
+  <text class="t s" x="260" y="310" text-anchor="middle">계정 센터 · 가입, 로그인, 카드, 주문</text>
+  <text class="t s" x="260" y="326" text-anchor="middle">구독, 다운로드, 보안</text>
+
+  <rect class="live" x="470" y="262" width="260" height="76" rx="10"/>
+  <text class="t h" x="600" y="290" text-anchor="middle">api.stairno.com</text>
+  <text class="t s" x="600" y="310" text-anchor="middle">공용 API · 로그인(OIDC), 주문, 결제</text>
+  <text class="t s" x="600" y="326" text-anchor="middle">구독, 권한. DB는 여기만 만진다</text>
+
+  <path class="line" d="M390 300 L468 300"/>
+
+  <!-- Sites to API -->
+  <path class="line" d="M170 198 C 170 220, 300 236, 520 260"/>
+  <path class="line" d="M430 198 C 450 220, 540 236, 580 260"/>
+  <path class="line" d="M690 198 L660 260"/>
+  <text class="t l" x="700" y="226">로그인, 결제 요청</text>
+
+  <!-- Services behind API -->
+  <rect class="svc" x="60" y="432" width="136" height="60" rx="10"/>
+  <text class="t h" x="128" y="458" text-anchor="middle">Neon</text>
+  <text class="t s" x="128" y="477" text-anchor="middle">DB (PostgreSQL)</text>
+
+  <rect class="svc" x="212" y="432" width="136" height="60" rx="10"/>
+  <text class="t h" x="280" y="458" text-anchor="middle">Resend</text>
+  <text class="t s" x="280" y="477" text-anchor="middle">메일 발송</text>
+
+  <rect class="svc" x="364" y="432" width="136" height="60" rx="10"/>
+  <text class="t h" x="432" y="458" text-anchor="middle">토스페이먼츠</text>
+  <text class="t s" x="432" y="477" text-anchor="middle">국내 결제 (KRW)</text>
+
+  <rect class="svc" x="516" y="432" width="136" height="60" rx="10"/>
+  <text class="t h" x="584" y="458" text-anchor="middle">PayPal</text>
+  <text class="t s" x="584" y="477" text-anchor="middle">해외 결제 (USD)</text>
+
+  <rect class="svc" x="668" y="432" width="136" height="60" rx="10"/>
+  <text class="t h" x="736" y="458" text-anchor="middle">R2</text>
+  <text class="t s" x="736" y="477" text-anchor="middle">다운로드 파일</text>
+
+  <path class="line" d="M560 338 C 520 380, 200 390, 140 430"/>
+  <path class="line" d="M575 338 C 545 380, 320 395, 290 430"/>
+  <path class="line" d="M590 338 C 570 380, 450 400, 440 430"/>
+  <path class="line" d="M605 338 L590 430"/>
+  <path class="line" d="M620 338 C 650 380, 720 400, 730 430"/>
+
+  <!-- Legend -->
+  <rect class="live" x="590" y="20" width="22" height="14" rx="3"/>
+  <text class="t l" x="620" y="31">운영 중</text>
+  <rect class="plan" x="690" y="20" width="22" height="14" rx="3"/>
+  <text class="t l" x="720" y="31">만들 예정</text>
+  <text class="t l" x="590" y="58">모양은 전부 @stairno/ui 하나에서</text>
+</svg>

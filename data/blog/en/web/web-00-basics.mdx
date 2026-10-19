@@ -1,0 +1,93 @@
+---
+title: 'Web Basics Glossary'
+date: '2026-10-20'
+tags: ['Web']
+draft: false
+summary: 'Domains, servers, APIs, cookies, sessions, origins, redirects, HTTP status codes, SSR, i18n and frameworks, explained so that non-developers can follow'
+---
+
+> Basic terms you need to understand how a website works. Other posts link to the entries on this page. Each entry starts with a **bold one-line summary**, followed by a slightly longer explanation.
+
+## 1. Addresses and servers
+
+### Domain
+
+**The name of an internet address.** A human-readable address like `stairno.com`. It is an easy-to-remember name for the real numeric address (the IP address). Domains are rented by the year.
+
+Names with an extra part in front, like `account.stairno.com` or `api.stairno.com`, are **subdomains**. Think of them as rooms inside the house called `stairno.com`. The owner can create subdomains freely without buying anything. `stairno.com` and `stairnolabs.com`, on the other hand, are two different houses. This difference matters for [cookies](#cookie).
+
+### Server
+
+**A computer (or a program running on it) that receives requests and sends back answers.** When a browser asks "give me this page" or "sign this person in", the server handles it and returns the result. The side that sends requests (a browser, an app) is called the **client**.
+
+### API
+
+**A window through which programs talk to each other.** People click buttons on a screen, while programs send requests in an agreed format to an agreed address. An address that accepts "create an order for this product" is an API.
+
+In restaurant terms: the customer (a site) does not walk into the kitchen (the DB). They read the menu (the API specification) and order from the waiter (the API). However the kitchen changes, the customer does not need to care as long as the menu stays the same.
+
+### Frameworks and libraries
+
+**Bundles of code that someone else already wrote.** You take them so you do not have to write common features like sign-in, page rendering or database access from scratch. If your code calls it, it is a **library**. If it gives you a fixed skeleton and you plug your code into it, it is a **framework**. People often use the two words loosely.
+
+## 2. How a site remembers that you signed in
+
+### Cookie
+
+**A small note the browser keeps for each site.** When you sign in, the server hands you a cookie that says "this person is signed in", and the browser sends that cookie back with every request to that site. That is why you stay signed in as you move between pages.
+
+The important rule: **a cookie is only sent to the site that gave it.** A cookie from `stairno.com` is not sent to `stairnolabs.com`. Rooms in the same house (`account.stairno.com` and `api.stairno.com`) can share a cookie if configured to.
+
+### Third-party cookie
+
+**A cookie from a site other than the one you are looking at.** For example, if site A embeds an ad from site B, a cookie from B can be set. These are widely used for ad tracking, so browsers like Safari block them by default. That rules out "borrowing another site's cookie to share a signed-in state".
+
+### Session
+
+**The server's record of "who is signed in right now".** The cookie only holds a claim ticket. Who signed in, when and from where is written in the server's DB, and the server uses the ticket to find the record. Deleting the session signs you out. "Sign out of other devices" means deleting those devices' session records on the server.
+
+### Origin
+
+**The front part of an address (protocol + domain + port).** `https://account.stairno.com` and `https://stairnolabs.com` are different origins. A server looks at which origin a request came from and refuses risky requests from unknown origins. This stops attacks where another site quietly sends "change my password" on the user's behalf. This is called an **origin check**.
+
+A related mechanism is **CORS**: an allow-list saying "pages from these origins may call our API". If a page from a site not on the list calls the API, the browser blocks the result.
+
+### Redirect
+
+**An answer that says "not here, go there".** The server automatically sends the browser to another address. Going to another site to sign in and coming back to the original site is done through several redirects.
+
+## 3. What the server answers
+
+### HTTP status code
+
+**A three-digit number the server attaches to its answer.** It tells you the outcome before anything else. The common ones:
+
+| Code | Meaning                                            | Example                                     |
+| ---- | -------------------------------------------------- | ------------------------------------------- |
+| 200  | Success                                            | The page opened                             |
+| 201  | Success, something new was created                 | An order was created                        |
+| 302  | Go to a different address                          | Sent to the sign-in page                    |
+| 403  | Not allowed                                        | Trying to see someone else's order          |
+| 404  | No such address                                    | A missing page                              |
+| 409  | Conflicts with the current state                   | Processing an already processed order again |
+| 422  | The format is fine but the content is unacceptable | The payment amount differs from the order   |
+| 502  | Another server behind this one failed              | The payment provider did not answer         |
+| 503  | This feature is unavailable right now              | Payments are switched off                   |
+
+## 4. How pages are made
+
+### SSR
+
+**Server-Side Rendering: the server finishes the page before sending it.** Unlike a static site, where the same prebuilt page goes to everyone, the server builds a page for each request. Pages that differ per person, like "my orders", need the server to check who is signed in first and then build that person's page, so they use SSR.
+
+### i18n
+
+**Internationalization: showing one site in several languages.** The word is long, so it is shortened to the first letter i, the number of letters in between (18), and the last letter n. The language and region tag (`ko`, `en`) is called the **locale**. The Stairno account center puts the language at the start of the address (`/ko/sign-in`, `/en/sign-in`).
+
+### Accessibility
+
+**Can people with disabilities use it just as well?** People who cannot see the screen use a screen reader, and people who cannot use a mouse move around with the keyboard. You check that buttons have names, that the Tab order is natural, and that text has enough contrast with the background.
+
+### Lighthouse
+
+**A web page audit tool made by Google.** It scores performance (how fast the page appears), [accessibility](#accessibility), best practices and more out of 100. It is built into Chrome's developer tools.

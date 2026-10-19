@@ -4,6 +4,7 @@
  * A folder that is missing here still works and is shown by its folder name.
  */
 const categories: Record<string, string> = {
+  stairno: 'Stairno',
   'computer-systems': 'Computer Systems',
   'software-engineering': 'Software Engineering',
   'database-systems': 'Database Systems',
@@ -14,6 +15,11 @@ const categories: Record<string, string> = {
   unity: 'Unity',
   git: 'Git',
   sql: 'SQL',
+  web: 'Web',
+  auth: 'Auth',
+  payments: 'Payments',
+  devops: 'DevOps',
+  cloudflare: 'Cloudflare',
 }
 
 export function getCategoryLabel(category: string) {

@@ -1,12 +1,18 @@
 {
   "ai": 10,
-  "computer-systems": 6,
   "cloud-computing": 8,
-  "git": 2,
+  "auth": 2,
+  "cloudflare": 2,
+  "computer-systems": 6,
+  "database-systems": 2,
+  "devops": 2,
   "network": 18,
-  "software-engineering": 12,
-  "sql": 2,
-  "unity": 4,
+  "git": 2,
   "os": 20,
-  "database-systems": 2
+  "payments": 2,
+  "sql": 2,
+  "software-engineering": 12,
+  "stairno": 12,
+  "unity": 4,
+  "web": 2
 }

@@ -1,0 +1,168 @@
+---
+title: 'Stairno 4a. The Production Payment Rehearsal'
+date: '2026-10-20'
+tags: ['Stairno']
+draft: false
+summary: 'The second half of roadmap step 4 (in progress). The night a rehearsal-only site was attached to the production API to run 10 payment scenarios. A sign-in page that had been a 404 since launch day, mail pointing at a deleted address, a slow GitHub Actions, a secret nobody had kept, 8 of 10 passed, the decision to move refund requests into the account center, and what is left'
+---
+
+> The second half of roadmap step 4, still in progress. The payments built in [part 4](/en/blog/stairno/stairno-04-payments/) were run one by one to see whether they really work in production. The big picture is in [Stairno 0. The whole roadmap](/en/blog/stairno/stairno-00-roadmap/).
+
+## In one line
+
+In the early hours of 20 October, I ran a [rehearsal](/en/blog/devops/devops-00-basics/#rehearsal) that actually triggers payments on the production server with test keys. Right at the start it turned out that **sign-in from other sites had been broken since launch day**. After a quick fix went out, 8 of 10 scenarios passed. Along the way a few mistakes and one gap in the design came out. They are written here without hiding anything.
+
+## 1. Why a separate rehearsal
+
+Tests run in fake environments: a fake provider, a fake DB, a fake server. But payments have things you can only confirm in production.
+
+- Does the provider send the user who finished paying back to the **real site address**?
+- Do the provider's [webhooks](/en/blog/payments/payments-00-basics/#webhook) arrive at the **real server**?
+- Does the mail reach a **real mailbox**?
+
+So step 4 only closes after the scenarios have been run one by one in production and the [acceptance checklist](/en/blog/devops/devops-00-basics/#acceptance-checklist) is filled in.
+
+## 2. Why a rehearsal-only site
+
+There was a catch. Creating an order requires **a site connected to the API**.
+
+- An order request needs both a [site token](/en/blog/auth/auth-00-basics/#token) and the buyer's token
+- The address to return to after payment must be that site's https address
+- The Toss payment window opens on the site's page
+
+But the first site, Labs, is step 5, built after step 4 ends. Chicken and egg.
+
+In step 3, a similar situation was handled with "check it once a site exists". Not this time. If something broke while attaching payments to Labs, there would be no telling whether it was a bug in the payment API or in Labs. So I built **a small site that does nothing but rehearse**.
+
+### The rehearsal tool
+
+`experiments/payment-rehearsal` in the repo. A one-page Worker with no design.
+
+- It connects **exactly the way** a real Stairno site does. It signs in with [OIDC](/en/blog/auth/auth-00-basics/#oidc) (with [PKCE](/en/blog/auth/auth-00-basics/#pkce)) and gets a site token
+- Buttons: sign in, order a one-time product (Toss for won, PayPal for dollars), confirm payment, **confirm payment with the amount halved**, start a subscription, look up orders and entitlements
+- No card number field. The Toss window takes the card
+- The site's password (`client_secret`) lives only as this Worker's [secret](/en/blog/cloudflare/cloudflare-00-basics/#workers-secrets)
+
+The most important principle: **the API has no rehearsal exceptions or back doors at all.** The rehearsal only means something if it takes the same path as a real site. The tool stays in the repo and is rerun after every release that changes the payment path.
+
+## 3. Preparation
+
+| Order | What was done                                                                                                                         |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Upload the rehearsal tool to Cloudflare                                                                                               |
+| 2     | Register the rehearsal tool as an OIDC site with the account center, and store the name tag and password it got as the tool's secrets |
+| 3     | Register two products belonging to that site: a one-time product (1,000 won, 1 dollar) and a monthly subscription (1,000 won)         |
+| 4     | Check in the Toss and PayPal dashboards that webhooks are set to arrive at our API                                                    |
+| 5     | One Stairno account for the rehearsal, starting with Korean as its language                                                           |
+| 6     | A check script that only **reads** the production DB                                                                                  |
+
+Roles were split too. Entering cards, typing provider and operator passwords, and changing dashboard settings are **mine**. The rest of the button clicking and checking results (responses, DB records, mail) is done by the AI agent.
+
+**Step 2 had a mistake.** The site password issued at the first registration was printed verbatim in the working chat log. A chat log is also a place where things are kept, so that registration was deleted and a new one made. Signing in with the deleted one's password was confirmed to be refused (`invalid_client`).
+
+**Step 6 was trickier than expected.** A DB account created in the Neon console automatically joins an admin group, so the "grant read permission only" setting did not take effect. So instead of relying on account permissions, the script opens its [transaction](/en/blog/devops/devops-00-basics/#transaction) itself as **read-only**, blocking writes at the source. The script reads only rehearsal data and never prints emails, tokens or card keys.
+
+## 4. A 404 on the first button
+
+I pressed "Sign in" on the rehearsal tool. It should have gone to the account center's sign-in page `/sign-in`, but it showed **404 (no such address)**.
+
+This page is where you land when another site's "Sign in with Stairno" is clicked. In other words, **since launch day on 18 October, no site could sign in with Stairno.** No site was connected, so nobody noticed. It was exactly the check that step 3 had deferred with "no site to connect yet, so in step 5".
+
+### The cause
+
+The account center puts the language at the start of the address (`/ko/...`, `/en/...`, [i18n](/en/blog/web/web-00-basics/#i18n)). Astro's language setting was "every page gets a language", and with that setting, **pages without a language are turned into a 404 after they are drawn.** But the OIDC sign-in page is `/sign-in` with no language, because other sites send users there without knowing their language.
+
+### Why the tests passed
+
+Screen tests **take a page out on its own** and draw it. Address handling from the language setting is not part of that. So the test "the `/sign-in` page draws the sign-in form" passed, but nobody checked "the `/sign-in` address is alive in the production build". Exactly what the [kinds of tests](/en/blog/devops/devops-00-basics/#kinds-of-tests) table says happened: no test guarantees the production address.
+
+### The fix
+
+In Astro, the only routes that can answer outside the language prefixes are **routes injected separately by an extension (an integration)**. So `/sign-in` was added that way, and it now sends the incoming request, with its details intact, to the sign-in page in the user's language (`/ko/sign-in` and so on) with a [302](/en/blog/web/web-00-basics/#http-status-code). The addresses that must answer without a language are grouped in a list and tested, and on a real build I checked directly that `/sign-in` answers 302 and that other addresses are still 404.
+
+## 5. Mail pointing at an address I deleted
+
+The rehearsal steps include "press the button in the mail sent when a subscription renewal fails". Looking at that mail again during preparation, its button pointed at `/billing`.
+
+That address is **one I deleted** in `v0.4.1` from [part 4](/en/blog/stairno/stairno-04-payments/#7-v040-and-then-v041), when the account center became a single page. When the screen structure changed, the links inside the mail were not checked along with it. A user who got that mail would have pressed the button and seen a 404. It now points at the payments group of the new structure (`/ko/#payment-methods`).
+
+## 6. An urgent fix: v0.4.2, and a slow GitHub Actions
+
+The two fixes were bundled into the [hotfix](/en/blog/devops/devops-00-basics/#git-flow) `v0.4.2`: just these two on top of the production `v0.4.1`. The other changes piled up in `develop` were not mixed in.
+
+Changes going to `main` must pass [CI](/en/blog/devops/devops-00-basics/#ci). CI that normally finishes in a few minutes took **close to 40 minutes** that night. GitHub Actions was having a slow day. There was nothing to do but wait, and it took an hour from opening the change to merging it.
+
+Around 1:30 a.m., `v0.4.2` reached production. After confirming that `/sign-in` correctly sends you to the sign-in page, the rehearsal started again.
+
+## 7. A secret nobody had
+
+One more thing came out that same night. The original value of the production server's `BETTER_AUTH_SECRET` was **nowhere**. Not in the password manager, not on my computer. Cloudflare never shows a stored secret again.
+
+This value matters. The [private key that signs sign-in tokens](/en/blog/auth/auth-00-basics/#jwks) is stored in the DB encrypted with it. None of the values at hand could decrypt that key.
+
+It was before launch and the only users were me and test accounts, so I just replaced it with a new value.
+
+1. Save the new value **in the password manager first**
+2. Store the new value at Cloudflare (`wrangler secret put`)
+3. Delete the signing key encrypted with the old value from the DB
+4. Call the public key address once so it creates a new signing key, and confirm it decrypts with the new value
+
+Changing this value **signs everyone out** and invalidates every download link already handed out. With real users, it would need an announcement first. The lesson is simple: **a secret written down nowhere is a lost secret.** Write it down before storing it. This procedure was copied as is into the operations document.
+
+## 8. Results: 8 of 10
+
+| Order | Scenario                                                                               | What was checked                                                                                                                                | Result |
+| ----- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 1     | Toss one-time payment                                                                  | Order `fulfilled`, entitlement created, receipt mail                                                                                            | Passed |
+| 2     | Tampered amount                                                                        | Halving the amount is refused (422), order `failed`, no approval request sent to Toss                                                           | Passed |
+| 3     | Cancellation and refund                                                                | Order `refunded`, entitlement revoked, refund mail                                                                                              | Passed |
+| 4     | Card registration and deletion                                                         | Last four digits shown, deleting also deletes the provider's card key                                                                           | Passed |
+| 5     | Starting a subscription                                                                | Charged to the default card right away, subscription `active`, entitlement ends at the end of the period                                        | Passed |
+| 6     | Three failed renewals → subscription expires                                           | Mail for each failure, `expired` on the fourth attempt                                                                                          | Left   |
+| 7     | PayPal payment and refund                                                              | `fulfilled` → `refunded`, webhook signature verified                                                                                            | Passed |
+| 8     | Resending webhooks                                                                     | Sending the same notice again adds no records and leaves the order unchanged ([idempotency](/en/blog/payments/payments-00-basics/#idempotency)) | Passed |
+| 9     | Turning off the [payment switch](/en/blog/payments/payments-00-basics/#payment-switch) | Sign-in works, only orders return 503                                                                                                           | Passed |
+| 10    | Mail in both languages                                                                 | Switch the account language to English and redo 1 and 3                                                                                         | Left   |
+
+Cards were Toss test cards, and PayPal used a sandbox buyer account. Not a cent of real money moved.
+
+### A design gap found in scenario 3
+
+The rehearsal procedure said "request a refund in the account center". But the account center had no refund button. Checking, the requirements specification had **sites** file refund requests, with the account center only showing their status. The code followed the specification, and the procedure was wrong.
+
+The rehearsal passed by adding a "Request a refund" button to the tool. But thinking again from the user's side, no matter which site you bought from, **requesting a refund in the account center, where the order history is**, is the natural place. Building a refund screen on every site is also the "same work over and over" that [Stairno 0](/en/blog/stairno/stairno-00-roadmap/#3-why-one-account) set out to avoid.
+
+So the decision changed on the spot and went into the plan.
+
+- Refund requests are taken on the **account center's order detail**. Writing a reason and sending it makes a request, not an immediate refund
+- The operator reviews it and approves or rejects it, and the result goes out by mail
+- The path for sites to file requests stays as an entry point
+- The refund policy text stays on the selling site, and the account center links to it
+- The specifications are changed **first**, then it is built, in the next release after the rehearsal
+
+### Why scenario 6 is left
+
+The Toss test environment **approves every payment regardless of the card**. So "a failing renewal" has to be created on purpose. The official way is to add a test marker to the request, but that means changing the API and breaks the "no rehearsal exceptions" principle.
+
+So here is the plan. Change only the **rehearsal data** in the production DB slightly so that the stored card key and customer number no longer match. Toss then genuinely declines with "customer details do not match". Then switch the once-a-day renewal [cron](/en/blog/cloudflare/cloudflare-00-basics/#cron-triggers) to every minute for a while, to trigger the first failure and three retries in a row. When done, put the data and the cron back. Dashboard changes take up to 15 minutes to apply and there are many steps, so it was left for after daybreak.
+
+## 9. Next
+
+1. **Rehearsal scenarios 6 and 10.** Record the results on the acceptance checklist with dates
+2. **Clean up.** Delete the read-only check script and the temporary DB account. Bring the shared Google Docs in line with the Markdown originals
+3. **Close step 4.** Ship what has piled up in `develop` as the next release
+4. **Refund requests in the account center.** Specifications first, then build
+5. **Keep me signed in.** A "keep me signed in" option on the sign-in screen. Specifications first too
+6. **Two things found during the rehearsal, not fixed yet.** The "Log in" link in the hub's account menu points at an address that does not exist. After signing in through OIDC, the account center's "connected sites" stays empty
+7. **Step 5, stairnolabs.com.** The first real site connects to Stairno accounts. The production 13-step experiment and the "token refresh fails after account deletion" check deferred from step 3 happen here too
+
+Real payments come after business registration and a provider contract. Before that, the switch to the Workers paid plan and the business details in the terms get another look.
+
+## 10. Looking back
+
+- **Writing the documents first paid off.** Dozens of decisions came up over three days, and all of them are in the plan and design specification with dates. When the refund location changed during the rehearsal, "what needs changing" was already in the documents
+- **Passing tests do not mean an address is alive.** The `/sign-in` 404 cannot be caught by screen tests. It only shows when a real site is attached in production. "No site to connect yet, so later" blocked site sign-in for almost two days. The reason for building a separate rehearsal tool was proven on the very first button
+- **Write a secret down before storing it.** Trying to write it down afterwards is already too late
+- **Speed is good, but speed missed things.** Changing the screen structure in a few hours, the links inside the mail were not checked along with it. A test that finds everything pointing at a changed address would have avoided the urgent fix
+
+This post will get the results appended when the rehearsal is finished.

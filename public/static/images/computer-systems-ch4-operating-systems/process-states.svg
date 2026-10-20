@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="320" viewBox="0 0 760 320" font-family="Pretendard, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="760" height="320" fill="#ffffff" rx="8"/>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#64748b"/></marker></defs>
+  <text x="20" y="32" font-size="16" font-weight="bold" fill="#1e293b">Process state transitions</text>
+
+  <rect x="30" y="110" width="110" height="46" rx="8" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="85" y="138" text-anchor="middle" font-weight="bold" fill="#1e293b">New</text>
+
+  <rect x="220" y="110" width="130" height="46" rx="8" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="285" y="131" text-anchor="middle" font-weight="bold" fill="#1e293b">Ready</text>
+  <text x="285" y="147" text-anchor="middle" font-size="11" fill="#64748b">waits for CPU</text>
+
+  <rect x="450" y="110" width="130" height="46" rx="8" fill="#dcfce7" stroke="#22c55e"/>
+  <text x="515" y="131" text-anchor="middle" font-weight="bold" fill="#1e293b">Running</text>
+  <text x="515" y="147" text-anchor="middle" font-size="11" fill="#64748b">uses CPU</text>
+
+  <rect x="630" y="110" width="110" height="46" rx="8" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="685" y="138" text-anchor="middle" font-weight="bold" fill="#1e293b">Terminated</text>
+
+  <rect x="335" y="240" width="130" height="46" rx="8" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="400" y="261" text-anchor="middle" font-weight="bold" fill="#1e293b">Waiting</text>
+  <text x="400" y="277" text-anchor="middle" font-size="11" fill="#64748b">waits for an event</text>
+
+  <line x1="142" y1="133" x2="216" y2="133" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="179" y="124" text-anchor="middle" font-size="11" fill="#64748b">admitted</text>
+
+  <line x1="352" y1="124" x2="446" y2="124" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="400" y="80" text-anchor="middle" font-size="12" fill="#16a34a">scheduler picks,</text>
+  <text x="400" y="96" text-anchor="middle" font-size="12" fill="#16a34a">dispatcher runs it</text>
+  <line x1="448" y1="144" x2="354" y2="144" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="400" y="172" text-anchor="middle" font-size="12" fill="#2563eb">time slice expired</text>
+
+  <line x1="582" y1="133" x2="626" y2="133" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="604" y="124" text-anchor="middle" font-size="11" fill="#64748b">exit</text>
+
+  <path d="M 515 158 Q 515 262 468 262" fill="none" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="530" y="225" font-size="12" fill="#d97706">I/O request</text>
+  <path d="M 332 262 Q 285 262 285 160" fill="none" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="180" y="225" font-size="12" fill="#d97706">I/O done</text>
+  <text x="140" y="241" font-size="11" fill="#64748b">(not straight to Running)</text>
+</svg>

@@ -1,0 +1,234 @@
+---
+title: 'CH3. Relational Data Model'
+date: '2026-10-21'
+tags: ['Database Systems']
+draft: false
+summary: 'The relational data model and its advantages, domain, attribute, tuple and relation, relation schema and instance, degree, tuple order, atomic values and NULL, relational DB schema and state, superkey, candidate key and primary key, entity integrity, foreign keys and referential integrity, Insert, Delete and Update operations and constraint violation checks, ER-to-relational mapping (entities, weak entities, multivalued attributes, 1:1, 1:N, M:N and ternary relationships), exercise solutions'
+---
+
+# 3. Relational Data Model
+
+## 3.1 Relational Model Concepts
+
+**Relational data model**: a model that represents all data as relations (= tables)
+
+- Advantages: Simplicity (flat tables are easy) / Data Integrity (valid and consistent) / Easy Data Manipulation (query and change data with conditions in SQL) / Security (authentication, permissions, encryption)
+
+### 3.1.1 Domain, Attribute, Tuple, Relation
+
+![Relation schema, instance, tuple and domain symbols marked on a STUDENT table](/static/images/database-systems-ch3-relational-data-model/relation-schema-instance.svg)
+
+| Symbol                | Meaning                                    | In the figure                                     |
+| --------------------- | ------------------------------------------ | ------------------------------------------------- |
+| R(A1, …, An)          | relation schema                            | STUDENT(Name, Ssn, Age, Gpa), the blue header     |
+| Ai                    | the i-th attribute                         | A3 = Age                                          |
+| n                     | degree (number of attributes)              | 4                                                 |
+| r(R) = \{t1, …, tm\}  | relation instance (state)                  | the 3 rows under the header, m = 3                |
+| t = &lt;v1, …, vn&gt; | tuple (one row), vi is the i-th cell value | t1 = &lt;Dick Davidson, 422-11-2320, 25, 3.53&gt; |
+| dom(Ai)               | the domain of Ai                           | dom(Age) = integers from 15 to 80                 |
+
+**Relation**: one table. Not the same as a relationship (the ER diamond)
+
+**Tuple**: one row. A fact that matches one real-world entity or relationship
+
+**Attribute**: a column header. e.g. Name, Age
+
+**Domain**: the set of values a column can hold = data type + constraints. e.g. Age is an integer from 15 to 80
+
+- Values are atomic (can't be split further)
+
+**Relation schema**: the table header. Name plus column names and types only, no data. e.g. STUDENT(Name, Ssn, Age, Gpa)
+
+- Degree: the number of attributes. STUDENT above has 4
+
+**Relation instance (state)**: the set of rows currently in the table. Changes when rows are added or deleted; the schema stays the same
+
+- Each cell value vi is a value in dom(Ai) or NULL / e.g. 25 in the Age cell is OK, 200 is not
+
+### 3.1.2 Characteristics of Relations, Relational DB Schema and State
+
+**Tuples have no order**: a relation is a set of tuples, so reordering the rows gives the same relation
+
+- That's why it's called a relation rather than a table
+
+**Value order inside a tuple doesn't matter either**: by definition it's an ordered list, but seen as (attribute, value) pairs, reordering gives the same tuple
+
+**All values are atomic, NULL allowed**: composite and multivalued attributes can't go in
+
+- multivalued → a separate relation (department locations → DEPT_LOCATIONS) / composite → simple attributes only (Name → Fname, Minit, Lname)
+- NULL: unknown, unavailable or undefined. Not 0 or an empty string
+
+**Relational DB schema**: a set of relation schemas + integrity constraints (IC). e.g. COMPANY = \{EMPLOYEE, DEPARTMENT, DEPT_LOCATIONS, PROJECT, WORKS_ON, DEPENDENT\}
+
+**Relational DB state**: the set of all relation states, DB = \{r1, …, rm\}
+
+- Satisfies every IC → valid; breaks even one → not valid
+
+|           | Structure        | Contents       |
+| --------- | ---------------- | -------------- |
+| One table | relation schema  | relation state |
+| Whole DB  | DB schema (+ IC) | DB state       |
+
+## 3.2 Relational Model Constraints
+
+**Constraints**: restrictions on values, needed because tables are linked to each other. They come from the rules found in requirements analysis
+
+- Satisfy all of them → valid state / the core three: Key, Entity integrity, Referential integrity
+
+### 3.2.1 Key Constraints
+
+![Superkey, key and PK containment shown with DEPARTMENT](/static/images/database-systems-ch3-relational-data-model/key-hierarchy.svg)
+
+**Starting point**: a relation is a set, so two identical rows are impossible → we need attributes that pick out exactly one row
+
+|                           | Unique per row | No extras (minimal) | DEPARTMENT example                                       |
+| ------------------------- | -------------- | ------------------- | -------------------------------------------------------- |
+| **Superkey**              | required       | doesn't matter      | \{Dname, Dnumber\}, \{Dnumber, Mgr_ssn\}, all attributes |
+| **Key (= Candidate key)** | required       | required            | \{Dname\}, \{Dnumber\}                                   |
+| **Primary key (PK)**      | required       | required            | \{Dnumber\} (underlined)                                 |
+
+**Superkey**: a set of attributes whose value combination differs on every row. Extra attributes are fine
+
+- Every relation has at least one superkey (all attributes) / any set containing a key is a superkey
+
+**Key (= Candidate key)**: a minimal superkey. Remove any one attribute and rows can't be told apart. e.g. in \{Dnumber, Mgr_ssn\}, removing Mgr_ssn still identifies rows → not a key; \{Dnumber\} is the key
+
+- A relation can have several keys, each one a candidate key / minimal is required for keys, irrelevant for superkeys
+
+**Primary key (PK)**: one candidate key chosen and designated. Shown underlined
+
+- PK ⊂ Key ⊂ Superkey / there's no rule for which one to pick
+
+### 3.2.2 Entity Integrity and Referential Integrity Constraints
+
+![EMPLOYEE.Dno (FK) references DEPARTMENT.Dnumber (PK); NULL is allowed, a missing value is a violation](/static/images/database-systems-ch3-relational-data-model/referential-integrity.svg)
+
+**Entity integrity**: PK values can't be NULL. If it's empty, there's no way to know which row it is
+
+- If the PK has several attributes, NULL in any one of them is a violation
+
+**Foreign key (FK)**: an attribute that points to another table's PK. e.g. EMPLOYEE.Dno → DEPARTMENT.Dnumber
+
+- It can point to the same table. e.g. Super_ssn → EMPLOYEE.Ssn
+
+**Referential integrity**: an FK value must be an existing PK value or NULL. e.g. Dno=7 with no department 7 is a violation
+
+- FK domain = domain of the referenced PK / PK can't be NULL, FK can (a new hire with no department yet)
+
+**FK belongs only to the pointing side**: EMPLOYEE.Dno is the FK; the referenced DEPARTMENT.Dnumber is just a PK
+
+- Being pointed at doesn't make something an FK
+
+**Both PK and FK**: when a table's own PK also points to another table. e.g. in ENROLL(<u>Ssn</u>, <u>Course#</u>, Grade), Ssn → STUDENT and Course# → COURSE
+
+|                 | Value already exists on insert | Value missing on the other side  |
+| --------------- | ------------------------------ | -------------------------------- |
+| **PK**          | rejected (Key violation)       | doesn't matter                   |
+| **FK**          | OK (many employees in dept 5)  | rejected (Referential violation) |
+| Other attribute | OK (people with the same name) | doesn't matter                   |
+
+**Exercise 1** (one trip can be charged to several accounts): SALESPERSON(<u>Ssn</u>, Name, Start_year, Dept_no), TRIP(Ssn, From_city, To_city, Departure_date, Return_date, <u>Trip_id</u>), EXPENSE(<u>Trip_id</u>, <u>Account#</u>, Amount)
+
+- FK: TRIP.Ssn → SALESPERSON.Ssn (every trip has an existing salesperson) / EXPENSE.Trip_id → TRIP.Trip_id (every expense belongs to an existing trip)
+
+**Exercise 2**: STUDENT(<u>Ssn</u>, Name, Major, Bdate), COURSE(<u>Course#</u>, Cname, Dept), ENROLL(<u>Ssn</u>, <u>Course#</u>, <u>Quarter</u>, Grade), BOOK_ADOPTION(<u>Course#</u>, <u>Quarter</u>, Book_isbn), TEXT(<u>Book_isbn</u>, Book_title, Publisher, Author)
+
+- FK: ENROLL.Ssn → STUDENT.Ssn / ENROLL.Course# → COURSE.Course# / BOOK_ADOPTION.Course# → COURSE.Course# / BOOK_ADOPTION.Book_isbn → TEXT.Book_isbn
+
+## 3.3 Operations and Constraint Violations
+
+### 3.3.1 Basic Operations: Insert, Delete, Update
+
+**Two kinds of operations**: Retrieval (query, state unchanged) / Update (change; every violation happens here)
+
+| Operation           | What it does                       | What to specify                       |
+| ------------------- | ---------------------------------- | ------------------------------------- |
+| **Insert**          | add a new tuple                    | relation name + list of tuple values  |
+| **Delete**          | remove a tuple                     | relation name + PK value of the tuple |
+| **Update (Modify)** | change attribute values of a tuple | attributes to change + new values     |
+
+### 3.3.2 Constraint Violations
+
+![Deleting a tuple that WORKS_ON points to via FK violates referential integrity; deleting one nobody points to is OK](/static/images/database-systems-ch3-relational-data-model/delete-violation.svg)
+
+**Insert check**: three questions before inserting
+
+- ① Is the new PK already there? → reject (Key) / ② Is the new PK NULL? → reject (Entity) / ③ Is the new FK value missing from the other table? → reject (Referential)
+- e.g. &lt;111, Park, 5&gt; 111 already exists → Key / &lt;NULL, Choi, 5&gt; → Entity / &lt;333, Jung, 7&gt; no department 7 → Referential / &lt;444, Han, NULL&gt; a NULL FK is OK
+
+**Delete check**: someone else's FK points to the deleted row's PK → Referential. That's the only one
+
+- e.g. deleting EMPLOYEE 999887777 → two WORKS_ON rows point to it, violation / deleting a WORKS_ON row → nobody points to it, OK
+
+**Think of Update as Delete the old value + Insert the new value**
+
+| What changes  | What to check                                            |
+| ------------- | -------------------------------------------------------- |
+| PK            | old value: Delete check / new value: Insert check        |
+| FK            | new value: does it exist on the other side (Referential) |
+| Anything else | nothing                                                  |
+
+- e.g. Ssn 999887777 → 987654321: WORKS_ON points to the old value (Referential) + the new value already exists (Key), two violations
+
+**Exercise 3** (each applied to the original COMPANY DB state)
+
+- b. Insert &lt;'ProductA', 4, 'Bellaire', 2&gt; into PROJECT: Referential violation. No department with Dnum 2 (Pnumber 4 is new, so Key is fine)
+- c. Insert &lt;'Production', 4, '943775543', '2007-10-01'&gt; into DEPARTMENT: Key violation. Dnumber 4 already exists (Mgr_ssn 943775543 isn't in EMPLOYEE either, so Referential is also violated; the slide marks only Key)
+- d. Insert &lt;'677678989', NULL, '40.0'&gt; into WORKS_ON: Entity + Referential violations. Pno, part of the PK, is NULL, and there's no employee 677678989
+- e. Insert &lt;'453453453', 'John', 'M', '1990-12-12', 'spouse'&gt; into DEPENDENT: no violation. 453453453 (Joyce) exists and the (Essn, John) pair is new
+- g. Delete EMPLOYEE Ssn = '987654321': Referential violation. Two WORKS_ON rows, DEPENDENT (Abner), department 4's Mgr_ssn and EMPLOYEE Super_ssn all point to it
+
+## 3.4 ER-to-Relational Mapping
+
+**What it is**: reading an ER diagram and redrawing it as tables
+
+- Order: rectangles → double rectangles → diamonds (1:1, 1:N, M:N) → double ovals → diamonds connecting three
+
+### 3.4.1 Mapping Entity Types
+
+![Weak entity DEPENDENT: brings in the owner's PK Essn as an FK, PK = Essn + partial key](/static/images/database-systems-ch3-relational-data-model/weak-entity-mapping.svg)
+
+**When you see a rectangle**: make one table. Attached ovals become columns, the underlined oval is the PK. e.g. EMPLOYEE rectangle → EMPLOYEE(<u>Ssn</u>, Fname, Lname, …)
+
+- If an oval branches (Name → Fname, Lname), only the leaves become columns
+
+**When you see a double rectangle**: something that can't be identified on its own. Make a table and add the PK of the connected rectangle as one more column. e.g. add the employee's Ssn to DEPENDENT as Essn
+
+- PK = the added Essn + the dashed-underlined attribute (Dependent_name) / the double diamond gets no table (Essn already links them)
+
+### 3.4.2 Mapping Multivalued Attributes
+
+![Multivalued attribute Locations split into a DEPT_LOCATIONS table](/static/images/database-systems-ch3-relational-data-model/multivalued-mapping.svg)
+
+**When you see a double oval**: don't put it in the original table; make a separate table. Columns are the original table's PK + that attribute. e.g. Locations → DEPT_LOCATIONS(<u>Dnumber</u>, <u>Dlocation</u>)
+
+- One row per location, so Dnumber 5 appears several times → the PK is both columns together
+
+### 3.4.3 Mapping Relationship Types
+
+![1:N puts the FK on the N side, 1:1 on the total side, M:N gets a new table](/static/images/database-systems-ch3-relational-data-model/relationship-mapping.svg)
+
+| Numbers on the diamond     | What to do                                                | Example                                                          |
+| -------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------- |
+| **1:N**                    | add the other side's PK as a column to the N-side table   | add Dno to EMPLOYEE                                              |
+| **1:1**                    | add the other side's PK to the table with the double line | add Mgr_ssn to DEPARTMENT                                        |
+| **M:N**                    | new table named after the diamond, both PKs as columns    | WORKS_ON(<u>Essn</u>, <u>Pno</u>, Hours)                         |
+| Three rectangles connected | new table with all three PKs as columns                   | SUPPLY(<u>Sname</u>, <u>Proj_name</u>, <u>Part_no</u>, Quantity) |
+
+- If the diamond has ovals (Hours, Start_date), they go along as extra columns in that table
+
+**Why the N side?**: each employee has one department → one department-number cell per employee row is enough
+
+- Putting it on the department side would need several employees in one cell, which isn't allowed
+
+**Why the double-line side?**: every department has a manager → the cell is never empty
+
+- Putting it on the employee side leaves the cell NULL for every non-manager
+
+**Why a new table for M:N?**: a single cell on either side can't hold several values
+
+**Exercise 4** (UNIVERSITY ER, (min,max) notation)
+
+- HAS (DEPT (0,N) — STUDENT (0,1)): a student has one department → add a Dept column to STUDENT (→ DEPARTMENT.DName)
+- CHAIR (DEPT (1,1) — INSTRUCTOR (0,1), CStartDate): every department must have a chair → add ChairId (→ INSTRUCTOR.Id) and CStartDate to DEPARTMENT
+- TAKES (STUDENT (0,N) — SECTION (5,N), Grade): M:N → new table TAKES(<u>Sid</u>, <u>SecId</u>, Grade)

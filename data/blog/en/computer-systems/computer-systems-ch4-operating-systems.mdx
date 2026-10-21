@@ -52,8 +52,7 @@ summary: 'The role and evolution of operating systems (batch, interactive, real-
   - In the figure: the middle row, B fills the idle slots
 - **Time sharing**: cut CPU time into time slices and [hand them out in turn](/en/blog/os/os-08-scheduling/#4-rrround-robin). When time runs out, the OS forcibly switches ([preemption](/en/blog/os/os-08-scheduling/#1-non-preemptive-vs-preemptive)). The goal is **fast response**
   - In the figure: the bottom row, it switches every slot even without I/O
-- **Context switch**: save the current execution state → restore the next job's state. Run A → save A → restore B → run B
-- Time slice size: too long and responses are slow, too short and context-switch **overhead** grows
+- Every switch between jobs needs a [**context switch**](#434-interrupts-and-context-switching)
 
 ## 4.1.4 Multitasking and Parallel Execution
 
@@ -177,9 +176,7 @@ summary: 'The role and evolution of operating systems (batch, interactive, real-
 
 ## 4.2.4 Process Management
 
-- **CPU scheduler**: **selects** which ready job uses the CPU next. Considers priority and waiting state (details in 4.3)
-- **Dispatcher**: actually hands the CPU to the selected job and **switches** it to running. Sets up the execution environment, restores CPU state
-- Flow: ready jobs → scheduler ("who?") → dispatcher ("you, run") → runs on the CPU
+- The [scheduler](#433-cpu-scheduling-and-time-slices) picks the next job, and the [dispatcher](#433-cpu-scheduling-and-time-slices) hands it the CPU
 
 ## 4.2.5 GUI Window Management
 
@@ -254,31 +251,25 @@ summary: 'The role and evolution of operating systems (batch, interactive, real-
   - In the figure: the yellow Waiting
 - Ready vs waiting: ready waits for **the CPU** and runs as soon as it gets it; waiting waits for **an event** and can't run even with the CPU
 - **Ready queue**: where the PCBs (pointers) of ready processes line up inside the kernel. FIFO, priority queue, multi-level queue, etc.
-- Three ways into ready
-  - New → ready: loaded into memory, ready to run
-  - Running → ready: time slice used up, timer interrupt
-  - Waiting → ready: I/O finished, I/O interrupt
-- Ready → running: the scheduler picks it → the dispatcher does the context switch → runs on the CPU
-- Transition conditions
+- When does it move where
 
-  | Transition           | Condition                                  |
-  | -------------------- | ------------------------------------------ |
-  | Ready → running      | the scheduler picks it and assigns the CPU |
-  | Running → ready      | time slice expires                         |
-  | Running → waiting    | waits for an event such as an I/O request  |
-  | Waiting → ready      | the awaited event (I/O completion) happens |
-  | Running → terminated | finishes executing                         |
+  | Transition           | When                                                         |
+  | -------------------- | ------------------------------------------------------------ |
+  | New → ready          | loaded into memory, ready to run                             |
+  | Ready → running      | the scheduler picks it and the dispatcher hands over the CPU |
+  | Running → ready      | time slice used up (timer interrupt)                         |
+  | Running → waiting    | I/O request                                                  |
+  | Waiting → ready      | I/O finished (I/O interrupt)                                 |
+  | Running → terminated | finishes executing                                           |
 
 - Finishing I/O doesn't mean running right away. It **must go through ready** and be picked by the scheduler
   - In the figure: the I/O done arrow at the bottom goes to Ready
 
 ## 4.3.3 CPU Scheduling and Time Slices
 
-- **CPU scheduler**: **selects** the process in the ready queue that uses the CPU next (decision-making)
-  - The choice depends on the policy (order, priority); it also creates and updates process table entries and cleans up terminated ones
-- **Dispatcher**: **hands** CPU control to the selected process (execution)
-  - Context switch (save the previous state, restore the new context), user ↔ kernel mode switch, address space (memory map) switch, resuming by restoring the PC after a time-slice expiry
-- Flow: ready → scheduler ("who?") → dispatcher ("switch") → runs on the CPU
+- **CPU scheduler**: **picks** who uses the CPU next from the ready queue, following a policy such as order or priority
+- **Dispatcher**: actually **hands** the CPU to the picked one. Context switch → kernel mode to user mode → switch to that process's address space → continue from its saved PC
+- Flow: ready → scheduler ("who?") → dispatcher ("you, run") → CPU
 - **Time slice/quantum**: the unit of time a process may use the CPU continuously. The typical policy is round robin. Its length depends on the OS and policy
 - When a time slice expires
   1. Timer interrupt occurs
@@ -305,8 +296,8 @@ summary: 'The role and evolution of operating systems (batch, interactive, real-
 - Misconception: it **doesn't copy** A's memory to B. A's and B's spaces both stay in memory as they are
 - **Context-switch overhead**: CPU time spent saving and restoring registers and switching permissions and addresses. No user computation happens during it
 - **Round robin (RR)**: everyone takes turns on the CPU for the same time slice. **Preemptive** (forcibly taken away when time's up). Fair + fast response
-  - Join the ready queue in arrival order → the front one runs for a fixed time (e.g. 10 ms) → finished in time: terminate; time's up: timer interrupt → back of the queue (context switch)
-  - Too long a slice and it becomes the same as first-come-first-served, with long waits at the back / too short and context-switch overhead explodes
+  - The front of the queue runs for a fixed time (e.g. 10 ms) → finished in time: terminate; not finished: back of the queue ([time-slice expiry steps](#433-cpu-scheduling-and-time-slices))
+  - Too long a slice and it becomes first-come-first-served / too short and it does nothing but context switches
 - First-come-first-served vs preemptive
 
   |             | FCFS (non-preemptive)          | Preemptive                         |
@@ -317,18 +308,14 @@ summary: 'The role and evolution of operating systems (batch, interactive, real-
   | Cons        | long waits                     | context-switch overhead            |
   | Examples    | FCFS, batch processing         | RR, Windows, Linux                 |
 
-- Time-sharing example (1 core, A and B both ready, no I/O, 10 ms): A runs (B ready) → switch → B runs (A ready) → switch → A runs
-- **Concurrency**: one core alternates every few ms so it looks simultaneous / **parallelism**: several cores really run at the same instant
-  - One core runs only one process at any instant
-
 ## 4.3.5 I/O Waits and Multiprogramming
 
 - The whole flow of running a program
   1. Load into memory: the loader (OS) puts the `.exe` in memory, allocates the address space, creates the PCB and puts the start address in its PC field
   2. Ready: has every resource except the CPU, registered in the ready queue
   3. CPU dispatch: the scheduler picks it → the dispatcher restores the PCB's PC and registers into the CPU and hands over control
-  4. Running: repeats [fetch → decode → execute](/en/blog/computer-systems/computer-systems-ch3-computer-organization/#332-the-machine-cycle)
-- **Multiprogramming**: keep several processes in memory and, while one waits for I/O, run another ready process to maximize CPU utilization
+  4. Running: repeats [fetch → decode → execute](/en/blog/computer-systems/computer-systems-ch3-computer-organization/#33-program-execution)
+- [**Multiprogramming**](#413-multiprogramming-and-time-sharing) seen as state transitions: A's I/O wait time becomes B's run time, so the CPU never sits idle
 - The A → B → A flow
   1. I/O request: running process A requests I/O
   2. Switch to waiting: the OS moves A to waiting
@@ -342,5 +329,3 @@ summary: 'The role and evolution of operating systems (batch, interactive, real-
   | I/O device |            | A's I/O    |            |
   | A's state  | running    | waiting    | running    |
   | B's state  | ready      | running    | ready      |
-
-- Summary: turns A's I/O wait time into B's run time so the CPU never sits idle

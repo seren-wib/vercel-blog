@@ -24,8 +24,6 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
   | **Bus**         | Carries information between components               |
 
 - CPU
-  - The core processing unit that interprets and executes a program's instructions
-  - Fetches instructions and data from main memory and processes them
   - Key roles: **executing instructions, processing data, controlling operations**
 
   | Part             | Role                                                                         |
@@ -34,7 +32,6 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
   | **ALU**          | Performs arithmetic, logic, comparison and bit-shift operations              |
   | **Register**     | Temporarily holds values in immediate use and intermediate results           |
   - **Example**: for c = a + b, the **control unit** fetches the values and orders an addition, the **registers** hold a and b, and the **ALU** adds them and puts the result back in a register.
-  - Side note: Microprocessor: a processor that implements the main functions of a CPU on a single integrated circuit (IC)
 
 - Registers
   - Why they are used: much faster than main memory
@@ -94,28 +91,13 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
   - Data path: **main memory ↔ cache ↔ register ↔ ALU**
 
 - **Bus**: a shared communication path that carries information between the CPU, memory and I/O devices. Data, addresses and control signals all travel on it.
+  - Address bus (which slot), data bus (the value), control bus (read/write signal)
 
-  | Bus             | Information carried                        | Example                                     |
-  | --------------- | ------------------------------------------ | ------------------------------------------- |
-  | **Address Bus** | Location to access                         | "Which location in memory?"                 |
-  | **Data Bus**    | The actual data                            | Variable values, instructions, data read in |
-  | **Control Bus** | Control signals that specify the operation | Read, write, interrupt                      |
-
-- Memory read (e.g. the value at address 1000)
-  1. **Send the address** CPU → main memory: 1000 on the address bus
-  2. **Send the read control signal** CPU → main memory: Read on the control bus
-  3. **Send the data** main memory → CPU: the data at that address on the data bus
-
-- Memory write: CPU → main memory sends **address + data to store + write control signal**
-- **Stored-Program Concept**
-  - Early electronic computers: changing the task meant rewiring and flipping switches → complex and slow
-  - Instructions are represented as 0/1 bit patterns, just like data
-  - Programs and data are stored together in main memory
-  - The CPU interprets a fetched bit pattern as an instruction or as data depending on the execution context
-  - Meaning: change the program, not the wiring, to do a different task → the core principle of modern general-purpose computers
+- **Memory read: CPU -bus(read signal, address)-> DRAM -bus(data)-> CPU**
+- **Memory write: CPU -bus(write signal, address, data)-> DRAM**
+  - A read gets data back from DRAM; a write ends once the CPU has sent everything
 
 - **Von Neumann Architecture**: an architecture where programs and data are stored in the same main memory and the CPU fetches and processes them sequentially
-  - Both instruction processing and data access need to talk to memory
   - **Von Neumann Bottleneck**: **when memory access is slow compared to CPU speed, the CPU spends time waiting for data**
 
 # 3.2 Machine Language
@@ -125,13 +107,7 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
 ## 3.2.1 Machine Language and Machine Instructions
 
 - **Machine Language**: instructions the CPU can understand and execute directly
-  - Expressed as 0/1 bit patterns; each bit pattern stands for a task the CPU performs
-  - The available machine instructions differ by CPU type
-
 - **Machine Instruction**: one basic task the CPU performs
-  - Simple instructions combine to do complex work. Every program must eventually be turned into machine instructions
-  - e.g. load from memory → CPU, store to memory, operate on two pieces of data, move between registers, change the location of the next instruction
-
 - **Structure of a machine instruction**: **what** to do + **which data** to do it on
 
   | Part        | Meaning                                         | Example                               |
@@ -142,24 +118,23 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
 
 ## 3.2.2 Kinds of Machine Instructions
 
-- **Data Transfer instructions**: move data register ↔ memory or register ↔ register
+- **Data Transfer instructions**
   - The original data does not disappear; the value is **copied**
   - **LOAD**: memory → register (`LOAD R1, [A]`)
   - **STORE**: register → memory (`STORE R1, [C]`)
   - **MOVE(MOV)**: copy between registers (`MOV R2, R1`: R1's value into R2)
   - I/O instructions: exchange data with keyboard, disk and network devices. Handling differs by ISA and system
 
-- **Arithmetic / Logic instructions**: perform calculations or logic operations on data
+- **Arithmetic / Logic instructions**
   - ADD / SUB, MUL / DIV: the four arithmetic operations (`ADD R3, R1, R2`: R3 ← R1 + R2)
   - AND / OR / XOR: bitwise logic operations
   - SHIFT: move bits left/right
   - ROTATE: put shifted-out bits back in on the other side
 
-- **Control instructions**: change the program's execution order rather than compute data
+- **Control instructions**: change the program's execution order
   - **Conditional Branch**: change the next instruction based on a condition. Implements C's if, while, for
   - **Unconditional Jump**: move to a given location without a condition. Function calls, loops and branches
   - End program execution (HALT)
-  - e.g. `CMP R1, R2` → `BNE END` (if different, go to END) → `MOV R3, #1` (if equal, 1 into R3)
 
 - Addition example C = A + B: Memory A/B → Registers → ADD → Register → Memory C
 
@@ -182,54 +157,16 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
   | R3 into memory C                   | `STORE R3, [C]`     |
   | Stop                               | `HALT`              |
 
-- Even one C statement runs as several machine instructions (the instruction format here is conceptual; real formats differ by ISA)
+- Even one C statement runs as several machine instructions
 
 ## 3.2.3 RISC and CISC
 
-- **Instruction Set**: the set of instructions a CPU can understand and execute
-  - Defines supported operations, how instructions are encoded, available registers, and so on
-  - Machine language is not the same on every computer. Different CPUs express the same task with different machine instructions
-
-- **ISA (Instruction Set Architecture)**: the rules software must follow to use a CPU. The contract between the CPU and programs
-  - What it defines: instruction types, instruction bit formats, available registers, data representation, memory addressing modes, branch and exception handling
-  - A compiler must translate into machine code that follows the target CPU's ISA
-
+- **ISA (Instruction Set Architecture)**: the contract between the CPU and programs
 - Two approaches to CPU instruction design
   - **RISC (Reduced Instruction Set Computer)**: centered on simple, regular instructions
   - **CISC (Complex Instruction Set Computer)**: supports varied, compound instructions
 
-- **RISC traits**: simple, regular instructions → efficient CPU implementation
-  - Simple instructions: each does a simple task; complex work is a combination of several
-  - Regular instruction format: consistent format and execution → easier to design decoding and processing
-  - Register-centered operations
-  - **Load-Store architecture**: Memory → LOAD → Register → ADD → Register → STORE → Memory
-  - Examples: Arm (phones, tablets, embedded, PCs, servers), RISC-V (open ISA), PowerPC (older Apple Macintosh)
-
-- **CISC traits**: varied, compound instructions → one instruction does more work
-  - A wide range of instructions, from simple to complex functions
-  - Instruction length and format may vary
-  - Some instructions use memory data directly in operations
-  - One instruction can include several actions, such as memory access + operation
-  - Example: x86 / x86-64 (Intel·AMD, desktops, laptops, servers)
-
-- ADD comparison (memory A + B → C)
-  - RISC: `LOAD R1, [A]` → `LOAD R2, [B]` → `ADD R3, R1, R2` → `STORE R3, [C]`
-  - CISC (x86): `MOV EAX, [A]` → `ADD EAX, [B]` (reads memory B directly and adds) → `MOV [C], EAX`
-
-  | Aspect        | RISC family                   | CISC family                                           |
-  | ------------- | ----------------------------- | ----------------------------------------------------- |
-  | Instructions  | Relatively simple and regular | Varied and compound                                   |
-  | Operations    | Register ↔ register centered  | Can use memory values directly as operands            |
-  | Memory access | Separated into Load / Store   | One instruction can combine memory access + operation |
-  | Example ISAs  | Arm, RISC-V                   | x86 / x86-64                                          |
-  | Use           | Mobile, embedded, PC, server  | PC, server                                            |
-  - Modern processors have borrowed from each other. RISC does not mean a simple CPU, and CISC does not mean a slow CPU. The difference is how the instruction set is designed
-
 - **ARM architecture**: a RISC-family ISA developed by Arm. Focuses on energy efficiency; the leading modern RISC family
-  - Arm: a company that develops and licenses semiconductor design IP such as CPU architectures and cores
-  - Many companies build processors and SoCs with licenses/IP: Apple M series (Mac), Qualcomm Snapdragon (phones, PCs), Samsung Exynos (phones)
-  - IP (Intellectual Property): a reusable semiconductor design
-  - SoC (System on a Chip): integrates CPU, GPU, memory controller and other functions on a single chip
 
 ## 3.2.4 A Virtual Machine Language
 
@@ -239,6 +176,7 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
   - Instruction length 16 bits = 2 bytes = 4 hex digits
 
 - Instruction structure
+  - **One hex digit = 4 bits**
   - **op-code**: the first 4 bits, which instruction it is (16 possible instructions)
   - **operand**: the remaining 12 bits = 4 bits (register number) + 8 bits (memory address/value)
 
@@ -246,7 +184,6 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
   | ------------ | -------------- | ----------- | -------------- |
   | Field        | op-code        | Register    | Address/value  |
   | **35A7**     | 0011 (3) STORE | 0101 (5) R5 | 1010 0111 (A7) |
-  - One hex digit = 4 bits → a 16-bit instruction = 4 hex digits
 
   | Instruction | Form                 | Meaning                                          |
   | ----------- | -------------------- | ------------------------------------------------ |
@@ -272,13 +209,13 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
 
 - Usage example: c = a + b
 
-  | Machine instruction | Description                                                      |
-  | ------------------- | ---------------------------------------------------------------- |
-  | 156C                | LOAD the value at address 6C into register 5                     |
-  | 166D                | LOAD the value at address 6D into register 6                     |
-  | 5056                | Register 5 + register 6 (two's complement addition) → register 0 |
-  | 306E                | STORE register 0's value at address 6E                           |
-  | C000                | Stop                                                             |
+  | Machine instruction | Description                                                                |
+  | ------------------- | -------------------------------------------------------------------------- |
+  | 156C                | LOAD the value at address 6C into register 5                               |
+  | 166D                | LOAD the value at address 6D into register 6                               |
+  | 5056                | Register 5 + register 6 (two's complement addition) → register 0           |
+  | 306E                | **STORE register 0's value at address 6E** (STORE always writes to memory) |
+  | C000                | Stop                                                                       |
 
 - **Decoding order: check the opcode → split the fields → interpret registers/addresses → trace the data flow**
 
@@ -286,74 +223,40 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
 
 **A program is loaded into main memory, then runs by fetching, decoding and executing the instruction PC points to, one at a time**
 
-## 3.3.1 Registers Needed for Program Execution
+![Registers used to run a program](/static/images/computer-systems-ch3-computer-organization/program-registers.svg)
 
-- **Basic flow of execution**: what runs is not the source code but the **sequence of compiled machine instructions**
-  - Executable on storage → run request → the OS loads code and data into **main memory (RAM)** → CPU fetches an instruction → decode and execute → fetch the next instruction, repeat
-  - What decides the next instruction: **PC (Program Counter)**
+- ① Run request → the OS loads it into RAM
+- ② **Machine cycle**: fetch → decode → execute, repeated (until HALT)
+  - **Fetch**: the instruction at the address in **PC** → **IR**, and PC immediately goes +2 (an instruction is 2 B and a cell is 1 B, so two cells)
+  - **Decode**: the control unit reads the op-code at the front of IR and decides what to do (e.g. `1` → LOAD)
+  - **Execute**: the actual action (data move, operation, store, branch)
+- ③ Values to compute and their results live in **general-purpose registers** (RAM ↔ register via LOAD and STORE)
+- ④ Whether the result is zero, negative, carried out or overflowed is recorded in the **status register** flags (Z·N·C·V)
+- ⑤ **Branch**: JUMP reads the flags and changes PC to another address → `if`, `while` and function calls are all built on this
+  - Controlling program flow = deciding where to send PC
 
-- Key registers
+- Example: `[6C] + [6D] → [6E]`
 
-  | Register                      | Role                                                                        | Example                                        |
-  | ----------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------- |
-  | **PC(Program Counter)**       | Holds the **address of the next instruction** to run                        | `PC = A0` (instruction stored from address A0) |
-  | **IR(Instruction Register)**  | Holds **the instruction itself** currently being executed                   | `IR = 156C`                                    |
-  | **General-purpose registers** | Temporarily hold operands and results (faster than memory)                  | `R5`, `R6`, `R0`                               |
-  | **Status register**           | Holds status of an operation's result → used later for conditional branches | Zero or not, negative or not, carry, etc.      |
-  - PC does not always increase by a fixed amount (instruction lengths can differ, and a branch changes it to another address)
-
-- **Status register and conditional branches**: compare/compute → record the result status in the status register → a conditional branch checks it and decides whether to continue or jump to another address
-
-  | Flag              | Status recorded                                                                       |
-  | ----------------- | ------------------------------------------------------------------------------------- |
-  | **Zero Flag**     | Whether the result is 0 (e.g. comparing two equal values gives 0 → checked on branch) |
-  | **Negative Flag** | Whether the result is negative                                                        |
-  | **Carry Flag**    | Whether an addition produced a carry                                                  |
-  | **Overflow Flag** | Whether an overflow beyond the representable range occurred                           |
-
-## 3.3.2 The Machine Cycle
-
-- **Machine Cycle**: the process of repeating **Fetch → Decode → Execute** for each instruction
-
-![Machine cycle](/static/images/computer-systems-ch3-computer-organization/machine-cycle.svg)
-
-- What each stage does
-  1. **① Fetch**: read the instruction at the address in **PC** into **IR**, and **immediately update PC to the next instruction's address**
-  2. **② Decode**: the **control unit** interprets the bit pattern in **IR** and determines the operation (LOAD, ADD, STORE, JUMP, HALT, etc.) and the operands needed
-  3. **③ Execute**: perform the actual action (data move, arithmetic, store, branch, etc.) based on the decode → then fetch the next instruction again
-
-## 3.3.3 How a Program Runs
-
-- Running an addition (`[6C] + [6D] → [6E]`)
-  - One virtual machine instruction = **2 bytes (16 bits)**, one main-memory cell = **1 byte** → each instruction takes two cells, so in sequential execution **PC increases by 2** (`A0 → A2 → A4 → A6 → A8`)
-
-![Fetch steps during program execution](/static/images/computer-systems-ch3-computer-organization/program-execution-fetch.svg)
-
-| Step | Instruction (`[address]`) | PC at start | ① Fetch                    | ② Decode         | ③ Execute      |
-| ---- | ------------------------- | ----------- | -------------------------- | ---------------- | -------------- |
-| 1    | `156C` (`[A0:A1]`)        | `A0`        | `IR ← 156C`, **`PC ← A2`** | `LOAD R5, [6C]`  | `R5 ← [6C]`    |
-| 2    | `166D` (`[A2:A3]`)        | `A2`        | `IR ← 166D`, **`PC ← A4`** | `LOAD R6, [6D]`  | `R6 ← [6D]`    |
-| 3    | `5056` (`[A4:A5]`)        | `A4`        | `IR ← 5056`, **`PC ← A6`** | `ADD R0, R5, R6` | `R0 ← R5 + R6` |
-| 4    | `306E` (`[A6:A7]`)        | `A6`        | `IR ← 306E`, **`PC ← A8`** | `STORE R0, [6E]` | `[6E] ← R0`    |
-| 5    | `C000` (`[A8:A9]`)        | `A8`        | `IR ← C000`, **`PC ← AA`** | `HALT`           | Program ends   |
-
-- **Sequential vs branching execution**
-  - **Sequential execution**: by default, update PC to the next instruction's address and run in order
-  - **Branching execution**: conditionals, loops and function calls (`if`, `while`, `for`, `switch`) are implemented by **branch instructions** that **change the PC value**
-  - Example (`if (x == 0) y = 1; else y = 2;`): compare `x` with `0` → store the result in the status register → branch to the `then` or `else` block's address based on the result (PC changes) → after it runs, move to the address after the `if-else`
-  - Controlling program flow = deciding **which address to set PC to**
+| PC at start | Instruction | After fetch | Decode           | Execute        |
+| ----------- | ----------- | ----------- | ---------------- | -------------- |
+| `A0`        | `156C`      | `PC=A2`     | `LOAD R5, [6C]`  | `R5 ← [6C]`    |
+| `A2`        | `166D`      | `PC=A4`     | `LOAD R6, [6D]`  | `R6 ← [6D]`    |
+| `A4`        | `5056`      | `PC=A6`     | `ADD R0, R5, R6` | `R0 ← R5 + R6` |
+| `A6`        | `306E`      | `PC=A8`     | `STORE R0, [6E]` | `[6E] ← R0`    |
+| `A8`        | `C000`      | `PC=AA`     | `HALT`           | Program ends   |
 
 # 3.4 Arithmetic and Logic Instructions
 
 **CPU operations are bit-pattern transformations done by the ALU within a fixed number of bits + recording status flags**
 
 - Kinds of operation instructions
-  | Kind | Typical instructions | Main use |
-  | ----------------------- | ------------------------------------------- | -------------------------- |
-  | **Logic operations** | `AND`, `OR`, `XOR`, `NOT` | Test, set, flip specific bits |
-  | **Shift operations** | `SHL`, `SHR`, `SAR`, `ROL`, `ROR` | Moving bits, bit manipulation |
-  | **Arithmetic operations** | `ADD`, `SUB`, `MUL`, `DIV` | Integer and real-number calculation |
-  | **Comparison operations** | `CMP`, `TEST` | Check results before a conditional branch |
+
+  | Kind                      | Typical instructions              | Main use                                  |
+  | ------------------------- | --------------------------------- | ----------------------------------------- |
+  | **Logic operations**      | `AND`, `OR`, `XOR`, `NOT`         | Test, set, flip specific bits             |
+  | **Shift operations**      | `SHL`, `SHR`, `SAR`, `ROL`, `ROR` | Moving bits, bit manipulation             |
+  | **Arithmetic operations** | `ADD`, `SUB`, `MUL`, `DIV`        | Integer and real-number calculation       |
+  | **Comparison operations** | `CMP`, `TEST`                     | Check results before a conditional branch |
 
 ## 3.4.1 Logic Operations
 
@@ -374,18 +277,12 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
 
 - **Shift and Rotate**: move bits left/right. A plain shift drops the bits pushed out and fills the empty spots; a rotate puts the pushed-out bits back in at the other end
 
-![Right shift vs rotate](/static/images/computer-systems-ch3-computer-organization/shift-rotate.svg)
-
 | Kind                       | Direction / instruction | Filling empty bits                                | Effect and main use                                                                                       |
 | -------------------------- | ----------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | **Logical left shift**     | `SHL` (`<<`)            | Always inserts **0** on the right                 | **×2 effect** within range (bits beyond the width are lost → not always double)                           |
 | **Logical right shift**    | `SHR` (`>>`)            | Always inserts **0** on the left                  | **÷2 quotient** effect on **unsigned integers** (`54(00110110) >> 1 → 27(00011011)`)                      |
 | **Arithmetic right shift** | `SAR`                   | **Copies the top sign bit (MSB)** into the left   | Keeps the sign of **signed (two's complement) integers** + **÷2 effect** (`-12(11110100) → -6(11111010)`) |
 | **Rotate left/right**      | `ROL` / `ROR`           | **Puts the pushed-out bit back at the other end** | Rearranging bits, mixing bits in encryption, hash functions (`ROL`: MSB→LSB, `ROR`: LSB→MSB)              |
-
-- **Caveats for C shift operators (`<<`, `>>`)**
-  - Right shift (`>>`) of an `unsigned` value is a logical shift that fills with `0`
-  - `>>` on a negative `signed` integer may differ by C implementation, and `<<` that goes out of range is unsafe → **for bit manipulation, `unsigned int` or `uint32_t` is safer**
 
 ## 3.4.3 Arithmetic Operations
 
@@ -395,6 +292,40 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
   - **Multiplication (`MUL`)**: **Shift + Add**, checking each bit, shifting left and adding (e.g. `13 × 5 = 13 × (4 + 1) = (13 << 2) + 13`)
   - **Division (`DIV`)**: **Shift + Subtract**, repeatedly subtracting the divisor to decide each quotient bit
 
+- Examples (8-bit)
+
+  **Subtraction: 7 − 3**
+
+  ```
+   3   = 00000011
+  -3   = 11111100 + 1 = 11111101   (flip, then +1: two's complement)
+
+    00000111   (7)
+  + 11111101   (-3)
+  -----------
+  1 00000100   → drop the leading 1 that overflowed → 00000100 = 4
+  ```
+
+  **Multiplication: 13 × 5**
+
+  ```
+  5 = 101 → positions with a 1: 2², 2⁰
+  13 << 2 = 00110100   (52, 13×4)
+  13 << 0 = 00001101   (13, 13×1)
+            --------
+            01000001   (65)
+  ```
+
+  **Division: 13 ÷ 5** (`1101 ÷ 101`)
+
+  ```
+  1    < 101 → quotient 0
+  11   < 101 → quotient 0
+  110  ≥ 101 → quotient 1, 110 - 101 = 1
+  11   < 101 → quotient 0
+  quotient 0010 = 2, remainder 11 = 3
+  ```
+
 - **Integer vs floating-point operations**
 
   | Aspect         | Integer operation (`29 + 13`)                   | Floating Point operation (`3.14 + 2.75`)                                                                             |
@@ -403,31 +334,32 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
   | Process        | Centered on binary addition (computed directly) | **Compare and align exponents (shift the smaller mantissa) → add/subtract mantissas → normalize the result → round** |
   | Main problem   | Overflow                                        | Rounding error, loss of precision (why `0.1 + 0.2 == 0.3` may not be true)                                           |
 
+- Floating-point example (`1.5 + 0.75`)
+
+  ```
+  1.5  = 1.1 × 2⁰
+  0.75 = 1.1 × 2⁻¹
+
+  1) Align exponents: bring the smaller one to 2⁰ → 0.11 × 2⁰   (mantissa shifted right by one)
+  2) Add mantissas:   1.10 + 0.11 = 10.01 × 2⁰
+  3) Normalize:       1.001 × 2¹                         (move the point one place, exponent +1)
+                      = 2.25 ✓
+  4) Round: with only 2 mantissa bits after the point, 1.001 → 1.00 → it becomes 2.0
+  ```
+
 ## 3.4.4 Results and Status Information
 
-- **Carry vs Carry Flag (CF)**
-  - **Carry**: the internal carry passed to the next digit when one digit's sum is 2 or more in binary addition
-  - **Carry Flag (CF)**: records not every internal carry, only **the final carry-out past the most significant bit (MSB)** (`did the value go beyond the storable bit width?`)
+- The CPU doesn't know whether a value is signed or unsigned; it just adds bits → it records "did it overflow?" separately for each reading
+- **Carry**: the 1 that moves up to the next digit when adding
+- **CF (Carry Flag)**: did it overflow when read as an unsigned number (0~255)? 1 if a 1 pops out past the leftmost bit
+- **OF (Overflow Flag)**: did it overflow when read as a signed number (-128~127)? 1 if the sign flips in a way that makes no sense, like positive + positive = negative
 
-- **Carry Flag (CF) vs Overflow Flag (OF)**
-  - The CPU adder does not add signed and unsigned values differently; it **adds the same bit patterns and records both CF and OF** → which flag to check depends on **how the programmer/instruction interprets the value**
-
-  | Aspect                 | Carry Flag (CF)                                                                                  | Overflow Flag (OF)                                                                                                                               |
-  | ---------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-  | Criterion              | Did a **carry go out past the top bit**?                                                         | **Interpreted as a signed integer**, did it leave the representable range? (e.g. positive + positive = negative, negative + negative = positive) |
-  | Typical interpretation | Detecting range overflow in **unsigned operations**                                              | Detecting range overflow in **signed operations**                                                                                                |
-  | 8-bit range            | `0 ~ 255`                                                                                        | `-128 ~ 127`                                                                                                                                     |
-  | Example                | `255(11111111) + 1 = 00000000` → **`CF = 1`, `OF = 0`** (as signed, `-1 + 1 = 0`, which is fine) | `127(01111111) + 1 = 10000000` → **`CF = 0`, `OF = 1`** (as signed it becomes `-128`, sign flipped)                                              |
-  - `CF` / `OF` for 8-bit operations:
-    - `1 + 1` (`0000 0010`): `CF = 0`, `OF = 0`
-    - `255 + 1` (`0000 0000`): `CF = 1`, `OF = 0`
-    - `127 + 1` (`1000 0000`): `CF = 0`, `OF = 1`
-    - `128 + 128` (`10000000 + 10000000 = 0000 0000`): **`CF = 1`, `OF = 1`** (carry past the MSB + as signed, `-128 + (-128) = 0`, flipped to positive)
-
-- **Status flags and conditional branches (`CMP`)**
-  - A compare (`CMP a, b`) internally does a **subtraction (`a - b`)** and records the status flags
-  - `a - b == 0` (`Zero Flag = 1`) → `a == b` / if negative (`signed`) `a < b` / if positive `a > b`
-  - High-level `if`, `while`, `for` conditions = **compare (`CMP`) + status flag check + conditional branch instruction**
+  | Calculation | Result bits | Read as unsigned               | Read as signed                    | CF  | OF  |
+  | ----------- | ----------- | ------------------------------ | --------------------------------- | --- | --- |
+  | `1 + 1`     | `00000010`  | 2 → fine                       | 2 → fine                          | 0   | 0   |
+  | `255 + 1`   | `00000000`  | should be 256 but 0 → overflow | -1 + 1 = 0 → fine                 | 1   | 0   |
+  | `127 + 1`   | `10000000`  | 128 → fine                     | should be 128 but -128 → overflow | 0   | 1   |
+  | `128 + 128` | `00000000`  | 256 but 0 → overflow           | -128 + -128 = 0 → overflow        | 1   | 1   |
 
 # 3.5 I/O Control and Data Transfer
 
@@ -437,16 +369,12 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
 
 ![Path of an I/O request](/static/images/computer-systems-ch3-computer-organization/io-path.svg)
 
-- **I/O Controller**: hardware that relays communication between the CPU and peripheral devices. e.g. keeps the printer's status in a register for the CPU to read
-  - In the figure: the green box under HARDWARE
+- **I/O Controller**: hardware that relays communication between the CPU and peripheral devices.
+
 - Why it is needed: each device differs in data format, speed and behavior → if the CPU handled all of it directly, control would get complicated
-  - Keyboard (input arrives irregularly), printer (much slower than the CPU), SSD (block-level reads and writes), network (data arrives irregularly)
+
 - **I/O request path**: application program → operating system (file system) → device driver → I/O controller → peripheral device
-  - The application, OS and driver are software run by the CPU; the controller and peripheral are hardware
-  - Applications do not control devices directly
-  - e.g. `fprintf(fp, "Hello\n")` → the OS file system handles it → the CPU runs the driver → the driver passes commands and data to the controller's registers → the controller exchanges data with the SSD
-- Roles of the I/O controller: ① pass commands ② pass data (relay CPU/memory ↔ device) ③ manage state (ready, busy, done, error) ④ handle device characteristics (match speed and communication method)
-  - e.g. USB Controller (USB drives, keyboards, mice), Storage Controller (SSD), Network Interface Controller, Graphics Controller
+
 - **Controller vs Device Driver**
 
   | Aspect     | Controller                                             | Device Driver                                                              |
@@ -456,36 +384,16 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
   | Role       | Actual data transfer with the device, state management | Turns OS I/O requests into control commands, accesses controller registers |
   | Example    | USB Controller, SSD Controller                         | USB Driver, Printer Driver                                                 |
 
-- Registers inside the controller
-  - In the figure: the three rows inside the I/O Controller box
-
-  | Register                   | Role                                                | Printer example           |
-  | -------------------------- | --------------------------------------------------- | ------------------------- |
-  | **Control Register**       | Commands and control info for the device            | Start printing, reset     |
-  | **Status Register**        | Device's current state and errors                   | Ready, Busy, Error        |
-  | **Data Register / Buffer** | Temporary storage for data between CPU ↔ controller | Part of the data to print |
-  - Register-based control order: check readiness in Status → write output data to Data → write the command to Control → the controller runs the device and updates Status (the order of Data and Control can differ by device)
-
 ## 3.5.2 Communication Between the CPU and I/O Controllers
 
 - **System interconnect**: the communication path linking the CPU, memory and I/O controllers. The CPU reads and writes controller registers through it
-  - **Bus**: a pathway several devices use to exchange data. Modern computers use several communication paths, not a single bus
-- Information exchanged
-
-  | Kind        | Meaning              | I/O controller example                          |
-  | ----------- | -------------------- | ----------------------------------------------- |
-  | **Address** | Location to access   | Address of the Control / Status / Data Register |
-  | **Data**    | The actual data      | Output data, input data                         |
-  | **Control** | Operation to perform | Read, Write, Enable                             |
   - When needed, the controller reports state changes to the CPU with an Interrupt
-
-- Modern connection examples: CPU ↔ memory via a Memory Interface, CPU (SoC) ↔ I/O controller via PCI Express, I/O controller ↔ peripheral via USB or SATA
 
 ## 3.5.3 Data Transfer Between Devices and Handshaking
 
 - **Handshaking**: two devices exchange control signals and status info to agree on when to send and when to receive. e.g. send data only when the printer is Ready
   - Purpose: confirm the receiver is ready, confirm delivery, coordinate timing between devices of different speeds, prevent data loss and errors
-- Handshaking between the I/O controller and a printer: 1. the controller checks the printer's status → 2. if Ready, it sends output data → 3. sends the start-printing command → 4. the printer is Busy while processing → 5. when done, updates to Ready/Complete
+
   - How the CPU learns it is done: 3.5.5 (Polling, Interrupt)
 
 ## 3.5.4 Serial and Parallel Communication and I/O Interfaces
@@ -493,44 +401,20 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
 ![Parallel and serial communication](/static/images/computer-systems-ch3-computer-organization/parallel-serial.svg)
 
 - **Parallel communication**: sends several bits at once over several wires. e.g. 8 wires send 8 bits at a time
-  - In the figure: top, 1010 over 4 wires in time T
-  - Older parallel printer ports, some internal memory interfaces
+  - **Skew** (bits that leave at the same time arrive at different times) can happen
 - **Serial communication**: sends bits one after another over a single path (Lane)
-  - In the figure: bottom, 1010 over one lane in time 4T
-  - Examples: USB, SATA, PCI Express, Thunderbolt
-- **Skew**: in parallel communication, bits that leave at the same time arrive at different times
-  - Causes: differences in wire length, different electrical characteristics per wire, interference from nearby signals, delay differences in send/receive circuits
-  - Problem: reading before all bits have arrived gives a wrong value. At higher speeds the window for reading a bit shrinks, so even small differences cause errors
-- Parallel vs serial
+  - **Lane**: one independent serial communication path. Using several together widens bandwidth
 
-  | Aspect                   | Parallel communication                                    | Serial communication                                        |
-  | ------------------------ | --------------------------------------------------------- | ----------------------------------------------------------- |
-  | How it sends             | Several bits at once over several wires                   | Bits in order over one lane                                 |
-  | Wire count / wiring      | Many, complex                                             | Few, simple                                                 |
-  | Strength                 | At the same signal speed, sends several bits at once      | High signal speed, simple wiring                            |
-  | Main problems            | **Skew**, signal interference (Crosstalk), complex wiring | Needs high-speed signal recovery, encoding, synchronization |
-  | Distance / speed scaling | Harder to synchronize as it gets longer or faster         | Better for high speed and long distance                     |
-  | Modern use               | Short internal links such as memory interfaces            | USB, SATA, PCIe, Thunderbolt                                |
-  - In theory parallel wins at the same signal speed, but real high-speed systems use fast serial links for signal integrity and scalability
-
-- **Lane**: one independent serial communication path. Using several together widens bandwidth
-  - e.g. PCIe x1 / x4 / x16 = 1 / 4 / 16 lanes
-  - PCIe x4 is not a 4-bit parallel bus but a link bundling 4 serial lanes. Each lane is serial inside
 - **Data Rate**: the amount of data sent over a communication path per unit time. Unit: bps (Kbps = 10³, Mbps = 10⁶, Gbps = 10⁹ bps)
   - **Maximum Data Rate**: the theoretical maximum transfer rate of the interface spec
   - **Throughput**: the transfer rate actually achieved in a real system. **Maximum Data Rate ≥ Throughput**
-  - Why throughput drops: protocol overhead (packet headers, error-detection info), storage device performance, CPU/OS processing load, contention for shared resources and bandwidth, cable and port specs, repeated handling of small files
-- Standard I/O interfaces: early on, each device had its own port and connection method, so these were standardized
-  - Benefits: different devices connect through a common spec, easy to add or replace, better compatibility
+
 - **USB (Universal Serial Bus)**: the main serial interface for connecting peripherals
-  - **Host-centered**: the PC (Host) manages communication; devices cannot start communication on their own
-  - **Plug and Play**: plug it in and the OS recognizes and configures it automatically
-  - **Hot Plugging**: connect and disconnect without powering off; also supplies power
-  - Speeds: USB 2.0 480 Mbps, USB 3.2 Gen 1 5 Gbps, Gen 2 10 Gbps
+
 - **FireWire (IEEE 1394)**: a serial interface built for fast real-time transfer
   - **Peer-to-Peer**: devices talk to each other directly. e.g. camcorder ↔ external storage
-  - Made for multimedia like video and audio, where steady and predictable transfer matters. FireWire 400 / 800 = 400 / 800 Mbps
   - Rarely used now, displaced by USB and Thunderbolt
+
 - USB vs FireWire
 
   | Aspect                    | USB                                       | FireWire                         |
@@ -546,15 +430,8 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
 ![Polling vs Interrupt](/static/images/computer-systems-ch3-computer-organization/polling-interrupt.svg)
 
 - Why it is needed: the CPU is fast but I/O devices are slow and their completion time varies → the CPU needs a way to know when they are done
-- **Polling**: the CPU repeatedly reads the controller's Status Register to check its state. Keeps asking "Ready?"
-  - In the figure: the yellow repeated Status? Busy boxes at the top
-  - Process: CPU requests the work → reads Status → if Busy, reads again → if Ready, moves to the next work
-  - Simple structure, fine for short and predictable work. The slower the device, the more CPU time is wasted on checking
-- **Interrupt**: when the work is done, the I/O device (controller) sends an interrupt request to the CPU. "Done"
-  - In the figure: the red arrow at the bottom
-  - Process: CPU requests the work → the CPU does other work while the device works → when done, the controller sends an interrupt request → the CPU pauses what it was doing and runs the interrupt service routine → returns to the previous work
-  - The CPU does not have to keep checking; suits work that takes long or is hard to predict. Handling the interrupt itself has a cost
-- Polling vs Interrupt
+
+- **Polling vs Interrupt**
 
   | Aspect                     | Polling                                 | Interrupt                                 |
   | -------------------------- | --------------------------------------- | ----------------------------------------- |
@@ -564,7 +441,6 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
   | Weakness                   | Wastes CPU time when the device is slow | Interrupt handling cost                   |
   | Best for                   | Short, simple I/O                       | I/O that takes long or is hard to predict |
   - Even with interrupts, the CPU still has to move bulk data itself → 3.5.6 DMA
-  - Handshaking = devices matching speed and timing with each other / Polling·Interrupt = the CPU checking I/O state and completion
 
 - Full printing flow
   1. The user requests printing in an application
@@ -581,22 +457,6 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
 
 ![CPU direct transfer vs DMA transfer](/static/images/computer-systems-ch3-computer-organization/dma-transfer.svg)
 
-- Bulk transfer without DMA (CPU direct transfer): the controller prepares part of the data → the CPU reads it from the controller → the CPU writes it to memory → repeat until done
-  - In the figure: left, all data passes through the red CPU
-  - Problems: the more data, the more CPU involvement; instruction time spent moving data; less processing time for other programs
-- **DMA**: the CPU only sets the transfer conditions, and a **DMA Controller** moves bulk data between the I/O device ↔ memory directly. e.g. the CPU does other work while an SSD file is read into memory
-  - In the figure: right, the green DMA path
-  - Purpose: less repeated CPU involvement, the CPU does other work during the transfer, more efficient bulk transfer for storage and networks
-  - Uses: large SSD/disk reads and writes, network packet send/receive, high-resolution video and audio, GPU ↔ memory
-  - In modern systems, DMA is often built into the I/O controller
-- DMA steps (SSD → memory)
-  1. CPU: sets up the I/O and DMA transfer
-  2. Storage Controller / DMA: reads data from the storage device
-  3. DMA: transfers the data directly to memory
-  4. CPU: runs other instructions meanwhile
-  5. Transfer done: usually reported to the CPU with an Interrupt
-  6. CPU: uses the data stored in memory
-- What the CPU sets up: **start memory address** (where to put or read the data), **transfer size** (bytes or blocks), **transfer direction** (device → memory / memory → device), **control info** (start the transfer, how completion is reported)
 - CPU direct transfer vs DMA
 
   | Aspect         | CPU direct transfer         | DMA transfer                                    |
@@ -607,19 +467,10 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
 
 ## 3.5.7 Sharing System Resources and the Limits of DMA
 
-- Both the CPU and DMA access main memory → the CPU can access instructions and data during a DMA transfer, and they share interconnect and memory bandwidth → simultaneous requests need ordering
-- **Bus Arbitration**: deciding the order of use when several devices want the same communication resource at once. e.g. the CPU and DMA request memory access at the same time
-
-  | Criterion   | Description                                  |
-  | ----------- | -------------------------------------------- |
-  | Priority    | Important devices and urgent requests first  |
-  | Round-robin | Requesting devices get turns in order        |
-  | Fairness    | No device keeps waiting forever              |
-  | Performance | Choose what raises overall system throughput |
-
 - DMA strengths: less repeated data movement by the CPU, lower CPU load for large I/O, the CPU runs other instructions during transfers, effective for bulk transfers in storage, networking and graphics
 - DMA limits: DMA also uses memory and the interconnect, large DMA transfers compete with the CPU for memory access, setup and completion handling add overhead, for very small transfers the setup cost can be larger
   - DMA only reduces the CPU's data-moving load; it does not increase memory or interconnect bandwidth
+
 - **Von Neumann bottleneck**: limited data transfer capacity between the CPU and memory holds back overall performance. e.g. however fast the CPU is, it waits if data arrives late from memory
   - Cause: the CPU fetches both instructions and data from memory to process them
   - Using DMA does not remove the von Neumann bottleneck

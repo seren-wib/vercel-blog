@@ -6,7 +6,19 @@ draft: false
 summary: 'Heaps, the array layout of a complete binary tree, max-heap, sift-down, building a heap in O(n), heap sort in O(n log n), in-place, unstable, C/Python implementations with an animated sort'
 ---
 
-> Heap sort turns the array into a heap, then moves the largest value to the end one at a time. In **Try it** at the bottom you can run the C and Python code on random input and watch the sort as bars.
+> Heap sort turns the array into a heap, then moves the largest value to the end one at a time. In **Try it** right below you can run the C and Python code on random input and watch the sort as bars.
+
+## 0. Try it
+
+- The C and Python code below follow sections 1 to 5 line by line. Every **Run** builds a new array of random values from 5 to 99
+- C is compiled with GCC and run on Compiler Explorer (godbolt.org); Python runs in your browser on Pyodide
+- The program prints one line for every compare (`CMP`), swap (`SWAP`) and value fixed in place (`SORTED`), and the page reads that output to draw the bars. What you see is the real run
+- You can edit the code and run it again. As long as it prints the same format, it will be drawn
+
+<SortVisualizer algorithm="heap-sort" />
+
+- Blue is a compare, red is a swap, black is a value in its final place. Gray values are still in the heap
+- In the first part (Build max-heap) large values rise to the front; in the second part (Move the max to the end) the largest value turns black at the right end, one at a time
 
 ## 1. Heap
 
@@ -125,19 +137,7 @@ Sift down from the last node with children (`n/2 - 1 = 1`) back to `0`
 - Heap sort jumps between the front and back of the array, so it uses the cache poorly and is usually slower than quick sort in practice
 - That makes it common as **insurance against the worst case**: introsort in C++ `std::sort` switches from quick sort to heap sort when recursion gets too deep
 
-## 6. Try it
-
-- The C and Python code below follow the description above line by line. Every **Run** builds a new array of random values from 5 to 99
-- C is compiled with GCC and run on Compiler Explorer (godbolt.org); Python runs in your browser on Pyodide
-- The program prints one line for every compare (`CMP`), swap (`SWAP`) and value fixed in place (`SORTED`), and the page reads that output to draw the bars. What you see is the real run
-- You can edit the code and run it again. As long as it prints the same format, it will be drawn
-
-<SortVisualizer algorithm="heap-sort" />
-
-- Blue is a compare, red is a swap, black is a value in its final place. Gray values are still in the heap
-- In the first part (Build max-heap) large values rise to the front; in the second part (Move the max to the end) the largest value turns black at the right end, one at a time
-
-## 7. Summary
+## 6. Summary
 
 - A heap is a complete binary tree, so one array holds it. Children are at `2i + 1` and `2i + 2`
 - Heap sort = build a heap in `O(n)` + `n - 1` rounds of moving the max to the end and sifting down

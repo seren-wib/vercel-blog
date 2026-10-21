@@ -3,7 +3,7 @@ title: 'Stairno 0. The Whole Roadmap'
 date: '2026-10-20'
 tags: ['Stairno']
 draft: false
-summary: 'What Stairno is, why there are four sites but one account, the 10-step roadmap and where it stands (step 4, wrapping up), the series contents and the tools that appear in it'
+summary: 'What Stairno is, why there are four sites but one account, the 10-step roadmap and where it stands (step 4 done, step 5 next), the series contents and the tools that appear in it'
 ---
 
 > The first post in a development log of Stairno, a brand I build on my own. It is written so that non-developers can follow from the start. When a term is new, its link takes you to that entry in a glossary post.
@@ -46,18 +46,18 @@ The other sites do not build sign-in or payments themselves. They just call thes
 
 I set the order on 18 October 2026. There are no dates, only order.
 
-| Step | Task                                         | What it covers                                                                                                     | Status         |
-| ---- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | -------------- |
-| 1    | Shared design package `stairno-ui`           | Pull the hub's colors, fonts, header and footer out so every site uses the same look                               | ✅ Done        |
-| 2    | Account center documents                     | Project plan, requirements and design specifications. First, an experiment on whether sign-in works across domains | ✅ Done        |
-| 3    | Account center, part 1: sign-in              | Sign-up, sign-in, verification mail, device management, a sign-in gateway for sites. Live                          | ✅ Done        |
-| 4    | Account center, part 2: payments (test mode) | Card registration, one-time payments, subscriptions, refunds, payment mail. No real money moves                    | 🔧 Wrapping up |
-| 5    | stairnolabs.com                              | Product catalog → payments and downloads. The first site to connect to Stairno accounts                            |                |
-| 6    | stairnoworks.com                             | Service introduction → requests, quotes, deposits                                                                  |                |
-| 7    | stairnogames.com                             | Vane introduction and dev diary                                                                                    |                |
-| 8    | First product launch                         | Open atlas-odyssey, a learning roadmap service, for free with Stairno accounts                                     |                |
-| 9    | Business registration → real payments        | Sign a contract with the payment provider and swap the test keys for real keys                                     |                |
-| 10   | Vane                                         | Starting from one playable section                                                                                 |                |
+| Step | Task                                         | What it covers                                                                                                     | Status  |
+| ---- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------- |
+| 1    | Shared design package `stairno-ui`           | Pull the hub's colors, fonts, header and footer out so every site uses the same look                               | ✅ Done |
+| 2    | Account center documents                     | Project plan, requirements and design specifications. First, an experiment on whether sign-in works across domains | ✅ Done |
+| 3    | Account center, part 1: sign-in              | Sign-up, sign-in, verification mail, device management, a sign-in gateway for sites. Live                          | ✅ Done |
+| 4    | Account center, part 2: payments (test mode) | Card registration, one-time payments, subscriptions, refunds, payment mail. No real money moves                    | ✅ Done |
+| 5    | stairnolabs.com                              | Product catalog → payments and downloads. The first site to connect to Stairno accounts                            |         |
+| 6    | stairnoworks.com                             | Service introduction → requests, quotes, deposits                                                                  |         |
+| 7    | stairnogames.com                             | Vane introduction and dev diary                                                                                    |         |
+| 8    | First product launch                         | Open atlas-odyssey, a learning roadmap service, for free with Stairno accounts                                     |         |
+| 9    | Business registration → real payments        | Sign a contract with the payment provider and swap the test keys for real keys                                     |         |
+| 10   | Vane                                         | Starting from one playable section                                                                                 |         |
 
 ### Why this order
 
@@ -68,16 +68,17 @@ I set the order on 18 October 2026. There are no dates, only order.
 
 ## 5. Where things stand
 
-| Date                      | What happened                                                                                                       |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| 16 October                | The brand name Stairno and the four-site structure settled                                                          |
-| 17 October                | Four domains bought. The hub `stairno.com` went live. Decided to split accounts and payments into their own project |
-| 18 October                | Roadmap set. Steps 1–3 done, sign-in live. Payments built and first release `v0.4.0`                                |
-| 19 October                | Account center redesign `v0.4.1`. Payment rehearsal tool                                                            |
-| Early hours of 20 October | Two production bugs fixed in a hurry (`v0.4.2`). Production payment rehearsal: 8 of 10 passed                       |
-| 21 October                | The last two rehearsal scenarios (three failed renewals, mail in both languages) passed. All 10 passed              |
+| Date                      | What happened                                                                                                                       |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 16 October                | The brand name Stairno and the four-site structure settled                                                                          |
+| 17 October                | Four domains bought. The hub `stairno.com` went live. Decided to split accounts and payments into their own project                 |
+| 18 October                | Roadmap set. Steps 1–3 done, sign-in live. Payments built and first release `v0.4.0`                                                |
+| 19 October                | Account center redesign `v0.4.1`. Payment rehearsal tool                                                                            |
+| Early hours of 20 October | Two production bugs fixed in a hurry (`v0.4.2`). Production payment rehearsal: 8 of 10 passed                                       |
+| 21 October                | The last two rehearsal scenarios (three failed renewals, mail in both languages) passed. All 10 passed                              |
+| 22 October                | Rehearsal cleanup, shared documents brought in line, operating procedures written, pending changes shipped as `v0.4.3`. Step 4 done |
 
-Right now it is **wrapping up step 4**. All 10 production payment rehearsal scenarios passed. Once the temporary rehearsal account and scripts are removed, the shared documents are brought in line and the pending changes ship, step 4 closes and step 5, Labs, begins.
+**Step 4 is done.** All 10 production payment rehearsal scenarios passed. The rehearsal scripts and connection details are gone, the shared documents match the Markdown originals again, and the pending changes shipped as `v0.4.3`. The closing day is in [section 12 of part 4a](/en/blog/stairno/stairno-04a-payment-rehearsal/#12-addendum-closing-step-4-october-22). Step 5, Labs, is next, but first come the jobs the rehearsal turned up: refund requests in the account center, "keep me signed in", and three bugs found along the way.
 
 The pace may look oddly fast. The plan said 1–2 weeks for sign-in and 2–3 weeks for payments, but the code went in within a day. Most of the code was written by an [AI coding agent](/en/blog/devops/devops-00-basics/#ai-coding-agent) (Claude Code). I set the scope and made the decisions, checked the results, and did what a person has to do, such as dashboard settings and entering cards. That speed also meant missing things, and each post says so openly.
 

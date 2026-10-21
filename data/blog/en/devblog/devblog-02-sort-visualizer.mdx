@@ -1,0 +1,144 @@
+---
+title: 'DevBlog 2. Building the Sort Visualizer'
+date: '2026-10-22'
+tags: ['DevBlog']
+draft: false
+summary: 'A visualizer that really runs C and Python sort code on random input and animates the run as bars: the step trace format, random input passed on stdin, building and checking frames, playback controls, lazy loading'
+---
+
+> How the visualizer at the top of the [heap sort](/en/blog/data-structures/data-structures-heap-sort/#0-try-it) post was built. It runs code with the same runners as the Playground from [DevBlog 1](/en/blog/devblog/devblog-01-playground/).
+
+## 1. Requirements
+
+- Show the C and Python implementations in the post and **actually run them**
+- The run is the point: bars sized by value that move into order until the final result
+- Input is **random every time**. Each run should sort a different array
+
+## 2. The core idea: let the program keep a diary
+
+Three options were on the table
+
+| Option                                          | Problem                                                            |
+| ----------------------------------------------- | ------------------------------------------------------------------ |
+| Re-implement the sort in JavaScript and draw it | The picture is not the C/Python run; it drifts from the code shown |
+| Inspect the running program's memory            | There is no way to peek into an array inside godbolt or Pyodide    |
+| **Have the program print what it does**         | A few extra `printf` lines; in return, the picture is the real run |
+
+- The third one won. The program prints a line for every compare and swap, and the page reads that output and redraws it from the start
+- The output format (trace) is shared by any sorting algorithm
+
+| Line           | Meaning                               |
+| -------------- | ------------------------------------- |
+| `INIT v0 v1 …` | The input array                       |
+| `PHASE name`   | A stage starts (shown in the caption) |
+| `CMP i j`      | Compared `a[i]` and `a[j]`            |
+| `SWAP i j`     | Swapped `a[i]` and `a[j]`             |
+| `SORTED i`     | `a[i]` is in its final place          |
+| `DONE v0 v1 …` | The result array                      |
+
+```c:heap_sort.c
+static void swap(int i, int j) {
+    int t = a[i];
+    a[i] = a[j];
+    a[j] = t;
+    printf("SWAP %d %d\n", i, j);
+}
+```
+
+- An input of size 16 prints about 150 lines, small enough to get back from godbolt
+
+## 3. The page makes the random input
+
+- The program does not call `srand(time(NULL))` or `random`; **the page builds a random array and passes it on stdin**
+
+```ts:components/visualizer/SortVisualizer.tsx
+const input = randomInput(size)            // 5 to 99, size 8 to 32
+const stdin = `${size}\n${input.join(' ')}\n`
+```
+
+- Why
+  - C and Python get **the same array**. C's `rand()` and Python's `random` give different numbers even with the same seed
+  - The input is in the request body, so every run is a different request. There is no room for a repeated request to return an earlier result
+  - The page can show the input array as is
+- The program only reads `n` and `n` values, the same input format as an exam problem, so the code reads naturally
+
+## 4. Output → frames
+
+- `trace.ts` reads the output line by line and replays the changes itself. On `SWAP` it swaps its own copy of the array and saves the whole array as a **frame**
+
+```ts:components/visualizer/trace.ts
+} else if (cmd === 'CMP' || cmd === 'SWAP') {
+  const [i, j] = nums
+  if (cmd === 'SWAP') [values[i], values[j]] = [values[j], values[i]]
+  push({ kind: cmd === 'CMP' ? 'cmp' : 'swap', i, j })
+}
+```
+
+- A frame = the array at that moment + which slots are final + the slots just touched + the stage name
+- With at most 32 values and a few hundred steps, copying the array per frame is cheap, and it lets the slider jump straight to any step
+
+### Checks
+
+- The page checks that its replayed array equals the program's `DONE`, and that `DONE` is in ascending order
+- If an edit drops one `printf`, the picture drifts from the real array, and the page says so under the bars
+- Out-of-range indexes and a missing `INIT` or `DONE` are reported in the same place
+
+## 5. Animation
+
+- Playback is just one `index` bumped by `setTimeout`. 420 ms by default, speed 0.5× to 4×
+
+```ts:components/visualizer/SortVisualizer.tsx
+useEffect(() => {
+  if (!playing || !trace) return
+  if (index >= trace.frames.length - 1) {
+    setPlaying(false)
+    return
+  }
+  const id = setTimeout(() => setIndex((i) => i + 1), BASE_DELAY_MS / speed)
+  return () => clearTimeout(id)
+}, [playing, index, trace, speed])
+```
+
+- The bars are plain `div`s. Height is `value / max × 100%`, and `transition-[height,background-color]` smooths the height change on a swap
+- Colors: compare is blue, swap is red, final is black, the rest gray. The blog is black and white, so only two colors carry meaning
+- Controls: play/pause (replay at the end), step, a slider and speed. The caption explains the step, like "Compare a[5]=61 with a[2]=93", and counts compares and swaps
+
+## 6. Reusing the runners
+
+- C goes to godbolt through the Playground's `runCompiled`; Python runs in the Pyodide Worker through the same `runPython`
+- Pyodide starts loading the moment the Python tab is picked. Readers who only read the post never download the 10 MB
+- A compile error underlines the editor lines just like the Playground, and the message shows below the bars
+
+## 7. Embedding and lazy loading
+
+- In MDX it is one line
+
+```mdx
+<SortVisualizer algorithm="heap-sort" />
+```
+
+- The catch: the MDX component map is **shared by every post**. Importing the visualizer there directly would ship CodeMirror (hundreds of KB) with posts that do not use it
+- Only a small wrapper made with `next/dynamic` (`SortVisualizerLazy`) is registered. The real code downloads only on posts that use it
+
+```tsx:components/visualizer/SortVisualizerLazy.tsx
+const SortVisualizer = dynamic(() => import('./SortVisualizer'), {
+  ssr: false,
+  loading: () => <div>Loading visualizer…</div>,
+})
+```
+
+## 8. What was checked
+
+- With the same input `[42, 7, 93, 15, 61, 28, 77, 3, 50, 66]`, the C run on godbolt and the Python run printed 75 lines that were **identical line by line**
+- Two runs in a row got different input arrays
+- At 390 px wide, the bars and controls fit without horizontal scrolling
+
+## 9. Adding an algorithm
+
+- Add the C and Python code and the stage names to `components/visualizer/algorithms.ts`. The visualizer itself does not change
+- The one rule is the output format. Algorithms that write values into place, like merge sort, will get one more line such as `SET i v`
+
+## 10. Summary
+
+- "The program prints what it did; the page redraws that output." This one idea shows the real run while staying independent of the language (C, Python) and where it runs (godbolt, the browser)
+- Random input is made by the page, not the program, and passed on stdin

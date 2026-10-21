@@ -55,29 +55,30 @@
 
 ## 공유 컴포넌트
 
-| 파일                                       | export명                                | 타입           | 설명                      |
-| ------------------------------------------ | --------------------------------------- | -------------- | ------------------------- |
-| `components/Header.tsx`                    | `Header` (default)                      | default        | 전역 헤더                 |
-| `components/Footer.tsx`                    | `Footer` (default)                      | default        | 전역 푸터                 |
-| `components/Link.tsx`                      | `Link` (default)                        | default        | 내/외부 링크 핸들러       |
-| `components/MobileNav.tsx`                 | `MobileNav` (default)                   | default        | 모바일 메뉴               |
-| `components/ThemeSwitch.tsx`               | `ThemeSwitch` (default)                 | default        | 테마 토글                 |
-| `components/SearchButton.tsx`              | `SearchButton` (default)                | default        | 검색 버튼                 |
-| `components/Category.tsx`                  | `Category` (default)                    | default        | 카테고리 링크             |
-| `components/LanguageSwitch.tsx`            | `LanguageSwitch` (default)              | default        | 상단 바 KR/EN 토글        |
-| `components/PlaygroundMenu.tsx`            | `PlaygroundMenu` (default)              | default        | 상단 바 Playground 메뉴   |
-| `components/SqlPlayground.tsx`             | `SqlPlayground` (default)               | default        | COMPANY DB SQL 연습창     |
-| `components/playground/CodePlayground.tsx` | `CodePlayground` (default)              | default        | 코드 연습창               |
-| `components/playground/CodeEditor.tsx`     | `CodeEditor` (default)                  | default        | CodeMirror 에디터         |
-| `components/ProjectCard.tsx`               | `ProjectCard` (default), `ProjectBrief` | default, named | 프로젝트 카드, 한 줄 항목 |
-| `components/Image.tsx`                     | `Image` (default)                       | default        | Next.js Image 래퍼        |
-| `components/PageTitle.tsx`                 | `PageTitle` (default)                   | default        | 페이지 h1 제목            |
-| `components/Comments.tsx`                  | `Comments` (default)                    | default        | Giscus 댓글               |
-| `components/ScrollTopAndComment.tsx`       | `ScrollTopAndComment` (default)         | default        | 스크롤 상단/댓글 버튼     |
-| `components/TableWrapper.tsx`              | `TableWrapper` (default)                | default        | 스크롤 가능한 테이블 래퍼 |
-| `components/SectionContainer.tsx`          | `SectionContainer` (default)            | default        | 최대 너비 컨테이너        |
-| `components/MDXComponents.tsx`             | `components` (default)                  | default        | MDX 커스텀 컴포넌트 맵    |
-| `components/social-icons/index.tsx`        | `SocialIcon` (default)                  | default        | 소셜 아이콘               |
+| 파일                                           | export명                                | 타입           | 설명                                           |
+| ---------------------------------------------- | --------------------------------------- | -------------- | ---------------------------------------------- |
+| `components/Header.tsx`                        | `Header` (default)                      | default        | 전역 헤더                                      |
+| `components/Footer.tsx`                        | `Footer` (default)                      | default        | 전역 푸터                                      |
+| `components/Link.tsx`                          | `Link` (default)                        | default        | 내/외부 링크 핸들러                            |
+| `components/MobileNav.tsx`                     | `MobileNav` (default)                   | default        | 모바일 메뉴                                    |
+| `components/ThemeSwitch.tsx`                   | `ThemeSwitch` (default)                 | default        | 테마 토글                                      |
+| `components/SearchButton.tsx`                  | `SearchButton` (default)                | default        | 검색 버튼                                      |
+| `components/Category.tsx`                      | `Category` (default)                    | default        | 카테고리 링크                                  |
+| `components/LanguageSwitch.tsx`                | `LanguageSwitch` (default)              | default        | 상단 바 KR/EN 토글                             |
+| `components/PlaygroundMenu.tsx`                | `PlaygroundMenu` (default)              | default        | 상단 바 Playground 메뉴                        |
+| `components/SqlPlayground.tsx`                 | `SqlPlayground` (default)               | default        | COMPANY DB SQL 연습창                          |
+| `components/playground/CodePlayground.tsx`     | `CodePlayground` (default)              | default        | 코드 연습창                                    |
+| `components/playground/CodeEditor.tsx`         | `CodeEditor` (default)                  | default        | CodeMirror 에디터                              |
+| `components/visualizer/SortVisualizerLazy.tsx` | `SortVisualizerLazy` (default)          | default        | MDX `<SortVisualizer>` 정렬 시각화 (지연 로드) |
+| `components/ProjectCard.tsx`                   | `ProjectCard` (default), `ProjectBrief` | default, named | 프로젝트 카드, 한 줄 항목                      |
+| `components/Image.tsx`                         | `Image` (default)                       | default        | Next.js Image 래퍼                             |
+| `components/PageTitle.tsx`                     | `PageTitle` (default)                   | default        | 페이지 h1 제목                                 |
+| `components/Comments.tsx`                      | `Comments` (default)                    | default        | Giscus 댓글                                    |
+| `components/ScrollTopAndComment.tsx`           | `ScrollTopAndComment` (default)         | default        | 스크롤 상단/댓글 버튼                          |
+| `components/TableWrapper.tsx`                  | `TableWrapper` (default)                | default        | 스크롤 가능한 테이블 래퍼                      |
+| `components/SectionContainer.tsx`              | `SectionContainer` (default)            | default        | 최대 너비 컨테이너                             |
+| `components/MDXComponents.tsx`                 | `components` (default)                  | default        | MDX 커스텀 컴포넌트 맵                         |
+| `components/social-icons/index.tsx`            | `SocialIcon` (default)                  | default        | 소셜 아이콘                                    |
 
 ---
 

@@ -1,0 +1,144 @@
+---
+title: 'Heap Sort'
+date: '2026-10-22'
+tags: ['Data Structures']
+draft: false
+summary: 'Heaps, the array layout of a complete binary tree, max-heap, sift-down, building a heap in O(n), heap sort in O(n log n), in-place, unstable, C/Python implementations with an animated sort'
+---
+
+> Heap sort turns the array into a heap, then moves the largest value to the end one at a time. In **Try it** right below you can run the C and Python code on random input and watch the sort as bars.
+
+## 0. Try it
+
+- The C and Python code below follow sections 1 to 5 line by line. Every **Run** builds a new array of random values from 5 to 99
+- C is compiled with GCC and run on Compiler Explorer (godbolt.org); Python runs in your browser on Pyodide
+- The program prints one line for every compare (`CMP`), swap (`SWAP`) and value fixed in place (`SORTED`), and the page reads that output to draw the bars. What you see is the real run
+- You can edit the code and run it again. As long as it prints the same format, it will be drawn
+
+<SortVisualizer algorithm="heap-sort" />
+
+- Blue is a compare, red is a swap, black is a value in its final place. Gray values are still in the heap
+- In the first part (Build max-heap) large values rise to the front; in the second part (Move the max to the end) the largest value turns black at the right end, one at a time
+
+## 1. Heap
+
+### Complete binary tree
+
+- A binary tree where every level is full except possibly the last, which is filled from the left
+- It has no gaps, so **one array** can hold it. No pointers needed
+
+### Array layout
+
+With 0-based indexes, the family of the node at index `i` is
+
+| Relation    | Index                            |
+| ----------- | -------------------------------- |
+| Left child  | `2i + 1`                         |
+| Right child | `2i + 2`                         |
+| Parent      | `(i - 1) / 2` (integer division) |
+
+```text
+array   [10, 5, 3, 4, 1]
+index     0  1  2  3  4
+
+         10 (0)
+        /      \
+     5 (1)     3 (2)
+    /    \
+ 4 (3)   1 (4)
+```
+
+- With size `n`, only nodes `0` to `n/2 - 1` have children. Everything after them is a leaf
+
+### Heap property
+
+- **max-heap**: every node is greater than or equal to its children → the root (`a[0]`) is the maximum
+- **min-heap**: every node is less than or equal to its children → the root is the minimum
+- Siblings have no order. In the example it does not matter whether `5` or `3` is on the left
+- Ascending sort uses a max-heap, because the maximum is taken out and the array is filled **from the back**
+
+## 2. How heap sort works
+
+Two phases
+
+1. **Build**: turn the input array into a max-heap in place
+2. **Sort**: swap the root (the maximum) with the last slot of the heap, shrink the heap by 1, and push the new root down to where it belongs. Repeat until one value is left in the heap
+
+- Values moved to the back in phase 2 are never touched again. The sorted part grows one slot at a time from the back
+- No new array is made; values only change places inside the input → an **in-place** sort
+
+## 3. sift-down (heapify)
+
+The core operation of heap sort. When the value at a node breaks the heap property, it is pushed down until the property holds again
+
+1. Find the largest of the node and its two children
+2. If the node is the largest, stop
+3. Otherwise swap it with the larger child and repeat from step 1 at the child's position
+
+```text
+sift_down(a, i, size):          # the heap is a[0 .. size-1]
+    loop:
+        largest = i
+        left, right = 2i + 1, 2i + 2
+        if left  < size and a[left]  > a[largest]: largest = left
+        if right < size and a[right] > a[largest]: largest = right
+        if largest == i: return
+        swap a[i], a[largest]
+        i = largest
+```
+
+- Each swap moves one level down the tree → at most the tree height, `log n` times
+- `size` is passed separately so that phase 2 does not mistake the sorted slots at the back for part of the heap
+
+## 4. Example: [4, 10, 3, 5, 1]
+
+### Build
+
+Sift down from the last node with children (`n/2 - 1 = 1`) back to `0`
+
+| Step               | What happens                         | Array              |
+| ------------------ | ------------------------------------ | ------------------ |
+| Start              |                                      | `[4, 10, 3, 5, 1]` |
+| `i = 1` (value 10) | Larger than children 5 and 1 → stays | `[4, 10, 3, 5, 1]` |
+| `i = 0` (value 4)  | Child 10 is larger → swap 0↔1        | `[10, 4, 3, 5, 1]` |
+| 4 moved to `i = 1` | Child 5 is larger → swap 1↔3         | `[10, 5, 3, 4, 1]` |
+
+- The result `[10, 5, 3, 4, 1]` is the max-heap drawn in section 1
+
+### Sort
+
+| Heap size | What happens                                | Array (sorted after ` | `)  |
+| --------- | ------------------------------------------- | --------------------- | --- |
+| 5 → 4     | 10 to the end (0↔4), push 1 down (0↔1, 1↔3) | `[5, 4, 3, 1 \| 10]`  |
+| 4 → 3     | 5 to the end (0↔3), push 1 down (0↔1)       | `[4, 1, 3 \| 5, 10]`  |
+| 3 → 2     | 4 to the end (0↔2), 3 beats child 1 → stays | `[3, 1 \| 4, 5, 10]`  |
+| 2 → 1     | 3 to the end (0↔1)                          | `[1 \| 3, 4, 5, 10]`  |
+
+- The last value left is already in place → `[1, 3, 4, 5, 10]`
+
+## 5. Complexity and properties
+
+| Item        | Value        | Why                                                                        |
+| ----------- | ------------ | -------------------------------------------------------------------------- |
+| Build       | `O(n)`       | Lower levels have more nodes but shorter paths down; the total is linear   |
+| Sort phase  | `O(n log n)` | `n - 1` extractions × at most `log n` per sift-down                        |
+| Total       | `O(n log n)` | Best, average and worst are the same. Sorted input does not make it faster |
+| Extra space | `O(1)`       | Only swaps inside the input array                                          |
+| Stability   | Unstable     | Swaps between distant slots can reorder equal values                       |
+
+### Compared with other O(n log n) sorts
+
+| Sort       | Worst        | Extra space | Stable | Note                                             |
+| ---------- | ------------ | ----------- | ------ | ------------------------------------------------ |
+| Heap sort  | `O(n log n)` | `O(1)`      | No     | Guaranteed worst case and no extra memory        |
+| Merge sort | `O(n log n)` | `O(n)`      | Yes    | When the order of equal values matters           |
+| Quick sort | `O(n²)`      | `O(log n)`  | No     | Usually the fastest in practice (cache friendly) |
+
+- Heap sort jumps between the front and back of the array, so it uses the cache poorly and is usually slower than quick sort in practice
+- That makes it common as **insurance against the worst case**: introsort in C++ `std::sort` switches from quick sort to heap sort when recursion gets too deep
+
+## 6. Summary
+
+- A heap is a complete binary tree, so one array holds it. Children are at `2i + 1` and `2i + 2`
+- Heap sort = build a heap in `O(n)` + `n - 1` rounds of moving the max to the end and sifting down
+- Always `O(n log n)`, `O(1)` extra memory, not stable

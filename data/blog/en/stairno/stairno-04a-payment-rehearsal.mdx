@@ -3,7 +3,7 @@ title: 'Stairno 4a. The Production Payment Rehearsal'
 date: '2026-10-20'
 tags: ['Stairno']
 draft: false
-summary: 'The second half of roadmap step 4 (in progress). The night a rehearsal-only site was attached to the production API to run 10 payment scenarios. A sign-in page that had been a 404 since launch day, mail pointing at a deleted address, a slow GitHub Actions, a secret nobody had kept, 8 of 10 passed, the decision to move refund requests into the account center, and what is left'
+summary: 'The second half of roadmap step 4 (in progress). The night a rehearsal-only site was attached to the production API to run 10 payment scenarios. A sign-in page that had been a 404 since launch day, mail pointing at a deleted address, a slow GitHub Actions, a secret nobody had kept, 8 of 10 passed on the first night and the last two the next, the decision to move refund requests into the account center, and what is left'
 ---
 
 > The second half of roadmap step 4, still in progress. The payments built in [part 4](/en/blog/stairno/stairno-04-payments/) were run one by one to see whether they really work in production. The big picture is in [Stairno 0. The whole roadmap](/en/blog/stairno/stairno-00-roadmap/).
@@ -109,20 +109,20 @@ It was before launch and the only users were me and test accounts, so I just rep
 
 Changing this value **signs everyone out** and invalidates every download link already handed out. With real users, it would need an announcement first. The lesson is simple: **a secret written down nowhere is a lost secret.** Write it down before storing it. This procedure was copied as is into the operations document.
 
-## 8. Results: 8 of 10
+## 8. Results: 8 of 10 on the first night
 
-| Order | Scenario                                                                               | What was checked                                                                                                                                | Result |
-| ----- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 1     | Toss one-time payment                                                                  | Order `fulfilled`, entitlement created, receipt mail                                                                                            | Passed |
-| 2     | Tampered amount                                                                        | Halving the amount is refused (422), order `failed`, no approval request sent to Toss                                                           | Passed |
-| 3     | Cancellation and refund                                                                | Order `refunded`, entitlement revoked, refund mail                                                                                              | Passed |
-| 4     | Card registration and deletion                                                         | Last four digits shown, deleting also deletes the provider's card key                                                                           | Passed |
-| 5     | Starting a subscription                                                                | Charged to the default card right away, subscription `active`, entitlement ends at the end of the period                                        | Passed |
-| 6     | Three failed renewals → subscription expires                                           | Mail for each failure, `expired` on the fourth attempt                                                                                          | Left   |
-| 7     | PayPal payment and refund                                                              | `fulfilled` → `refunded`, webhook signature verified                                                                                            | Passed |
-| 8     | Resending webhooks                                                                     | Sending the same notice again adds no records and leaves the order unchanged ([idempotency](/en/blog/payments/payments-00-basics/#idempotency)) | Passed |
-| 9     | Turning off the [payment switch](/en/blog/payments/payments-00-basics/#payment-switch) | Sign-in works, only orders return 503                                                                                                           | Passed |
-| 10    | Mail in both languages                                                                 | Switch the account language to English and redo 1 and 3                                                                                         | Left   |
+| Order | Scenario                                                                               | What was checked                                                                                                                                | Result          |
+| ----- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| 1     | Toss one-time payment                                                                  | Order `fulfilled`, entitlement created, receipt mail                                                                                            | Passed          |
+| 2     | Tampered amount                                                                        | Halving the amount is refused (422), order `failed`, no approval request sent to Toss                                                           | Passed          |
+| 3     | Cancellation and refund                                                                | Order `refunded`, entitlement revoked, refund mail                                                                                              | Passed          |
+| 4     | Card registration and deletion                                                         | Last four digits shown, deleting also deletes the provider's card key                                                                           | Passed          |
+| 5     | Starting a subscription                                                                | Charged to the default card right away, subscription `active`, entitlement ends at the end of the period                                        | Passed          |
+| 6     | Three failed renewals → subscription expires                                           | Mail for each failure, `expired` on the fourth attempt                                                                                          | Passed (Oct 21) |
+| 7     | PayPal payment and refund                                                              | `fulfilled` → `refunded`, webhook signature verified                                                                                            | Passed          |
+| 8     | Resending webhooks                                                                     | Sending the same notice again adds no records and leaves the order unchanged ([idempotency](/en/blog/payments/payments-00-basics/#idempotency)) | Passed          |
+| 9     | Turning off the [payment switch](/en/blog/payments/payments-00-basics/#payment-switch) | Sign-in works, only orders return 503                                                                                                           | Passed          |
+| 10    | Mail in both languages                                                                 | Switch the account language to English and redo 1 and 3                                                                                         | Passed (Oct 21) |
 
 Cards were Toss test cards, and PayPal used a sandbox buyer account. Not a cent of real money moved.
 
@@ -148,7 +148,7 @@ So here is the plan. Change only the **rehearsal data** in the production DB sli
 
 ## 9. Next
 
-1. **Rehearsal scenarios 6 and 10.** Record the results on the acceptance checklist with dates
+1. **Rehearsal scenarios 6 and 10.** Finished on October 21 and recorded on the acceptance checklist ([section 11](#11-addendum-the-last-two-october-21))
 2. **Clean up.** Delete the read-only check script and the temporary DB account. Bring the shared Google Docs in line with the Markdown originals
 3. **Close step 4.** Ship what has piled up in `develop` as the next release
 4. **Refund requests in the account center.** Specifications first, then build
@@ -165,4 +165,46 @@ Real payments come after business registration and a provider contract. Before t
 - **Write a secret down before storing it.** Trying to write it down afterwards is already too late
 - **Speed is good, but speed missed things.** Changing the screen structure in a few hours, the links inside the mail were not checked along with it. A test that finds everything pointing at a changed address would have avoided the urgent fix
 
-This post will get the results appended when the rehearsal is finished.
+## 11. Addendum: the last two (October 21)
+
+The next night I ran scenarios 6 and 10. Both passed, so **all 10 passed**.
+
+### Scenario 10: mail in both languages
+
+I switched the account language to English and redid 1 and 3. This time I paid with an easy-pay wallet instead of a card. The confirmation passed, the order became `fulfilled`, and an English receipt arrived. Filing a refund from the tool and approving it with the operator command made the order `refunded`, revoked the entitlement and sent an English refund mail.
+
+Mail follows **the account language at the moment it is sent**. So the Korean results from the first night could not prove the English side. That is why the same steps were done twice.
+
+### Scenario 6: three failed renewals
+
+I kept the account in English, to check the English renewal-failure mail at the same time.
+
+| Attempt       | Subscription | Failures | Mail    |
+| ------------- | ------------ | -------- | ------- |
+| First renewal | `past_due`   | 1        | English |
+| Retry 1       | `past_due`   | 2        | English |
+| Retry 2       | `past_due`   | 3        | English |
+| Retry 3       | `expired`    | 4        | English |
+
+All four were declined by Toss as "customer details do not match" (`NOT_MATCHES_CUSTOMER_KEY`), and our side treated that as a **declined payment**, not an outage: a failed order and a mail each time. The mail button goes to the address fixed in [section 5](#5-mail-pointing-at-an-address-i-deleted), the payment section of the account center. This was the first time anyone pressed it in production after the fix.
+
+A retry normally happens **three days** after the last attempt. Three days was not an option, so before each retry I moved the "last attempt" date in the DB back three days to make it run the next minute. Afterwards I restored the card data and removed the per-minute cron.
+
+### The save button that cost 30 minutes
+
+I added a per-minute cron in the dashboard and waited 15 minutes. Nothing happened. I stopped waiting and opened the logs.
+
+- Every cron run makes our API write one `renewal run` line, even with nothing to renew. After the per-minute cron was added there was **not a single one**. The run never reached our code
+- That morning at 9 a.m. (midnight UTC) the line was there. The original cron was fine, so this was not an outage
+- The cause was **not saving**. Pressing "Add" in the dashboard's dialog only puts the row on the list for now, and a dashed border around the box means it is not saved yet. It takes "Save" as well. Leaving the page and coming back, the row was gone
+- After Save, the first run came about 8 minutes later
+
+The Cloudflare login token on my machine had no permission to read Workers logs, so live logs in the terminal were not an option either. The dashboard's log screen did the job. The procedure now says "Add, then Save, then reload to check the row is still there."
+
+### Why the entitlement looked like it never ended
+
+After the subscription became `expired`, its entitlement still showed the original expiry a month away. It looks like a bug, but the rehearsal caused it. A subscription entitlement ends at its **expiry time**, and in production that time equals the end of the subscription period. To make the subscription due, the rehearsal moved only the subscription's period end and left the entitlement's expiry alone. By the time a real renewal fails, the entitlement's expiry has already passed.
+
+### Looking back, one more
+
+- **Before waiting, look for proof that it is running.** I trusted the "up to 15 minutes" figure and checked nothing while waiting. There was a log line for every run, so opening the logs in the first two minutes would have shown the problem right away

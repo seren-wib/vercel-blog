@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="590" viewBox="0 0 1000 590" font-family="Helvetica, Arial, sans-serif" font-size="11">
+  <defs>
+    <marker id="fk" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2e86c1"/></marker>
+  </defs>
+  <rect width="1000" height="590" fill="#ffffff"/>
+  <text x="20" y="18" font-size="12" fill="#555">2. Relational schema diagram — COMPANY (underline = primary key, arrow = foreign key → the primary key it refers to)</text>
+
+  <!-- FK arrows (drawn first) -->
+  <g fill="none" stroke="#2e86c1" stroke-width="1.5" marker-end="url(#fk)">
+    <path d="M625,56 V30 H370 V54"/>
+    <path d="M715,86 V116 H175 V154"/>
+    <path d="M265,156 V136 H367 V88"/>
+    <path d="M85,246 V216 H165 V188"/>
+    <path d="M355,336 V206 H185 V188"/>
+    <path d="M85,426 V411 H18 V101 H343 V88"/>
+    <path d="M175,426 V368"/>
+    <path d="M85,516 V501 H10 V108 H331 V88"/>
+  </g>
+
+  <!-- tables -->
+  <g stroke="#333" stroke-width="1" fill="#fff">
+    <rect x="40" y="56" width="90" height="30"/><rect x="130" y="56" width="90" height="30"/><rect x="220" y="56" width="90" height="30"/><rect x="310" y="56" width="90" height="30" fill="#fdf2d0"/><rect x="400" y="56" width="90" height="30"/><rect x="490" y="56" width="90" height="30"/><rect x="580" y="56" width="90" height="30" fill="#e3f0fa"/><rect x="670" y="56" width="90" height="30" fill="#e3f0fa"/>
+    <rect x="40" y="156" width="90" height="30"/><rect x="130" y="156" width="90" height="30" fill="#fdf2d0"/><rect x="220" y="156" width="90" height="30" fill="#e3f0fa"/><rect x="310" y="156" width="90" height="30"/>
+    <rect x="40" y="246" width="90" height="30" fill="#e3f0fa"/><rect x="130" y="246" width="90" height="30" fill="#fdf2d0"/>
+    <rect x="40" y="336" width="90" height="30"/><rect x="130" y="336" width="90" height="30" fill="#fdf2d0"/><rect x="220" y="336" width="90" height="30"/><rect x="310" y="336" width="90" height="30" fill="#e3f0fa"/>
+    <rect x="40" y="426" width="90" height="30" fill="#e3f0fa"/><rect x="130" y="426" width="90" height="30" fill="#e3f0fa"/><rect x="220" y="426" width="90" height="30"/>
+    <rect x="40" y="516" width="90" height="30" fill="#e3f0fa"/><rect x="130" y="516" width="120" height="30" fill="#fdf2d0"/><rect x="250" y="516" width="90" height="30"/><rect x="340" y="516" width="90" height="30"/><rect x="430" y="516" width="90" height="30"/>
+  </g>
+  <g font-weight="bold" font-size="12">
+    <text x="40" y="50">EMPLOYEE</text>
+    <text x="40" y="150">DEPARTMENT</text>
+    <text x="40" y="240">DEPT_LOCATIONS</text>
+    <text x="40" y="330">PROJECT</text>
+    <text x="40" y="420">WORKS_ON</text>
+    <text x="40" y="510">DEPENDENT</text>
+  </g>
+  <g text-anchor="middle">
+    <text x="85" y="75">Fname</text><text x="175" y="75">Minit</text><text x="265" y="75">Lname</text><text x="355" y="75" text-decoration="underline" font-weight="bold">Ssn</text><text x="445" y="75">Address</text><text x="535" y="75">Salary</text><text x="625" y="75">Super_ssn</text><text x="715" y="75">Dno</text>
+    <text x="85" y="175">Dname</text><text x="175" y="175" text-decoration="underline" font-weight="bold">Dnumber</text><text x="265" y="175">Mgr_ssn</text><text x="355" y="175">Mgr_start_date</text>
+    <text x="85" y="265" text-decoration="underline" font-weight="bold">Dnumber</text><text x="175" y="265" text-decoration="underline" font-weight="bold">Dlocation</text>
+    <text x="85" y="355">Pname</text><text x="175" y="355" text-decoration="underline" font-weight="bold">Pnumber</text><text x="265" y="355">Plocation</text><text x="355" y="355">Dnum</text>
+    <text x="85" y="445" text-decoration="underline" font-weight="bold">Essn</text><text x="175" y="445" text-decoration="underline" font-weight="bold">Pno</text><text x="265" y="445">Hours</text>
+    <text x="85" y="535" text-decoration="underline" font-weight="bold">Essn</text><text x="190" y="535" text-decoration="underline" font-weight="bold">Dependent_name</text><text x="295" y="535">Sex</text><text x="385" y="535">Bdate</text><text x="475" y="535">Relationship</text>
+  </g>
+
+  <!-- side notes -->
+  <g font-size="10" fill="#777">
+    <text x="780" y="75">← 1:N WORKS_FOR: Dno on the N side</text>
+    <text x="780" y="48">Super_ssn → own Ssn (recursive)</text>
+    <text x="420" y="175">← 1:1 MANAGES: Mgr_ssn on the total side</text>
+    <text x="240" y="265">← multivalued Locations → own table</text>
+    <text x="420" y="355">← 1:N CONTROLS: Dnum on the N side</text>
+    <text x="330" y="445">← M:N WORKS_ON: new table, both PKs</text>
+    <text x="540" y="535">← weak entity: owner PK Essn + partial key</text>
+  </g>
+  <g font-size="11" fill="#555">
+    <text x="40" y="575">yellow = primary key, blue = foreign key (PK + FK both: Essn, Pno, DEPT_LOCATIONS.Dnumber)</text>
+  </g>
+</svg>

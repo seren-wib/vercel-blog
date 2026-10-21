@@ -1,0 +1,198 @@
+---
+title: 'CH5. Relational Algebra on One Page'
+date: '2026-10-21'
+tags: ['Database Systems']
+draft: false
+summary: 'σ SELECT, π PROJECT, ρ RENAME, set operations ∪, ∩ and −, CARTESIAN PRODUCT, THETA, EQUI and NATURAL JOIN, OUTER JOIN, aggregation ℱ, DIVISION ÷, the complete set, query trees, SQL compared with relational algebra, a table mapping question wording to symbols'
+---
+
+# Relational Algebra on One Page (all of chapter 6)
+
+SQL says "what you want", relational algebra says "in what order to pull it out". When writing answers, breaking them into one line per step with ← keeps you from going wrong
+
+## 1. Symbols at a glance
+
+| Symbol                                                    | Name              | What it does                                      | SQL                            |
+| --------------------------------------------------------- | ----------------- | ------------------------------------------------- | ------------------------------ |
+| σ<sub>condition</sub>(R)                                  | SELECT            | **Rows** that meet the condition                  | WHERE                          |
+| π<sub>columns</sub>(R)                                    | PROJECT           | Only the listed **columns**, duplicates removed   | SELECT DISTINCT                |
+| ρ<sub>S(columns…)</sub>(R)                                | RENAME            | Renames tables and columns                        | AS                             |
+| R ∪ S, R ∩ S, R − S                                       | Set operations    | Union, intersection, difference                   | UNION, INTERSECT, EXCEPT       |
+| R × S                                                     | CARTESIAN PRODUCT | Every combination of rows                         | FROM R, S (no condition)       |
+| R ⋈<sub>condition</sub> S                                 | JOIN              | Joins rows that meet the condition                | JOIN ON                        |
+| R \* S                                                    | NATURAL JOIN      | Joins on same-named columns and keeps one of each | NATURAL JOIN                   |
+| R ⟕ S, R ⟖ S, R ⟗ S                                       | OUTER JOIN        | Keeps rows even without a match                   | LEFT / RIGHT / FULL OUTER JOIN |
+| <sub>grouping columns</sub>ℱ<sub>function column</sub>(R) | Aggregation       | Groups, then COUNT, SUM…                          | GROUP BY + aggregates          |
+| R ÷ S                                                     | DIVISION          | R rows that have all of S                         | NOT EXISTS … EXCEPT            |
+| T ← expression                                            | Assignment        | Names an intermediate result                      | Temporary table                |
+
+## 2. Picking rows σ
+
+**σ<sub>condition</sub>(R)**: only the rows that meet the condition. Columns unchanged
+
+- Conditions are `column op value` / `column op column`, with AND, OR, NOT. Comparisons are =, &lt;, ≤, >, ≥, ≠
+
+σ<sub>Dno=4</sub>(EMPLOYEE) → employees in department 4 <br />
+σ<sub>(Dno=4 AND Salary>25000) OR (Dno=5 AND Salary>30000)</sub>(EMPLOYEE)
+
+- σ<sub>c1</sub>(σ<sub>c2</sub>(R)) = σ<sub>c1 AND c2</sub>(R). Order doesn't matter
+- It's called SELECT but it's SQL's **WHERE**. SQL's SELECT slot is π
+
+## 3. Picking columns π
+
+**π<sub>column list</sub>(R)**: only the listed columns. The result is a set, so **duplicate rows are removed**
+
+π<sub>Lname, Fname, Salary</sub>(EMPLOYEE) → three columns <br />
+π<sub>Sex, Salary</sub>(EMPLOYEE) → two (M, 25000) rows become one
+
+## 4. Chaining and renaming ρ
+
+**Either way**: nest with parentheses / break with ←. Runs from the inside (the lower line) first
+
+π<sub>Fname, Lname, Salary</sub>(σ<sub>Dno=5</sub>(EMPLOYEE))
+
+DEP5_EMPS ← σ<sub>Dno=5</sub>(EMPLOYEE) <br />
+RESULT ← π<sub>Fname, Lname, Salary</sub>(DEP5_EMPS)
+
+| How to write ρ              | What it renames                           |
+| --------------------------- | ----------------------------------------- |
+| ρ<sub>S(B1, B2, …)</sub>(R) | Table name S, column names B1, B2…        |
+| ρ<sub>S</sub>(R)            | Table name only                           |
+| ρ<sub>(B1, B2, …)</sub>(R)  | Column names only                         |
+| R(B1, B2, …) ← expression   | Column names can also go on the left of ← |
+
+R(First_name, Last_name, Salary) ← π<sub>Fname, Lname, Salary</sub>(DEP5_EMPS)
+
+## 5. Set operations ∪ ∩ −
+
+**Requirement**: same number of columns and the same type in each column (type compatible)
+
+| Expression | Result                                           | Example                           |
+| ---------- | ------------------------------------------------ | --------------------------------- |
+| R ∪ S      | Rows in at least one of them, duplicates removed | Students or instructors           |
+| R ∩ S      | Rows in both                                     | Students who are also instructors |
+| R − S      | Rows in R but not in S. Not the same as S − R    | Students who aren't instructors   |
+
+RESULT1 ← π<sub>Ssn</sub>(DEP5_EMPS) <br />
+RESULT2(Ssn) ← π<sub>Super_ssn</sub>(DEP5_EMPS) <br />
+RESULT ← RESULT1 ∪ RESULT2
+
+- Ssns of employees in department 5 or their direct supervisors. The column names differ, so (Ssn) is added to RESULT2
+
+## 6. Every combination ×
+
+**R × S**: attaches every S row to each R row. n + m columns, |R| × |S| rows. Types don't need to match
+
+- Junk on its own. Follow it with σ to keep only matching combinations → the two together are a JOIN
+
+FEMALE_EMPS ← σ<sub>Sex='F'</sub>(EMPLOYEE) <br />
+EMPNAMES ← π<sub>Fname, Lname, Ssn</sub>(FEMALE_EMPS) <br />
+EMP_DEPENDENTS ← EMPNAMES × DEPENDENT <br />
+ACTUAL_DEPENDENTS ← σ<sub>Ssn=Essn</sub>(EMP_DEPENDENTS) <br />
+RESULT ← π<sub>Fname, Lname, Dependent_name</sub>(ACTUAL_DEPENDENTS)
+
+- Female employees and their dependents' names. Build 3 rows × 7 rows = 21 rows, then keep only the matches with σ
+
+## 7. Joining ⋈
+
+**R ⋈<sub>condition</sub> S** = σ<sub>condition</sub>(R × S). Puts an R row and an S row that meet the condition on one line
+
+DEPT_MGR ← DEPARTMENT ⋈<sub>Mgr_ssn=Ssn</sub> EMPLOYEE <br />
+RESULT ← π<sub>Dname, Lname, Fname</sub>(DEPT_MGR)
+
+- Manager name for each department
+
+| Kind                         | Condition                       | Result columns                                                               |
+| ---------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
+| THETA JOIN ⋈<sub>A θ B</sub> | θ is any of =, &lt;, ≤, >, ≥, ≠ | All R columns + all S columns                                                |
+| EQUIJOIN ⋈<sub>A=B</sub>     | = only                          | All R columns + all S columns. Both equal-valued columns stay (Mgr_ssn, Ssn) |
+| NATURAL JOIN R \* S          | = on same-named columns         | Only one of each same-named column                                           |
+
+- NATURAL JOIN needs the column names to match. If they don't, align them with ρ first
+
+DEPT ← ρ<sub>(Dname, Dnum, Mgr_ssn, Mgr_start_date)</sub>(DEPARTMENT) <br />
+PROJ_DEPT ← PROJECT \* DEPT
+
+- Dnumber → Dnum to match PROJECT.Dnum
+
+- Number of result rows: 0 (nothing matches) to |R| × |S| (everything matches)
+
+**OUTER JOIN**: keeps rows without a match too, with NULL in the empty cells. ⟕ all left, ⟖ all right, ⟗ both
+
+TEMP ← EMPLOYEE ⟕<sub>Ssn=Mgr_ssn</sub> DEPARTMENT <br />
+RESULT ← π<sub>Fname, Minit, Lname, Dname</sub>(TEMP)
+
+- Every employee + the name of the department they manage. Dname is NULL for non-managers
+
+## 8. Counting ℱ
+
+**<sub>grouping columns</sub> ℱ <sub>function column, …</sub>(R)**: groups rows with equal grouping columns and applies the functions. The functions are COUNT, SUM, AVERAGE, MAXIMUM, MINIMUM
+
+<sub>Dno</sub> ℱ <sub>COUNT Ssn, AVERAGE Salary</sub>(EMPLOYEE) - Employee count and average salary
+per department. Result columns Dno, Count_ssn, Average_salary
+
+ℱ <sub>COUNT Ssn, AVERAGE Salary</sub>(EMPLOYEE)
+
+- Without grouping columns everything is one group → one row
+
+ρ<sub>R(Dno, No_of_employees, Average_sal)</sub>(<sub>Dno</sub> ℱ <sub>COUNT Ssn, AVERAGE Salary</sub>(EMPLOYEE))
+
+- Wrap it in ρ to rename the columns
+
+- Counts without removing duplicates / skips NULLs / the result is a table even if it's a single cell
+
+## 9. Finding what has all of them ÷
+
+**R ÷ S**: the R rows that have **all** values in S. S's columns must be a subset of R's, and result columns = R's columns − S's columns
+
+![R(A, B) ÷ S(A): only B values that have all of S's a1, a2, a3 remain](/static/images/database-systems-ch5-relational-algebra/ra-division.svg)
+
+SMITH ← σ<sub>Fname='John' AND Lname='Smith'</sub>(EMPLOYEE) <br />
+SMITH_PNOS ← π<sub>Pno</sub>(WORKS_ON ⋈<sub>Essn=Ssn</sub> SMITH) <br />
+SSN_PNOS ← π<sub>Essn, Pno</sub>(WORKS_ON) <br />
+SSNS(Ssn) ← SSN_PNOS ÷ SMITH_PNOS <br />
+RESULT ← π<sub>Fname, Lname</sub>(SSNS \* EMPLOYEE)
+
+- Employees who work on every project Smith works on. If SMITH_PNOS = \{1, 2\}, only Essns that work on both 1 and 2 remain
+
+**Template for ÷**: ① build S, the list of "all" (π of one column) → ② build R, who does what (π of two columns, including S's column) → ③ R ÷ S → ④ join back to the original with \* to get names
+
+## 10. The complete set and query trees
+
+**Complete set \{σ, π, ∪, ρ, −, ×\}**: these six make all the others
+
+- R ∩ S = (R ∪ S) − ((R − S) ∪ (S − R))
+- R ⋈<sub>c</sub> S = σ<sub>c</sub>(R × S)
+
+**Query tree**: the expression as a tree. Leaves = tables, inner nodes = operations, runs from the leaves upward
+
+![Query tree for the Stafford project query, drawn in the order σ → ⋈ → ⋈ → π](/static/images/database-systems-ch5-relational-algebra/ra-query-tree.svg)
+
+## 11. Same question, SQL next to relational algebra
+
+| Question                                                      | SQL                                                                                                                  | Relational algebra                                                                                                                           |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Names and salaries of department 5 employees                  | `SELECT Fname, Lname, Salary FROM EMPLOYEE WHERE Dno = 5`                                                            | π<sub>Fname, Lname, Salary</sub>(σ<sub>Dno=5</sub>(EMPLOYEE))                                                                                |
+| Names and addresses of Research employees                     | `SELECT Fname, Lname, Address FROM EMPLOYEE, DEPARTMENT WHERE Dname = 'Research' AND Dnumber = Dno`                  | RESEARCH ← σ<sub>Dname='Research'</sub>(DEPARTMENT) / RD ← RESEARCH ⋈<sub>Dnumber=Dno</sub> EMPLOYEE / π<sub>Fname, Lname, Address</sub>(RD) |
+| Employee and supervisor names                                 | `… FROM EMPLOYEE AS E, EMPLOYEE AS S WHERE E.Super_ssn = S.Ssn`                                                      | S ← ρ<sub>S(Sssn, Sfn, Sln, …)</sub>(EMPLOYEE) / EMPLOYEE ⋈<sub>Super_ssn=Sssn</sub> S                                                       |
+| Employee count per department                                 | `SELECT Dno, COUNT(*) FROM EMPLOYEE GROUP BY Dno`                                                                    | <sub>Dno</sub> ℱ <sub>COUNT Ssn</sub>(EMPLOYEE)                                                                                              |
+| Employees with no dependents                                  | `WHERE NOT EXISTS (SELECT * FROM DEPENDENT WHERE Ssn = Essn)`                                                        | ALL ← π<sub>Ssn</sub>(EMPLOYEE) / HAS ← π<sub>Essn</sub>(DEPENDENT) / π<sub>Fname, Lname</sub>((ALL − HAS) \* EMPLOYEE)                      |
+| Working on every department 5 project                         | `WHERE NOT EXISTS ((SELECT Pnumber FROM PROJECT WHERE Dnum = 5) EXCEPT (SELECT Pno FROM WORKS_ON WHERE Essn = Ssn))` | P5 ← π<sub>Pnumber</sub>(σ<sub>Dnum=5</sub>(PROJECT)) / SP ← π<sub>Essn, Pno</sub>(WORKS_ON) / SP ÷ P5                                       |
+| Employee + supervisor, including employees with no supervisor | `LEFT OUTER JOIN`                                                                                                    | EMPLOYEE ⟕<sub>Super_ssn=Sssn</sub> S                                                                                                        |
+
+## 12. Question wording → symbols
+
+| When the question says                                                 | Use                                                |
+| ---------------------------------------------------------------------- | -------------------------------------------------- |
+| who are ~ (condition)                                                  | σ                                                  |
+| the names, numbers of ~ (picking columns)                              | π. At the very end                                 |
+| Columns from two tables                                                | ⋈<sub>FK=PK</sub>. \* if the column names match    |
+| An employee and their supervisor                                       | Rename a copy of EMPLOYEE's columns with ρ, then ⋈ |
+| ~ or ~                                                                 | ∪ (with matching columns)                          |
+| ~ and also ~ (in both results)                                         | ∩                                                  |
+| not ~, with no ~                                                       | − (all − the ones that have it)                    |
+| How many, sum, average                                                 | ℱ                                                  |
+| per ~, for each ~                                                      | Grouping columns before ℱ                          |
+| working on all, every ~                                                | ÷                                                  |
+| Rows without a match must show too                                     | ⟕ ⟖ ⟗                                              |
+| Column names don't match so \* can't be used / renaming result columns | ρ                                                  |

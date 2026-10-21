@@ -1,0 +1,29 @@
+---
+title: 'CH4. View Processing'
+date: '2026-10-21'
+tags: ['Database Systems']
+draft: false
+summary: 'Query modification, view materialization, incremental update, immediate, lazy and periodic view update timing'
+---
+
+# View Processing on One Page (5.2)
+
+## 1. How views are processed
+
+| Approach                 | What it does                                                               | Pros and cons                                                              |
+| ------------------------ | -------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Query modification**   | Rewrites a query on the view into a query on the base tables and runs that | Nothing stored, joins every time                                           |
+| **View materialization** | Builds the view as a real table and keeps it for a while                   | Fast, but must be updated when the base tables change (incremental update) |
+
+| When a stored view is updated | When                              | Problem                          |
+| ----------------------------- | --------------------------------- | -------------------------------- |
+| Immediate                     | As soon as the base tables change | Updates even when nobody uses it |
+| Lazy                          | When a query hits the view        | Old values until then            |
+| Periodic                      | Periodically                      | Results may not be up to date    |
+
+## 2. Numbers to memorize
+
+| How many | What                       |
+| -------- | -------------------------- |
+| 2        | View processing approaches |
+| 3        | View update timings        |

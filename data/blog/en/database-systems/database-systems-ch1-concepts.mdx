@@ -1,0 +1,112 @@
+---
+title: 'CH1. Concepts on One Page'
+date: '2026-10-21'
+tags: ['Database Systems']
+draft: false
+summary: 'Database, DBMS and database system, problems with plain file storage (Integrity, Management, Durability), the 4 characteristics and 5 advantages of DB systems, the 3 levels of data models (Conceptual, Representational, Physical), the three-schema architecture and mapping, logical and physical data independence, the DB design process, advantages of the relational model, numbers to memorize'
+---
+
+# Concepts on One Page (2.1–2.2, 3.1)
+
+For the "explain this" questions that are neither drawing nor SQL. What to memorize is the words in the tables and the counts.
+
+## 1. What a DB is
+
+| Term                | Meaning                                                                         |
+| ------------------- | ------------------------------------------------------------------------------- |
+| **Database**        | A collection of related data                                                    |
+| **DBMS**            | The software that creates, fills, manipulates and shares that DB. Oracle, MySQL |
+| **Database system** | DB + DBMS                                                                       |
+
+**3 problems with just storing data in files** (why we use a DB)
+
+| Problem    | What goes wrong                                                                     |
+| ---------- | ----------------------------------------------------------------------------------- |
+| Integrity  | No length limits, duplicate entries, can't tell apart people with the same name     |
+| Management | Can't find specific data quickly, things get tangled when many people write at once |
+| Durability | A failure mid-write corrupts the file and it can't be recovered                     |
+
+## 2. 4 characteristics of a DB system
+
+| Characteristic                      | In one line                                                              | Key word                               |
+| ----------------------------------- | ------------------------------------------------------------------------ | -------------------------------------- |
+| **Self-describing**                 | Stores not only the data but also its structure (metadata) inside the DB | catalog                                |
+| **Data abstraction**                | Programs see only the logical structure, not how it's stored on disk     | program-data independence              |
+| **Multiple views**                  | Shows the data differently to each user                                  | view = virtual table that isn't stored |
+| **Sharing & multiuser transaction** | Many users use one DB at the same time                                   | concurrency control, transaction       |
+
+## 3. 5 advantages of a DB system
+
+| Advantage                                    | In one line                                                                                                                       |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Controlling redundancy**                   | Don't keep the same data in several places → update once, save space, no inconsistency. Sometimes kept on purpose for performance |
+| **Enforcing integrity constraints**          | The DBMS enforces the conditions data must satisfy (type, key, FK)                                                                |
+| **Storage structures & efficient searching** | Disks are slow, so buffers and caches; indexes (B-tree, B+tree) to find things fast                                               |
+| **Backup and recovery**                      | Keep copies normally, restore to the state just before a failure                                                                  |
+| **Restricting unauthorized access**          | Per-user privileges                                                                                                               |
+
+**When not using a DBMS is better**: simple apps that don't change / strict real-time requirements / embedded systems short on space / a single user
+
+## 4. 3 levels of data models
+
+**Data model**: the set of concepts that describe a DB's structure. Data types, relationships, constraints, down to basic operations
+
+| Model                         | Whose eye level                                               | Concepts used                        | Example                       |
+| ----------------------------- | ------------------------------------------------------------- | ------------------------------------ | ----------------------------- |
+| **Conceptual** (high-level)   | Users                                                         | entity, attribute, relationship      | ER diagram                    |
+| **Representational** (middle) | Users can understand it, and it's close to how data is stored | relation, tuple, attribute, domain   | Tables. Most commercial DBMSs |
+| **Physical** (low-level)      | Computer specialists                                          | record format, ordering, access path | Disk layout, indexes          |
+
+## 5. Three-schema architecture
+
+**Goal**: separate application programs from the physical DB
+
+| Level               | What it describes                                                               | How many | Model used       |
+| ------------------- | ------------------------------------------------------------------------------- | -------- | ---------------- |
+| **External (view)** | Only the part that user group sees                                              | Many     |                  |
+| **Conceptual**      | Logical structure of the whole DB (entities, types, relationships, constraints) | One      | Representational |
+| **Internal**        | Physical storage structure, access paths                                        | One      | Physical         |
+
+- Trap: the Conceptual **level** is written with the **Representational** model, not the Conceptual model
+- **Mapping**: converts requests and results between levels. Data exists only at the Internal level; the DBMS turns requests coming in from above into requests for the level below
+
+## 6. 2 kinds of data independence
+
+**Data independence**: changing one level's schema doesn't require changing the level right above it. The reason for stacking 3 levels. Only the mapping is fixed
+
+|              | Level changed | Level unaffected               | Example                                        |
+| ------------ | ------------- | ------------------------------ | ---------------------------------------------- |
+| **Logical**  | Conceptual    | External, application programs | Adding a column, splitting a table             |
+| **Physical** | Internal      | Conceptual                     | Swapping an index, changing the file structure |
+
+- Named after the level that changes. Touch tables → Logical, touch the disk → Physical / both end with "existing programs don't need changes"
+
+## 7. DB design process
+
+| Step                                 | What you do                                       | Output            |
+| ------------------------------------ | ------------------------------------------------- | ----------------- |
+| 1 Requirements collection & analysis | Gather users' data requirements                   | Requirements list |
+| 2 Conceptual design                  | Pick a model and turn it into a conceptual schema | ER diagram        |
+| 3 Logical design                     | Conceptual schema → DB schema                     | Tables            |
+| 4 Physical design                    | Decide the storage structure                      | Files, indexes    |
+
+- Requirement wording → ER: "unique" = key, "several" = multivalued, "one" = cardinality
+- Good design: no Redundancy (the same information repeated), no Incompleteness (data that can't be represented)
+
+## 8. 4 advantages of the relational model
+
+| Advantage              | In one line                                |
+| ---------------------- | ------------------------------------------ |
+| Simplicity             | Flat tables are easy to understand         |
+| Data integrity         | Constraints keep data valid and consistent |
+| Easy data manipulation | Manipulate with conditions in SQL          |
+| Security               | Authentication, privileges, encryption     |
+
+## 9. Numbers to memorize
+
+| How many | What                                                                   |
+| -------- | ---------------------------------------------------------------------- |
+| 3        | File storage problems / data model levels / schema levels              |
+| 4        | DB system characteristics / design steps / relational model advantages |
+| 5        | DB system advantages                                                   |
+| 2        | Data independence                                                      |

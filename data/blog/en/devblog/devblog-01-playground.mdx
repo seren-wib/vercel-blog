@@ -1,0 +1,163 @@
+---
+title: 'DevBlog 1. Building the Code Playground'
+date: '2026-10-22'
+tags: ['DevBlog']
+draft: false
+summary: 'Adding SQL, HTML, JavaScript, Python, C and C++ runners to a static blog: choosing where each language runs, Web Workers, a sandboxed iframe, Pyodide, the Compiler Explorer API, CodeMirror, a CSS-only dropdown, time limits and output floods'
+---
+
+> How the **Playground** in the header came to run six languages from the browser. See the result at [Playground](/en/playground/).
+
+## 1. Goals and constraints
+
+- A Playground menu in the header. Hovering it lists SQL, HTML, JavaScript, Python, C and C++; picking one opens a practice page
+- A large practice page, with the editor and the output side by side
+- The constraint: this blog is a **static site** on Vercel. There is no [server](/en/blog/web/web-00-basics/#server) to receive code and run it, and I did not want to add one
+- So the question shrinks to one: **"where can this language run?"**
+
+## 2. Choosing where each language runs
+
+| Language   | Runs in                             | Why                                                                                                                                  |
+| ---------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| SQL        | Browser (sql.js, SQLite WASM)       | Reuses the one already built for [Database Systems chapter 3](/en/blog/database-systems/database-systems-ch3-sql/#0-try-it-yourself) |
+| JavaScript | Browser (Web Worker)                | The browser's own language                                                                                                           |
+| HTML       | Browser (sandboxed iframe)          | The browser's own format                                                                                                             |
+| Python     | Browser (Pyodide)                   | CPython compiled to WebAssembly. About 10 MB buys real Python                                                                        |
+| C, C++     | External server (Compiler Explorer) | A compiler in the browser is tens of MB, so a public API compiles and runs the code                                                  |
+
+- I also checked another public runner for C/C++. The public Piston API now answers `401` without a key
+- Compiler Explorer (godbolt.org) compiles and runs with one [API](/en/blog/web/web-00-basics/#api) call and allows calls from other sites (`Access-Control-Allow-Origin: *`)
+- The trade-off: C/C++ code is sent to godbolt, and a shared public server has rate limits. Fine for a practice blog
+
+## 3. Page structure
+
+- The language list lives in **one place**, `data/playground.ts`. The header menu, the card page, the practice page URLs and the sitemap all read this array
+
+```ts:data/playground.ts
+export const playgroundLanguages: PlaygroundLanguage[] = [
+  { id: 'sql', name: 'SQL', runner: 'browser', engine: 'SQLite (sql.js)', ... },
+  { id: 'html', name: 'HTML', runner: 'browser', engine: 'Sandboxed iframe', ... },
+  // javascript, python, c, cpp
+]
+```
+
+- `/[locale]/playground/`: one card per language, with a few lines of code and where it runs (In browser / Compiler Explorer)
+- `/[locale]/playground/[lang]/`: the practice page. `generateStaticParams` prebuilds 6 languages × 2 locales = 12 pages
+- On wide screens the editor and output sit side by side at 3 : 2; on narrow screens they stack. The editor takes 72% of the screen height
+
+## 4. The header dropdown
+
+- CSS only, no JavaScript: `group` on the parent, `group-hover:visible` and `group-focus-within:visible` on the list
+- `focus-within` also opens it when you Tab in with the keyboard
+- The `pt-2` gap between the link and the list sits **on the list**, so hover is not lost while the pointer moves down
+
+```tsx:components/PlaygroundMenu.tsx
+<div className="group relative hidden sm:block">
+  <Link href={localePath(locale, '/playground')}>Playground</Link>
+  <div className="invisible absolute top-full pt-2 opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+    <ul>{/* SQL, HTML, ... */}</ul>
+  </div>
+</div>
+```
+
+- One trap: the existing menu links sit in an `overflow-x-auto` box so they can scroll on narrow screens. Inside it, the open list would be clipped by the box. So Playground sits **outside** that box, between About and the language switch
+
+## 5. The editor: CodeMirror 6
+
+- Syntax colors, line numbers, bracket matching and Tab indentation were all needed, so CodeMirror 6 instead of a textarea
+- **Following the site theme**: the highlight style lives in a `Compartment`, and only that slot is swapped when dark mode changes. The editor is not recreated, so the cursor and text stay
+- **Ctrl/⌘+Enter to run**: `Prec.highest` makes the shortcut win over the default keymap
+- **Compile errors**: godbolt's error messages come with line and column numbers. Passing them to `setDiagnostics` from `@codemirror/lint` underlines the lines in red
+- Code and stdin are saved in `localStorage`, so they survive a reload
+
+## 6. JavaScript: Web Worker
+
+- Running `eval` on the page means one `while (true) {}` freezes the whole tab. So **every run gets a new Worker**, and a stuck one is thrown away with `worker.terminate()`
+- `console.log` is replaced to send output to the page with `postMessage`
+- The code is wrapped in an `AsyncFunction` so top-level `await` works
+
+```js:public/static/playground/js-worker.js
+console.log = function () { send('out', arguments) }
+
+const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
+self.onmessage = (e) => {
+  new AsyncFunction(e.data.code)().then(
+    () => self.postMessage({ type: 'done' }),
+    (err) => { self.postMessage({ type: 'err', text: errorText(err) }); self.postMessage({ type: 'done' }) }
+  )
+}
+```
+
+- If it does not finish in 15 seconds, the Worker is killed and a time-limit line is printed
+- The Worker is not killed as soon as the main body ends, so output printed later by `setTimeout` still arrives. It is cleaned up on the next run, Stop or the time limit
+
+## 7. HTML: sandboxed iframe
+
+- The HTML goes into `<iframe srcdoc>` with `sandbox="allow-scripts allow-modals allow-forms allow-popups"`
+- `allow-same-origin` is **left out on purpose**. The iframe then gets an opaque [origin](/en/blog/web/web-00-basics/#origin), so its scripts cannot touch the blog page or its storage
+- Console: a small script inserted right after `<head>` forwards `console.*` and errors with `parent.postMessage`. The page only accepts messages from that iframe
+- The preview is redrawn 0.6 seconds after typing stops
+
+### The blank preview bug
+
+- At first only the `srcdoc` value changed, and the first preview sometimes stayed blank. The same HTML in a new iframe rendered fine
+- Changing `srcdoc` on a live iframe was not reliable, so every update now changes the React `key` and **creates a new iframe**. The bug has not come back
+
+## 8. Python: Pyodide
+
+- Uses the npm `pyodide` package (314.0.7, Python 3.14). Its five runtime files (about 12 MB) are copied to `public/static/pyodide/` and served from this site
+- To keep 12 MB out of git, the copy is in `.gitignore` and the `predev` and `prebuild` scripts copy it from `node_modules` every time. Vercel runs `npm run build`, so it happens there too
+
+```json:package.json
+"predev": "node ./scripts/copy-pyodide.mjs",
+"prebuild": "node ./scripts/copy-pyodide.mjs",
+```
+
+- Pyodide runs inside a Worker so an infinite loop can be killed
+- Loading takes a few seconds, so the Worker is **reused between runs**. Each run gets a fresh globals dict, so variables from the last run do not leak. After Stop or the time limit kills it, the next run starts a new one
+- Opening the Python page starts loading right away, while you read the code
+- `input()`: the stdin box is handed over line by line before the run (`setStdin`)
+- Extra packages like numpy: `loadPackagesFromImports` reads the imports and fetches only what is needed from jsDelivr (`packageBaseUrl`)
+
+## 9. C, C++: the Compiler Explorer API
+
+```ts:components/playground/runners.ts
+fetch(`https://godbolt.org/api/compiler/${compiler.id}/compile`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+  body: JSON.stringify({
+    source: code,
+    options: {
+      userArguments: '-O2 -Wall -std=c++20 -fdiagnostics-color=never',
+      executeParameters: { stdin },
+      compilerOptions: { executorRequest: true },
+      filters: { execute: true },
+    },
+  }),
+})
+```
+
+- Compiler ids come from the list at `/api/compilers/c`: `cg152` (GCC 15.2) for C, `g152` for C++
+- `-fdiagnostics-color=never`: without it, error messages arrive with terminal color codes
+- Fields used from the response: `buildResult` (compile errors and warnings with line numbers), `stdout` and `stderr`, `code` (exit code), `execTime`, `timedOut`
+- godbolt kills an infinite loop after about 20 seconds and returns `timedOut: true`
+- Input is typed into the stdin box before the run. It cannot go back and forth like a terminal
+
+## 10. No CSP change
+
+- This blog's CSP limits scripts mostly to `'self'`. It was done without opening any new hosts
+- Worker and Pyodide files: served from this site (`'self'`)
+- WebAssembly compilation: already allowed by the existing `'unsafe-eval'`
+- godbolt and jsDelivr packages: these are `fetch` calls under `connect-src`, which was already open
+- The `srcdoc` iframe inherits the parent's CSP. Inline scripts work and external scripts are blocked, which is why the preview notes that external scripts are not loaded
+
+## 11. When output floods
+
+- `while True: print(1)` sends tens of thousands of lines a second. Updating React state per line freezes the page
+- Lines are buffered and applied once per `requestAnimationFrame`. Past 2000 lines the rest is dropped with a one-line note
+
+## 12. Summary
+
+- A blog without a server only needs to pick where each language runs. Only C/C++, which the browser cannot do, leaves the browser
+- Any code that must be stoppable runs inside a Worker
+- The next post builds the [sort visualizer](/en/blog/data-structures/data-structures-heap-sort/#0-try-it) on top of these runners

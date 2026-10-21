@@ -20,7 +20,6 @@
 
   <!-- Row labels -->
   <text class="t cap" x="24" y="34">사이트</text>
-  <text class="t cap" x="24" y="268">계정과 결제</text>
   <text class="t cap" x="24" y="420">API 뒤의 서비스</text>
 
   <!-- Hub -->
@@ -49,6 +48,7 @@
 
   <!-- Account band -->
   <rect class="band" x="40" y="240" width="780" height="120" rx="12"/>
+  <text class="t cap" x="52" y="256">계정과 결제</text>
   <rect class="live" x="130" y="262" width="260" height="76" rx="10"/>
   <text class="t h" x="260" y="290" text-anchor="middle">account.stairno.com</text>
   <text class="t s" x="260" y="310" text-anchor="middle">계정 센터 · 가입, 로그인, 카드, 주문</text>

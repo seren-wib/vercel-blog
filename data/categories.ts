@@ -6,6 +6,7 @@
 const categories: Record<string, string> = {
   stairno: 'Stairno',
   'computer-systems': 'Computer Systems',
+  'data-structures': 'Data Structures',
   'software-engineering': 'Software Engineering',
   'database-systems': 'Database Systems',
   'cloud-computing': 'Cloud Computing',

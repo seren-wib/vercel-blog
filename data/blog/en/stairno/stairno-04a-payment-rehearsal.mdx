@@ -3,10 +3,10 @@ title: 'Stairno 4a. The Production Payment Rehearsal'
 date: '2026-10-20'
 tags: ['Stairno']
 draft: false
-summary: 'The second half of roadmap step 4 (in progress). The night a rehearsal-only site was attached to the production API to run 10 payment scenarios. A sign-in page that had been a 404 since launch day, mail pointing at a deleted address, a slow GitHub Actions, a secret nobody had kept, 8 of 10 passed on the first night and the last two the next, the decision to move refund requests into the account center, and what is left'
+summary: 'The second half of roadmap step 4. The night a rehearsal-only site was attached to the production API to run 10 payment scenarios. A sign-in page that had been a 404 since launch day, mail pointing at a deleted address, a slow GitHub Actions, a secret nobody had kept, 8 of 10 passed on the first night and the last two the next, the decision to move refund requests into the account center, and the day step 4 closed'
 ---
 
-> The second half of roadmap step 4, still in progress. The payments built in [part 4](/en/blog/stairno/stairno-04-payments/) were run one by one to see whether they really work in production. The big picture is in [Stairno 0. The whole roadmap](/en/blog/stairno/stairno-00-roadmap/).
+> The second half of roadmap step 4. Step 4 closed on October 22 ([section 12](#12-addendum-closing-step-4-october-22)). The payments built in [part 4](/en/blog/stairno/stairno-04-payments/) were run one by one to see whether they really work in production. The big picture is in [Stairno 0. The whole roadmap](/en/blog/stairno/stairno-00-roadmap/).
 
 ## In one line
 
@@ -149,8 +149,8 @@ So here is the plan. Change only the **rehearsal data** in the production DB sli
 ## 9. Next
 
 1. **Rehearsal scenarios 6 and 10.** Finished on October 21 and recorded on the acceptance checklist ([section 11](#11-addendum-the-last-two-october-21))
-2. **Clean up.** Delete the read-only check script and the temporary DB account. Bring the shared Google Docs in line with the Markdown originals
-3. **Close step 4.** Ship what has piled up in `develop` as the next release
+2. **Clean up.** Delete the read-only check script and the temporary DB account. Bring the shared Google Docs in line with the Markdown originals. Done on October 22 ([section 12](#12-addendum-closing-step-4-october-22))
+3. **Close step 4.** Ship what has piled up in `develop` as the next release. `v0.4.3` on October 22
 4. **Refund requests in the account center.** Specifications first, then build
 5. **Keep me signed in.** A "keep me signed in" option on the sign-in screen. Specifications first too
 6. **Two things found during the rehearsal, not fixed yet.** The "Log in" link in the hub's account menu points at an address that does not exist. After signing in through OIDC, the account center's "connected sites" stays empty
@@ -208,3 +208,51 @@ After the subscription became `expired`, its entitlement still showed the origin
 ### Looking back, one more
 
 - **Before waiting, look for proof that it is running.** I trusted the "up to 15 minutes" figure and checked nothing while waiting. There was a log line for every run, so opening the logs in the first two minutes would have shown the problem right away
+
+## 12. Addendum: closing step 4 (October 22)
+
+Passing every rehearsal does not close a step by itself. Items 2 and 3 of [section 9](#9-next), the cleanup and the release, were still open.
+
+### Cleanup
+
+I removed what the rehearsal had used to read the production database: the read-only check script, the file holding its connection details, and the rule that let the script run without asking. Even for a read-only account, there is no reason to keep a file with the production database address on a laptop. The temporary database account itself gets deleted in the Neon console.
+
+The rehearsal tool stays. It runs again after every release that changes the payment path.
+
+### Shared documents
+
+The [specifications](/en/blog/devops/devops-00-basics/#specifications) live as Markdown in the repository, and the Google Docs copies shown to other people are brought in line once, when a step ends. Updating the Docs in every pull request would double the work, which is why the rule exists. To keep their links, I edited only the changed parts inside the same documents instead of uploading new ones.
+
+| Document                     | How far it had drifted                                                       |
+| ---------------------------- | ---------------------------------------------------------------------------- |
+| Requirements specification   | Already in line                                                              |
+| Design specification         | Three lines                                                                  |
+| Plan                         | A few table rows and three decisions                                         |
+| Test and deployment document | The whole rehearsal procedure section, and every acceptance checklist result |
+
+The rule has a cost, too. Anyone who opened the Docs in between saw a document with no rehearsal procedure. A three-day step makes that fine; a longer one needs a sync in the middle.
+
+### The operating procedures left for later
+
+Throughout step 4, the test and deployment document said "the refund and webhook reprocessing procedures are added at the part 2 deployment." Both had now been done in the rehearsal, so they could finally be written.
+
+- **Refunds.** Look up open refund requests in the database, decide by the site's refund policy, then approve or reject with the operator command. While writing this I checked one thing in the code. A refund made by hand in the provider's dashboard makes the provider's [webhook](/en/blog/payments/payments-00-basics/#webhook) mark the order refunded, but it **does not close the open refund request.** Only the operator command closes it. So the procedure now says: never refund by hand in the dashboard
+- **Webhook reprocessing.** A webhook that fails while being processed is stored as failed and answered with an error, so the provider sends it again on its own (Toss up to seven times over 3 days and 19 hours). Fix the cause, deploy, and resend it from the provider's dashboard. Scenario 8 of the rehearsal already showed a resend is processed without duplicates
+
+### v0.4.3
+
+What had piled up in `develop` shipped as `v0.4.3`. It is small.
+
+- Links drawn as buttons in the orders list lose their underline, and their labels are centred
+- The refund request button in the rehearsal tool
+- One test that failed now and then. The test that checks a forged billing key is refused changes the second-to-last character of the ciphertext to `A` (or to `B` if it is already `A`), but it decided "is it already `A`" **by looking at the character next to it.** When the character to change was already `A`, it swapped `A` for `A`, nothing changed, decryption succeeded and the test failed. About once in 64 runs. It now looks at the character it changes
+
+### Two issues left open
+
+The pull request for `v0.4.2` said "Closes #209, closes #211", yet two days later both [issues](/en/blog/devops/devops-00-basics/#issue) were still open. GitHub closes issues through these keywords **only when the pull request merges into the default branch.** This repository's default branch is `develop`, while release pull requests go into `main`, so closing keywords in a release pull request do nothing. I checked both fixes in production once more and closed the issues by hand.
+
+### What is left
+
+- Refund requests in the account center, and "keep me signed in". Specifications first for both
+- Three bugs found during the rehearsal. The "Log in" link in the hub's account menu points at an address that does not exist. After signing in through OIDC, the account center's "connected sites" stays empty. A refunded order shows its refund twice in the orders list (the order status and the refund request status both appear)
+- Then step 5, stairnolabs.com

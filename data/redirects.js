@@ -118,4 +118,26 @@ const removedPageRedirects = [
   { source: '/:locale(kr|en)/blog/category', destination: '/:locale/', permanent: true },
 ]
 
-module.exports = [...postRedirects, ...tagRedirects, ...listRedirects, ...removedPageRedirects]
+/**
+ * Posts that were taken down and replaced by a rewritten set (same locale, same category).
+ */
+const replacedPosts = {
+  'database-systems/database-systems-ch2-db-systems-er-model':
+    'database-systems/database-systems-ch2-er-schema-table',
+  'database-systems/database-systems-ch3-relational-data-model':
+    'database-systems/database-systems-ch2-er-schema-table',
+}
+
+const replacedPostRedirects = Object.entries(replacedPosts).map(([from, to]) => ({
+  source: `/:locale(kr|en)/blog/${from}`,
+  destination: `/:locale/blog/${to}/`,
+  permanent: true,
+}))
+
+module.exports = [
+  ...postRedirects,
+  ...replacedPostRedirects,
+  ...tagRedirects,
+  ...listRedirects,
+  ...removedPageRedirects,
+]

@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="330" viewBox="0 0 760 330" font-family="Arial, Helvetica, sans-serif" font-size="12">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#777"/>
+    </marker>
+  </defs>
+  <rect width="760" height="330" fill="#fff"/>
+
+  <!-- left: SQL + RA lines -->
+  <text x="20" y="26" font-weight="bold" fill="#333">SQL</text>
+  <g font-family="Consolas, monospace" font-size="11" fill="#333">
+    <text x="20" y="44">SELECT Pnumber, Dnum, Lname, Address, Bdate</text>
+    <text x="20" y="58">FROM   (PROJECT JOIN DEPARTMENT ON Dnum = Dnumber)</text>
+    <text x="20" y="72">        JOIN EMPLOYEE ON Mgr_ssn = Ssn</text>
+    <text x="20" y="86">WHERE  Plocation = 'Stafford';</text>
+  </g>
+
+  <text x="20" y="118" font-weight="bold" fill="#333">relational algebra (bottom-up order)</text>
+  <g font-size="11" fill="#333">
+    <text x="20" y="138"><tspan fill="#c0392b" font-weight="bold">(1)</tspan> STAFFORD_PROJS ← σ<tspan font-size="9" dy="3">Plocation='Stafford'</tspan><tspan dy="-3">(PROJECT)</tspan></text>
+    <text x="20" y="158"><tspan fill="#3f9a52" font-weight="bold">(2)</tspan> CONTR_DEPTS ← STAFFORD_PROJS ⋈<tspan font-size="9" dy="3">Dnum=Dnumber</tspan><tspan dy="-3"> DEPARTMENT</tspan></text>
+    <text x="20" y="178"><tspan fill="#1f3b73" font-weight="bold">(3)</tspan> PROJ_DEPT_MGRS ← CONTR_DEPTS ⋈<tspan font-size="9" dy="3">Mgr_ssn=Ssn</tspan><tspan dy="-3"> EMPLOYEE</tspan></text>
+    <text x="20" y="198"><tspan fill="#7a4410" font-weight="bold">(4)</tspan> RESULT ← π<tspan font-size="9" dy="3">Pnumber, Dnum, Lname, Address, Bdate</tspan><tspan dy="-3">(PROJ_DEPT_MGRS)</tspan></text>
+  </g>
+  <text x="20" y="240" fill="#555">leaves = tables, inner nodes = operations</text>
+  <text x="20" y="256" fill="#555">a node runs only after its children are done</text>
+  <text x="20" y="272" fill="#555">(1) → (2) → (3) → (4), root is the answer</text>
+
+  <!-- right: tree -->
+  <g stroke="#999" stroke-width="1.5">
+    <line x1="560" y1="68" x2="560" y2="100"/>
+    <line x1="560" y1="128" x2="480" y2="176"/>
+    <line x1="560" y1="128" x2="650" y2="176"/>
+    <line x1="480" y1="204" x2="420" y2="252"/>
+    <line x1="480" y1="204" x2="560" y2="252"/>
+    <line x1="420" y1="280" x2="420" y2="300"/>
+  </g>
+
+  <!-- (4) pi root -->
+  <rect x="430" y="40" width="260" height="28" rx="4" fill="#fde8cf" stroke="#d9822b"/>
+  <text x="560" y="58" text-anchor="middle" fill="#7a4410"><tspan font-weight="bold">(4)</tspan> π Pnumber, Dnum, Lname, Address, Bdate</text>
+  <!-- (3) join -->
+  <rect x="490" y="100" width="140" height="28" rx="4" fill="#dbe7fa" stroke="#4a7fd6"/>
+  <text x="560" y="118" text-anchor="middle" fill="#1f3b73"><tspan font-weight="bold">(3)</tspan> ⋈ Mgr_ssn = Ssn</text>
+  <!-- (2) join -->
+  <rect x="405" y="176" width="150" height="28" rx="4" fill="#dff3e1" stroke="#3f9a52"/>
+  <text x="480" y="194" text-anchor="middle" fill="#1f5c2a"><tspan font-weight="bold">(2)</tspan> ⋈ Dnum = Dnumber</text>
+  <!-- EMPLOYEE leaf -->
+  <rect x="610" y="176" width="90" height="28" rx="4" fill="#eee" stroke="#999"/>
+  <text x="655" y="194" text-anchor="middle" fill="#333">EMPLOYEE</text>
+  <!-- (1) sigma -->
+  <rect x="340" y="252" width="160" height="28" rx="4" fill="#fde8e6" stroke="#c0392b"/>
+  <text x="420" y="270" text-anchor="middle" fill="#7a1f17"><tspan font-weight="bold">(1)</tspan> σ Plocation = 'Stafford'</text>
+  <!-- DEPARTMENT leaf -->
+  <rect x="510" y="252" width="100" height="28" rx="4" fill="#eee" stroke="#999"/>
+  <text x="560" y="270" text-anchor="middle" fill="#333">DEPARTMENT</text>
+  <!-- PROJECT leaf -->
+  <rect x="380" y="300" width="80" height="24" rx="4" fill="#eee" stroke="#999"/>
+  <text x="420" y="316" text-anchor="middle" fill="#333">PROJECT</text>
+</svg>

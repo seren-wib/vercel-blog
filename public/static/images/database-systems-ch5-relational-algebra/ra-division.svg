@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="320" viewBox="0 0 760 320" font-family="Arial, Helvetica, sans-serif" font-size="12">
+  <rect width="760" height="320" fill="#fff"/>
+  <text x="380" y="24" text-anchor="middle" font-weight="bold" font-size="14" fill="#1f3b73">T(B) ← R(A, B) ÷ S(A)</text>
+  <text x="380" y="42" text-anchor="middle" fill="#555">keep a B value only if it appears with EVERY A value of S</text>
+
+  <!-- R table -->
+  <text x="110" y="68" text-anchor="middle" font-weight="bold" fill="#333">R</text>
+  <g stroke="#999">
+    <rect x="60" y="74" width="100" height="20" fill="#e8e8e8"/>
+    <rect x="60" y="94" width="100" height="60" fill="#dbe7fa"/>
+    <rect x="60" y="154" width="100" height="60" fill="#fff"/>
+    <rect x="60" y="214" width="100" height="60" fill="#dbe7fa"/>
+    <line x1="110" y1="74" x2="110" y2="274"/>
+    <line x1="60" y1="114" x2="160" y2="114"/><line x1="60" y1="134" x2="160" y2="134"/>
+    <line x1="60" y1="174" x2="160" y2="174"/><line x1="60" y1="194" x2="160" y2="194"/>
+    <line x1="60" y1="234" x2="160" y2="234"/><line x1="60" y1="254" x2="160" y2="254"/>
+  </g>
+  <g fill="#333" text-anchor="middle">
+    <text x="85" y="88" font-weight="bold">A</text><text x="135" y="88" font-weight="bold">B</text>
+    <text x="85" y="108">a1</text><text x="135" y="108">b1</text>
+    <text x="85" y="128">a2</text><text x="135" y="128">b1</text>
+    <text x="85" y="148">a3</text><text x="135" y="148">b1</text>
+    <text x="85" y="168">a1</text><text x="135" y="168">b2</text>
+    <text x="85" y="188">a3</text><text x="135" y="188">b2</text>
+    <text x="85" y="208">a2</text><text x="135" y="208">b3</text>
+    <text x="85" y="228">a1</text><text x="135" y="228">b4</text>
+    <text x="85" y="248">a2</text><text x="135" y="248">b4</text>
+    <text x="85" y="268">a3</text><text x="135" y="268">b4</text>
+  </g>
+  <text x="180" y="128" fill="#1f3b73" font-size="11">b1 has a1, a2, a3 ✓</text>
+  <text x="180" y="182" fill="#c0392b" font-size="11">b2 lacks a2 ✗</text>
+  <text x="180" y="212" fill="#c0392b" font-size="11">b3 lacks a1, a3 ✗</text>
+  <text x="180" y="248" fill="#1f3b73" font-size="11">b4 has a1, a2, a3 ✓</text>
+
+  <text x="340" y="180" text-anchor="middle" font-size="22" fill="#333">÷</text>
+
+  <!-- S table -->
+  <text x="420" y="68" text-anchor="middle" font-weight="bold" fill="#333">S</text>
+  <g stroke="#999">
+    <rect x="395" y="74" width="50" height="20" fill="#e8e8e8"/>
+    <rect x="395" y="94" width="50" height="60" fill="#fde8cf"/>
+    <line x1="395" y1="114" x2="445" y2="114"/><line x1="395" y1="134" x2="445" y2="134"/>
+  </g>
+  <g fill="#333" text-anchor="middle">
+    <text x="420" y="88" font-weight="bold">A</text>
+    <text x="420" y="108">a1</text><text x="420" y="128">a2</text><text x="420" y="148">a3</text>
+  </g>
+  <text x="420" y="172" text-anchor="middle" fill="#7a4410" font-size="11">must have all</text>
+
+  <text x="520" y="180" text-anchor="middle" font-size="22" fill="#333">=</text>
+
+  <!-- T table -->
+  <text x="610" y="68" text-anchor="middle" font-weight="bold" fill="#333">T</text>
+  <g stroke="#999">
+    <rect x="585" y="74" width="50" height="20" fill="#e8e8e8"/>
+    <rect x="585" y="94" width="50" height="40" fill="#dbe7fa"/>
+    <line x1="585" y1="114" x2="635" y2="114"/>
+  </g>
+  <g fill="#333" text-anchor="middle">
+    <text x="610" y="88" font-weight="bold">B</text>
+    <text x="610" y="108">b1</text><text x="610" y="128">b4</text>
+  </g>
+  <text x="610" y="155" text-anchor="middle" fill="#555" font-size="11">result columns</text>
+  <text x="610" y="169" text-anchor="middle" fill="#555" font-size="11">= R columns − S columns</text>
+
+  <text x="380" y="302" text-anchor="middle" fill="#555">WORKS_ON(Essn, Pno) ÷ SMITH_PNOS(Pno) → Essn of people who work on every one of Smith's projects</text>
+</svg>

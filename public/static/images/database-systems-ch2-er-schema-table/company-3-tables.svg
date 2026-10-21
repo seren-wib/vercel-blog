@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="450" viewBox="0 0 1000 450" font-family="Helvetica, Arial, sans-serif" font-size="11">
+  <rect width="1000" height="450" fill="#ffffff"/>
+  <text x="20" y="18" font-size="12" fill="#555">3. Relation states — COMPANY with data (each row = one tuple; yellow header = PK, blue header = FK)</text>
+
+  <!-- EMPLOYEE -->
+  <g transform="translate(20,40)">
+    <text x="0" y="-5" font-weight="bold" font-size="12">EMPLOYEE</text>
+    <g stroke="#333" stroke-width="1" fill="#f3f3f3">
+      <rect x="0" y="0" width="60" height="22"/><rect x="60" y="0" width="40" height="22"/><rect x="100" y="0" width="60" height="22"/><rect x="160" y="0" width="80" height="22" fill="#fdf2d0"/><rect x="240" y="0" width="100" height="22"/><rect x="340" y="0" width="55" height="22"/><rect x="395" y="0" width="80" height="22" fill="#e3f0fa"/><rect x="475" y="0" width="40" height="22" fill="#e3f0fa"/>
+    </g>
+    <g stroke="#333" stroke-width="1" fill="#fff">
+      <rect x="0" y="22" width="60" height="22"/><rect x="60" y="22" width="40" height="22"/><rect x="100" y="22" width="60" height="22"/><rect x="160" y="22" width="80" height="22"/><rect x="240" y="22" width="100" height="22"/><rect x="340" y="22" width="55" height="22"/><rect x="395" y="22" width="80" height="22"/><rect x="475" y="22" width="40" height="22"/>
+      <rect x="0" y="44" width="60" height="22"/><rect x="60" y="44" width="40" height="22"/><rect x="100" y="44" width="60" height="22"/><rect x="160" y="44" width="80" height="22"/><rect x="240" y="44" width="100" height="22"/><rect x="340" y="44" width="55" height="22"/><rect x="395" y="44" width="80" height="22"/><rect x="475" y="44" width="40" height="22"/>
+      <rect x="0" y="66" width="60" height="22"/><rect x="60" y="66" width="40" height="22"/><rect x="100" y="66" width="60" height="22"/><rect x="160" y="66" width="80" height="22"/><rect x="240" y="66" width="100" height="22"/><rect x="340" y="66" width="55" height="22"/><rect x="395" y="66" width="80" height="22"/><rect x="475" y="66" width="40" height="22"/>
+    </g>
+    <g text-anchor="middle" font-weight="bold">
+      <text x="30" y="15">Fname</text><text x="80" y="15">Minit</text><text x="130" y="15">Lname</text><text x="200" y="15" text-decoration="underline">Ssn</text><text x="290" y="15">Address</text><text x="367" y="15">Salary</text><text x="435" y="15">Super_ssn</text><text x="495" y="15">Dno</text>
+    </g>
+    <g text-anchor="middle">
+      <text x="30" y="37">John</text><text x="80" y="37">B</text><text x="130" y="37">Smith</text><text x="200" y="37">123456789</text><text x="290" y="37">731 Fondren</text><text x="367" y="37">30000</text><text x="435" y="37">333445555</text><text x="495" y="37">5</text>
+      <text x="30" y="59">Franklin</text><text x="80" y="59">T</text><text x="130" y="59">Wong</text><text x="200" y="59">333445555</text><text x="290" y="59">638 Voss</text><text x="367" y="59">40000</text><text x="435" y="59">888665555</text><text x="495" y="59">5</text>
+      <text x="30" y="81">James</text><text x="80" y="81">E</text><text x="130" y="81">Borg</text><text x="200" y="81">888665555</text><text x="290" y="81">450 Stone</text><text x="367" y="81">55000</text><text x="435" y="81" fill="#c0392b">NULL</text><text x="495" y="81">1</text>
+    </g>
+    <text x="0" y="104" font-size="10" fill="#777">schema: EMPLOYEE(Fname, Minit, …, Dno), degree 8 / state: 3 tuples</text>
+  </g>
+
+  <!-- DEPARTMENT -->
+  <g transform="translate(600,40)">
+    <text x="0" y="-5" font-weight="bold" font-size="12">DEPARTMENT</text>
+    <g stroke="#333" stroke-width="1" fill="#f3f3f3">
+      <rect x="0" y="0" width="95" height="22"/><rect x="95" y="0" width="65" height="22" fill="#fdf2d0"/><rect x="160" y="0" width="80" height="22" fill="#e3f0fa"/><rect x="240" y="0" width="100" height="22"/>
+    </g>
+    <g stroke="#333" stroke-width="1" fill="#fff">
+      <rect x="0" y="22" width="95" height="22"/><rect x="95" y="22" width="65" height="22"/><rect x="160" y="22" width="80" height="22"/><rect x="240" y="22" width="100" height="22"/>
+      <rect x="0" y="44" width="95" height="22"/><rect x="95" y="44" width="65" height="22"/><rect x="160" y="44" width="80" height="22"/><rect x="240" y="44" width="100" height="22"/>
+    </g>
+    <g text-anchor="middle" font-weight="bold">
+      <text x="47" y="15">Dname</text><text x="127" y="15" text-decoration="underline">Dnumber</text><text x="200" y="15">Mgr_ssn</text><text x="290" y="15">Mgr_start_date</text>
+    </g>
+    <g text-anchor="middle">
+      <text x="47" y="37">Research</text><text x="127" y="37">5</text><text x="200" y="37">333445555</text><text x="290" y="37">1988-05-22</text>
+      <text x="47" y="59">Headquarters</text><text x="127" y="59">1</text><text x="200" y="59">888665555</text><text x="290" y="59">1981-06-19</text>
+    </g>
+    <text x="0" y="82" font-size="10" fill="#777">No_of_employees is not stored (derived)</text>
+  </g>
+
+  <!-- PROJECT -->
+  <g transform="translate(20,180)">
+    <text x="0" y="-5" font-weight="bold" font-size="12">PROJECT</text>
+    <g stroke="#333" stroke-width="1" fill="#f3f3f3">
+      <rect x="0" y="0" width="100" height="22"/><rect x="100" y="0" width="65" height="22" fill="#fdf2d0"/><rect x="165" y="0" width="75" height="22"/><rect x="240" y="0" width="45" height="22" fill="#e3f0fa"/>
+    </g>
+    <g stroke="#333" stroke-width="1" fill="#fff">
+      <rect x="0" y="22" width="100" height="22"/><rect x="100" y="22" width="65" height="22"/><rect x="165" y="22" width="75" height="22"/><rect x="240" y="22" width="45" height="22"/>
+      <rect x="0" y="44" width="100" height="22"/><rect x="100" y="44" width="65" height="22"/><rect x="165" y="44" width="75" height="22"/><rect x="240" y="44" width="45" height="22"/>
+    </g>
+    <g text-anchor="middle" font-weight="bold">
+      <text x="50" y="15">Pname</text><text x="132" y="15" text-decoration="underline">Pnumber</text><text x="202" y="15">Plocation</text><text x="262" y="15">Dnum</text>
+    </g>
+    <g text-anchor="middle">
+      <text x="50" y="37">ProductX</text><text x="132" y="37">1</text><text x="202" y="37">Bellaire</text><text x="262" y="37">5</text>
+      <text x="50" y="59">Reorganization</text><text x="132" y="59">20</text><text x="202" y="59">Houston</text><text x="262" y="59">1</text>
+    </g>
+  </g>
+
+  <!-- WORKS_ON -->
+  <g transform="translate(340,180)">
+    <text x="0" y="-5" font-weight="bold" font-size="12">WORKS_ON</text>
+    <g stroke="#333" stroke-width="1" fill="#f3f3f3">
+      <rect x="0" y="0" width="80" height="22" fill="#e3f0fa"/><rect x="80" y="0" width="40" height="22" fill="#e3f0fa"/><rect x="120" y="0" width="50" height="22"/>
+    </g>
+    <g stroke="#333" stroke-width="1" fill="#fff">
+      <rect x="0" y="22" width="80" height="22"/><rect x="80" y="22" width="40" height="22"/><rect x="120" y="22" width="50" height="22"/>
+      <rect x="0" y="44" width="80" height="22"/><rect x="80" y="44" width="40" height="22"/><rect x="120" y="44" width="50" height="22"/>
+      <rect x="0" y="66" width="80" height="22"/><rect x="80" y="66" width="40" height="22"/><rect x="120" y="66" width="50" height="22"/>
+    </g>
+    <g text-anchor="middle" font-weight="bold">
+      <text x="40" y="15" text-decoration="underline">Essn</text><text x="100" y="15" text-decoration="underline">Pno</text><text x="145" y="15">Hours</text>
+    </g>
+    <g text-anchor="middle">
+      <text x="40" y="37">123456789</text><text x="100" y="37">1</text><text x="145" y="37">32.5</text>
+      <text x="40" y="59">333445555</text><text x="100" y="59">1</text><text x="145" y="59">10.0</text>
+      <text x="40" y="81">888665555</text><text x="100" y="81">20</text><text x="145" y="81" fill="#c0392b">NULL</text>
+    </g>
+    <text x="0" y="104" font-size="10" fill="#777">PK = (Essn, Pno): 123456789 and 333445555 both on project 1</text>
+  </g>
+
+  <!-- DEPT_LOCATIONS -->
+  <g transform="translate(600,160)">
+    <text x="0" y="-5" font-weight="bold" font-size="12">DEPT_LOCATIONS</text>
+    <g stroke="#333" stroke-width="1" fill="#f3f3f3">
+      <rect x="0" y="0" width="65" height="22" fill="#e3f0fa"/><rect x="65" y="0" width="80" height="22" fill="#fdf2d0"/>
+    </g>
+    <g stroke="#333" stroke-width="1" fill="#fff">
+      <rect x="0" y="22" width="65" height="22"/><rect x="65" y="22" width="80" height="22"/>
+      <rect x="0" y="44" width="65" height="22"/><rect x="65" y="44" width="80" height="22"/>
+      <rect x="0" y="66" width="65" height="22"/><rect x="65" y="66" width="80" height="22"/>
+    </g>
+    <g text-anchor="middle" font-weight="bold">
+      <text x="32" y="15" text-decoration="underline">Dnumber</text><text x="105" y="15" text-decoration="underline">Dlocation</text>
+    </g>
+    <g text-anchor="middle">
+      <text x="32" y="37">1</text><text x="105" y="37">Houston</text>
+      <text x="32" y="59">5</text><text x="105" y="59">Bellaire</text>
+      <text x="32" y="81">5</text><text x="105" y="81">Sugarland</text>
+    </g>
+    <text x="160" y="59" font-size="10" fill="#777">dept 5 has 2 locations</text>
+    <text x="160" y="72" font-size="10" fill="#777">→ one row per value, PK = both columns</text>
+  </g>
+
+  <!-- DEPENDENT -->
+  <g transform="translate(20,320)">
+    <text x="0" y="-5" font-weight="bold" font-size="12">DEPENDENT</text>
+    <g stroke="#333" stroke-width="1" fill="#f3f3f3">
+      <rect x="0" y="0" width="80" height="22" fill="#e3f0fa"/><rect x="80" y="0" width="110" height="22" fill="#fdf2d0"/><rect x="190" y="0" width="40" height="22"/><rect x="230" y="0" width="85" height="22"/><rect x="315" y="0" width="85" height="22"/>
+    </g>
+    <g stroke="#333" stroke-width="1" fill="#fff">
+      <rect x="0" y="22" width="80" height="22"/><rect x="80" y="22" width="110" height="22"/><rect x="190" y="22" width="40" height="22"/><rect x="230" y="22" width="85" height="22"/><rect x="315" y="22" width="85" height="22"/>
+      <rect x="0" y="44" width="80" height="22"/><rect x="80" y="44" width="110" height="22"/><rect x="190" y="44" width="40" height="22"/><rect x="230" y="44" width="85" height="22"/><rect x="315" y="44" width="85" height="22"/>
+    </g>
+    <g text-anchor="middle" font-weight="bold">
+      <text x="40" y="15" text-decoration="underline">Essn</text><text x="135" y="15" text-decoration="underline">Dependent_name</text><text x="210" y="15">Sex</text><text x="272" y="15">Bdate</text><text x="357" y="15">Relationship</text>
+    </g>
+    <g text-anchor="middle">
+      <text x="40" y="37">333445555</text><text x="135" y="37">Alice</text><text x="210" y="37">F</text><text x="272" y="37">1986-04-05</text><text x="357" y="37">Daughter</text>
+      <text x="40" y="59">123456789</text><text x="135" y="59">Alice</text><text x="210" y="59">F</text><text x="272" y="59">1988-12-30</text><text x="357" y="59">Daughter</text>
+    </g>
+    <text x="0" y="82" font-size="10" fill="#777">two "Alice" rows — telling them apart needs the owner's Ssn (partial key alone is not enough)</text>
+  </g>
+
+  <!-- integrity notes -->
+  <g transform="translate(500,320)" font-size="10" fill="#555">
+    <text x="0" y="0" font-weight="bold" font-size="11" fill="#333">Reading the FK values</text>
+    <text x="0" y="18">EMPLOYEE.Dno = 5 → DEPARTMENT row with Dnumber 5 exists → OK (referential integrity)</text>
+    <text x="0" y="34">EMPLOYEE.Super_ssn = NULL → allowed, FK may be NULL (Borg has no boss)</text>
+    <text x="0" y="50">EMPLOYEE.Ssn can never be NULL or repeat → entity integrity + key constraint</text>
+    <text x="0" y="66">Insert WORKS_ON(999999999, 1, 5.0) → no such Ssn in EMPLOYEE → rejected</text>
+    <text x="0" y="82">Delete DEPARTMENT 5 → EMPLOYEE.Dno, PROJECT.Dnum still point to 5 → rejected</text>
+  </g>
+</svg>

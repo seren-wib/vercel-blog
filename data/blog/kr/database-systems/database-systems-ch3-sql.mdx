@@ -10,6 +10,12 @@ summary: 'CREATE TABLE·타입·제약조건·ON DELETE/ON UPDATE, INSERT·DELET
 
 COMPANY 테이블 기준. `< >` 자리에 네 걸 넣으면 됨. 순서: 테이블 만들기 → 행 넣고 지우고 고치기 → 찾기(SELECT) → 안에 SELECT 또 넣기 → 붙이기(JOIN) → 세기(집계) → 규칙(ASSERTION·TRIGGER) → 뷰
 
+## 0. 직접 돌려보기
+
+교재 COMPANY 데이터가 들어 있는 SQLite가 브라우저 안에서 돌아감. 예제를 고르거나 쿼리를 직접 고쳐서 실행하면 결과와 테이블이 어떻게 바뀌는지 바로 보임. 변경은 실행할수록 쌓이고, **처음 상태로**를 누르면 시작 데이터로 돌아감
+
+<SqlPlayground lang="kr" />
+
 ## 1. 테이블 만들기 (DDL)
 
 ```sql

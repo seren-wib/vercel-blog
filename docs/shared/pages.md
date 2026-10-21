@@ -24,12 +24,16 @@
 | `/[locale]/blog/category/[category]/page/[page]` | 카테고리별 포스트 (페이지네이션) | 5개/페이지                                                                          | 아니오    |
 | `/[locale]/about`                                | 어바웃                           | 저자 프로필 (`kr`: `data/authors/kr/default.mdx`, `en`: `data/authors/default.mdx`) | 아니오    |
 | `/[locale]/projects`                             | 프로젝트                         | Building / Shipped 두 섹션, 포트폴리오 카드 (projectsData.ts)                       | 아니오    |
+| `/[locale]/playground`                           | 플레이그라운드                   | 언어별 카드 (`data/playground.ts`)                                                  | 아니오    |
+| `/[locale]/playground/[lang]`                    | 언어별 연습창                    | `sql`·`html`·`javascript`·`python`·`c`·`cpp`. 에디터 + 실행 결과                    | 아니오    |
 
 > 현재 인증이 필요한 페이지 없음. 모든 콘텐츠 공개.
 
 ### 상단 바
 
-Blog(`/[locale]`, 랜딩 글 목록) · Projects · About · 언어 토글(KR / EN) (`data/headerNavLinks.ts`, 문구는 `data/i18n.ts`)
+Blog(`/[locale]`, 랜딩 글 목록) · Projects · About · Playground · 언어 토글(KR / EN) (`data/headerNavLinks.ts`, 문구는 `data/i18n.ts`)
+
+- Playground는 마우스를 올리거나 키보드로 포커스하면 아래에 언어 목록이 펼쳐진다 (`components/PlaygroundMenu.tsx`). 누르면 카드 목록 페이지로 간다. 모바일 메뉴에는 Playground 아래에 언어 링크를 한 줄로 둔다.
 
 - 언어 토글은 지금 주소의 언어 접두사만 바꾼 주소로 이동한다 (`/kr/blog/os/os-13-io` ↔ `/en/blog/os/os-13-io`).
 - 글 상세에서 다른 언어 버전이 없으면 토글을 비활성화한다. 다른 페이지는 항상 두 언어가 있다.

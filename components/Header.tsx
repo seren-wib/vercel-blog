@@ -6,6 +6,7 @@ import MobileNav from './MobileNav'
 import ThemeSwitch from './ThemeSwitch'
 import SearchButton from './SearchButton'
 import LanguageSwitch from './LanguageSwitch'
+import PlaygroundMenu from './PlaygroundMenu'
 import { getDictionary, localePath, type Locale } from '@/data/i18n'
 
 const Header = ({ locale }: { locale: Locale }) => {
@@ -50,6 +51,7 @@ const Header = ({ locale }: { locale: Locale }) => {
             </Link>
           ))}
         </div>
+        <PlaygroundMenu locale={locale} />
         <LanguageSwitch locale={locale} />
         <SearchButton />
         <ThemeSwitch />

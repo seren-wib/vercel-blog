@@ -12,6 +12,8 @@ graph TD
   Browser["브라우저"]
   Giscus["Giscus (GitHub Discussions)\n댓글"]
   Umami["Umami Analytics"]
+  Godbolt["Compiler Explorer
+(godbolt.org)"]
 
   Author -->|파일 편집| MDX
   MDX -->|빌드 시 파싱| Contentlayer
@@ -20,24 +22,26 @@ graph TD
   Vercel -->|서빙| Browser
   Browser <-->|댓글 API| Giscus
   Browser -->|방문 이벤트| Umami
+  Browser <-->|Playground C·C++ 컴파일·실행| Godbolt
 ```
 
 ---
 
 ## 구성 요소 설명
 
-| 구성 요소          | 기술 스택                | 역할                                          |
-| ------------------ | ------------------------ | --------------------------------------------- |
-| **콘텐츠**         | MDX (Markdown + JSX)     | 블로그 포스트 및 저자 정보                    |
-| **콘텐츠 처리**    | Contentlayer2            | MDX → TypeScript 객체 변환, 타입 생성         |
-| **MDX 파이프라인** | Remark + Rehype 플러그인 | GFM, 수학(KaTeX), 코드 강조(Prism), 인용 처리 |
-| **프레임워크**     | Next.js 15 (App Router)  | 페이지 라우팅, 정적 생성(SSG)                 |
-| **UI**             | React 19, Tailwind CSS 4 | 컴포넌트, 스타일링                            |
-| **테마**           | next-themes              | 라이트/다크/시스템 테마                       |
-| **검색**           | kbar                     | 커맨드 팔레트 기반 로컬 검색                  |
-| **댓글**           | Giscus                   | GitHub Discussions 기반 댓글                  |
-| **분석**           | Umami                    | 프라이버시 중심 방문자 분석                   |
-| **배포**           | Vercel                   | CI/CD + CDN                                   |
+| 구성 요소          | 기술 스택                                        | 역할                                          |
+| ------------------ | ------------------------------------------------ | --------------------------------------------- |
+| **콘텐츠**         | MDX (Markdown + JSX)                             | 블로그 포스트 및 저자 정보                    |
+| **콘텐츠 처리**    | Contentlayer2                                    | MDX → TypeScript 객체 변환, 타입 생성         |
+| **MDX 파이프라인** | Remark + Rehype 플러그인                         | GFM, 수학(KaTeX), 코드 강조(Prism), 인용 처리 |
+| **프레임워크**     | Next.js 15 (App Router)                          | 페이지 라우팅, 정적 생성(SSG)                 |
+| **UI**             | React 19, Tailwind CSS 4                         | 컴포넌트, 스타일링                            |
+| **테마**           | next-themes                                      | 라이트/다크/시스템 테마                       |
+| **검색**           | kbar                                             | 커맨드 팔레트 기반 로컬 검색                  |
+| **댓글**           | Giscus                                           | GitHub Discussions 기반 댓글                  |
+| **분석**           | Umami                                            | 프라이버시 중심 방문자 분석                   |
+| **Playground**     | CodeMirror 6, Pyodide, sql.js, Compiler Explorer | 브라우저 코드 실행 (C·C++만 외부 서버)        |
+| **배포**           | Vercel                                           | CI/CD + CDN                                   |
 
 ---
 

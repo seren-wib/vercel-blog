@@ -51,3 +51,6 @@ yarn-error.log*
 /.claude/reports
 /.playwright-mcp/
 /.agents/
+
+# pyodide runtime, copied from node_modules by scripts/copy-pyodide.mjs
+/public/static/pyodide/

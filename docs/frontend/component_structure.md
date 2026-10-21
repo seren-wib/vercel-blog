@@ -240,3 +240,12 @@ app/layout.tsx (RootLayout)
 - 위치: `components/playground/CodeEditor.tsx` (client)
 - 역할: CodeMirror 6 래퍼. 언어별 문법 강조, 사이트 테마 따라 하이라이트 전환, Ctrl/⌘+Enter 실행, 컴파일러 진단을 줄에 표시
 - Props: `language`, `value`, `onChange`, `onRun`, `diagnostics`, `label`
+
+### SortVisualizer
+
+- 위치: `components/visualizer/SortVisualizer.tsx` (client). MDX에서는 `<SortVisualizer algorithm="heap-sort" />`로 쓰고, `SortVisualizerLazy.tsx`가 그 글에서만 에디터·실행기를 불러온다
+- 역할: 알고리즘의 C·Python 코드를 랜덤 입력(5~99, 크기 8~32)으로 실행하고, 프로그램이 출력한 단계 기록을 막대 애니메이션으로 그린다. 재생·일시정지·한 단계씩·슬라이더·속도
+- Props: `algorithm` (`components/visualizer/algorithms.ts`의 키)
+- 실행은 Playground와 같은 `runners.ts`를 쓴다 (C는 Compiler Explorer, Python은 Pyodide). 입력은 페이지가 만들어 stdin으로 넘기므로 실행할 때마다 다르다
+- 단계 기록 형식 (`trace.ts`가 읽음): `INIT v...`, `PHASE name`, `CMP i j`, `SWAP i j`, `SORTED i`, `DONE v...`. 교환을 다시 적용한 배열이 `DONE`과 다르거나 오름차순이 아니면 막대 아래에 알린다
+- 새 알고리즘은 `algorithms.ts`에 C·Python 코드와 단계 이름만 추가하면 된다

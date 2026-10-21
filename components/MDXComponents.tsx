@@ -6,6 +6,7 @@ import Image from './Image'
 import CustomLink from './Link'
 import TableWrapper from './TableWrapper'
 import SqlPlayground from './SqlPlayground'
+import SortVisualizer from './visualizer/SortVisualizerLazy'
 
 export const components: MDXComponents = {
   Image,
@@ -15,4 +16,5 @@ export const components: MDXComponents = {
   table: TableWrapper,
   BlogNewsletterForm,
   SqlPlayground,
+  SortVisualizer,
 }

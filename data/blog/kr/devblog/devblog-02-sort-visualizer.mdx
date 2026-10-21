@@ -1,0 +1,144 @@
+---
+title: 'DevBlog 2. 정렬 실행 시각화 만들기'
+date: '2026-10-22'
+tags: ['DevBlog']
+draft: false
+summary: 'C·Python 정렬 코드를 랜덤 입력으로 실제 실행하고 그 과정을 막대 애니메이션으로 보여 주는 시각화. 단계 기록(trace) 출력 형식, stdin으로 넘기는 랜덤 입력, 프레임 만들기와 검증, 재생 컨트롤, 지연 로드'
+---
+
+> [힙 정렬](/kr/blog/data-structures/data-structures-heap-sort/#0-직접-돌려보기) 글 맨 위의 시각화를 만든 기록. 실행기는 [DevBlog 1](/kr/blog/devblog/devblog-01-playground/)의 Playground 것을 그대로 씀
+
+## 1. 요구사항
+
+- 글에 C와 Python 구현을 보여 주고, **실제로 실행**함
+- 실행 결과가 핵심. 값 크기만큼의 막대가 정렬되면서 최종 결과가 나오는 애니메이션
+- 입력은 **매번 랜덤**. 실행할 때마다 과정과 결과가 달라야 함
+
+## 2. 핵심 아이디어: 프로그램이 일기를 쓰게 하기
+
+방법은 세 가지를 놓고 골랐음
+
+| 방법                                   | 문제                                                       |
+| -------------------------------------- | ---------------------------------------------------------- |
+| JavaScript로 정렬을 다시 짜서 그림     | 화면은 C/Python 실행 결과가 아님. 보여 주는 코드와 따로 놂 |
+| 실행 중인 프로그램의 메모리를 들여다봄 | godbolt나 Pyodide 밖에서 배열을 엿볼 방법이 없음           |
+| **프로그램이 한 일을 한 줄씩 출력**    | 코드에 `printf` 몇 줄이 늘어남. 대신 화면 = 실제 실행 결과 |
+
+- 세 번째로 감. 프로그램은 비교하거나 바꿀 때마다 한 줄씩 남기고, 페이지는 그 출력을 읽어서 처음부터 다시 그림
+- 출력 형식(trace)은 정렬 알고리즘이면 공통으로 쓸 수 있게 정함
+
+| 줄             | 뜻                       |
+| -------------- | ------------------------ |
+| `INIT v0 v1 …` | 입력 배열                |
+| `PHASE name`   | 단계 시작 (캡션에 표시)  |
+| `CMP i j`      | `a[i]`와 `a[j]`를 비교함 |
+| `SWAP i j`     | `a[i]`와 `a[j]`를 바꿈   |
+| `SORTED i`     | `a[i]`가 제자리를 찾음   |
+| `DONE v0 v1 …` | 결과 배열                |
+
+```c:heap_sort.c
+static void swap(int i, int j) {
+    int t = a[i];
+    a[i] = a[j];
+    a[j] = t;
+    printf("SWAP %d %d\n", i, j);
+}
+```
+
+- 크기 16짜리 입력이면 출력은 150줄 정도. godbolt에서 받기에도 충분히 작음
+
+## 3. 랜덤 입력은 페이지가 만듦
+
+- 프로그램 안에서 `srand(time(NULL))`이나 `random`을 쓰지 않고, **페이지가 랜덤 배열을 만들어 stdin으로 넘김**
+
+```ts:components/visualizer/SortVisualizer.tsx
+const input = randomInput(size)            // 5 ~ 99, 크기 8 ~ 32
+const stdin = `${size}\n${input.join(' ')}\n`
+```
+
+- 이유
+  - C와 Python에 **똑같은 배열**을 줄 수 있음. C의 `rand()`와 Python의 `random`은 같은 시드를 줘도 다른 수를 냄
+  - 입력이 요청 본문에 들어가서 실행 요청이 매번 달라짐. 같은 요청을 다시 보냈을 때 이전 결과가 돌아올 여지가 없음
+  - 화면에 입력 배열을 그대로 보여 줄 수 있음
+- 프로그램은 `n`과 값 `n`개를 읽기만 함. 시험 문제 입력 형식과 같아서 코드도 자연스러움
+
+## 4. 출력 → 프레임
+
+- `trace.ts`가 출력을 한 줄씩 읽으면서 배열을 직접 다시 바꿈. `SWAP`이 나오면 페이지 쪽 배열도 바꾸고, 그때의 배열 전체를 **프레임** 하나로 저장
+
+```ts:components/visualizer/trace.ts
+} else if (cmd === 'CMP' || cmd === 'SWAP') {
+  const [i, j] = nums
+  if (cmd === 'SWAP') [values[i], values[j]] = [values[j], values[i]]
+  push({ kind: cmd === 'CMP' ? 'cmp' : 'swap', i, j })
+}
+```
+
+- 프레임 = 그 순간의 배열 + 정렬 끝난 칸 표시 + 방금 건드린 칸 + 단계 이름
+- 배열 크기가 최대 32, 단계가 수백 개라서 프레임마다 배열을 통째로 복사해도 가벼움. 덕분에 슬라이더로 아무 단계나 바로 갈 수 있음
+
+### 검증
+
+- 페이지가 다시 바꾼 배열이 프로그램의 `DONE`과 같은지, `DONE`이 오름차순인지 확인함
+- 코드를 고치다 `printf` 하나를 빠뜨리면 그림과 실제 배열이 어긋나는데, 그걸 막대 아래에 알려 줌
+- 범위를 벗어난 인덱스, `INIT`이나 `DONE`이 없는 경우도 같은 자리에 알림
+
+## 5. 애니메이션
+
+- 재생은 `index` 하나를 `setTimeout`으로 올리는 게 전부. 기본 420ms, 속도 0.5× ~ 4×
+
+```ts:components/visualizer/SortVisualizer.tsx
+useEffect(() => {
+  if (!playing || !trace) return
+  if (index >= trace.frames.length - 1) {
+    setPlaying(false)
+    return
+  }
+  const id = setTimeout(() => setIndex((i) => i + 1), BASE_DELAY_MS / speed)
+  return () => clearTimeout(id)
+}, [playing, index, trace, speed])
+```
+
+- 막대는 `div` 여러 개. 높이는 `값 / 최댓값 × 100%`, `transition-[height,background-color]`로 교환할 때 높이가 부드럽게 바뀜
+- 색: 비교는 파랑, 교환은 빨강, 제자리는 검정, 나머지는 회색. 블로그가 흑백 테마라 의미 있는 색 두 개만 씀
+- 컨트롤: 재생/일시정지(끝나면 다시 보기), 한 단계씩, 슬라이더, 속도. 캡션에 "Compare a[5]=61 with a[2]=93" 같은 설명과 비교·교환 횟수
+
+## 6. 실행기 재사용
+
+- C는 Playground와 같은 `runCompiled`로 godbolt에 보내고, Python은 같은 `runPython`으로 Pyodide Worker에서 돌림
+- Python 탭을 누르는 순간 Pyodide 로딩을 시작함. 글만 읽는 사람은 10MB를 안 받음
+- 컴파일 에러가 나면 Playground처럼 에디터에 빨간 밑줄이 생기고, 에러 내용은 막대 자리 아래에 보여 줌
+
+## 7. 글에 넣기와 지연 로드
+
+- MDX에서는 한 줄
+
+```mdx
+<SortVisualizer algorithm="heap-sort" />
+```
+
+- 문제: MDX 컴포넌트 목록은 **모든 글이 공유**함. 여기에 시각화를 그냥 import하면 CodeMirror(수백 KB)가 시각화가 없는 글에도 실려 감
+- `next/dynamic`으로 감싼 작은 래퍼(`SortVisualizerLazy`)만 등록함. 실제 코드는 이 컴포넌트가 들어간 글에서만 내려받음
+
+```tsx:components/visualizer/SortVisualizerLazy.tsx
+const SortVisualizer = dynamic(() => import('./SortVisualizer'), {
+  ssr: false,
+  loading: () => <div>Loading visualizer…</div>,
+})
+```
+
+## 8. 확인한 것
+
+- 같은 입력 `[42, 7, 93, 15, 61, 28, 77, 3, 50, 66]`으로 C(godbolt)와 Python을 돌려서 출력 75줄이 **한 줄도 다르지 않은 것** 확인
+- 두 번 연속 실행했을 때 입력 배열이 다르게 나오는 것 확인
+- 화면 폭 390px에서 가로 스크롤 없이 막대와 컨트롤이 다 보임
+
+## 9. 새 알고리즘 추가하기
+
+- `components/visualizer/algorithms.ts`에 C·Python 코드와 단계 이름만 넣으면 됨. 시각화 쪽은 손대지 않음
+- 조건은 같은 출력 형식을 지키는 것. 병합 정렬처럼 값을 옮겨 쓰는 알고리즘은 `SET i v` 같은 줄을 하나 더 정해서 넣을 예정
+
+## 10. 정리
+
+- "프로그램이 한 일을 출력하고, 페이지는 그 출력을 다시 그린다". 이 한 가지로 실제 실행 결과를 보여 주면서 언어(C, Python)와 실행 위치(godbolt, 브라우저)를 가리지 않게 됨
+- 랜덤 입력은 프로그램이 아니라 페이지가 만들고 stdin으로 넘김

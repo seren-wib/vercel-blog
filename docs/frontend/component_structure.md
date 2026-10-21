@@ -8,6 +8,7 @@ app/layout.tsx (RootLayout)
 └── LayoutWrapper
     ├── Header
     │   ├── Link (CustomLink)
+    │   ├── PlaygroundMenu  ← Playground 링크 + 언어 드롭다운
     │   ├── MobileNav
     │   ├── SearchButton    ← kbar 검색 트리거
     │   └── ThemeSwitch
@@ -28,7 +29,9 @@ app/layout.tsx (RootLayout)
     │   │   └── ScrollTopAndComment
     │   ├── [어바웃] AuthorLayout
     │   │   └── SocialIcon
-    │   └── [프로젝트] ProjectCard / ProjectBrief
+    │   ├── [프로젝트] ProjectCard / ProjectBrief
+    │   └── [플레이그라운드 연습창] SqlPlayground / CodePlayground
+    │       └── CodeEditor (CodeMirror 6)
     └── Footer
 ```
 
@@ -208,3 +211,32 @@ app/layout.tsx (RootLayout)
 | ---------- | ----------- | ---- | ------------------------- |
 | `children` | `ReactNode` | ✅   | MDX 렌더링 결과           |
 | `content`  | `Authors`   | ✅   | Contentlayer Authors 객체 |
+
+### PlaygroundMenu
+
+- 위치: `components/PlaygroundMenu.tsx`
+- 역할: 상단 바 Playground 링크. hover·focus-within이면 `data/playground.ts`의 언어 목록을 드롭다운으로 보여준다 (CSS만, JS 없음)
+- Props: `locale`
+
+### CodePlayground
+
+- 위치: `components/playground/CodePlayground.tsx` (client)
+- 역할: HTML·JavaScript·Python·C·C++ 연습창. 툴바(Run·Stop·Reset), 에디터, stdin(Python·C·C++), 출력. HTML은 미리보기 iframe + 콘솔
+- Props: `language` (`'html' | 'javascript' | 'python' | 'c' | 'cpp'`), `locale`
+- 쓴 코드와 stdin은 `localStorage`(`playground:<lang>:code`, `playground:<lang>:stdin`)에 저장한다. Reset은 `examples.ts`의 예제로 되돌린다
+- 실행 위치 (`components/playground/runners.ts`):
+
+| 언어       | 실행                                                                                                                 |
+| ---------- | -------------------------------------------------------------------------------------------------------------------- |
+| HTML       | `srcdoc` iframe, `sandbox="allow-scripts ..."`(same-origin 없음). 갱신할 때마다 iframe을 새로 만든다                 |
+| JavaScript | `public/static/playground/js-worker.js` Web Worker, 실행마다 새 워커                                                 |
+| Python     | `public/static/playground/py-worker.mjs` 모듈 워커 + Pyodide. 워커 하나를 실행 사이에 재사용. 추가 패키지는 jsDelivr |
+| C / C++    | Compiler Explorer API (`godbolt.org/api/compiler/<id>/compile`), GCC 15.2                                            |
+
+- JavaScript·Python은 15초 안에 안 끝나면 워커를 죽인다. C·C++은 Compiler Explorer 제한(약 20초)을 따른다
+
+### CodeEditor
+
+- 위치: `components/playground/CodeEditor.tsx` (client)
+- 역할: CodeMirror 6 래퍼. 언어별 문법 강조, 사이트 테마 따라 하이라이트 전환, Ctrl/⌘+Enter 실행, 컴파일러 진단을 줄에 표시
+- Props: `language`, `value`, `onChange`, `onRun`, `diagnostics`, `label`

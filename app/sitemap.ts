@@ -2,6 +2,7 @@ import { MetadataRoute } from 'next'
 import { allBlogs } from 'contentlayer/generated'
 import siteMetadata from '@/data/siteMetadata'
 import categoryData from 'app/category-data.json'
+import { playgroundLanguages } from '@/data/playground'
 import { locales, localeInfo, localePath, type Locale } from '@/data/i18n'
 
 export const dynamic = 'force-static'
@@ -27,7 +28,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }))
   }
 
-  const routes = ['/', '/projects/', '/about/'].flatMap((path) => entries(path, locales, today))
+  const routes = [
+    '/',
+    '/projects/',
+    '/about/',
+    '/playground/',
+    ...playgroundLanguages.map((lang) => `/playground/${lang.id}/`),
+  ].flatMap((path) => entries(path, locales, today))
 
   const categories = [...new Set(locales.flatMap((l) => Object.keys(counts[l] ?? {})))]
   const categoryRoutes = categories.flatMap((category) =>

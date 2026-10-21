@@ -5,6 +5,7 @@ import { disableBodyScroll, enableBodyScroll, clearAllBodyScrollLocks } from 'bo
 import { Fragment, useState, useEffect, useRef } from 'react'
 import Link from './Link'
 import headerNavLinks from '@/data/headerNavLinks'
+import { playgroundLanguages } from '@/data/playground'
 import { getDictionary, localePath, type Locale } from '@/data/i18n'
 
 const MobileNav = ({ locale }: { locale: Locale }) => {
@@ -84,6 +85,25 @@ const MobileNav = ({ locale }: { locale: Locale }) => {
                     {dict.nav[link.key]}
                   </Link>
                 ))}
+                <Link
+                  href={localePath(locale, '/playground')}
+                  className="hover:text-primary-500 dark:hover:text-primary-400 py-2 pr-4 text-2xl font-bold tracking-widest text-gray-600 outline outline-0 dark:text-gray-300"
+                  onClick={onToggleNav}
+                >
+                  {dict.nav.playground}
+                </Link>
+                <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1 pl-1">
+                  {playgroundLanguages.map((lang) => (
+                    <Link
+                      key={lang.id}
+                      href={localePath(locale, `/playground/${lang.id}`)}
+                      className="hover:text-primary-500 dark:hover:text-primary-400 py-1 text-base font-medium text-gray-500 dark:text-gray-400"
+                      onClick={onToggleNav}
+                    >
+                      {lang.name}
+                    </Link>
+                  ))}
+                </div>
               </nav>
 
               <button

@@ -22,13 +22,6 @@ export interface Project {
 const projectsData: Project[] = [
   {
     title: 'Atlas Odyssey',
-    linkedin: {
-      title: 'Atlas Odyssey · Personal learning atlas',
-      start: '2026-09',
-      end: null,
-      description:
-        "A personal learning atlas: lay out everything worth learning as a map, record what's done, and see what's left. A redesign of my-status on a fresh repo with stricter rules.\n- Designed how the AI agent works before writing app code: issue → branch → PR → review → merge split into per-step skills, with a work report on every PR\n- Protected develop/main rulesets, PR-only merges and a test-first flow\n- Midterm demo in November, final in December\n\n배운 것을 지도처럼 펼쳐 두고, 한 것을 기록하고, 남은 것을 지도에서 확인하는 개인 학습 아틀라스. my-status를 새 레포와 새 규칙으로 다시 설계하는 프로젝트입니다.\n- 코드보다 먼저 AI 에이전트가 일하는 방식부터 설계: 이슈 → 브랜치 → PR → 리뷰 → 머지를 단계별 skill로 쪼개고, PR마다 작업 리포트를 남김\n- develop/main 보호 룰셋과 PR 전용 머지, 테스트 우선 흐름으로 레포를 구성\n- 11월 중간 발표, 12월 최종 발표 예정\nhttps://github.com/seren-wib/atlas-odyssey",
-    },
     status: 'building',
     size: 'standard',
     period: {
@@ -60,13 +53,6 @@ const projectsData: Project[] = [
   },
   {
     title: 'kibotos.dev',
-    linkedin: {
-      title: 'kibotos.dev · Personal tech blog',
-      start: '2026-05',
-      end: null,
-      description:
-        'A blog where I post CS course notes and project write-ups in Korean and English.\n- Documented the pipeline that turns lecture notes into blog posts, so an AI agent handles images, format conversion and the English translation by the same rules every time\n- Korean/English URL scheme, per-course categories sorted by chapter, and redirects that keep old links working when addresses change\n- Every change goes through a PR and ships only after CI (lint, type check, build) passes\n\n컴퓨터공학 수업 노트와 프로젝트 기록을 한국어와 영어로 올리는 블로그입니다.\n- 강의 노트를 블로그 글로 옮기는 과정을 문서로 정리해, AI 에이전트가 이미지 정리, 형식 변환, 영어 번역까지 같은 규칙으로 처리하도록 구성\n- 한국어·영어 두 언어 주소 체계, 과목별 카테고리와 장 순서 정렬, 주소가 바뀌어도 예전 링크가 계속 열리도록 리다이렉트 관리\n- 모든 변경은 PR로 올리고 CI(린트, 타입 검사, 빌드)를 통과해야 배포\nhttps://kibotos.dev',
-    },
     status: 'building',
     size: 'standard',
     period: {
@@ -100,13 +86,6 @@ const projectsData: Project[] = [
   },
   {
     title: 'Coffee Shop',
-    linkedin: {
-      title: 'Coffee Shop · Coffee bean shop, team project',
-      start: '2026-09',
-      end: null,
-      description:
-        'An online shop for coffee beans, built through the full Software Engineering course cycle: requirements, design specs, then code.\n- Set up the repo, the issue → branch → PR workflow, and the rules for documents (docs/ is the source of truth) and languages\n- Wrote the requirements definition and use case diagrams; order cancellation goes through an admin-approved state transition\n- Owns the React + Vite front-end on top of a Django back-end. Implementation in November, final report in December\n\n커피 원두를 파는 온라인 쇼핑몰. 요구사항 분석부터 설계 명세, 구현까지 소프트웨어공학 수업 단계를 그대로 밟습니다.\n- 레포 초기 구성, 이슈 → 브랜치 → PR 기여 흐름, "확정본은 docs/" 문서 규칙과 언어 규칙을 정함\n- 요구사항 정의서와 유스케이스 다이어그램 작성. 회원 주문 취소는 관리자 승인을 거치는 상태 전이로 설계\n- Django 백엔드 위 React + Vite 프론트엔드 담당. 11월 구현, 12월 최종 보고\nhttps://github.com/seren-wib/coffee-shop',
-    },
     status: 'building',
     size: 'standard',
     period: {
@@ -138,13 +117,6 @@ const projectsData: Project[] = [
   },
   {
     title: 'Vane',
-    linkedin: {
-      title: 'Vane · 2D story adventure in Unity',
-      start: '2026-08',
-      end: null,
-      description:
-        'A 2D top-down story adventure in Unity. Prototype stage.\n\nUnity 2D 탑다운 스토리 어드벤처. 프로토타입 단계.',
-    },
     status: 'building',
     size: 'brief',
     period: {
@@ -159,13 +131,6 @@ const projectsData: Project[] = [
   },
   {
     title: 'Stairno Account',
-    linkedin: {
-      title: 'Stairno Account · One account and checkout for every Stairno site',
-      start: '2026-10',
-      end: null,
-      description:
-        'One Stairno account and one saved card for every Stairno site. Built solo, from planning documents to production.\n- OIDC provider: PKCE, JWT/JWKS, refresh and site tokens. Sign-up, email verification, password reset, device sessions, account deletion\n- Payments: Toss Payments (KRW) and PayPal (USD) behind one adapter, card-on-file subscriptions with retries and expiry, refunds, idempotent signed webhooks\n- Korean/English mail on SPF/DKIM/DMARC; CSP, rate limits, a privacy policy written to Korean law\n- 115 requirements written first, 775 tests (unit, integration, component, e2e), Lighthouse accessibility 100\n- Git Flow with rulesets; deploy runs tests → DB migration → API → account center on Cloudflare Workers\n- Accepted with a 10-scenario payment rehearsal on production (test mode)\n\nStairno 계정 하나로 모든 Stairno 사이트에 로그인하고 카드는 한 번만 등록하는 계정 센터와 공용 API입니다. 기획 문서부터 운영까지 혼자 만들었습니다.\n- OIDC 공급자, 가입·인증·재설정·기기 관리·계정 삭제\n- 토스페이먼츠·PayPal을 어댑터 하나 뒤에, 빌링키 정기결제와 재시도·만료, 환불, 웹훅 서명 검증과 멱등 처리\n- 한국어·영어 메일, CSP와 속도 제한, 개인정보 보호법에 맞춘 처리방침\n- 요구사항 115개를 먼저 쓰고 테스트 775개, 접근성 100\n- Git Flow와 룰셋, 테스트 → 마이그레이션 → 배포 파이프라인\n- 운영에서 결제 시나리오 10개 리허설로 인수\n\nhttps://github.com/seren-wib/account.stairno.com',
-    },
     status: 'shipped',
     size: 'featured',
     period: {
@@ -230,13 +195,6 @@ const projectsData: Project[] = [
   },
   {
     title: 'Stairno',
-    linkedin: {
-      title: 'Stairno · Brand hub site for my games and tools',
-      start: '2026-10',
-      end: '2026-10',
-      description:
-        'The hub site for Stairno, the brand my games and tools ship under. It introduces the brand and links to its three projects (Works, Games, Labs); sales and intake live on their own sites.\n- The whole hero is a halftone-dot canvas: on first visit a globe wrapped in the wordmark spins, then its dots scatter and reassemble into stairs and letters. Clicks send a ripple through the dots\n- Section-by-section full-page scrolling, dot-lettered headings and a header that follows the current section\n- Korean and English, dark and light modes. Static pages only: no third-party scripts, trackers or cookies\n- Built test-first: 123 unit, component and integration tests. Only builds that pass GitHub Actions are deployed to Cloudflare Pages\n\n제가 만드는 게임과 도구를 묶는 브랜드 Stairno의 허브 사이트입니다. 브랜드 소개와 Works·Games·Labs 세 프로젝트로 가는 링크만 두고, 판매나 접수는 각 프로젝트 사이트에 맡겼습니다.\n- 히어로 전체를 하프톤 점 캔버스로 그림. 첫 접속 때 워드마크가 감긴 지구가 돌다가 점이 흩어지며 계단과 글자로 다시 조립되고, 클릭하면 점이 물결처럼 퍼짐\n- 섹션 단위 풀페이지 스크롤, 점으로 그린 섹션 제목, 현재 섹션을 따라가는 헤더\n- 한국어·영어, 다크·라이트 모드. 외부 스크립트, 추적 도구, 쿠키 없이 정적 페이지로만 구성\n- 테스트 우선으로 작업해 단위·컴포넌트·통합 테스트 123개. GitHub Actions를 통과한 빌드만 Cloudflare Pages에 배포\n\nhttps://stairno.com',
-    },
     status: 'shipped',
     size: 'standard',
     period: {
@@ -270,13 +228,6 @@ const projectsData: Project[] = [
   },
   {
     title: 'my-status',
-    linkedin: {
-      title: 'my-status · Personal learning status board',
-      start: '2026-08',
-      end: '2026-09',
-      description:
-        'An RPG-style status board for my own learning: everything I want to learn is broken into roadmaps, and logging what I study recalculates my stats. Built solo in two weeks, from data model to tools to UI.\n- 348 roadmaps across 9 domains; software alone has 181 roadmaps and 18,623 items\n- Seven Python tools with no third-party libraries, including a Markdown → JSON parser, a stat calculator and a data consistency checker\n- The study log (JSONL) is the only source of truth; progress and stats are rebuilt from it every time. Clicking an item in the UI writes to the same log through a local server and recalculates the stats\n- Each item records a separate understanding level (1–4), weighted so hands-on practice counts far more than a pile of things I only know by name\n\n배우고 싶은 모든 분야를 로드맵으로 쪼개고, 공부한 기록을 남기면 RPG 게임처럼 능력치가 다시 계산되는 개인 상태창입니다. 데이터 구조부터 도구, 화면까지 2주 동안 혼자 만들었습니다.\n- 9개 분야 로드맵 348개. 소프트웨어 분야만 로드맵 181개, 항목 18,623개\n- 외부 라이브러리 없이 파이썬으로 도구 7종 작성: 마크다운을 JSON으로 바꾸는 파서, 능력치 계산기, 데이터 정합성 검사기\n- 학습 기록(JSONL)을 유일한 원본으로 두고, 진행도와 능력치는 매번 기록에서 다시 계산. 화면에서 항목을 누르면 로컬 서버가 같은 기록 파일에 저장하고 능력치를 다시 계산\n- 항목마다 이해 수준(1~4단계)을 따로 기록하고, 이름만 아는 항목이 쌓여도 실제로 해본 경험이 더 크게 반영되도록 가중치를 설계\nhttps://github.com/seren-wib/my-status-public',
-    },
     status: 'shipped',
     size: 'featured',
     period: {
@@ -314,13 +265,6 @@ const projectsData: Project[] = [
   },
   {
     title: 'agent-commonplace',
-    linkedin: {
-      title: 'agent-commonplace · Shared memory for AI coding agents',
-      start: '2026-10',
-      end: '2026-10',
-      description:
-        "An open-source CLI that gives Claude Code, Codex and Antigravity the same instructions and memory on every machine, synced through each agent's hooks and one private git repo. I rewrote the sync hook from my own dotfiles so anyone can install it.\n- One command registers three different hook formats: pull when a session starts, commit and push after each reply\n- Project memory is matched by git remote, so the same notes follow a repo even when its path differs per machine; works on Windows without admin rights\n- Fixed a race where hooks starting together fought over git's FETCH_HEAD, using a shared lock\n- Zero dependencies, Node 22+. 24 tests, including a two-machine end-to-end test, pass in CI on Linux, macOS and Windows\n\nClaude Code, Codex, Antigravity가 어느 컴퓨터에서든 같은 지시문과 메모리를 쓰게 해 주는 오픈소스 CLI입니다. 에이전트 훅과 비공개 git 레포 하나로 동기화합니다. 제 dotfiles에서 쓰던 동기화 훅을 누구나 설치할 수 있게 다시 만들었습니다.\n- 서로 다른 세 에이전트의 훅 형식을 명령 하나로 등록: 세션 시작 때 pull, 응답마다 commit·push\n- 프로젝트 메모리를 git remote로 짝지어, 컴퓨터마다 경로가 달라도 같은 노트를 공유. 관리자 권한 없는 Windows에서도 동작\n- 동시에 실행된 훅끼리 git FETCH_HEAD를 두고 충돌하던 문제를 공유 락으로 해결\n- 의존성 0개, Node 22+. 두 컴퓨터 종단 간 테스트를 포함한 테스트 24개가 Linux·macOS·Windows CI에서 통과\nhttps://github.com/seren-wib/agent-commonplace",
-    },
     status: 'shipped',
     size: 'standard',
     period: {
@@ -354,13 +298,6 @@ const projectsData: Project[] = [
   },
   {
     title: 'SCPC 2026 AI Agent Harness',
-    linkedin: {
-      title: 'SCPC 2026 AI Agent Harness',
-      start: '2026-07',
-      end: '2026-07',
-      description:
-        "Solo entry for the SCPC 2026 qualifier (DACON). A rule-based harness that decides, when an on-device agent gets a request, the target, whether to proceed, the plan, disclosure scope and risk. External LLMs weren't allowed for generating answers.\n- Public score 0.8408 (baseline 0.5206); missed the top-100 cutoff of 0.8788 and didn't advance\n- Reverse-engineered the scoring from 120 solved practice tasks and three submissions a day, and built a diagnostic tool that computes accuracy per decision field\n- One 984-line Python file with no third-party libraries, giving identical output on every run\n\nSCPC 2026 예선(DACON) 개인 참가작. 개인 기기 에이전트가 요청을 받았을 때 대상, 진행 여부, 계획, 공개 범위, 위험 여부를 판단하는 규칙 기반 하네스입니다. 답안 생성에 외부 LLM을 쓸 수 없는 대회였습니다.\n- 공개 점수 0.8408 (기준 모델 0.5206). 상위 100위 기준선 0.8788에는 못 미쳐 예선 탈락\n- 정답이 공개된 연습 문제 120개와 하루 세 번의 제출 점수만으로 채점 방식을 거꾸로 추론하고, 항목별 정확도를 따로 계산하는 진단 도구를 만듦\n- 외부 라이브러리 없는 파이썬 파일 하나(984줄). 몇 번을 실행해도 같은 결과가 나오도록 작성\nhttps://github.com/seren-wib/scpc-2026-agent-harness",
-    },
     status: 'shipped',
     size: 'standard',
     period: {
@@ -394,13 +331,6 @@ const projectsData: Project[] = [
   },
   {
     title: 'Online Code Editor',
-    linkedin: {
-      title: 'Online Code Editor',
-      start: '2026-03',
-      end: '2026-06',
-      description:
-        'A browser-based editor for writing, running and saving code. Team of four for the Open Source Web course; I was team lead.\n- Wrote the README, contributing guide, API spec, DB schema, and architecture and component docs so everyone built against the same rules\n- Built the sign-up and login API with Express and MySQL (bcrypt hashing, JWT auth)\n- Automated lint, test and build for client and server with GitHub Actions; only PRs that pass CI can merge into main\n\n브라우저에서 코드를 작성·실행·저장하는 온라인 코드 에디터입니다. 오픈소스웹 수업에서 4인 팀으로 진행했고 팀장을 맡았습니다.\n- README와 기여 가이드, API 명세, DB 스키마, 아키텍처·컴포넌트 문서를 작성해 팀원들이 같은 기준으로 개발하도록 함\n- Express와 MySQL로 회원가입·로그인 API 구현 (bcrypt 암호화, JWT 인증)\n- GitHub Actions로 클라이언트·서버의 린트, 테스트, 빌드를 자동화하고, CI를 통과한 PR만 main에 머지되도록 설정\nhttps://github.com/seren-wib/opensource-web-azas',
-    },
     status: 'shipped',
     size: 'standard',
     period: {
@@ -434,13 +364,6 @@ const projectsData: Project[] = [
   },
   {
     title: 'usb-kit',
-    linkedin: {
-      title: 'usb-kit · Portable dev kit for school lab PCs',
-      start: '2026-09',
-      end: '2026-09',
-      description:
-        "Plug a USB stick into a school lab Ubuntu PC, log into GitHub and Claude Code with one command, and wipe every trace when you're done. No admin (sudo) rights needed.\n- Login tokens live only in an encrypted volume (gocryptfs) on the stick and in memory-backed temp storage during a session; tokens refreshed mid-session are written back to the volume on exit\n- One 462-line Bash script handles setup, start, cleanup and status, and falls back to a git bundled on the stick when the PC has none\n- Verified the whole flow on an Ubuntu 26.04 VM, from install to re-login after reboot\n\n학교 실습실 Ubuntu PC에 USB를 꽂고 명령 하나로 GitHub와 Claude Code에 로그인하고, 작업이 끝나면 PC에 남은 흔적을 모두 지우는 도구입니다. 관리자 권한(sudo) 없이 동작합니다.\n- 로그인 토큰은 USB 안의 암호화 볼륨(gocryptfs)에만 보관하고, 작업 중에는 메모리 기반 임시 공간에만 둠. 세션 중 갱신된 토큰은 종료할 때 다시 암호화 볼륨에 저장\n- Bash 스크립트 하나(462줄)로 초기 설정, 시작, 정리, 상태 확인을 처리. PC에 git이 없으면 USB에 담아둔 git을 대신 사용\n- Ubuntu 26.04 가상머신에서 설치부터 재부팅 후 재로그인까지 전체 과정을 검증",
-    },
     status: 'shipped',
     size: 'standard',
     period: {
@@ -472,13 +395,6 @@ const projectsData: Project[] = [
   },
   {
     title: 'Amazon Price Scraper',
-    linkedin: {
-      title: 'Amazon Price Scraper · Price tracking with a dashboard',
-      start: '2026-01',
-      end: '2026-01',
-      description:
-        'Scrapes Amazon search results into SQLite and CSV and shows prices on a Streamlit dashboard.\n- ScraperAPI for proxy rotation and CAPTCHA solving, plain requests with no local browser\n- BeautifulSoup parsing with retry and backoff on transient errors, pagination that stops at the last page\n\n아마존 검색 결과를 수집해 SQLite와 CSV로 저장하고 Streamlit 대시보드로 가격을 보여 주는 스크래퍼.\n- ScraperAPI로 프록시 순환과 CAPTCHA 처리, 로컬 브라우저 없이 requests만 사용\n- BeautifulSoup 파싱에 일시 오류 재시도·백오프, 마지막 페이지에서 멈추는 페이지네이션\nhttps://github.com/seren-wib/amazon-price-scraper',
-    },
     status: 'shipped',
     size: 'standard',
     period: {
@@ -508,13 +424,6 @@ const projectsData: Project[] = [
   },
   {
     title: 'Uncapped Construction',
-    linkedin: {
-      title: 'Uncapped Construction · Victoria 3 mod',
-      start: '2026-09',
-      end: '2026-09',
-      description:
-        'A Victoria 3 mod that removes the per-building weekly construction cap.\n\n건물당 주간 건설 상한을 없애는 Victoria 3 모드.\nhttps://github.com/seren-wib/vic3-mod-construction-cap',
-    },
     status: 'shipped',
     size: 'brief',
     period: {

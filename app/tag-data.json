@@ -1,21 +1,21 @@
 {
   "ai": 10,
   "auth": 2,
-  "cloud-computing": 8,
   "cloudflare": 2,
   "computer-systems": 8,
+  "cloud-computing": 8,
   "data-structures": 2,
   "database-systems": 10,
+  "information-retrieval": 6,
   "devblog": 4,
+  "network": 18,
   "devops": 2,
   "git": 4,
-  "information-retrieval": 4,
-  "network": 18,
   "os": 20,
   "payments": 2,
-  "software-engineering": 12,
-  "sql": 2,
   "stairno": 12,
+  "web": 2,
   "unity": 4,
-  "web": 2
+  "sql": 2,
+  "software-engineering": 12
 }

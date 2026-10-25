@@ -3,7 +3,7 @@ title: 'DevBlog 3. giscus로 댓글 달기'
 date: '2026-10-25'
 tags: ['DevBlog']
 draft: false
-summary: 'GitHub Discussions를 댓글 저장소로 쓰는 giscus 연결. Discussions 켜기, giscus 앱 권한, GraphQL로 레포·카테고리 ID 받기, NEXT_PUBLIC 환경변수와 재배포, Announcements 카테고리, 자동 로드와 lazy iframe, pathname 매핑'
+summary: 'GitHub Discussions를 댓글 저장소로 쓰는 giscus 연결. Discussions 켜기, giscus 앱 권한, GraphQL로 레포·카테고리 ID 받기, NEXT_PUBLIC 환경변수와 재배포, 댓글 카테고리 고르기, 자동 로드와 lazy iframe, pathname 매핑'
 ---
 
 > 글 맨 아래 댓글창을 붙인 기록. 이 블로그는 [tailwind-nextjs-starter-blog](https://github.com/timlrx/tailwind-nextjs-starter-blog) 템플릿에서 시작했고, 댓글 코드는 처음부터 들어 있었음. 빠진 건 설정값뿐이었음
@@ -69,10 +69,12 @@ gh api graphql -f query='{
 
 - `id`가 레포 ID(`R_...`), 카테고리마다 `DIC_...`가 카테고리 ID
 
-### 카테고리는 Announcements
+### 카테고리는 General
 
-- Announcements는 관리자와 앱만 새 토론을 만들 수 있음
-- 방문자가 Discussions 탭에서 아무 토론이나 만들어 글과 상관없는 글이 쌓이는 걸 막음. 댓글(토론 안의 답글)은 누구나 달 수 있음
+- 처음엔 giscus가 권하는 Announcements로 했음. 관리자와 앱만 새 토론을 만들 수 있어서 방문자가 엉뚱한 토론을 못 엶
+- 그런데 Announcements에 환영 공지와 글별 댓글 토론이 한데 섞임. 공지는 공지끼리 두고 싶어서 General로 옮김
+- General은 방문자도 Discussions 탭에서 새 토론을 열 수 있음. 댓글 토론 사이에 가끔 다른 글이 섞일 수 있지만 이 규모에선 감수함
+- 카테고리를 바꾸면 이미 생긴 토론도 새 카테고리로 옮겨야 함. giscus는 설정된 카테고리 안에서만 토론을 찾으므로, 안 옮기면 그 글 댓글이 안 보이고 빈 토론이 새로 생김. 토론 페이지의 Change category나 GraphQL `updateDiscussion`으로 옮김
 
 ## 4. Vercel 환경변수
 
@@ -80,7 +82,7 @@ gh api graphql -f query='{
 | ---------------------------------- | ----------------------- |
 | `NEXT_PUBLIC_GISCUS_REPO`          | `seren-wib/vercel-blog` |
 | `NEXT_PUBLIC_GISCUS_REPOSITORY_ID` | `R_...`                 |
-| `NEXT_PUBLIC_GISCUS_CATEGORY`      | `Announcements`         |
+| `NEXT_PUBLIC_GISCUS_CATEGORY`      | `General`               |
 | `NEXT_PUBLIC_GISCUS_CATEGORY_ID`   | `DIC_...`               |
 
 - 넷 다 비밀값이 아님. 결국 브라우저로 내려가는 값이라 `plain`으로 넣음
@@ -106,7 +108,7 @@ export default function Comments({ slug }: { slug: string }) {
 
 ## 6. 매핑: pathname
 
-- `mapping: 'pathname'`은 페이지 경로로 토론을 찾음. 토론 제목이 `kr/blog/devblog/devblog-03-giscus-comments` 같은 경로가 됨
+- `mapping: 'pathname'`은 페이지 경로로 토론을 찾음. 토론 제목이 `kr/blog/devblog/devblog-03-giscus-comments/` 같은 경로가 됨
 - 이 블로그는 같은 글이 `/kr/`과 `/en/` 두 주소에 있음. 경로가 다르니 **한국어 글과 영어 글은 댓글이 따로 달림**
 - 합치려면 언어 접두사를 뺀 값을 `term`으로 넘기는 `specific` 매핑을 써야 함. 지금은 언어별로 읽는 사람이 다르다고 보고 나눈 채로 둠
 - slug를 바꾸면 경로가 바뀌어 기존 댓글과 연결이 끊김. 글 주소를 바꿀 일이 있으면 Discussions에서 토론 제목도 같이 고쳐야 함

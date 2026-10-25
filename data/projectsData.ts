@@ -21,37 +21,6 @@ export interface Project {
 
 const projectsData: Project[] = [
   {
-    title: 'Atlas Odyssey',
-    status: 'building',
-    size: 'standard',
-    period: {
-      kr: '2026.09 –',
-      en: 'Sep 2026 –',
-    },
-    role: {
-      kr: '개인 출품작 · 2026 CUVIC 바이브 코딩 대회',
-      en: 'Solo entry · CBNU CUVIC Vibe Coding Contest 2026',
-    },
-    summary: {
-      kr: '배운 것을 지도처럼 펼쳐 두고, 한 것을 기록하고, 남은 것을 지도에서 확인하는 개인 학습 아틀라스. my-status를 새 레포와 새 규칙으로 다시 설계하는 프로젝트입니다.',
-      en: "A personal learning atlas: lay out everything worth learning as a map, record what's done, and see what's left. A redesign of my-status on a fresh repo with stricter rules.",
-    },
-    highlights: {
-      kr: [
-        '코드보다 먼저 AI 에이전트가 일하는 방식부터 설계: 이슈 → 브랜치 → PR → 리뷰 → 머지를 단계별 skill로 쪼개고, PR마다 작업 리포트를 남김',
-        '`develop`/`main` 보호 룰셋과 PR 전용 머지, 테스트 우선 흐름으로 레포를 구성',
-        '11월 중간 발표, 12월 최종 발표 예정',
-      ],
-      en: [
-        'Designed how the AI agent works before writing app code: issue → branch → PR → review → merge split into per-step skills, with a work report on every PR',
-        'Protected `develop`/`main` rulesets, PR-only merges and a test-first flow',
-        'Midterm demo in November, final in December',
-      ],
-    },
-    stack: ['Claude Code', 'GitHub Rulesets', 'Agent Skills'],
-    href: 'https://github.com/seren-wib/atlas-odyssey',
-  },
-  {
     title: 'kibotos.dev',
     status: 'building',
     size: 'standard',
@@ -83,51 +52,6 @@ const projectsData: Project[] = [
     },
     stack: ['Next.js 15', 'TypeScript', 'Tailwind CSS', 'Contentlayer', 'Vercel', 'GitHub Actions'],
     href: 'https://github.com/seren-wib/vercel-blog',
-  },
-  {
-    title: 'Coffee Shop',
-    status: 'building',
-    size: 'standard',
-    period: {
-      kr: '2026.09 –',
-      en: 'Sep 2026 –',
-    },
-    role: {
-      kr: '팀장 · 프론트엔드 · 소프트웨어공학 텀 프로젝트 (3인)',
-      en: 'Team lead · Front-end · Software Engineering term project (team of 3)',
-    },
-    summary: {
-      kr: '커피 원두를 파는 온라인 쇼핑몰. 요구사항 분석부터 설계 명세, 구현까지 소프트웨어공학 수업 단계를 그대로 밟습니다.',
-      en: 'An online shop for coffee beans, built through the full Software Engineering course cycle: requirements, design specs, then code.',
-    },
-    highlights: {
-      kr: [
-        '레포 초기 구성, 이슈 → 브랜치 → PR 기여 흐름, "확정본은 `docs/`" 문서 규칙과 언어 규칙을 정함',
-        '요구사항 정의서와 유스케이스 다이어그램 작성. 회원 주문 취소는 관리자 승인을 거치는 상태 전이로 설계',
-        'Django 백엔드 위 React + Vite 프론트엔드 담당. 11월 구현, 12월 최종 보고',
-      ],
-      en: [
-        'Set up the repo, the issue → branch → PR workflow, and the rules for documents (`docs/` is the source of truth) and languages',
-        'Wrote the requirements definition and use case diagrams; order cancellation goes through an admin-approved state transition',
-        'Owns the React + Vite front-end on top of a Django back-end. Implementation in November, final report in December',
-      ],
-    },
-    stack: ['React', 'Vite', 'Django', 'SQLite'],
-    href: 'https://github.com/seren-wib/coffee-shop',
-  },
-  {
-    title: 'Vane',
-    status: 'building',
-    size: 'brief',
-    period: {
-      kr: '2026.08 –',
-      en: 'Aug 2026 –',
-    },
-    summary: {
-      kr: 'Unity 2D 탑다운 스토리 어드벤처. 프로토타입 단계.',
-      en: 'A 2D top-down story adventure in Unity. Prototype stage.',
-    },
-    private: true,
   },
   {
     title: 'Stairno Account',
@@ -361,80 +285,6 @@ const projectsData: Project[] = [
     },
     stack: ['React', 'Vite', 'Monaco Editor', 'Express', 'MySQL', 'JWT', 'GitHub Actions'],
     href: 'https://github.com/seren-wib/opensource-web-azas',
-  },
-  {
-    title: 'usb-kit',
-    status: 'shipped',
-    size: 'standard',
-    period: {
-      kr: '2026.09',
-      en: 'Sep 2026',
-    },
-    role: {
-      kr: '개인 도구',
-      en: 'Personal tooling',
-    },
-    summary: {
-      kr: '학교 실습실 Ubuntu에 USB를 꽂고 명령 하나로 GitHub와 Claude Code에 로그인하고, 나올 때 흔적을 전부 지우는 휴대용 개발 키트. sudo 없이 동작합니다.',
-      en: 'A portable kit for school lab Ubuntu PCs: plug in a USB stick, log into GitHub and Claude Code with one command, and leave no trace on exit. No sudo required.',
-    },
-    highlights: {
-      kr: [
-        '토큰은 USB 안 gocryptfs 암호화 볼륨에만 두고, 세션 중 gh 토큰은 tmpfs에만. 세션에서 갱신된 Claude 토큰은 종료 때 볼륨에 되써넣음',
-        'bash 스크립트 하나(462행)에 init / up / down / status / fetch. 호스트에 git이 없으면 USB에 풀어둔 git으로 대체, 로그인 브라우저는 사생활 창으로',
-        'Ubuntu 26.04 VM에서 설치 → 로그인 → 정리 → 재부팅 후 재로그인까지 전 과정 검증',
-      ],
-      en: [
-        'Tokens live only in a gocryptfs-encrypted vault on the stick, gh tokens only in tmpfs during a session, and refreshed Claude tokens are written back on exit',
-        'One 462-line bash script with init / up / down / status / fetch; falls back to a bundled git when the host has none, and opens logins in a private window',
-        'Verified end to end on an Ubuntu 26.04 VM: setup, login, cleanup, and re-login after reboot',
-      ],
-    },
-    stack: ['Bash', 'gocryptfs', 'GitHub CLI', 'Claude Code'],
-    private: true,
-  },
-  {
-    title: 'Amazon Price Scraper',
-    status: 'shipped',
-    size: 'standard',
-    period: {
-      kr: '2026.01',
-      en: 'Jan 2026',
-    },
-    role: {
-      kr: '개인 · 프리랜스 포트폴리오',
-      en: 'Solo · freelance portfolio piece',
-    },
-    summary: {
-      kr: '아마존 검색 결과를 수집해 SQLite와 CSV로 저장하고 Streamlit 대시보드로 가격을 보여 주는 스크래퍼.',
-      en: 'Scrapes Amazon search results into SQLite and CSV and shows prices on a Streamlit dashboard.',
-    },
-    highlights: {
-      kr: [
-        'ScraperAPI로 프록시 순환과 CAPTCHA 처리, 로컬 브라우저 없이 `requests`만 사용',
-        'BeautifulSoup 파싱에 일시 오류 재시도·백오프, 마지막 페이지에서 멈추는 페이지네이션',
-      ],
-      en: [
-        'ScraperAPI for proxy rotation and CAPTCHA solving, plain `requests` with no local browser',
-        'BeautifulSoup parsing with retry and backoff on transient errors, pagination that stops at the last page',
-      ],
-    },
-    stack: ['Python', 'BeautifulSoup', 'SQLite', 'Streamlit'],
-    href: 'https://github.com/seren-wib/amazon-price-scraper',
-  },
-  {
-    title: 'Uncapped Construction',
-    status: 'shipped',
-    size: 'brief',
-    period: {
-      kr: '2026.09',
-      en: 'Sep 2026',
-    },
-    summary: {
-      kr: '건물당 주간 건설 상한을 없애는 Victoria 3 모드.',
-      en: 'A Victoria 3 mod that removes the per-building weekly construction cap.',
-    },
-    href: 'https://github.com/seren-wib/vic3-mod-construction-cap',
   },
 ]
 

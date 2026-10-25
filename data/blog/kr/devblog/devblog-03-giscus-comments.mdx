@@ -1,0 +1,118 @@
+---
+title: 'DevBlog 3. giscus로 댓글 달기'
+date: '2026-10-25'
+tags: ['DevBlog']
+draft: false
+summary: 'GitHub Discussions를 댓글 저장소로 쓰는 giscus 연결. Discussions 켜기, giscus 앱 권한, GraphQL로 레포·카테고리 ID 받기, NEXT_PUBLIC 환경변수와 재배포, Announcements 카테고리, 자동 로드와 lazy iframe, pathname 매핑'
+---
+
+> 글 맨 아래 댓글창을 붙인 기록. 이 블로그는 [tailwind-nextjs-starter-blog](https://github.com/timlrx/tailwind-nextjs-starter-blog) 템플릿에서 시작했고, 댓글 코드는 처음부터 들어 있었음. 빠진 건 설정값뿐이었음
+
+## 1. 왜 giscus
+
+| 방식       | 저장 위치          | 문제                                            |
+| ---------- | ------------------ | ----------------------------------------------- |
+| Disqus     | Disqus 서버        | 광고와 추적 스크립트가 따라옴. 데이터가 남의 것 |
+| utterances | GitHub Issues      | 댓글이 이슈 목록에 섞임. 답글(스레드)이 없음    |
+| **giscus** | GitHub Discussions | 방문자가 GitHub 계정이 있어야 댓글을 쓸 수 있음 |
+
+- 서버도 DB도 없는 정적 블로그라 댓글을 따로 저장할 곳이 없음. GitHub Discussions를 저장소로 빌림
+- 읽는 사람이 대부분 개발자라 GitHub 로그인 조건은 문제가 안 됨
+- 글 하나 = 토론 하나. 첫 댓글이 달릴 때 giscus 앱이 토론을 만듦
+
+## 2. 템플릿에 이미 있던 것
+
+- `data/siteMetadata.js`에 `provider: 'giscus'`와 설정 칸이 있음. 값은 전부 환경변수에서 읽음
+
+```js:data/siteMetadata.js
+comments: {
+  provider: 'giscus',
+  giscusConfig: {
+    repo: process.env.NEXT_PUBLIC_GISCUS_REPO,
+    repositoryId: process.env.NEXT_PUBLIC_GISCUS_REPOSITORY_ID,
+    category: process.env.NEXT_PUBLIC_GISCUS_CATEGORY,
+    categoryId: process.env.NEXT_PUBLIC_GISCUS_CATEGORY_ID,
+    mapping: 'pathname',
+    // ...
+  },
+},
+```
+
+- CSP(`next.config.js`)에도 `script-src`와 `frame-src`에 `giscus.app`이 열려 있음
+- 그런데 환경변수 네 개가 비어 있었고, 레포에 Discussions도 꺼져 있었음. 그래서 "Load Comments" 버튼을 눌러도 아무것도 안 떴음
+
+## 3. GitHub 쪽 설정
+
+### Discussions 켜기
+
+- 레포 Settings → General → Features → Discussions 체크
+- 체크하면 기본 카테고리(Announcements, General, Q&A 등)가 바로 생김
+- 이어서 나오는 "Start discussion" 환영 글은 안 써도 됨. 댓글과 상관없음
+
+### giscus 앱 설치
+
+- [github.com/apps/giscus](https://github.com/apps/giscus)에서 Install
+- Repository access는 **Only select repositories**로 블로그 레포 하나만 고름. All repositories로 하면 private 레포까지 앱에 열림
+
+### ID 받기
+
+- [giscus.app](https://giscus.app)에 레포 이름을 넣으면 ID를 알려 줌. `gh`가 있으면 GraphQL 한 번으로도 됨
+
+```bash
+gh api graphql -f query='{
+  repository(owner: "seren-wib", name: "vercel-blog") {
+    id
+    discussionCategories(first: 10) { nodes { name id } }
+  }
+}'
+```
+
+- `id`가 레포 ID(`R_...`), 카테고리마다 `DIC_...`가 카테고리 ID
+
+### 카테고리는 Announcements
+
+- Announcements는 관리자와 앱만 새 토론을 만들 수 있음
+- 방문자가 Discussions 탭에서 아무 토론이나 만들어 글과 상관없는 글이 쌓이는 걸 막음. 댓글(토론 안의 답글)은 누구나 달 수 있음
+
+## 4. Vercel 환경변수
+
+| 이름                               | 값                      |
+| ---------------------------------- | ----------------------- |
+| `NEXT_PUBLIC_GISCUS_REPO`          | `seren-wib/vercel-blog` |
+| `NEXT_PUBLIC_GISCUS_REPOSITORY_ID` | `R_...`                 |
+| `NEXT_PUBLIC_GISCUS_CATEGORY`      | `Announcements`         |
+| `NEXT_PUBLIC_GISCUS_CATEGORY_ID`   | `DIC_...`               |
+
+- 넷 다 비밀값이 아님. 결국 브라우저로 내려가는 값이라 `plain`으로 넣음
+- **`NEXT_PUBLIC_` 값은 빌드할 때 코드에 박힘.** 환경변수만 저장하고 끝내면 사이트는 그대로임. Redeploy를 한 번 해야 반영됨
+
+## 5. 버튼 없이 바로 띄우기
+
+- 템플릿은 "Load Comments" 버튼을 눌러야 giscus를 불러왔음. 페이지 로딩을 아끼려는 장치
+- 그런데 pliny의 giscus 컴포넌트가 이미 `loading: "lazy"`로 iframe을 만듦. 댓글 근처까지 스크롤해야 불러오므로 버튼이 없어도 첫 로딩은 같음
+- 그래서 버튼과 상태를 지우고 바로 렌더링
+
+```tsx:components/Comments.tsx
+export default function Comments({ slug }: { slug: string }) {
+  if (!siteMetadata.comments?.provider) {
+    return null
+  }
+  return <CommentsComponent commentsConfig={siteMetadata.comments} slug={slug} />
+}
+```
+
+- 같이 글 아래의 "Discuss on Twitter", "View on GitHub" 링크도 지움. 댓글창이 생겼으니 쓸 일이 없음
+- 글이 길면 댓글까지 내려가기 멀지만, 오른쪽 아래 떠 있는 말풍선 버튼이 `#comment`로 바로 데려감
+
+## 6. 매핑: pathname
+
+- `mapping: 'pathname'`은 페이지 경로로 토론을 찾음. 토론 제목이 `kr/blog/devblog/devblog-03-giscus-comments` 같은 경로가 됨
+- 이 블로그는 같은 글이 `/kr/`과 `/en/` 두 주소에 있음. 경로가 다르니 **한국어 글과 영어 글은 댓글이 따로 달림**
+- 합치려면 언어 접두사를 뺀 값을 `term`으로 넘기는 `specific` 매핑을 써야 함. 지금은 언어별로 읽는 사람이 다르다고 보고 나눈 채로 둠
+- slug를 바꾸면 경로가 바뀌어 기존 댓글과 연결이 끊김. 글 주소를 바꿀 일이 있으면 Discussions에서 토론 제목도 같이 고쳐야 함
+
+## 7. 정리
+
+- 정적 블로그 댓글은 GitHub Discussions를 빌리면 서버 없이 끝남
+- 손댈 곳은 GitHub 두 군데(Discussions, 앱 권한)와 Vercel 환경변수 네 개
+- `NEXT_PUBLIC_`은 빌드 타임 값이라 재배포가 필수

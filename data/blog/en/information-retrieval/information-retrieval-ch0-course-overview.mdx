@@ -1,0 +1,35 @@
+---
+title: 'CH0. Course Overview'
+date: '2026-10-25'
+tags: ['Information Retrieval']
+draft: false
+summary: "IIR chapters and topics, exam scope (ch1–7), Boolean retrieval, phrase and proximity queries, k-gram indexes, index construction and compression, Zipf's law, the vector space model, ranked retrieval, language models, text classification, clustering, link analysis"
+---
+
+# 0. Course overview
+
+- This semester covers 18–20 of the 21 IIR chapters. The exam covers ch1–7
+- **Take-away**: the design and data structures of a simple IR system (Boolean retrieval) + the topics this course will cover
+
+| IIR chapter | Topic                                           | In one line                                                                                                                   | Course       |
+| ----------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| 01          | Boolean retrieval                               | Inverted index, postings intersection, query optimization                                                                     | ch1          |
+| 02          | The term vocabulary and postings lists          | Phrase queries `"Stanford University"` and proximity queries `Gates near Microsoft` → the index must store word positions too | ch2          |
+| 03          | Dictionaries and tolerant retrieval             | k-gram index: `bo` → aboard, about, boardroom, border. Find words even when misspelled                                        | ch3          |
+| 04          | Index construction                              | Split a large collection across many machines (parser → inverter, map·reduce)                                                 | ch4          |
+| 05          | Index compression                               | Zipf's law: log frequency vs log rank is a straight line                                                                      | ch5          |
+| 06          | Scoring, term weighting, the vector space model | Boolean only includes/excludes → rank by query-document proximity. Needs a function that turns occurrence counts into scores  | ch6          |
+| 07          | Computing scores in a complete search system    | The whole structure: parser, index, spelling correction, scoring, ranking                                                     | ch7          |
+| 08          | Evaluation, dynamic summaries                   |                                                                                                                               | Out of scope |
+| 09          | Relevance feedback, query expansion             |                                                                                                                               | Out of scope |
+| 12          | Language models                                 | Unigram model: multiply word probabilities to get a string's probability                                                      | Out of scope |
+| 13          | Text classification, Naive Bayes                | Automatically assign documents to predefined classes (language, adult content, region)                                        | Out of scope |
+| 14          | Vector classification                           |                                                                                                                               | Out of scope |
+| 15          | SVM                                             |                                                                                                                               | Out of scope |
+| 16          | Flat clustering                                 |                                                                                                                               | Out of scope |
+| 17          | Hierarchical clustering                         |                                                                                                                               | Out of scope |
+| 18          | Latent semantic indexing (LSI)                  |                                                                                                                               | Out of scope |
+| 19          | The web and its challenges                      | Diverse documents and users, using link analysis and user data                                                                | Out of scope |
+| 21          | Link analysis, PageRank                         |                                                                                                                               | Out of scope |
+
+- What continues from ch1: 1.1 ranking → ch6 / 1.2 index construction and compression → ch4·ch5 / 1.3 Westlaw proximity operators → ch2 proximity queries

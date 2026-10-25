@@ -1,0 +1,223 @@
+---
+title: 'CH1. Boolean Retrieval'
+date: '2026-10-25'
+tags: ['Information Retrieval']
+draft: false
+summary: 'Definition of information retrieval, structured vs unstructured data, the Boolean retrieval model, how Google searches and ranks, limits of grep, the term-document incidence matrix and bit operations, tokens and terms, sparse matrices, the inverted index (dictionary, postings, postings lists), steps to build an inverted index and df, processing AND queries, the postings intersection algorithm, evaluating the Boolean model, Westlaw proximity operators, query optimization (increasing df), estimating OR query sizes'
+---
+
+# 1. Boolean Retrieval
+
+## 1.1 Introduction
+
+1. What information retrieval (IR) is
+   - Searching unstructured data (a DB table = structured)
+   - Finding what satisfies an information need
+   - Searching within a large collection (a set of documents)
+
+2. Money used to go to the structured side; these days it goes to the unstructured side
+
+3. Boolean retrieval model
+   - The simplest model for building an IR system
+   - The query is a Boolean expression (e.g. Caesar AND Brutus)
+   - Returns every document that satisfies the expression, in no order
+
+4. How Google does it
+   1. anchor text: if the link text another page uses to link to this page contains the query word, this page shows up even if the word isn't in its body
+   2. Word variants: verb forms, spellings, and synonyms show up too
+   3. For long queries, results show up even if a few words are missing
+   4. When the expression returns too few results, it widens the conditions
+   5. **ranking**: plain Boolean returns results in no order, but Google puts the good results on top (continued in ch6)
+
+## 1.2 Inverted index
+
+**grep doesn't work → try a matrix → the matrix is too big → store only the 1s = inverted index**
+
+1. Why grep doesn't work
+   - It's slow (with a large collection it has to read everything from the start)
+   - grep works line by line, but IR works document by document
+   - Things like NOT~ need the whole document checked, so it's hard
+   - It can't do proximity search like "countryman near Romans"
+
+2. Term-document incidence matrix
+   - Rows are terms, columns are documents
+   - 1 if the term is in the document, 0 if not
+   - Each row is a (0/1) vector; do bit operations on these vectors
+
+|           | Anthony and Cleopatra | Julius Caesar | The Tempest | Hamlet | Othello | Macbeth |
+| --------- | --------------------- | ------------- | ----------- | ------ | ------- | ------- |
+| Anthony   | 1                     | 1             | 0           | 0      | 0       | 1       |
+| Brutus    | 1                     | 1             | 0           | 1      | 0       | 0       |
+| Caesar    | 1                     | 1             | 0           | 1      | 1       | 1       |
+| Calpurnia | 0                     | 1             | 0           | 0      | 0       | 0       |
+| Cleopatra | 1                     | 0             | 0           | 0      | 0       | 0       |
+| mercy     | 1                     | 0             | 1           | 1      | 1       | 1       |
+| worser    | 1                     | 0             | 1           | 1      | 1       | 0       |
+
+- Query: `Brutus AND Caesar AND NOT Calpurnia` / one position = one document, AND the same positions together
+
+```text
+                A&C  JC  Tmp  Ham  Oth  Mac
+Brutus           1    1   0    1    0    0
+Caesar           1    1   0    1    1    1
+NOT Calpurnia    1    0   1    1    1    1    (010000 -> 101111)
+---------------------------------------------
+AND              1    0   0    1    0    0    = 100100
+```
+
+- Result: **Anthony and Cleopatra, Hamlet** / Julius Caesar drops out because it contains Calpurnia
+
+3. As the collection grows, the matrix blows up
+   - token: every word occurrence, duplicates included
+   - term: distinct words, duplicates removed
+     - e.g. "the the the" has token=3, term=1
+
+| Item                  | Value                                                         |
+| --------------------- | ------------------------------------------------------------- |
+| Number of documents N | 10⁶                                                           |
+| Tokens per document   | about 1000 → 10⁹ tokens total                                 |
+| Size per token        | 6 bytes (incl. spaces and punctuation) → collection about 6GB |
+| Distinct terms M      | 500,000 (= number of rows)                                    |
+| Matrix cells          | 500,000 × 10⁶ = 5×10¹¹                                        |
+| Number of 1s          | at most 10⁹ (one token makes at most one cell a 1)            |
+
+- There are 5×10¹¹ cells but at most 10⁹ of them are 1, so almost everything is 0. This is called a sparse matrix. All the space goes to storing 0s, so the conclusion is to write down only the 1s
+
+4. Inverted index
+
+**For each term, store only the list of document numbers (docIDs) that contain it**
+
+```text
+Brutus    -> 1 -> 2 -> 4 -> 11 -> 31 -> 45 -> 173 -> 174
+Caesar    -> 1 -> 2 -> 4 -> 5 -> 6 -> 16 -> 57 -> 132
+Calpurnia -> 2 -> 31 -> 54 -> 101
+```
+
+- The set of terms (Brutus, Caesar, Calpurnia): dictionary
+- posting: a single docID (e.g. 1)
+- postings list: the list of postings (-> 1 -> 2 -> 4 ->...)
+
+5. Four steps to build an inverted index
+
+| Step                        | What it does                                             | Example                                                |
+| --------------------------- | -------------------------------------------------------- | ------------------------------------------------------ |
+| 1. Collect documents        | Gather the documents to index                            | Friends, Romans, countrymen. So let it be with Caesar… |
+| 2. Tokenize                 | Split documents into tokens                              | `Friends` `Romans` `countrymen`                        |
+| 3. Linguistic preprocessing | Normalize tokens → index terms. Lowercase, strip plurals | `friend` `roman` `countryman`                          |
+| 4. Index                    | Build the dictionary + postings                          | Item 6 below                                           |
+
+6. Example of building an inverted index
+
+- Doc 1: _I did enact Julius Caesar: I was killed i' the Capitol; Brutus killed me._
+- Doc 2: _So let it be with Caesar. The noble Brutus hath told you Caesar was ambitious:_
+
+| Step                  | What it does                                              | Result                                                       |
+| --------------------- | --------------------------------------------------------- | ------------------------------------------------------------ |
+| ① Preprocess          | Lowercase, remove punctuation                             | `i did enact julius caesar i was killed …`                   |
+| ② (term, docID) pairs | In order of appearance                                    | `(i,1) (did,1) (enact,1) … (caesar,2) (was,2) (ambitious,2)` |
+| ③ Sort                | By term alphabetically, then by docID                     | `(ambitious,2) (be,2) (brutus,1) (brutus,2) …`               |
+| ④ Merge + df          | Group the same term into a postings list                  | Table below                                                  |
+| ⑤ Split               | Store dictionary (term + df) and postings file separately |                                                              |
+
+| term   | df  | postings |
+| ------ | --- | -------- |
+| brutus | 2   | 1 → 2    |
+| caesar | 2   | 1 → 2    |
+| i      | 1   | 1        |
+| was    | 2   | 1 → 2    |
+
+- **df (document frequency)**: the **number of documents** a term appears in (not the number of occurrences) / caesar appears twice in Doc 2 but df = 2; i appears twice in Doc 1 but df = 1
+
+Building large indexes is in ch4, compression in ch5, and indexes for ranked retrieval in ch6–7.
+
+## 1.3 Processing Boolean queries
+
+1. Steps for processing a two-term AND query
+   - Query: Brutus AND Calpurnia
+   1. Look up Brutus in the dictionary
+   2. Fetch Brutus's postings list
+   3. Look up Calpurnia in the dictionary
+   4. Fetch Calpurnia's postings list
+   5. **Intersect** the two postings lists
+   6. Return the result
+
+2. Intersection algorithm (Intersect)
+   `text
+ Brutus    -> 1 -> 2 -> 4 -> 11 -> 31 -> 45 -> 173 -> 174
+ Calpurnia -> 2 -> 31 -> 54 -> 101
+ Answer    => 2 -> 31
+ `
+   ![p1 and p2 moving one step at a time to build the intersection](/static/images/information-retrieval-ch1-boolean-retrieval/intersect-anim.svg)
+
+| Step | p1 (Brutus) | p2 (Calpurnia) | Compare    | Action                            |
+| ---- | ----------- | -------------- | ---------- | --------------------------------- |
+| 1    | 1           | 2              | 1 &lt; 2   | advance p1                        |
+| 2    | 2           | 2              | equal      | **add 2**, advance both           |
+| 3    | 4           | 31             | 4 &lt; 31  | advance p1                        |
+| 4    | 11          | 31             | 11 &lt; 31 | advance p1                        |
+| 5    | 31          | 31             | equal      | **add 31**, advance both          |
+| 6    | 45          | 54             | 45 &lt; 54 | advance p1                        |
+| 7    | 173         | 54             | 173 > 54   | advance p2                        |
+| 8    | 173         | 101            | 173 > 101  | advance p2 → Calpurnia ends, stop |
+
+3. Evaluating the Boolean model
+
+- Any query that is a Boolean expression joined by AND, OR, NOT can be answered.
+- It treats a document as a set of terms. It doesn't care how many times a term appears.
+- It is precise. A document either matches the condition or it doesn't
+- The mainstay of commercial search tools for 30 years
+- Spotlight, email search, and intranet search are Boolean too.
+
+4. Westlaw (the largest legal search service by number of paying subscribers)
+   - Boolean search is still the default
+
+| Symbol | Meaning                         | Example                                   |
+| ------ | ------------------------------- | ----------------------------------------- |
+| `/3`   | within 3 words                  | `employment /3 place`                     |
+| `/s`   | in the same sentence            | `disclos! /s prevent`                     |
+| `/p`   | in the same paragraph           | `host! /p guest`                          |
+| space  | **OR** (Google uses AND)        | `responsib! liab!` = responsib! OR liab!  |
+| `!`    | anything may follow             | `employe!` → employee, employer, employed |
+| `"…"`  | phrase: adjacent, in that order | `"trade secret"`                          |
+
+| Information need                                                          | Query                                                             | Read as                                                                                                                    |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Host's liability for an intoxicated guest                                 | `host! /p (responsib! liab!) /p (intoxicat! drunk!) /p guest`     | host, (responsib OR liab), (intoxicat OR drunk), guest in the same paragraph                                               |
+| Legal theory for stopping a former employee from disclosing trade secrets | `"trade secret" /s disclos! /s prevent /s employe!`               | "trade secret", disclos, prevent, employe in the same sentence                                                             |
+| Workplace access requirements for people with disabilities                | `disab! /p access! /s work-site work-place (employment /3 place)` | disab in the same paragraph, access in the same sentence + (work-site OR work-place OR place within 3 words of employment) |
+
+- Why people prefer Boolean: precision, transparency, control
+
+## 1.4 Query optimization
+
+1. With three or more ANDs, the order matters
+   - Efficiency depends on which operation runs first.
+
+2. So which one goes first?
+   - AND the postings lists starting from the shortest (smallest df).
+
+3. Optimized intersection algorithm
+   1. Sort terms by increasing df
+   2. Start result with the shortest list; keep only the remaining terms
+   3. Intersect result with the next list using the 1.3 Intersect
+   4. Repeat 3 while terms remain and result isn't empty
+   5. Return result
+   - If result becomes empty midway, stop right away (ANDing anything after it gives the empty set)
+   - e.g. in the order Caesar(2) → Calpurnia(4) → Brutus(8) / Caesar ∩ Calpurnia = 31, ∩ Brutus = 31
+
+   ```text
+   Intersect(<t1, ..., tn>)
+    1 terms <- SortByIncreasingFrequency(<t1, ..., tn>)
+    2 result <- postings(first(terms))
+    3 terms <- rest(terms)
+    4 while terms != nil and result != nil
+    5 do result <- Intersect(result, postings(first(terms)))
+    6    terms <- rest(terms)
+    7 return result
+   ```
+
+4. Queries with OR mixed in
+   - Get the df of every term
+   - Estimate the size of each OR as the sum of its two dfs
+   - Process the ORs with the smallest estimated size first
+   * This estimate is called conservative, because the sum of the two dfs is an upper bound on the OR result.

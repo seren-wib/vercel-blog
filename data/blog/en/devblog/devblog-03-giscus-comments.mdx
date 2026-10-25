@@ -3,7 +3,7 @@ title: 'DevBlog 3. Adding Comments with giscus'
 date: '2026-10-25'
 tags: ['DevBlog']
 draft: false
-summary: 'Hooking up giscus, which stores comments in GitHub Discussions: turning on Discussions, giscus app permissions, getting repo and category IDs over GraphQL, NEXT_PUBLIC env vars and redeploying, the Announcements category, auto-loading with a lazy iframe, pathname mapping'
+summary: 'Hooking up giscus, which stores comments in GitHub Discussions: turning on Discussions, giscus app permissions, getting repo and category IDs over GraphQL, NEXT_PUBLIC env vars and redeploying, choosing the comment category, auto-loading with a lazy iframe, pathname mapping'
 ---
 
 > How the comment box at the bottom of each post was added. This blog started from the [tailwind-nextjs-starter-blog](https://github.com/timlrx/tailwind-nextjs-starter-blog) template, and the comment code was there from day one. Only the settings were missing.
@@ -69,10 +69,12 @@ gh api graphql -f query='{
 
 - `id` is the repo ID (`R_...`), and each category's `DIC_...` is its category ID
 
-### Use the Announcements category
+### Use the General category
 
-- In Announcements, only maintainers and apps can start new discussions
-- This keeps visitors from opening random discussions unrelated to any post. Anyone can still comment (reply inside a discussion)
+- It started with Announcements, which giscus recommends. Only maintainers and apps can start new discussions there, so visitors can't open stray ones
+- But the welcome announcement and the per-post comment discussions ended up mixed together. To keep announcements on their own, comments moved to General
+- In General, visitors can also start new discussions from the Discussions tab. An unrelated thread may show up among the comment discussions now and then, which is fine at this scale
+- After switching categories, existing discussions have to be moved too. giscus only looks for discussions in the configured category, so an unmoved one hides that post's comments and a new empty discussion gets created. Move them with Change category on the discussion page or the GraphQL `updateDiscussion` mutation
 
 ## 4. Vercel environment variables
 
@@ -80,7 +82,7 @@ gh api graphql -f query='{
 | ---------------------------------- | ----------------------- |
 | `NEXT_PUBLIC_GISCUS_REPO`          | `seren-wib/vercel-blog` |
 | `NEXT_PUBLIC_GISCUS_REPOSITORY_ID` | `R_...`                 |
-| `NEXT_PUBLIC_GISCUS_CATEGORY`      | `Announcements`         |
+| `NEXT_PUBLIC_GISCUS_CATEGORY`      | `General`               |
 | `NEXT_PUBLIC_GISCUS_CATEGORY_ID`   | `DIC_...`               |
 
 - None of these are secrets. They end up in the browser anyway, so they're stored as `plain`
@@ -106,7 +108,7 @@ export default function Comments({ slug }: { slug: string }) {
 
 ## 6. Mapping: pathname
 
-- `mapping: 'pathname'` finds the discussion by page path. Discussion titles become paths like `kr/blog/devblog/devblog-03-giscus-comments`
+- `mapping: 'pathname'` finds the discussion by page path. Discussion titles become paths like `kr/blog/devblog/devblog-03-giscus-comments/`
 - This blog serves each post at two addresses, `/kr/` and `/en/`. The paths differ, so **Korean and English posts get separate comment threads**
 - Merging them would take the `specific` mapping with a `term` that drops the language prefix. For now they stay separate, since each language has its own readers
 - Renaming a slug changes the path and cuts the link to existing comments. If a post's URL ever changes, the discussion title in Discussions has to be updated too

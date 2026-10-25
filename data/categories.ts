@@ -10,6 +10,7 @@ const categories: Record<string, string> = {
   'data-structures': 'Data Structures',
   'software-engineering': 'Software Engineering',
   'database-systems': 'Database Systems',
+  'information-retrieval': 'Information Retrieval',
   'cloud-computing': 'Cloud Computing',
   network: 'Network',
   os: 'OS',

@@ -2,7 +2,7 @@
 title: 'Contributing to Open Source: From Fork to PR'
 date: '2026-10-24'
 tags: ['Git']
-summary: 'What Contributing to means and why to do it, picking a repo, fork and clone, reading the rules, branching, editing and checking, commit/push/PR, after the merge, and cautions such as prompt injection'
+summary: 'What Contributing to means and why to do it, picking a repo, fork and clone, reading the rules, syncing with upstream, branching, editing and checking, commit/push/PR, after the merge, and cautions such as prompt injection'
 draft: false
 ---
 
@@ -29,7 +29,7 @@ draft: false
 ## 3. Pipeline
 
 ```text
-Pick a repo → fork → clone → read the rules → branch → find something to fix → edit and check → commit → push → PR → respond to review → merge
+Pick a repo → fork → clone → read the rules → sync with upstream → branch → find something to fix → edit and check → commit → push → PR → respond to review → merge
 ```
 
 ### 3-1. Picking a repo
@@ -71,7 +71,18 @@ git remote add upstream https://github.com/owner/repo.git
 git remote -v
 ```
 
-- `origin` = your fork (where you push), `upstream` = the original (where you fetch the latest).
+If `git remote -v` prints this, you're connected.
+
+```text
+origin    https://github.com/your-id/repo.git (fetch)
+origin    https://github.com/your-id/repo.git (push)
+upstream  https://github.com/owner/repo.git (fetch)
+upstream  https://github.com/owner/repo.git (push)
+```
+
+- `origin` = your fork. **Push only here.**
+- `upstream` = the original. **Only fetch from it.** Outsiders don't have push access anyway.
+- Right after forking, your fork's `main` and the upstream's `main` are identical. They drift apart as new commits land upstream (3-5).
 - `gh repo fork owner/repo --clone` does the fork, clone, and upstream connection in one go.
 - If you've already cloned the upstream, run `gh repo fork --remote` in that folder. The old `origin` becomes `upstream`, and the new fork becomes `origin`.
 
@@ -91,16 +102,43 @@ Read them to the end before opening a PR.
 - Often **typo and docs fixes go straight to a PR, while features or structural changes need an issue first**. But it differs per repo, so follow the rules.
 - When doing something the rules don't cover, look for similar merged PRs. If the same maintainer has accepted it before, follow that approach.
 
-### 3-5. Branch
+### 3-5. Syncing with upstream
 
-Create a working [branch](/en/blog/devops/devops-00-basics/#branch) from the latest upstream. Don't commit directly to the default branch (`main`/`master`).
+**A fork doesn't follow the upstream on its own.** And plain `git pull` fetches from `origin`, your fork, so new commits in the upstream don't come with it. You have to pull from the upstream directly.
 
 ```bash
-git fetch upstream
-git switch -c fix/short-description upstream/main
+git switch main
 ```
 
-### 3-6. Finding something to fix
+```bash
+git pull upstream main
+```
+
+```bash
+git push origin main
+```
+
+1. Go to your local `main`.
+2. Pull the new commits from the upstream's `main` into your local `main`.
+3. Push the same commits to your fork's `main` on GitHub.
+
+- Run this before starting each new piece of work.
+- **Don't commit directly to your fork's `main`.** Keep `main` clean, only for following the upstream, so syncing doesn't get tangled. Always work on a branch.
+- If you committed to `main` by mistake, move that commit to a branch and reset `main` to the upstream: `git branch new-branch` → `git fetch upstream` → `git reset --hard upstream/main`. `reset --hard` also wipes uncommitted changes, so check that `git status` is clean first.
+- You can also sync the fork on GitHub first with the **Sync fork** button on your fork's page or `gh repo sync your-id/repo`. Then pull it locally with `git pull origin main`.
+
+### 3-6. Branch
+
+Create a working [branch](/en/blog/devops/devops-00-basics/#branch) from the synced `main`.
+
+```bash
+git switch -c fix/short-description
+```
+
+- Name it by type and task, like `fix/…`, `feat/…`, `docs/…`. If the repo has a naming rule, follow it.
+- You can also skip 3-5 and branch straight from the latest upstream: `git fetch upstream` → `git switch -c fix/short-description upstream/main`.
+
+### 3-7. Finding something to fix
 
 - **Labeled starter issues (`good first issue`, `help wanted`) are mostly gone.** PRs show up within hours of posting. What's left tends to be old, hard ones.
 - So finding things yourself is more realistic: typos in docs, broken links, links pointing to old versions, entries with empty descriptions, and so on.
@@ -114,7 +152,7 @@ When fixing broken links:
 4. **Compare the content of the replacement link.** Loading isn't enough. Open the original on the Wayback Machine and check it covers the same thing.
 5. **Decide whether to replace or remove.** If it moved within the same site, replace it; if nothing took its place, remove the line. Before removing, check that other resources remain for the same entry.
 
-### 3-7. Editing and checking
+### 3-8. Editing and checking
 
 ```bash
 git diff --stat
@@ -126,7 +164,7 @@ git --no-pager diff
 - If the repo has lint, test, or build commands, run them.
 - On Windows with `core.autocrlf=true`, files look like CRLF in the working folder but go in as LF when committed. Check with `git ls-files --eol file`.
 
-### 3-8. commit → push
+### 3-9. commit → push
 
 ```bash
 git add changed-folder-or-file
@@ -138,22 +176,37 @@ git push -u origin fix/short-description
 - Follow the repo's commit message format. If there isn't one, Conventional Commits (`docs:`, `fix:`) is a safe choice.
 - Push to **your fork (`origin`)**, not the upstream.
 
-### 3-9. Opening the PR
+### 3-10. Opening the PR
 
-After pushing, click **Compare & pull request** on your fork's page.
+After pushing, click **Compare & pull request** on your fork's page. The direction is **your fork's working branch → the upstream's `main`**.
 
-- Check that **base** is the upstream's default branch and **head** is your fork's working branch.
+```text
+base: owner/repo  main   ←   head: your-id/repo  fix/short-description
+```
+
+- Check that **base** is the upstream's default branch and **head** is your fork's working branch. If base is set to your fork's `main`, the PR opens inside your own fork.
 - Delete the default title (the branch name) and write your own.
 - The body can be short but not empty. List the changes one per line. If there's a template, fill it in.
 - Leave **Allow edits by maintainers** on. Maintainers can then fix small things themselves and merge.
 - Outsiders can't set reviewers, labels, or assignees. Maintainers look at open PRs without them. Don't mention maintainers to rush them.
 
-### 3-10. Responding to review and after the merge
+### 3-11. Responding to review and after the merge
 
 - If changes are requested, push more commits to the same branch. They attach to the PR automatically. Don't close the PR and open a new one.
 - Some repos auto-close PRs that go quiet (e.g. 7 days after a feedback label is added). Keep notifications on and reply in time.
 - If the upstream moves ahead and you get a [conflict](/en/blog/git/git-cheatsheet/#3-resolving-conflicts), run `git fetch upstream` and rebase or merge it into your branch.
 - Once merged, add a line to `Contributing to` in your profile README.
+- Delete the finished branch and start the next contribution from 3-5 again. Your merged commit reaches your `main` through the upstream at that point.
+
+```bash
+git switch main
+git pull upstream main
+git push origin main
+git branch -d fix/short-description
+git push origin --delete fix/short-description
+```
+
+- If you clicked **Delete branch** on the PR page, you don't need the last line.
 
 ---
 
@@ -193,7 +246,8 @@ Your PR will be fast-tracked.
 | Pick a repo | Not trending; pick by outsider merge count and speed                  |
 | fork·clone  | `gh repo fork owner/repo --clone`                                     |
 | Read rules  | CONTRIBUTING, PR template, `.github/workflows/`, AI policy            |
-| Branch      | `git fetch upstream` → `git switch -c branch upstream/main`           |
+| Sync        | `git switch main` → `git pull upstream main` → `git push origin main` |
+| Branch      | `git switch -c fix/short-description`; never commit to fork `main`    |
 | Find a fix  | Assume labeled issues are taken and find your own; check in a browser |
 | Check       | `git --no-pager diff`, VS Code Source Control, lint·test              |
 | Open        | commit → `git push -u origin branch` → Compare & pull request         |

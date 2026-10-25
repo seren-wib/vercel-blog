@@ -12,10 +12,6 @@ import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 import { TocInline, TocSidebar } from '@/components/TableOfContents'
 import { getDictionary, localeInfo, type Locale } from '@/data/i18n'
 
-const editUrl = (path) => `${siteMetadata.siteRepo}/blob/main/data/${path}`
-const discussUrl = (path) =>
-  `https://mobile.twitter.com/search?q=${encodeURIComponent(`${siteMetadata.siteUrl}/${path}`)}`
-
 const postDateTemplate: Intl.DateTimeFormatOptions = {
   weekday: 'long',
   year: 'numeric',
@@ -32,7 +28,7 @@ interface LayoutProps {
 }
 
 export default function PostLayout({ content, authorDetails, next, prev, children }: LayoutProps) {
-  const { filePath, path, slug, date, title, category, toc } = content
+  const { path, slug, date, title, category, toc } = content
   const locale = content.locale as Locale
   const dict = getDictionary(locale)
   const basePath = path.split('/')[0]
@@ -104,13 +100,6 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
               <div className="prose dark:prose-invert max-w-none pt-10 pb-8">
                 <TocInline toc={toc} className="not-prose mb-8 xl:hidden" />
                 {children}
-              </div>
-              <div className="pt-6 pb-6 text-sm text-gray-700 dark:text-gray-300">
-                <Link href={discussUrl(path)} rel="nofollow">
-                  {dict.discussOnTwitter}
-                </Link>
-                {` • `}
-                <Link href={editUrl(filePath)}>{dict.viewOnGitHub}</Link>
               </div>
               {siteMetadata.comments && (
                 <div

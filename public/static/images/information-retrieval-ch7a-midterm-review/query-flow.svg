@@ -1,0 +1,373 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 5970" width="2400" height="5970" font-family="Apple SD Gothic Neo, Noto Sans KR, Malgun Gothic, Helvetica, Arial, sans-serif">
+<defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker>
+<marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8590c"/></marker>
+</defs>
+<rect width="2400" height="5970" fill="#ffffff"/>
+<text xml:space="preserve" style="white-space:pre" x="40" y="60" font-size="32" font-weight="700" fill="#1c3d6e"  >질의 하나가 정보검색 ch1-7을 지나는 길 (갈래 전부, 식 포함)</text>
+<text xml:space="preserve" style="white-space:pre" x="40" y="98" font-size="17"  fill="#444"  >예시: "Brutus Caesars".  주황 = 순위 검색 길 (시험 포인트: weight-sorted, 슬라이드 51).  회색 점선 = 불리언이라 거기서 끝.</text>
+<rect x="20" y="140" width="2360" height="732" rx="16" fill="#fdfdfd" stroke="#d0d7e2" stroke-width="1.5"/>
+<text xml:space="preserve" style="white-space:pre" x="50" y="182" font-size="26" font-weight="700" fill="#1c3d6e"  >STEP 1</text>
+<text xml:space="preserve" style="white-space:pre" x="50" y="210" font-size="17" font-weight="700" fill="#4a6a99"  >ch2</text>
+<text xml:space="preserve" style="white-space:pre" x="50" y="240" font-size="17"  fill="#222"  >질의 글자 → term</text>
+<rect x="320" y="478" width="380" height="66" rx="10" fill="#e7f0ff" stroke="#4a78c2" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="336" y="508" font-size="15"  fill="#222"  >사용자 입력:</text>
+<text xml:space="preserve" style="white-space:pre" x="336" y="528" font-size="15" font-weight="700" fill="#222"  >"Brutus Caesars"</text>
+<rect x="2010" y="478" width="350" height="66" rx="10" fill="#e6f7ec" stroke="#2f9e58" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="2026" y="508" font-size="15" font-weight="700" fill="#222"  >term:</text>
+<text xml:space="preserve" style="white-space:pre" x="2026" y="528" font-size="15"  fill="#222"  >brutus, caesar</text>
+<rect x="760" y="190" width="1180" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="218" font-size="16" font-weight="700" fill="#1c3d6e"  >token / term</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="238" font-size="15"  fill="#222"  >token = 등장 하나 (중복 포함), term = 정규화한 동치류 (중복 제외)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="258" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >"the the the"  →  token 3,  term(type) 1</text>
+<path d="M700,511 C750,511 710,233 760,233" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,233 C1980,233 1970,511 2010,511" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="294" width="1180" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="322" font-size="16" font-weight="700" fill="#1c3d6e"  >Case folding</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="342" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >Brutus → brutus     Caesars → caesars</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="362" font-size="15"  fill="#222"  >전부 소문자로</text>
+<path d="M700,511 C750,511 710,337 760,337" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,337 C1980,337 1970,511 2010,511" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="398" width="1180" height="206" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="426" font-size="16" font-weight="700" fill="#1c3d6e"  >Stemming (Porter, 5단계, 가장 긴 접미사 규칙)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="446" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >SSES → SS    caresses → caress</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="466" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >IES  → I     ponies   → poni</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="486" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >SS   → SS    caress   → caress</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="506" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >S    → 삭제  cats → cat,   caesars → caesar</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="526" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >(남는 게 1글자보다 길면) EMENT → 삭제: replacement → replac, cement → cement</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="546" font-size="15"  fill="#222"  >caresses엔 SSES, S 둘 다 맞지만 더 긴 SSES → caress</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="566" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >Lemmatization: am, are, is → be  (사전에 있는 기본형)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="586" font-size="15"  fill="#222"  >효과: 재현율 ↑ 정밀도 ↓   operational AND research → oper로 묶여 operating도 걸림</text>
+<path d="M700,511 C750,511 710,501 760,501" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,501 C1980,501 1970,511 2010,511" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="622" width="1180" height="106" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="650" font-size="16" font-weight="700" fill="#1c3d6e"  >정규화 / 토큰화</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="670" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >U.S.A. = USA    O'Neill → oneill? o'neill? o + neill?</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="690" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >3/20/91 = 20/3/91 = Mar 20, 1991</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="710" font-size="15"  fill="#222"  >하이픈, 띄어쓰기 없는 언어, 악센트</text>
+<path d="M700,511 C750,511 710,675 760,675" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,675 C1980,675 1970,511 2010,511" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="746" width="1180" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="774" font-size="16" font-weight="700" fill="#1c3d6e"  >Stop words</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="794" font-size="15"  fill="#222"  >and, a, by … 예전엔 뺐고 요샌 남김 (구문 질의 "to be or not to be")</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="814" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >남아도 df ≈ N  →  idf = log(N/df) ≈ 0  →  점수에 거의 안 보탬</text>
+<path d="M700,511 C750,511 710,789 760,789" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,789 C1980,789 1970,511 2010,511" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="20" y="912" width="2360" height="952" rx="16" fill="#f6f8fb" stroke="#d0d7e2" stroke-width="1.5"/>
+<text xml:space="preserve" style="white-space:pre" x="50" y="954" font-size="26" font-weight="700" fill="#1c3d6e"  >STEP 2</text>
+<text xml:space="preserve" style="white-space:pre" x="50" y="982" font-size="17" font-weight="700" fill="#4a6a99"  >ch3</text>
+<text xml:space="preserve" style="white-space:pre" x="50" y="1012" font-size="17"  fill="#222"  >사전에서 term 찾기</text>
+<rect x="320" y="1370" width="380" height="46" rx="10" fill="#e7f0ff" stroke="#4a78c2" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="336" y="1400" font-size="15" font-weight="700" fill="#222"  >brutus, caesar</text>
+<rect x="2010" y="1360" width="350" height="66" rx="10" fill="#e6f7ec" stroke="#2f9e58" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="2026" y="1390" font-size="15" font-weight="700" fill="#222"  >포스팅 포인터</text>
+<text xml:space="preserve" style="white-space:pre" x="2026" y="1410" font-size="15"  fill="#222"  >brutus, caesar</text>
+<path d="M2185,544 L2185,900 L510,900 L510,1370" fill="none" stroke="#555" stroke-width="2.5" marker-end="url(#a)"/>
+<rect x="760" y="962" width="1180" height="106" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="990" font-size="16" font-weight="700" fill="#1c3d6e"  >정확한 term: 사전 = 고정 길이 배열</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1010" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >한 줄 = term 20B + df 4B + 포스팅 포인터 4B = 28B,   n번째 줄 위치 = n × 28</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1030" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >hash   O(1)      : 변형(résumé) X, 접두사 X, 어휘 늘면 rehash</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1050" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >B-tree O(log M)  : 접두사 O, 내부 노드 자식 수 [a, b] = [2, 4]</text>
+<path d="M700,1393 C750,1393 710,1015 760,1015" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,1015 C1980,1015 1970,1393 2010,1393" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="1086" width="1180" height="226" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="1114" font-size="16" font-weight="700" fill="#1c3d6e"  >Wildcard</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1134" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >mon*     : B-tree 범위    mon ≤ t &lt; moo</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1154" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >*mon     : 뒤집은 B-tree  nom ≤ t &lt; non   (lemon → nomel)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1174" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >m*nchen  : m* ∩ *nchen   (비쌈)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1194" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >permuterm:  X → X$    X* → $X*    *X → X$*    *X* → X*    X*Y → Y$X*</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1214" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >  hello → hello$ ello$h llo$he lo$hel o$hell $hello   (사전 4배)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1234" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >  hel*o → o$hel*     c*t → t$c*     caes* → $caes*</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1254" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >k-gram:  april → $a ap pr ri il l$</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1274" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >  caes* → $c AND ca AND ae AND es  → 후처리 (mon*이면 moon도 걸림)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1294" font-size="15"  fill="#222"  >→ 맞는 term 집합 → 그 term 중 하나라도 있는 문서 (OR)</text>
+<path d="M700,1393 C750,1393 710,1199 760,1199" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,1199 C1980,1199 1970,1393 2010,1393" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="1330" width="1180" height="186" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="1358" font-size="16" font-weight="700" fill="#1c3d6e"  >오타 "ceasar": edit distance</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1378" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >m[i,j] = min( m[i-1,j-1] + (같으면 0, 다르면 1)    ↘ copy / replace</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1398" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >                m[i-1,j]   + 1                     ↓ delete</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1418" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >                m[i,j-1]   + 1 )                   → insert</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1438" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >0행 = 0 1 2 …,  0열 = 0 1 2 …,  답 = 오른쪽 아래 칸</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1458" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >cats → fast 3   oslo → snow 3   cat → catcat 3   cat → act 2</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1478" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >ceasar → caesar:  Levenshtein 2,  Damerau-Levenshtein 1 (ea ↔ ae)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1498" font-size="15"  fill="#222"  >DP인 이유: 최적 부분 구조 + 겹치는 부분 문제.  weighted: m→n이 m→q보다 쌈</text>
+<path d="M700,1393 C750,1393 710,1423 760,1423" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,1423 C1980,1423 1970,1393 2010,1393" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="1534" width="1180" height="126" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="1562" font-size="16" font-weight="700" fill="#1c3d6e"  >오타: k-gram / 문맥</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1582" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >bordroom → bo or rd dr ro oo om  → 겹치는 k-gram 수로 threshold</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1602" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >hit-based: flew form munich → 한 번에 한 단어만 바꾼 구절 전부 질의</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1622" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >  후보 7, 20, 3개 → 7 + 20 + 3 = 30번   (전부 조합 7 × 20 × 3 = 420)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1642" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >Norvig: 사전에 있음 → 거리 1 → 거리 2 → 원래 단어, 후보 중 빈도 최고</text>
+<path d="M700,1393 C750,1393 710,1597 760,1597" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,1597 C1980,1597 1970,1393 2010,1393" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="1678" width="1180" height="146" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="1706" font-size="16" font-weight="700" fill="#1c3d6e"  >Soundex (발음)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1726" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >1 첫 글자 유지   2 A E I O U H W Y → 0</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1746" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >3 BFPV 1   CGJKQSXZ 2   DT 3   L 4   MN 5   R 6</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1766" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >4 연속 같은 숫자 하나로   5 0 지우고, 0 채워서 글자 1 + 숫자 3</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1786" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >CAESAR: C | A0 E0 S2 A0 R6 → 00206 → 0206 → 26 → C260</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1806" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >CEASAR → C260 (같음)   HERMAN → H655   LEE → L000</text>
+<path d="M700,1393 C750,1393 710,1751 760,1751" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,1751 C1980,1751 1970,1393 2010,1393" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="20" y="1904" width="2360" height="688" rx="16" fill="#fdfdfd" stroke="#d0d7e2" stroke-width="1.5"/>
+<text xml:space="preserve" style="white-space:pre" x="50" y="1946" font-size="26" font-weight="700" fill="#1c3d6e"  >STEP 3</text>
+<text xml:space="preserve" style="white-space:pre" x="50" y="1974" font-size="17" font-weight="700" fill="#4a6a99"  >ch1 + ch2</text>
+<text xml:space="preserve" style="white-space:pre" x="50" y="2004" font-size="17"  fill="#222"  >포스팅 가져오기</text>
+<rect x="320" y="2210" width="380" height="86" rx="10" fill="#e7f0ff" stroke="#4a78c2" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="336" y="2240" font-size="14"  fill="#222" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >Brutus → (1,2) (7,3) (83,1) (87,2)</text>
+<text xml:space="preserve" style="white-space:pre" x="336" y="2260" font-size="14"  fill="#222" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >Caesar → (1,1) (5,1) (13,1) (17,1)</text>
+<text xml:space="preserve" style="white-space:pre" x="336" y="2280" font-size="15"  fill="#222"  >(docID, tf)</text>
+<rect x="2010" y="2220" width="350" height="66" rx="10" fill="#e6f7ec" stroke="#2f9e58" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="2026" y="2250" font-size="15" font-weight="700" fill="#222"  >brutus OR caesar 있는</text>
+<text xml:space="preserve" style="white-space:pre" x="2026" y="2270" font-size="15"  fill="#222"  >문서 전부 + tf</text>
+<path d="M2185,1426 L2185,1892 L510,1892 L510,2210" fill="none" stroke="#555" stroke-width="2.5" marker-end="url(#a)"/>
+<rect x="760" y="1954" width="1180" height="166" rx="10" fill="#f1f1f1" stroke="#999" stroke-width="2" stroke-dasharray="7 5"/>
+<text xml:space="preserve" style="white-space:pre" x="776" y="1982" font-size="16" font-weight="700" fill="#1c3d6e"  >Boolean AND</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2002" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >Intersect: docID 같으면 추가 + 둘 다 전진 / 다르면 작은 쪽 전진    O(x + y)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2022" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >1 7 83 87  ∩  1 5 13 17  =  {1}</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2042" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >NOT: Brutus AND Caesar AND NOT Calpurnia = 110100 &amp; 110111 &amp; 101111 = 100100</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2062" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >AND 여러 개: df 오름차순, result 비면 끝.  OR 크기 ≈ df₁ + df₂ (상한 = 보수적)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2082" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >skip pointer: 길이 P에 √P개 (16 → 4개),  skip 대상 ≤ 상대 docID면 while로 점프</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2102" font-size="15"  fill="#222"  >→ 순서 없는 집합. 끝</text>
+<path d="M700,2253 C750,2253 710,2037 760,2037" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text xml:space="preserve" style="white-space:pre" x="1954" y="2042" font-size="14" font-weight="700" fill="#888"  >END</text>
+<rect x="760" y="2138" width="1180" height="166" rx="10" fill="#f1f1f1" stroke="#999" stroke-width="2" stroke-dasharray="7 5"/>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2166" font-size="16" font-weight="700" fill="#1c3d6e"  >구문 "brutus caesar"</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2186" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >biword: "friends romans", "romans countrymen"을 term으로</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2206" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >  긴 구문 = biword AND → false positive, 사전 폭발</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2226" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >positional:  to, 993427:  4: &lt;8, 16, 190, 429, 433&gt;     (993427 = df)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2246" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >             be, 178239:  4: &lt;17, 191, 291, 430, 434&gt;</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2266" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >  1) docID 교집합  2) pos(be) = pos(to) + 1  →  16-17, 429-430, 433-434</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2286" font-size="15"  fill="#222"  >→ 맞는 문서. 끝</text>
+<path d="M700,2253 C750,2253 710,2221 760,2221" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text xml:space="preserve" style="white-space:pre" x="1954" y="2226" font-size="14" font-weight="700" fill="#888"  >END</text>
+<rect x="760" y="2322" width="1180" height="126" rx="10" fill="#f1f1f1" stroke="#999" stroke-width="2" stroke-dasharray="7 5"/>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2350" font-size="16" font-weight="700" fill="#1c3d6e"  >Proximity  /k</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2370" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >employment /4 place:  위치 1, 4 → |1 − 4| = 3 ≤ 4 hit  /  1, 9 → 8 탈락</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2390" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >PositionalIntersect: 바깥 = Intersect, 같은 문서면 위치 차 ≤ k 쌍 전부</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2410" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >combination: 흔한 biword만 term + 나머지 positional → 빠름, 공간 26% 더</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2430" font-size="15"  fill="#222"  >위치까지 돌려줌 (요약문용). 끝</text>
+<path d="M700,2253 C750,2253 710,2385 760,2385" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text xml:space="preserve" style="white-space:pre" x="1954" y="2390" font-size="14" font-weight="700" fill="#888"  >END</text>
+<rect x="760" y="2466" width="1180" height="86" rx="10" fill="#fff1e6" stroke="#e8590c" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="2494" font-size="16" font-weight="700" fill="#c2410c"  >순위 검색 (자유 텍스트 질의)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2514" font-size="15"  fill="#222"  >교집합 안 함, 포스팅 전부 tf와 함께 가져감</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2534" font-size="15"  fill="#222"  >feast or famine (20만 개 아니면 0개) 피하기 → STEP 4로</text>
+<path d="M700,2253 C750,2253 710,2509 760,2509" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<path d="M1940,2509 C1980,2509 1970,2253 2010,2253" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<rect x="20" y="2632" width="2360" height="976" rx="16" fill="#f6f8fb" stroke="#d0d7e2" stroke-width="1.5"/>
+<text xml:space="preserve" style="white-space:pre" x="50" y="2674" font-size="26" font-weight="700" fill="#1c3d6e"  >STEP 4</text>
+<text xml:space="preserve" style="white-space:pre" x="50" y="2702" font-size="17" font-weight="700" fill="#4a6a99"  >ch6</text>
+<text xml:space="preserve" style="white-space:pre" x="50" y="2732" font-size="17"  fill="#222"  >문서마다 점수 매기기</text>
+<rect x="320" y="3092" width="380" height="66" rx="10" fill="#e7f0ff" stroke="#4a78c2" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="336" y="3122" font-size="15"  fill="#222"  >행 = 문서, 열 = term</text>
+<text xml:space="preserve" style="white-space:pre" x="336" y="3142" font-size="15" font-weight="700" fill="#222"  >칸 = 가중치, 합 = 점수</text>
+<rect x="2010" y="3082" width="350" height="86" rx="10" fill="#e6f7ec" stroke="#2f9e58" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="2026" y="3112" font-size="15" font-weight="700" fill="#222"  >문서별 점수</text>
+<text xml:space="preserve" style="white-space:pre" x="2026" y="3132" font-size="15"  fill="#222" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >1: 3   7: 3   87: 2</text>
+<text xml:space="preserve" style="white-space:pre" x="2026" y="3152" font-size="15"  fill="#222" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >5, 13, 17, 83: 1</text>
+<path d="M2185,2286 L2185,2620 L510,2620 L510,3092" fill="none" stroke="#555" stroke-width="2.5" marker-end="url(#a)"/>
+<rect x="760" y="2682" width="1180" height="106" rx="10" fill="#f1f1f1" stroke="#999" stroke-width="2" stroke-dasharray="7 5"/>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2710" font-size="16" font-weight="700" fill="#1c3d6e"  >Jaccard (안 씀)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2730" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >jaccard(A, B) = |A ∩ B| / |A ∪ B|</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2750" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >"ides of March" vs "Caesar died in March" → ∩ 1 / ∪ 6 = 1/6</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2770" font-size="15"  fill="#222"  >tf 무시, 드문 term 무시</text>
+<path d="M700,3125 C750,3125 710,2735 760,2735" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text xml:space="preserve" style="white-space:pre" x="1954" y="2740" font-size="14" font-weight="700" fill="#888"  >END</text>
+<rect x="760" y="2806" width="1180" height="66" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="2834" font-size="16" font-weight="700" fill="#1c3d6e"  >tf 그대로 합</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2854" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >doc  1: 2 + 1 = 3    7: 3    87: 2    5, 13, 17, 83: 1</text>
+<path d="M700,3125 C750,3125 710,2839 760,2839" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,2839 C1980,2839 1970,3125 2010,3125" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="2890" width="1180" height="106" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="2918" font-size="16" font-weight="700" fill="#1c3d6e"  >log tf</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2938" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >w(t,d) = 1 + log₁₀ tf   (tf &gt; 0),   0   (tf = 0)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2958" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >tf : 0   1   2     10   1000</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="2978" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >w  : 0   1   1.3   2    4</text>
+<path d="M700,3125 C750,3125 710,2943 760,2943" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,2943 C1980,2943 1970,3125 2010,3125" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="3014" width="1180" height="166" rx="10" fill="#fff1e6" stroke="#e8590c" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="3042" font-size="16" font-weight="700" fill="#c2410c"  >idf, tf-idf</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3062" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >idf(t) = log₁₀ (N / df)          N = 1,000,000</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3082" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >df  : 1    100    1,000    10,000    100,000    1,000,000</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3102" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >idf : 6    4      3        2         1          0</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3122" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >w(t,d) = (1 + log₁₀ tf) × log₁₀ (N / df)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3142" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >cf vs df: insurance cf 10440 df 3997 / try cf 10422 df 8760 → df로</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3162" font-size="15"  fill="#222"  >idf는 질의 term 2개 이상일 때만 순위에 영향</text>
+<path d="M700,3125 C750,3125 710,3097 760,3097" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<path d="M1940,3097 C1980,3097 1970,3125 2010,3125" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<rect x="760" y="3198" width="1180" height="146" rx="10" fill="#fff1e6" stroke="#e8590c" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="3226" font-size="16" font-weight="700" fill="#c2410c"  >Cosine</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3246" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >cos(q, d) = Σ qᵢdᵢ / ( √Σqᵢ² × √Σdᵢ² )      정규화 후엔 Σ qᵢdᵢ</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3266" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >SaS tf (115, 10, 2, 0) → w (3.06, 2.00, 1.30, 0)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3286" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >  길이 √(3.06² + 2.00² + 1.30²) = √15.05 ≈ 3.88 → (0.789, 0.515, 0.335, 0)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3306" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >cos(SaS, PaP) = 0.789×0.832 + 0.515×0.555 + 0.335×0 ≈ 0.94</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3326" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >cos(SaS, WH) ≈ 0.79    cos(PaP, WH) ≈ 0.69</text>
+<path d="M700,3125 C750,3125 710,3271 760,3271" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<path d="M1940,3271 C1980,3271 1970,3125 2010,3125" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<rect x="760" y="3362" width="1180" height="206" rx="10" fill="#fff1e6" stroke="#e8590c" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="3390" font-size="16" font-weight="700" fill="#c2410c"  >SMART lnc.ltn  ("best car insurance" vs "car insurance auto insurance")</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3410" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >tf: n 그대로 / l 1+log / a 0.5+0.5·tf/max / b 0·1   df: n X / t idf   norm: n X / c cos</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3430" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >문서 lnc = log tf, idf X, cosine     질의 ltn = log tf, idf, 정규화 X</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3450" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >term       q tf  q w  df      idf  q wt │ d tf  d w  d norm │ 곱</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3470" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >auto       0     0    5,000   2.3  0    │ 1     1    0.52   │ 0</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3490" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >best       1     1    50,000  1.3  1.3  │ 0     0    0      │ 0</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3510" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >car        1     1    10,000  2.0  2.0  │ 1     1    0.52   │ 1.04</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3530" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >insurance  1     1    1,000   3.0  3.0  │ 2     1.3  0.68   │ 2.04</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3550" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >문서 길이 √(1² + 0² + 1² + 1.3²) = √3.69 ≈ 1.92      점수 = 1.04 + 2.04 = 3.08</text>
+<path d="M700,3125 C750,3125 710,3465 760,3465" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<path d="M1940,3465 C1980,3465 1970,3125 2010,3125" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<rect x="20" y="3648" width="2360" height="384" rx="16" fill="#fdfdfd" stroke="#d0d7e2" stroke-width="1.5"/>
+<text xml:space="preserve" style="white-space:pre" x="50" y="3690" font-size="26" font-weight="700" fill="#1c3d6e"  >STEP 5</text>
+<text xml:space="preserve" style="white-space:pre" x="50" y="3718" font-size="17" font-weight="700" fill="#4a6a99"  >ch7 7.1-7.3</text>
+<text xml:space="preserve" style="white-space:pre" x="50" y="3748" font-size="17"  fill="#222"  >줄 세워서 top k만</text>
+<rect x="320" y="3812" width="380" height="66" rx="10" fill="#e7f0ff" stroke="#4a78c2" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="336" y="3842" font-size="15"  fill="#222"  >점수</text>
+<text xml:space="preserve" style="white-space:pre" x="336" y="3862" font-size="15" font-weight="700" fill="#222"  >(사용자는 위 몇 개만 봄)</text>
+<rect x="2010" y="3812" width="350" height="66" rx="10" fill="#e6f7ec" stroke="#2f9e58" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="2026" y="3842" font-size="15" font-weight="700" fill="#222"  >Top 3:</text>
+<text xml:space="preserve" style="white-space:pre" x="2026" y="3862" font-size="15"  fill="#222"  >1, 7, 87</text>
+<path d="M2185,3168 L2185,3636 L510,3636 L510,3812" fill="none" stroke="#555" stroke-width="2.5" marker-end="url(#a)"/>
+<rect x="760" y="3698" width="1180" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="3726" font-size="16" font-weight="700" fill="#1c3d6e"  >기본</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3746" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >점수 내림차순 정렬 → 위 k개  (k = 3 → 1, 7, 87)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3766" font-size="15"  fill="#222"  >Dan Russell: 1~4위 요약을 7~10위보다 많이 읽음, 2번 중 1번 1위 클릭, 틀려도 30%</text>
+<path d="M700,3845 C750,3845 710,3741 760,3741" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,3741 C1980,3741 1970,3845 2010,3845" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="3802" width="1180" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="3830" font-size="16" font-weight="700" fill="#1c3d6e"  >Pivot normalization</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3850" font-size="15"  fill="#222"  >코사인 정규화: 짧은 문서엔 가중치 과대, 긴 문서엔 과소</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3870" font-size="15"  fill="#222"  >실제 관련 확률 선과 만나는 길이 = pivot, 거기 중심으로 선을 돌림 → 짧은 ↓ 긴 ↑</text>
+<path d="M700,3845 C750,3845 710,3845 760,3845" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,3845 C1980,3845 1970,3845 2010,3845" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="3906" width="1180" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="3934" font-size="16" font-weight="700" fill="#1c3d6e"  >Tiered index</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3954" font-size="15"  fill="#222"  >tier 1 (제목) → k개 (예: 100) 차면 멈춤 → 모자라면 tier 2, tier 3</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="3974" font-size="15"  fill="#222"  >tier마다 다음보다 10배 작게, 대부분 질의가 tier 1에서 끝나야 함</text>
+<path d="M700,3845 C750,3845 710,3949 760,3949" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,3949 C1980,3949 1970,3845 2010,3845" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="20" y="4072" width="2360" height="628" rx="16" fill="#f6f8fb" stroke="#d0d7e2" stroke-width="1.5"/>
+<text xml:space="preserve" style="white-space:pre" x="50" y="4114" font-size="26" font-weight="700" fill="#1c3d6e"  >STEP 6</text>
+<text xml:space="preserve" style="white-space:pre" x="50" y="4142" font-size="17" font-weight="700" fill="#4a6a99"  >ch7 7.4</text>
+<text xml:space="preserve" style="white-space:pre" x="50" y="4172" font-size="17"  fill="#222"  >같은 top k, 일은</text>
+<text xml:space="preserve" style="white-space:pre" x="50" y="4194" font-size="17"  fill="#222"  >덜</text>
+<rect x="320" y="4358" width="380" height="66" rx="10" fill="#e7f0ff" stroke="#4a78c2" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="336" y="4388" font-size="15"  fill="#222"  >문서 2×10^10개라</text>
+<text xml:space="preserve" style="white-space:pre" x="336" y="4408" font-size="15" font-weight="700" fill="#222"  >표를 다 못 채움</text>
+<rect x="2010" y="4358" width="350" height="66" rx="10" fill="#e6f7ec" stroke="#2f9e58" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="2026" y="4388" font-size="15" font-weight="700" fill="#222"  >Top k</text>
+<text xml:space="preserve" style="white-space:pre" x="2026" y="4408" font-size="15"  fill="#222"  >사용자에게 반환</text>
+<path d="M2185,3878 L2185,4060 L510,4060 L510,4358" fill="none" stroke="#555" stroke-width="2.5" marker-end="url(#a)"/>
+<rect x="760" y="4122" width="1180" height="126" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="4150" font-size="16" font-weight="700" fill="#1c3d6e"  >포스팅이 docID 순 → document-at-a-time + min heap</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4170" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >행 하나 끝 → 다음 행:  1 (=3) → 5 (=1) → 7 (=3) → 13 → 17 → 83 → 87</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4190" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >min heap: 부모 &lt; 자식, 루트 = top k 중 최솟값</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4210" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >  s ≤ 루트 → 버림     s &gt; 루트 → 루트 빼고 s 넣기  O(log k)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4230" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >  전체 O(N log k),  마지막 k개 꺼내기 O(k log k)</text>
+<path d="M700,4391 C750,4391 710,4185 760,4185" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,4185 C1980,4185 1970,4391 2010,4391" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="4266" width="1180" height="106" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="4294" font-size="16" font-weight="700" fill="#1c3d6e"  >포스팅이 PageRank g(d) 순 → 조기 종료</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4314" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >net-score(q, d) = g(d) + cos(q, d),    g ∈ [0, 1],  cos ≤ 1</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4334" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >지금 g(d) &lt; 0.1,  top k 최솟값 1.2</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4354" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >뒤 문서 최대 = 0.1 + 1 = 1.1 &lt; 1.2  →  멈춤</text>
+<path d="M700,4391 C750,4391 710,4319 760,4319" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,4319 C1980,4319 1970,4391 2010,4391" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="4390" width="1180" height="126" rx="10" fill="#fff1e6" stroke="#e8590c" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="4418" font-size="16" font-weight="700" fill="#c2410c"  >Weight-sorted 포스팅 (슬라이드 51)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4438" font-size="15"  fill="#222"  >포스팅을 가중치 (정규화 tf-idf) 큰 순으로 → top k가 앞쪽에 몰림</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4458" font-size="15"  fill="#222"  >term마다 순서가 달라짐 → document-at-a-time 불가 → term-at-a-time만</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4478" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >term-at-a-time: Brutus 열 전부 → Caesar 열 전부,  Scores[d] += w(t,d) × w(t,q)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4498" font-size="15"  fill="#222"  >뒤쪽 안 보고 끝내도 top k 거의 안 바뀜</text>
+<path d="M700,4391 C750,4391 710,4453 760,4453" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<path d="M1940,4453 C1980,4453 1970,4391 2010,4391" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<rect x="760" y="4534" width="1180" height="126" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="4562" font-size="16" font-weight="700" fill="#1c3d6e"  >Accumulator (term-at-a-time)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4582" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >Brutus 처리: 1 7 83 87 새로 만듦</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4602" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >Caesar 처리: 5 13 17 새로 만듦,  1은 더하기만</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4622" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >OR  (term 하나라도): 1 5 7 13 17 83 87 = 7개</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4642" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >AND (conjunctive, 전부 있어야): 1 하나</text>
+<path d="M700,4391 C750,4391 710,4597 760,4597" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,4597 C1980,4597 1970,4391 2010,4391" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="20" y="4740" width="2360" height="1120" rx="16" fill="#fdfdfd" stroke="#d0d7e2" stroke-width="1.5"/>
+<text xml:space="preserve" style="white-space:pre" x="50" y="4782" font-size="26" font-weight="700" fill="#1c3d6e"  >STEP 7</text>
+<text xml:space="preserve" style="white-space:pre" x="50" y="4810" font-size="17" font-weight="700" fill="#4a6a99"  >ch4 + ch5</text>
+<text xml:space="preserve" style="white-space:pre" x="50" y="4840" font-size="17"  fill="#222"  >밑에 깔린 색인 자체</text>
+<rect x="320" y="5272" width="380" height="66" rx="10" fill="#e7f0ff" stroke="#4a78c2" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="336" y="5302" font-size="15"  fill="#222"  >질의가 오기 전에</text>
+<text xml:space="preserve" style="white-space:pre" x="336" y="5322" font-size="15" font-weight="700" fill="#222"  >미리 만들어 둠</text>
+<rect x="2010" y="5272" width="350" height="66" rx="10" fill="#e6f7ec" stroke="#2f9e58" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="2026" y="5302" font-size="15" font-weight="700" fill="#222"  >사전 + 포스팅</text>
+<text xml:space="preserve" style="white-space:pre" x="2026" y="5322" font-size="15"  fill="#222"  >STEP 2, 3에서 씀</text>
+<path d="M2185,4424 L2185,4728 L510,4728 L510,5272" fill="none" stroke="#555" stroke-width="2.5" marker-end="url(#a)"/>
+<rect x="760" y="4790" width="1180" height="106" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="4818" font-size="16" font-weight="700" fill="#1c3d6e"  >하드웨어 / RCV1</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4838" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >seek 5ms = 25만 바이트 전송 시간,  메모리 ≈ 디스크 × 10배 빠름</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4858" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >N 800,000   L 200   M 400,000   T 100,000,000</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4878" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >term당 평균 = N·L / M = 160,000,000 / 400,000 = 400번</text>
+<path d="M700,5305 C750,5305 710,4843 760,4843" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,4843 C1980,4843 1970,5305 2010,5305" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="4914" width="1180" height="106" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="4942" font-size="16" font-weight="700" fill="#1c3d6e"  >BSBI / SPIMI</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4962" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >BSBI: 포스팅 12B (termID 4 + docID 4 + 빈도 4), 블록 1천만 개 = 120MB → 10블록</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="4982" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >  블록마다 메모리 정렬 → 디스크 → 병합 (앞끼리 비교: term 순, 같으면 docID 순)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5002" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >SPIMI: 블록마다 새 해시 사전, 정렬 X, 차면 리스트 2배, 쓸 때 term만 정렬</text>
+<path d="M700,5305 C750,5305 710,4967 760,4967" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,4967 C1980,4967 1970,5305 2010,5305" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="5038" width="1180" height="146" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="5066" font-size="16" font-weight="700" fill="#1c3d6e"  >MapReduce (분산)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5086" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >1000대 다 살 확률 0.999^1000 ≈ 0.37</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5106" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >3년 = 3×365×24×60 = 1,576,800분 / 10^6대 ≈ 1.6분마다 하나 고장</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5126" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >map (parser): split → (term, docID) → a-f / g-p / q-z segment 파일</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5146" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >reduce (inverter): 구간 하나 모아 정렬 → 포스팅</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5166" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >d1 "C came, C c'ed." d2 "C died." → reduce C → (d1:2, d2:1)</text>
+<path d="M700,5305 C750,5305 710,5111 760,5111" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,5111 C1980,5111 1970,5305 2010,5305" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="5202" width="1180" height="126" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="5230" font-size="16" font-weight="700" fill="#1c3d6e"  >동적 색인</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5250" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >main + aux: a + 2a + … + na = a·n(n+1)/2 = O(T²)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5270" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >log merge: Z0 차면 I0 → 있으면 합쳐 I1 → … (이진수 받아올림)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5290" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >  k번째 상태 = k의 이진수 (4 = 100 → I2,  6 = 110 → I2 I1)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5310" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >  색인 수 O(log T),  비용 O(T log T)</text>
+<path d="M700,5305 C750,5305 710,5265 760,5265" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,5265 C1980,5265 1970,5305 2010,5305" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="5346" width="1180" height="146" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="5374" font-size="16" font-weight="700" fill="#1c3d6e"  >Heaps / Zipf</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5394" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >Heaps: M = k · T^b      (30 ≤ k ≤ 100,  b ≈ 0.5)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5414" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >30,000 / 3,000 = (10^6 / 10^4)^b → 10 = 100^b → b = 0.5</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5434" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >3,000 = k · 10,000^0.5 = k · 100 → k = 30</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5454" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >T = 2×10^10 × 200 = 4×10^12 → M = 30 × 2×10^6 = 60,000,000</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5474" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >Zipf: cf_i ∝ 1/i   (cf₂ = cf₁/2,  cf₃ = cf₁/3,  log-log 기울기 −1)</text>
+<path d="M700,5305 C750,5305 710,5419 760,5419" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,5419 C1980,5419 1970,5305 2010,5305" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="5510" width="1180" height="126" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="5538" font-size="16" font-weight="700" fill="#1c3d6e"  >사전 압축 (M = 400,000)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5558" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >고정 길이   (20 + 4 + 4) × 400K            = 11.2 MB</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5578" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >문자열      (4 + 4 + 3 + 8) × 400K         =  7.6 MB   (포인터 3B: log₂ 3.2M ≈ 21.6 &lt; 24)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5598" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >blocking k=4  블록당 12 − (3 + 4) = 5B,  7.6 − 100K × 5B = 7.1 MB</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5618" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >front coding  8automata8automate9automatic10automation → 8automat*a1◇e2◇ic3◇ion  = 5.9 MB</text>
+<path d="M700,5305 C750,5305 710,5573 760,5573" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,5573 C1980,5573 1970,5305 2010,5305" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="760" y="5654" width="1180" height="166" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="776" y="5682" font-size="16" font-weight="700" fill="#1c3d6e"  >포스팅 압축</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5702" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >gap: 283154 283159 283202 → 283154, 5, 43     (docID 그대로면 log₂ 800,000 ≈ 20비트)</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5722" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >VB: 7비트씩, 마지막 바이트만 c = 1</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5742" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >  824 = 6×128 + 56 → 00000110 10111000    5 → 10000101    130 → 00000001 10000010</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5762" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >γ = unary(길이) + offset:  13 = 1101 → offset 101, 길이 3 → 1110 → 1110101</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5782" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >  길이 = 2⌊log₂ G⌋ + 1 비트 (홀수)    130 → 11111110 0000010</text>
+<text xml:space="preserve" style="white-space:pre" x="776" y="5802" font-size="15"  fill="#1a1a1a" font-family="Menlo, Consolas, D2Coding, Apple SD Gothic Neo, monospace" >크기: 32비트 400 / 20비트 250 / VB 116 / γ 101 MB</text>
+<path d="M700,5305 C750,5305 710,5737 760,5737" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1940,5737 C1980,5737 1970,5305 2010,5305" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="40" y="5910" width="30" height="24" rx="10" fill="#e7f0ff" stroke="#4a78c2" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="80" y="5928" font-size="15"  fill="#222"  >단계 입력</text>
+<rect x="260" y="5910" width="30" height="24" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="300" y="5928" font-size="15"  fill="#222"  >갈래 / 변형</text>
+<rect x="480" y="5910" width="30" height="24" rx="10" fill="#fff1e6" stroke="#e8590c" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="520" y="5928" font-size="15"  fill="#222"  >순위 검색 길, 시험 포인트</text>
+<rect x="740" y="5910" width="30" height="24" rx="10" fill="#f1f1f1" stroke="#999" stroke-width="2" stroke-dasharray="7 5"/>
+<text xml:space="preserve" style="white-space:pre" x="780" y="5928" font-size="15"  fill="#222"  >여기서 끝 (불리언)</text>
+<rect x="970" y="5910" width="30" height="24" rx="10" fill="#e6f7ec" stroke="#2f9e58" stroke-width="2" />
+<text xml:space="preserve" style="white-space:pre" x="1010" y="5928" font-size="15"  fill="#222"  >결과 → 다음 단계</text>
+</svg>

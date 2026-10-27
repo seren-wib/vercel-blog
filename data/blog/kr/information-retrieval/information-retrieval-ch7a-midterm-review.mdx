@@ -12,7 +12,9 @@ summary: '질의 하나가 들어와 top k가 나가기까지의 흐름으로 ch
 
 **전체 흐름**: 질의 글자 → term으로([ch2](/kr/blog/information-retrieval/information-retrieval-ch2-term-vocabulary-postings/)) → 사전에서 term 찾기([ch3](/kr/blog/information-retrieval/information-retrieval-ch3-dictionaries-tolerant-retrieval/)) → 포스팅 가져와 교집합([ch1](/kr/blog/information-retrieval/information-retrieval-ch1-boolean-retrieval/)) → 문서마다 점수 합([ch6](/kr/blog/information-retrieval/information-retrieval-ch6-scoring-term-weighting-vector-space/)) → 빠르게 top k([ch7](/kr/blog/information-retrieval/information-retrieval-ch7-scores-complete-search-system/)). 포스팅은 어떻게 만들었고([ch4](/kr/blog/information-retrieval/information-retrieval-ch4-index-construction/)) 어떻게 작게 저장했나([ch5](/kr/blog/information-retrieval/information-retrieval-ch5-index-compression/)).
 
-![질의 "Brutus Caesars" 하나가 1-6단계를 지나며 갈라지는 길 전부, 7단계는 밑에 깔린 색인](/static/images/information-retrieval-ch7a-midterm-review/query-flow.svg)
+[![질의 "Brutus Caesars" 하나가 1-6단계를 지나며 갈라지는 길 전부, 7단계는 밑에 깔린 색인](/static/images/information-retrieval-ch7a-midterm-review/query-flow.svg)](/static/images/information-retrieval-ch7a-midterm-review/query-flow.svg)
+
+_그림을 클릭하면 원본 크기로 열려. 글자가 작으니까 열어서 확대해서 봐._
 
 - 그림에서: 주황 = 순위 검색 길(시험 포인트), 회색 점선 = 불리언이라 거기서 끝, 초록 = 다음 단계로 넘어가는 결과
 

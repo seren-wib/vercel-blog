@@ -12,7 +12,9 @@ From the query [Brutus Caesar] coming in to the top k going out. Announced for t
 
 **Overall flow**: query text → terms ([ch2](/en/blog/information-retrieval/information-retrieval-ch2-term-vocabulary-postings/)) → look up terms in the dictionary ([ch3](/en/blog/information-retrieval/information-retrieval-ch3-dictionaries-tolerant-retrieval/)) → fetch postings and intersect ([ch1](/en/blog/information-retrieval/information-retrieval-ch1-boolean-retrieval/)) → sum a score per document ([ch6](/en/blog/information-retrieval/information-retrieval-ch6-scoring-term-weighting-vector-space/)) → top k, fast ([ch7](/en/blog/information-retrieval/information-retrieval-ch7-scores-complete-search-system/)). How the postings were built ([ch4](/en/blog/information-retrieval/information-retrieval-ch4-index-construction/)) and how they are stored small ([ch5](/en/blog/information-retrieval/information-retrieval-ch5-index-compression/)).
 
-![Every branch the query "Brutus Caesars" can take through steps 1-6, with the index underneath as step 7](/static/images/information-retrieval-ch7a-midterm-review/query-flow.svg)
+[![Every branch the query "Brutus Caesars" can take through steps 1-6, with the index underneath as step 7](/static/images/information-retrieval-ch7a-midterm-review/query-flow.svg)](/static/images/information-retrieval-ch7a-midterm-review/query-flow.svg)
+
+_Click the figure to open it at full size, then zoom in. The text is small._
 
 - In the figure: orange = ranked retrieval path (exam focus), gray dashed = Boolean, ends there, green = result passed to the next step
 

@@ -142,11 +142,13 @@ Building large indexes is in ch4, compression in ch5, and indexes for ranked ret
    6. Return the result
 
 2. Intersection algorithm (Intersect)
-   `text
-Brutus    -> 1 -> 2 -> 4 -> 11 -> 31 -> 45 -> 173 -> 174
-Calpurnia -> 2 -> 31 -> 54 -> 101
-Answer    => 2 -> 31
-`
+
+   ```text
+   Brutus    -> 1 -> 2 -> 4 -> 11 -> 31 -> 45 -> 173 -> 174
+   Calpurnia -> 2 -> 31 -> 54 -> 101
+   Answer    => 2 -> 31
+   ```
+
    ![p1 and p2 moving one step at a time to build the intersection](/static/images/information-retrieval-ch1-boolean-retrieval/intersect-anim.svg)
 
 | Step | p1 (Brutus) | p2 (Calpurnia) | Compare    | Action                            |

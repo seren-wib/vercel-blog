@@ -27,7 +27,7 @@ summary: 'Definition of information retrieval, structured vs unstructured data, 
    2. Word variants: verb forms, spellings, and synonyms show up too
    3. For long queries, results show up even if a few words are missing
    4. When the expression returns too few results, it widens the conditions
-   5. **ranking**: plain Boolean returns results in no order, but Google puts the good results on top (continued in ch6)
+   5. **ranking**: plain Boolean returns results in no order, but Google puts the good results on top (continued in [ch6 6.1](/en/blog/information-retrieval/information-retrieval-ch6-scoring-term-weighting-vector-space/#61-why-ranked-retrieval))
 
 ## 1.2 Inverted index
 
@@ -143,10 +143,10 @@ Building large indexes is in ch4, compression in ch5, and indexes for ranked ret
 
 2. Intersection algorithm (Intersect)
    `text
- Brutus    -> 1 -> 2 -> 4 -> 11 -> 31 -> 45 -> 173 -> 174
- Calpurnia -> 2 -> 31 -> 54 -> 101
- Answer    => 2 -> 31
- `
+Brutus    -> 1 -> 2 -> 4 -> 11 -> 31 -> 45 -> 173 -> 174
+Calpurnia -> 2 -> 31 -> 54 -> 101
+Answer    => 2 -> 31
+`
    ![p1 and p2 moving one step at a time to build the intersection](/static/images/information-retrieval-ch1-boolean-retrieval/intersect-anim.svg)
 
 | Step | p1 (Brutus) | p2 (Calpurnia) | Compare    | Action                            |

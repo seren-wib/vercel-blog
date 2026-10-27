@@ -1,0 +1,166 @@
+---
+title: 'Midterm Review. CH1-7 in One Flow'
+date: '2026-10-27'
+tags: ['Information Retrieval']
+draft: false
+summary: 'ch1-ch7 reviewed as the path from one query to the top k: preprocessing and stemming, dictionaries (hash, B-tree), wildcard, permuterm, k-gram, edit distance, spelling correction, Soundex, inverted index and intersection, skip pointers, positional index, tf-idf, cosine, lnc.ltn, top k and pivot normalization, tiered index, document-at-a-time, term-at-a-time, weight-sorted postings, accumulators, conjunctive retrieval, BSBI, SPIMI, MapReduce, logarithmic merge, Heaps and Zipf, dictionary compression, VB and γ codes'
+---
+
+# Information Retrieval midterm review (ch1\~7, in flow order)
+
+From the query [Brutus Caesar] coming in to the top k going out. Announced for the exam: 07system slide 51, weight-sorted postings (step 6).
+
+**Overall flow**: query text → terms ([ch2](/en/blog/information-retrieval/information-retrieval-ch2-term-vocabulary-postings/)) → look up terms in the dictionary ([ch3](/en/blog/information-retrieval/information-retrieval-ch3-dictionaries-tolerant-retrieval/)) → fetch postings and intersect ([ch1](/en/blog/information-retrieval/information-retrieval-ch1-boolean-retrieval/)) → sum a score per document ([ch6](/en/blog/information-retrieval/information-retrieval-ch6-scoring-term-weighting-vector-space/)) → top k, fast ([ch7](/en/blog/information-retrieval/information-retrieval-ch7-scores-complete-search-system/)). How the postings were built ([ch4](/en/blog/information-retrieval/information-retrieval-ch4-index-construction/)) and how they are stored small ([ch5](/en/blog/information-retrieval/information-retrieval-ch5-index-compression/)).
+
+Running example (posting = (docID, tf)):
+
+```text
+Brutus → (1,2) (7,3) (83,1) (87,2)
+Caesar → (1,1) (5,1) (13,1) (17,1)
+```
+
+## Step 1. Query text to terms (ch2)
+
+**The raw text the user types is not in the dictionary. It has to be transformed exactly the way documents were at indexing time**
+
+- **word** raw character string / **token** one occurrence / **term** normalized equivalence class / **type** ≈ term. "the the the" → 3 tokens, 1 term
+- Decide first when parsing a document: format, language, character set (all three are classification problems). The document unit is also a design decision
+- Preprocessing: normalization (USA = U.S.A.), tokenization (O'Neill), hyphens, numbers (indexed nowadays), accents, **case folding**, **stop words** (kept nowadays because of phrase queries)
+- **Lemmatization**: base form using linguistic knowledge, am/are/is → be / **Stemming**: chop endings by rule, automation → automat (need not be a dictionary word)
+- **Porter**: 5 phases, longest-suffix rule. SSES→SS, IES→I, SS→SS, S→delete. caresses → caress, ponies → poni. Porter cuts less than Lovins and Paice
+- Effect of stemming: recall ↑ precision ↓. [operational AND research] → grouped into oper, so operating matches too
+- If stop words stay as terms, they appear in almost every document, so intersection does not shrink and idf ≈ 0 adds nothing to the score
+
+## Step 2. Look up terms in the dictionary (ch3)
+
+**The text Brutus must find a dictionary row to get the postings pointer. Typos and wildcards must be turned into a set of terms**
+
+- **Dictionary = fixed-width array**, one row term 20 + df 4 + postings pointer 4 = **28 bytes**. Word → row number via **hash or tree**
+- **Hash** O(1). No variants (résumé), no prefix, rehash when the vocabulary grows / **Tree** O(log M), prefix OK. Binary trees are costly to rebalance → **B-tree** (children [2, 4])
+- **wildcard** → set of matching terms → documents containing any of them (OR)
+  - `mon*` B-tree range `mon ≤ t < moo` / `*mon` reversed tree `nom ≤ t < non` / `m*nchen` intersect both (expensive)
+  - **permuterm**: append `$` and put every rotation in a B-tree. `hello$ ello$h llo$he lo$hel o$hell $hello`. Rotate the query so `*` is at the end: `X` → `X$`, `X*` → `$X*`, `*X` → `X$*`, `*X*` → `X*`, `X*Y` → `Y$X*`. `hel*o` → `o$hel*`, `c*t` → `t$c*`. Dictionary 4x larger
+  - **k-gram**: inverted index from k-gram → terms. april → `$a ap pr ri il l$`. `mon*` = `$m AND mo AND on` → moon sneaks in → **postfilter** required. Uses less space
+  - Why Google does not support it: one wildcard expands to many terms, an AND of OR groups is expensive, users would abuse `[pyth* theo*]`
+- **Typos** → the closest correct term
+  - **Levenshtein** insert/delete/replace cost 1 each. dog-do 1, cat-act 2 / **Damerau** + transposition, cat-act 1
+  - Table: row 0 is 0 1 2 …, column 0 is 0 1 2 …, cell = min(↘ +0 if same, +1 if different; ↓ +1 delete; → +1 insert), **answer = bottom-right**. cats → fast 3, oslo → snow 3, cat → catcat 3
+  - Why DP: optimal substructure + overlapping subproblems. **weighted**: m→n cheaper than m→q, weight matrix
+  - **isolated word** (cannot catch form/from) vs **context-sensitive**. Documents are not corrected
+  - k-gram correction: bordroom bigrams bo or rd dr ro oo om → threshold on the overlap count
+  - **hit-based**: flew form munich → run every phrase with one word changed at a time → the one with the most hits wins. 7·20·3 candidates → 30 queries (420 for all combinations)
+  - Norvig: as is if in the dictionary → distance 1 → distance 2 → original. Highest frequency wins
+- **Soundex** (sound): keep the first letter, AEIOUHWY→0, BFPV 1 / CGJKQSXZ 2 / DT 3 / L 4 / MN 5 / R 6, collapse repeats, drop 0s, **1 letter + 3 digits**. HERMAN(N) → H655, LEE → L000. Not great for IR, OK for high recall
+
+## Step 3. Fetch postings and intersect (ch1, end of ch2)
+
+**Follow the pointer in the dictionary row to the postings list. For Boolean retrieval, this is the end**
+
+- **Inverted index**: dictionary (term + df + pointer) / posting (one docID) / postings list (docIDs ascending). **df** = **number of documents** containing the term (1 even if it appears 10 times)
+- Why an inverted index: grep is slow, line-based, no NOT or proximity / the incidence matrix (rows terms, columns documents, 0/1) has N 10⁶ × M 500,000 = 5×10¹¹ cells but at most 10⁹ ones → sparse → store only the ones
+- NOT is bit inversion: `Brutus AND Caesar AND NOT Calpurnia` = 110100 AND 110111 AND 101111 = 100100
+- **Intersect(p1, p2)**: if equal, add and advance both; otherwise advance the smaller. O(x + y). Running example → only 1
+- **Optimization**: several ANDs → **start with the smallest df**. Stop as soon as the result is empty. Estimate an OR's size as the sum of dfs (upper bound = conservative)
+- **skip pointer**: a pointer some positions ahead, jump only if the skip target ≤ the other docID (`<=`), repeatedly in a while loop. **√P** evenly spaced for length P (16 → 4, every 4). Little benefit with modern CPUs
+- **Phrase queries**: biword (two words as one term; longer phrases give false positives and dictionary blowup) → **positional** (posting = docID + list of positions; the 993427 in `to, 993427:` is the df). Intersect docIDs → within the document, to at position i, be at i+1
+- **proximity** `/k`: PositionalIntersect, outer loop is Intersect, inner compares positions within k. Also returns positions (for snippets). **combination**: only frequent biwords as terms, the rest positional, faster and 26% more space
+- **Westlaw**: Boolean by default. `/3` `/s` `/p`, space = OR (AND in Google), `!`, `"…"`. Reasons: precision, transparency, control
+- Boolean problem → **feast or famine** (200,000 results or 0) → rank by score (step 4)
+
+## Step 4. Sum a score per document (ch6)
+
+**Build a table instead of an intersection. Row = document, column = query term, cell = weight, sum = score**
+
+```text
+docID   Brutus  Caesar  sum
+1       2       1       3
+5       -       1       1
+7       3       -       3
+13      -       1       1
+17      -       1       1
+83      1       -       1
+87      2       -       2
+```
+
+- Above is raw tf added up. The real cell = **w(t,d) × w(t,q)**, sum = score (normalized to 0\~1 it is the cosine)
+- **Jaccard** |A ∩ B| / |A ∪ B|, "ides of March" vs "Caesar died in March" = 1/6. Ignores frequency and rare terms → dropped
+- **bag of words**: order ignored (a step back from positional)
+- **log tf**: w = 1 + log₁₀ tf (tf > 0). 1→1, 2→1.3, 10→2, 1000→4
+- **idf = log₁₀(N / df)**. N 10⁶: df 1→6, 100→4, 1000→3, 10⁴→2, 10⁵→1, 10⁶→0 (count the zeros). Affects ranking only with 2 or more query terms
+- **cf** (total occurrences) vs **df** (number of documents): insurance cf 10440 df 3997 / try cf 10422 df 8760 → use df. df ≤ cf
+- **tf-idf** w = (1 + log tf) × log(N / df)
+- **Cosine**, not distance: long documents lose, d and d+d drift apart. cos = Σqᵢdᵢ / (√Σqᵢ² √Σdᵢ²), a dot product once normalized
+- Novels: SaS length √(3.06² + 2² + 1.3²) ≈ 3.88 → 0.789. cos(SaS, PaP) 0.94 / (SaS, WH) 0.79 / (PaP, WH) 0.69
+- **SMART ddd.qqq**: tf n/l(1+log)/a/b, df n/t(idf), norm n/c(cosine)
+- **lnc.ltn**: document log tf, no idf, cosine / query log tf, idf, no normalization. idf enters once, on the query side. "best car insurance" vs "car insurance auto insurance": query car 2.0 insurance 3.0 / document length √(1+1+1.3²) ≈ 1.92 → car 0.52 insurance 0.68 → **0.52×2 + 0.68×3 = 3.08**
+- **CosineScore**: for each term, walk its postings with Scores[d] += w(t,d) × w(t,q) → divide by Length → return **top K**. Code that fills the table above **column by column**
+
+## Step 5. Sort the sums and take the top k (first half of ch7)
+
+**Rank by sum and show only the top k. Getting rank 1 right matters most**
+
+- Table above with k = 3 → 1, 7, 87. The rest are computed and discarded
+- Dan Russell study: snippets at ranks 1\~4 read far more than 7\~10, clicks skew even higher, **rank 1 clicked half the time**, 30% even when it is irrelevant. Ranking = barrier to entry for new search engines (click data)
+- Cosine problem: favors short documents (d2 = d1 + 5 unrelated articles loses) → **pivot normalization**: the length where it crosses the true relevance curve = pivot, rotate the line around it → short documents ↓ long documents ↑
+- **tiered index**: tiers by importance (tier 1 titles, 2 body). Start at tier 1, stop once there are k. Each tier about 10x smaller than the next, most queries should finish in tier 1
+- Parts not covered yet: document cache (snippets), zone index, machine-learned ranking, proximity ranking, query parser
+- Vector space + phrases (no idf per phrase) / + Boolean `+` `-` (postfiltering, inefficient) / + wildcards: no easy answer
+
+## Step 6. Get the top k while filling less of the table (ch7 7.4, announced)
+
+**With 20 billion documents the full table cannot be built. Create fewer rows, fill fewer cells, stop early**
+
+- **tf in postings**: (docID, tf), tf as an **integer** (real-valued weights are hard to compress)
+- **min heap**: parent &lt; children, root = smallest of the top k. New sum s ≤ root → drop, s > root → replace the root, O(log k). Overall O(N log k). Keeps the top k without sorting
+- Two orders for filling the table
+  - **document-at-a-time**: **finish one row → next row**. Row 1 final at 3, row 5 final at 1 …. Requires every postings list in **the same order** (docID or PageRank) to pick "the smallest document now"
+  - **term-at-a-time**: **finish one column → next column**. Fill the whole Brutus column (1, 7, 83, 87), then Caesar. Sums are final only after the last column. One **accumulator** per document. Postings order may differ per term = CosineScore
+- **PageRank order + early termination**: net-score = g(d) + cos. Postings sorted by g descending. Now g &lt; 0.1, smallest top-k score 1.2, cos ≤ 1 → the rest score at most 1.1 &lt; 1.2 → **stop**
+- **weight-sorted postings (slide 51)**: postings sorted by weight (normalized tf-idf) descending → the top k cluster near the front → stopping early barely changes the top k. Cost: order differs per term → document-at-a-time **impossible** → **term-at-a-time only**
+- **accumulators**: rows only for documents that appear in a query term's postings = documents with sum 0 get no row at all. Running example **7** (1 5 7 13 17 83 87), 1 gets added twice
+- **conjunctive (AND)**: rows only for documents containing every query term → only **row 1**, where both columns are filled. Google's default. Stop words are dropped in preprocessing, or barely filter anything if kept
+
+## Underneath A. How the postings were built (ch4)
+
+**Collect (term, docID) pairs, sort by term → group by term. What if it does not fit in memory?**
+
+- Hardware: memory about 10x faster than disk, **seeks are by far the most expensive** (5 ms = 250,000 bytes), block I/O, fault tolerance is expensive → many ordinary machines
+- **RCV1**: N 800,000 / L 200 / M 400,000 / T 100 million. Average occurrences per term 160M / 400K = **400**, positional postings = number of tokens, 160 million
+- **BSBI**: 12-byte postings (termID 4 + docID 4 + frequency 4), blocks of 10 million (120 MB) → 10 blocks. Sort each block in memory → disk → **merge** (compare heads, by term then docID). Problem: the term → termID dictionary must stay in memory
+- **SPIMI**: **a new hash dictionary per block**, **no sorting** (append to lists as tokens arrive, double when full), when memory fills **sort only the terms** and write to disk. Merging is the same
+
+|            | BSBI                  | SPIMI                   |
+| ---------- | --------------------- | ----------------------- |
+| Dictionary | one termID dictionary | new hash per block      |
+| Postings   | (termID, docID) pairs | appended per term       |
+| Sorting    | all pairs             | terms only (on writing) |
+
+- Failures: probability all 1000 machines are up 0.999¹⁰⁰⁰ ≈ **0.37**. 1 million machines failing once every 3 years → 1,576,800 / 10⁶ = **one every 1.6 minutes**
+- **MapReduce**: master (assumed safe) hands out splits → **parser (map)**: (term, docID) into segment files by range (a-f, g-p, q-z) → **inverter (reduce)**: gathers one range, sorts → postings. map input → list(k, v), reduce (k, list(v)) → output. k = termID, v = docID
+- Example: d1 `C came, C c'ed.` d2 `C died.` → map (C,d2)(died,d2)(C,d1)(came,d1)(C,d1)(c'ed,d1) → reduce C → (d1:2, d2:1), died (d2:1), came (d1:1), c'ed (d1:1)
+- **term-partitioned** vs **document-partitioned** (send to every machine and merge results; no long postings moved, no hot spots)
+- **Dynamic**: main (disk) + aux (memory). Deletions via an invalidation bit vector. Every merge rewrites main → a + 2a + … + na = **O(T²)**
+- **Logarithmic merge**: Z0(n) → I0(n) I1(2n) I2(4n) …. When Z0 fills, store in I0 if empty, otherwise merge and carry up. **k-th fill = k in binary** (4th 100 → I2, 6th 110 → I2 I1). O(log T) indexes, cost **O(T log T)**
+
+## Underneath B. Making the dictionary and postings small (ch5)
+
+**Dictionary small enough for memory, postings as gaps + variable-length codes**
+
+- lossy (lowercasing, stop words, stemming = preprocessing) vs **lossless** (index compression)
+- Effect of preprocessing: case folding and stemming shrink only non-positional (The+the postings merge, tokens stay), stop words shrink positional far more (dozens per document). Dropping stop words barely shrinks the dictionary
+- **Heaps** M = k · T^b, b ≈ 0.5. Exercise: 10,000 → 3,000, 1,000,000 → 30,000 → 10 = 100^b → **b 0.5**, k = 3,000/100 = **30**. T = 2×10¹⁰ × 200 = 4×10¹² → M = 30 × 2×10⁶ = **60 million**
+- **Zipf** cf_i ∝ 1/i, slope −1 on log-log. A few frequent terms, a huge number of rare ones
+- Dictionary (M 400,000):
+
+| Method                   | Calculation               | Size    |
+| ------------------------ | ------------------------- | ------- |
+| Fixed width 20+4+4       | 28 × 400K                 | 11.2 MB |
+| String + 3B term pointer | (4+4+3+8) × 400K          | 7.6 MB  |
+| + blocking k=4           | 5B saved per block × 100K | 7.1 MB  |
+| + front coding           |                           | 5.9 MB  |
+
+- 3-byte pointer: 8 × 400K = 3.2M → log₂ ≈ 21.6 &lt; 24 bits. **blocking**: one pointer per 4 terms + 1 length byte each (12 → 7), binary search to the block → linear inside. **front coding**: `8automat*a1◇e2◇ic3◇ion`
+- **gap**: 283154 283159 283202 → 283154, 5, 43. Frequent terms have small gaps. Plain docIDs need log₂ 800,000 ≈ 20 bits
+- **VB**: byte = c 1 + 7 bits, divide by 128 and fill from the back, **only the last byte has c = 1**. 824 = 6×128+56 → `00000110 10111000` / 5 → `10000101` / 130 → `00000001 10000010`. Decode n = 128n + 7 bits, done when c = 1
+- **γ** = length (unary) + offset. offset = binary with the leading 1 removed, length = number of offset bits as 1…10. 13 = 1101 → `1110,101` / 1 → `0` / 2 → `10,0` / 4 → `110,00` / 9 → `1110,001` / 24 → `11110,1000` / 130 → `11111110,0000010`. Length **2⌊log₂G⌋ + 1** (odd). prefix-free, universal, parameter-free, within 3x (2x) of optimal
+- VB byte-aligned, fast and simple, 116 MB / γ smaller at 101 MB but can be slower. matrix 40,000 / 32-bit 400 / 20-bit 250. Index = 10\~15% of the text (960)

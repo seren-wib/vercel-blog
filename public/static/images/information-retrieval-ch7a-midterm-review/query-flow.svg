@@ -1,0 +1,270 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 3942" width="1800" height="3942" font-family="Helvetica, Arial, sans-serif">
+<defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker>
+<marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8590c"/></marker>
+</defs>
+<rect width="1800" height="3942" fill="#ffffff"/>
+<text x="40" y="60" font-size="32" font-weight="700" fill="#1c3d6e"  >One query through Information Retrieval ch1-7, with every branch</text>
+<text x="40" y="98" font-size="17"  fill="#444"  >Example: "Brutus Caesars".  Orange = ranked retrieval path (exam focus: weight-sorted, slide 51).  Gray dashed = branch ends here (Boolean, no ranking).</text>
+<rect x="20" y="140" width="1760" height="468" rx="16" fill="#fdfdfd" stroke="#d0d7e2" stroke-width="1.5"/>
+<text x="50" y="182" font-size="26" font-weight="700" fill="#1c3d6e"  >STEP 1</text>
+<text x="50" y="210" font-size="17" font-weight="700" fill="#4a6a99"  >ch2</text>
+<text x="50" y="240" font-size="17"  fill="#222"  >Query text → terms</text>
+<rect x="300" y="346" width="340" height="66" rx="10" fill="#e7f0ff" stroke="#4a78c2" stroke-width="2" />
+<text x="316" y="376" font-size="15"  fill="#222"  >User types:</text>
+<text x="316" y="396" font-size="15" font-weight="700" fill="#222"  >"Brutus Caesars"</text>
+<rect x="1430" y="346" width="330" height="66" rx="10" fill="#e6f7ec" stroke="#2f9e58" stroke-width="2" />
+<text x="1446" y="376" font-size="15" font-weight="700" fill="#222"  >Terms:</text>
+<text x="1446" y="396" font-size="15"  fill="#222"  >brutus, caesar</text>
+<rect x="720" y="190" width="620" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="218" font-size="16" font-weight="700" fill="#1c3d6e"  >Case folding</text>
+<text x="736" y="238" font-size="15"  fill="#222"  >Brutus → brutus</text>
+<text x="736" y="258" font-size="15"  fill="#222"  >Caesars → caesars</text>
+<path d="M640,379 C690,379 670,233 720,233" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,233 C1380,233 1390,379 1430,379" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="720" y="294" width="620" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="322" font-size="16" font-weight="700" fill="#1c3d6e"  >Stemming (Porter, rule S → ∅)</text>
+<text x="736" y="342" font-size="15"  fill="#222"  >caesars → caesar</text>
+<text x="736" y="362" font-size="15"  fill="#222"  >lemmatization would also give caesar</text>
+<path d="M640,379 C690,379 670,337 720,337" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,337 C1380,337 1390,379 1430,379" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="720" y="398" width="620" height="66" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="426" font-size="16" font-weight="700" fill="#1c3d6e"  >Normalization / tokenization</text>
+<text x="736" y="446" font-size="15"  fill="#222"  >U.S.A. = USA, O'Neill → ?, hyphens, numbers</text>
+<path d="M640,379 C690,379 670,431 720,431" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,431 C1380,431 1390,379 1430,379" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="720" y="482" width="620" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="510" font-size="16" font-weight="700" fill="#1c3d6e"  >Stop words</text>
+<text x="736" y="530" font-size="15"  fill="#222"  >query "to be or not to be": drop or keep?</text>
+<text x="736" y="550" font-size="15"  fill="#222"  >kept today (phrase queries), idf ≈ 0 anyway</text>
+<path d="M640,379 C690,379 670,525 720,525" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,525 C1380,525 1390,379 1430,379" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="20" y="648" width="1760" height="548" rx="16" fill="#f6f8fb" stroke="#d0d7e2" stroke-width="1.5"/>
+<text x="50" y="690" font-size="26" font-weight="700" fill="#1c3d6e"  >STEP 2</text>
+<text x="50" y="718" font-size="17" font-weight="700" fill="#4a6a99"  >ch3</text>
+<text x="50" y="748" font-size="17"  fill="#222"  >Find terms in the</text>
+<text x="50" y="770" font-size="17"  fill="#222"  >dictionary</text>
+<rect x="300" y="904" width="340" height="46" rx="10" fill="#e7f0ff" stroke="#4a78c2" stroke-width="2" />
+<text x="316" y="934" font-size="15" font-weight="700" fill="#222"  >brutus, caesar</text>
+<rect x="1430" y="894" width="330" height="66" rx="10" fill="#e6f7ec" stroke="#2f9e58" stroke-width="2" />
+<text x="1446" y="924" font-size="15" font-weight="700" fill="#222"  >Postings pointers</text>
+<text x="1446" y="944" font-size="15"  fill="#222"  >for brutus, caesar</text>
+<path d="M1595,412 L1595,636 L470,636 L470,904" fill="none" stroke="#555" stroke-width="2.5" marker-end="url(#a)"/>
+<rect x="720" y="698" width="620" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="726" font-size="16" font-weight="700" fill="#1c3d6e"  >Exact term</text>
+<text x="736" y="746" font-size="15"  fill="#222"  >hash O(1)  or  B-tree O(log M)</text>
+<text x="736" y="766" font-size="15"  fill="#222"  >→ row (term 20B + df 4B + pointer 4B = 28B)</text>
+<path d="M640,927 C690,927 670,741 720,741" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,741 C1380,741 1390,927 1430,927" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="720" y="802" width="620" height="126" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="830" font-size="16" font-weight="700" fill="#1c3d6e"  >Wildcard "caes*"</text>
+<text x="736" y="850" font-size="15"  fill="#222"  >B-tree range  caes ≤ t &lt; caet</text>
+<text x="736" y="870" font-size="15"  fill="#222"  >permuterm: query → $caes*</text>
+<text x="736" y="890" font-size="15"  fill="#222"  >k-gram: $c AND ca AND ae AND es → postfilter</text>
+<text x="736" y="910" font-size="15"  fill="#222"  >→ set of terms, OR them</text>
+<path d="M640,927 C690,927 670,865 720,865" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,865 C1380,865 1390,927 1430,927" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="720" y="946" width="620" height="106" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="974" font-size="16" font-weight="700" fill="#1c3d6e"  >Typo "ceasar"</text>
+<text x="736" y="994" font-size="15"  fill="#222"  >edit distance (Levenshtein) / k-gram overlap</text>
+<text x="736" y="1014" font-size="15"  fill="#222"  >context: hit-based (one word changed at a time)</text>
+<text x="736" y="1034" font-size="15"  fill="#222"  >→ caesar</text>
+<path d="M640,927 C690,927 670,999 720,999" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,999 C1380,999 1390,927 1430,927" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="720" y="1070" width="620" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="1098" font-size="16" font-weight="700" fill="#1c3d6e"  >Sounds alike (Soundex)</text>
+<text x="736" y="1118" font-size="15"  fill="#222"  >CEASAR → C260 = CAESAR → C260</text>
+<text x="736" y="1138" font-size="15"  fill="#222"  >→ caesar</text>
+<path d="M640,927 C690,927 670,1113 720,1113" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,1113 C1380,1113 1390,927 1430,927" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="20" y="1236" width="1760" height="548" rx="16" fill="#fdfdfd" stroke="#d0d7e2" stroke-width="1.5"/>
+<text x="50" y="1278" font-size="26" font-weight="700" fill="#1c3d6e"  >STEP 3</text>
+<text x="50" y="1306" font-size="17" font-weight="700" fill="#4a6a99"  >ch1 + ch2</text>
+<text x="50" y="1336" font-size="17"  fill="#222"  >Fetch postings</text>
+<rect x="300" y="1472" width="340" height="86" rx="10" fill="#e7f0ff" stroke="#4a78c2" stroke-width="2" />
+<text x="316" y="1502" font-size="14"  fill="#222" font-family="Menlo, Consolas, monospace" >Brutus → (1,2) (7,3) (83,1) (87,2)</text>
+<text x="316" y="1522" font-size="14"  fill="#222" font-family="Menlo, Consolas, monospace" >Caesar → (1,1) (5,1) (13,1) (17,1)</text>
+<text x="316" y="1542" font-size="15"  fill="#222"  >(docID, tf)</text>
+<rect x="1430" y="1482" width="330" height="66" rx="10" fill="#e6f7ec" stroke="#2f9e58" stroke-width="2" />
+<text x="1446" y="1512" font-size="15" font-weight="700" fill="#222"  >Every doc that has</text>
+<text x="1446" y="1532" font-size="15"  fill="#222"  >brutus OR caesar, with tf</text>
+<path d="M1595,960 L1595,1224 L470,1224 L470,1472" fill="none" stroke="#555" stroke-width="2.5" marker-end="url(#a)"/>
+<rect x="720" y="1286" width="620" height="126" rx="10" fill="#f1f1f1" stroke="#999" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="736" y="1314" font-size="16" font-weight="700" fill="#1c3d6e"  >Boolean AND</text>
+<text x="736" y="1334" font-size="15"  fill="#222"  >Intersect: equal → add, else move smaller</text>
+<text x="736" y="1354" font-size="15"  fill="#222"  >several ANDs: smallest df first, stop if empty</text>
+<text x="736" y="1374" font-size="15"  fill="#222"  >skip pointers (√P), jump if target ≤ other</text>
+<text x="736" y="1394" font-size="15"  fill="#222"  >→ {1}  unordered set. STOP</text>
+<path d="M640,1515 C690,1515 670,1349 720,1349" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="1354" y="1354" font-size="14" font-weight="700" fill="#888"  >END</text>
+<rect x="720" y="1430" width="620" height="106" rx="10" fill="#f1f1f1" stroke="#999" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="736" y="1458" font-size="16" font-weight="700" fill="#1c3d6e"  >Phrase "brutus caesar"</text>
+<text x="736" y="1478" font-size="15"  fill="#222"  >biword: term "brutus caesar" (false pos., blowup)</text>
+<text x="736" y="1498" font-size="15"  fill="#222"  >positional: docID ∩, then pos(caesar) = pos(brutus)+1</text>
+<text x="736" y="1518" font-size="15"  fill="#222"  >→ matching docs. STOP</text>
+<path d="M640,1515 C690,1515 670,1483 720,1483" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="1354" y="1488" font-size="14" font-weight="700" fill="#888"  >END</text>
+<rect x="720" y="1554" width="620" height="86" rx="10" fill="#f1f1f1" stroke="#999" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="736" y="1582" font-size="16" font-weight="700" fill="#1c3d6e"  >Proximity  brutus /3 caesar</text>
+<text x="736" y="1602" font-size="15"  fill="#222"  >PositionalIntersect: same doc, |pos diff| ≤ 3</text>
+<text x="736" y="1622" font-size="15"  fill="#222"  >returns positions too (snippets). STOP</text>
+<path d="M640,1515 C690,1515 670,1597 720,1597" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="1354" y="1602" font-size="14" font-weight="700" fill="#888"  >END</text>
+<rect x="720" y="1658" width="620" height="86" rx="10" fill="#fff1e6" stroke="#e8590c" stroke-width="2" />
+<text x="736" y="1686" font-size="16" font-weight="700" fill="#c2410c"  >Ranked (free text query)</text>
+<text x="736" y="1706" font-size="15"  fill="#222"  >do not intersect, keep every posting with tf</text>
+<text x="736" y="1726" font-size="15"  fill="#222"  >avoids feast or famine → go to STEP 4</text>
+<path d="M640,1515 C690,1515 670,1701 720,1701" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<path d="M1340,1701 C1380,1701 1390,1515 1430,1515" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<rect x="20" y="1824" width="1760" height="488" rx="16" fill="#f6f8fb" stroke="#d0d7e2" stroke-width="1.5"/>
+<text x="50" y="1866" font-size="26" font-weight="700" fill="#1c3d6e"  >STEP 4</text>
+<text x="50" y="1894" font-size="17" font-weight="700" fill="#4a6a99"  >ch6</text>
+<text x="50" y="1924" font-size="17"  fill="#222"  >Score every</text>
+<text x="50" y="1946" font-size="17"  fill="#222"  >document</text>
+<rect x="300" y="2040" width="340" height="66" rx="10" fill="#e7f0ff" stroke="#4a78c2" stroke-width="2" />
+<text x="316" y="2070" font-size="15"  fill="#222"  >rows = docs, columns = terms</text>
+<text x="316" y="2090" font-size="15" font-weight="700" fill="#222"  >cell = weight, sum = score</text>
+<rect x="1430" y="2030" width="330" height="86" rx="10" fill="#e6f7ec" stroke="#2f9e58" stroke-width="2" />
+<text x="1446" y="2060" font-size="15" font-weight="700" fill="#222"  >Score per doc</text>
+<text x="1446" y="2080" font-size="15"  fill="#222" font-family="Menlo, Consolas, monospace" >1: 3   7: 3   87: 2</text>
+<text x="1446" y="2100" font-size="15"  fill="#222" font-family="Menlo, Consolas, monospace" >5, 13, 17, 83: 1</text>
+<path d="M1595,1548 L1595,1812 L470,1812 L470,2040" fill="none" stroke="#555" stroke-width="2.5" marker-end="url(#a)"/>
+<rect x="720" y="1874" width="620" height="66" rx="10" fill="#f1f1f1" stroke="#999" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="736" y="1902" font-size="16" font-weight="700" fill="#1c3d6e"  >Jaccard (dropped)</text>
+<text x="736" y="1922" font-size="15"  fill="#222"  >|A ∩ B| / |A ∪ B|, ignores tf and rare terms</text>
+<path d="M640,2073 C690,2073 670,1907 720,1907" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="1354" y="1912" font-size="14" font-weight="700" fill="#888"  >END</text>
+<rect x="720" y="1958" width="620" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="1986" font-size="16" font-weight="700" fill="#1c3d6e"  >Raw tf sum</text>
+<text x="736" y="2006" font-size="15"  fill="#222"  >1: 2+1=3   7: 3   87: 2</text>
+<text x="736" y="2026" font-size="15"  fill="#222"  >5, 13, 17, 83: 1</text>
+<path d="M640,2073 C690,2073 670,2001 720,2001" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,2001 C1380,2001 1390,2073 1430,2073" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="720" y="2062" width="620" height="86" rx="10" fill="#fff1e6" stroke="#e8590c" stroke-width="2" />
+<text x="736" y="2090" font-size="16" font-weight="700" fill="#c2410c"  >tf-idf</text>
+<text x="736" y="2110" font-size="15"  fill="#222"  >w = (1 + log tf) × log(N / df)</text>
+<text x="736" y="2130" font-size="15"  fill="#222"  >tf 2 → 1.3, df 100 of 10^6 → idf 4</text>
+<path d="M640,2073 C690,2073 670,2105 720,2105" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<path d="M1340,2105 C1380,2105 1390,2073 1430,2073" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<rect x="720" y="2166" width="620" height="106" rx="10" fill="#fff1e6" stroke="#e8590c" stroke-width="2" />
+<text x="736" y="2194" font-size="16" font-weight="700" fill="#c2410c"  >Cosine, SMART lnc.ltn</text>
+<text x="736" y="2214" font-size="15"  fill="#222"  >doc: l n c (log tf, no idf, cosine)</text>
+<text x="736" y="2234" font-size="15"  fill="#222"  >query: l t n (log tf, idf, no norm)</text>
+<text x="736" y="2254" font-size="15"  fill="#222"  >score = Σ w(t,q) × w(t,d)  (e.g. 3.08)</text>
+<path d="M640,2073 C690,2073 670,2219 720,2219" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<path d="M1340,2219 C1380,2219 1390,2073 1430,2073" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<rect x="20" y="2352" width="1760" height="364" rx="16" fill="#fdfdfd" stroke="#d0d7e2" stroke-width="1.5"/>
+<text x="50" y="2394" font-size="26" font-weight="700" fill="#1c3d6e"  >STEP 5</text>
+<text x="50" y="2422" font-size="17" font-weight="700" fill="#4a6a99"  >ch7 7.1-7.3</text>
+<text x="50" y="2452" font-size="17"  fill="#222"  >Rank and cut to</text>
+<text x="50" y="2474" font-size="17"  fill="#222"  >top k</text>
+<rect x="300" y="2506" width="340" height="66" rx="10" fill="#e7f0ff" stroke="#4a78c2" stroke-width="2" />
+<text x="316" y="2536" font-size="15"  fill="#222"  >Scores</text>
+<text x="316" y="2556" font-size="15" font-weight="700" fill="#222"  >(user reads only the top few)</text>
+<rect x="1430" y="2506" width="330" height="66" rx="10" fill="#e6f7ec" stroke="#2f9e58" stroke-width="2" />
+<text x="1446" y="2536" font-size="15" font-weight="700" fill="#222"  >Top 3:</text>
+<text x="1446" y="2556" font-size="15"  fill="#222"  >1, 7, 87</text>
+<path d="M1595,2116 L1595,2340 L470,2340 L470,2506" fill="none" stroke="#555" stroke-width="2.5" marker-end="url(#a)"/>
+<rect x="720" y="2402" width="620" height="66" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="2430" font-size="16" font-weight="700" fill="#1c3d6e"  >Plain</text>
+<text x="736" y="2450" font-size="15"  fill="#222"  >sort all scores, take top k</text>
+<path d="M640,2539 C690,2539 670,2435 720,2435" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,2435 C1380,2435 1390,2539 1430,2539" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="720" y="2486" width="620" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="2514" font-size="16" font-weight="700" fill="#1c3d6e"  >Pivot normalization</text>
+<text x="736" y="2534" font-size="15"  fill="#222"  >cosine favors short docs</text>
+<text x="736" y="2554" font-size="15"  fill="#222"  >rotate around pivot: short ↓  long ↑</text>
+<path d="M640,2539 C690,2539 670,2529 720,2529" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,2529 C1380,2529 1390,2539 1430,2539" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="720" y="2590" width="620" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="2618" font-size="16" font-weight="700" fill="#1c3d6e"  >Tiered index</text>
+<text x="736" y="2638" font-size="15"  fill="#222"  >tier 1 (titles) first, stop at k results</text>
+<text x="736" y="2658" font-size="15"  fill="#222"  >not enough → tier 2, tier 3</text>
+<path d="M640,2539 C690,2539 670,2633 720,2633" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,2633 C1380,2633 1390,2539 1430,2539" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="20" y="2756" width="1760" height="528" rx="16" fill="#f6f8fb" stroke="#d0d7e2" stroke-width="1.5"/>
+<text x="50" y="2798" font-size="26" font-weight="700" fill="#1c3d6e"  >STEP 6</text>
+<text x="50" y="2826" font-size="17" font-weight="700" fill="#4a6a99"  >ch7 7.4</text>
+<text x="50" y="2856" font-size="17"  fill="#222"  >Same top k, less</text>
+<text x="50" y="2878" font-size="17"  fill="#222"  >work</text>
+<rect x="300" y="2992" width="340" height="66" rx="10" fill="#e7f0ff" stroke="#4a78c2" stroke-width="2" />
+<text x="316" y="3022" font-size="15"  fill="#222"  >Too many docs (2×10^10)</text>
+<text x="316" y="3042" font-size="15" font-weight="700" fill="#222"  >to fill the whole table</text>
+<rect x="1430" y="2992" width="330" height="66" rx="10" fill="#e6f7ec" stroke="#2f9e58" stroke-width="2" />
+<text x="1446" y="3022" font-size="15" font-weight="700" fill="#222"  >Top k</text>
+<text x="1446" y="3042" font-size="15"  fill="#222"  >returned to the user</text>
+<path d="M1595,2572 L1595,2744 L470,2744 L470,2992" fill="none" stroke="#555" stroke-width="2.5" marker-end="url(#a)"/>
+<rect x="720" y="2806" width="620" height="106" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="2834" font-size="16" font-weight="700" fill="#1c3d6e"  >Postings in docID order</text>
+<text x="736" y="2854" font-size="15"  fill="#222"  >document-at-a-time: finish row 1, then row 5, 7 ...</text>
+<text x="736" y="2874" font-size="15"  fill="#222"  >each finished score → min heap (size k)</text>
+<text x="736" y="2894" font-size="15"  fill="#222"  >s ≤ root: drop, s &gt; root: replace, O(log k)</text>
+<path d="M640,3025 C690,3025 670,2859 720,2859" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,2859 C1380,2859 1390,3025 1430,3025" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="720" y="2930" width="620" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="2958" font-size="16" font-weight="700" fill="#1c3d6e"  >Postings in PageRank g(d) order</text>
+<text x="736" y="2978" font-size="15"  fill="#222"  >document-at-a-time + early termination</text>
+<text x="736" y="2998" font-size="15"  fill="#222"  >g &lt; 0.1, top-k min 1.2: 0.1 + 1 = 1.1 &lt; 1.2 → stop</text>
+<path d="M640,3025 C690,3025 670,2973 720,2973" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,2973 C1380,2973 1390,3025 1430,3025" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="720" y="3034" width="620" height="106" rx="10" fill="#fff1e6" stroke="#e8590c" stroke-width="2" />
+<text x="736" y="3062" font-size="16" font-weight="700" fill="#c2410c"  >Weight-sorted postings (slide 51)</text>
+<text x="736" y="3082" font-size="15"  fill="#222"  >order differs per term → DAAT impossible</text>
+<text x="736" y="3102" font-size="15"  fill="#222"  >term-at-a-time only: Brutus column, then Caesar</text>
+<text x="736" y="3122" font-size="15"  fill="#222"  >stop early, top k barely changes</text>
+<path d="M640,3025 C690,3025 670,3087 720,3087" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<path d="M1340,3087 C1380,3087 1390,3025 1430,3025" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#h)"/>
+<rect x="720" y="3158" width="620" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="3186" font-size="16" font-weight="700" fill="#1c3d6e"  >Accumulators (term-at-a-time)</text>
+<text x="736" y="3206" font-size="15"  fill="#222"  >any query term (OR): 1 5 7 13 17 83 87 = 7</text>
+<text x="736" y="3226" font-size="15"  fill="#222"  >conjunctive (all terms, AND): only 1</text>
+<path d="M640,3025 C690,3025 670,3201 720,3201" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,3201 C1380,3201 1390,3025 1430,3025" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="20" y="3324" width="1760" height="508" rx="16" fill="#fdfdfd" stroke="#d0d7e2" stroke-width="1.5"/>
+<text x="50" y="3366" font-size="26" font-weight="700" fill="#1c3d6e"  >STEP 7</text>
+<text x="50" y="3394" font-size="17" font-weight="700" fill="#4a6a99"  >ch4 + ch5</text>
+<text x="50" y="3424" font-size="17"  fill="#222"  >Underneath: the</text>
+<text x="50" y="3446" font-size="17"  fill="#222"  >index itself</text>
+<rect x="300" y="3550" width="340" height="66" rx="10" fill="#e7f0ff" stroke="#4a78c2" stroke-width="2" />
+<text x="316" y="3580" font-size="15"  fill="#222"  >Built before</text>
+<text x="316" y="3600" font-size="15" font-weight="700" fill="#222"  >any query arrives</text>
+<rect x="1430" y="3550" width="330" height="66" rx="10" fill="#e6f7ec" stroke="#2f9e58" stroke-width="2" />
+<text x="1446" y="3580" font-size="15" font-weight="700" fill="#222"  >Dictionary + postings</text>
+<text x="1446" y="3600" font-size="15"  fill="#222"  >used by STEP 2 and 3</text>
+<path d="M1595,3058 L1595,3312 L470,3312 L470,3550" fill="none" stroke="#555" stroke-width="2.5" marker-end="url(#a)"/>
+<rect x="720" y="3374" width="620" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="3402" font-size="16" font-weight="700" fill="#1c3d6e"  >Fits on one machine</text>
+<text x="736" y="3422" font-size="15"  fill="#222"  >BSBI: (termID, docID) pairs, sort each block, merge</text>
+<text x="736" y="3442" font-size="15"  fill="#222"  >SPIMI: hash dictionary per block, no sort, terms only</text>
+<path d="M640,3583 C690,3583 670,3417 720,3417" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,3417 C1380,3417 1390,3583 1430,3583" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="720" y="3478" width="620" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="3506" font-size="16" font-weight="700" fill="#1c3d6e"  >Web scale</text>
+<text x="736" y="3526" font-size="15"  fill="#222"  >MapReduce: master → parsers (map, a-f g-p q-z)</text>
+<text x="736" y="3546" font-size="15"  fill="#222"  >→ inverters (reduce, one range each)</text>
+<path d="M640,3583 C690,3583 670,3521 720,3521" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,3521 C1380,3521 1390,3583 1430,3583" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="720" y="3582" width="620" height="86" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="3610" font-size="16" font-weight="700" fill="#1c3d6e"  >Documents keep changing</text>
+<text x="736" y="3630" font-size="15"  fill="#222"  >main + aux: O(T²)</text>
+<text x="736" y="3650" font-size="15"  fill="#222"  >logarithmic merge: k-th fill = k in binary, O(T log T)</text>
+<path d="M640,3583 C690,3583 670,3625 720,3625" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,3625 C1380,3625 1390,3583 1430,3583" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="720" y="3686" width="620" height="106" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="736" y="3714" font-size="16" font-weight="700" fill="#1c3d6e"  >Stored small</text>
+<text x="736" y="3734" font-size="15"  fill="#222"  >dict: 11.2 → 7.6 (string) → 7.1 (blocking) → 5.9 MB</text>
+<text x="736" y="3754" font-size="15"  fill="#222"  >postings: gaps, VB 824 = 00000110 10111000</text>
+<text x="736" y="3774" font-size="15"  fill="#222"  >γ 13 = 1110,101   Heaps M = k·T^b, Zipf cf ∝ 1/i</text>
+<path d="M640,3583 C690,3583 670,3739 720,3739" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1340,3739 C1380,3739 1390,3583 1430,3583" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<rect x="40" y="3882" width="30" height="24" rx="10" fill="#e7f0ff" stroke="#4a78c2" stroke-width="2" />
+<text x="80" y="3900" font-size="15"  fill="#222"  >input of the step</text>
+<rect x="260" y="3882" width="30" height="24" rx="10" fill="#ffffff" stroke="#7a8aa6" stroke-width="2" />
+<text x="300" y="3900" font-size="15"  fill="#222"  >branch / variation</text>
+<rect x="480" y="3882" width="30" height="24" rx="10" fill="#fff1e6" stroke="#e8590c" stroke-width="2" />
+<text x="520" y="3900" font-size="15"  fill="#222"  >ranked path, exam focus</text>
+<rect x="740" y="3882" width="30" height="24" rx="10" fill="#f1f1f1" stroke="#999" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="780" y="3900" font-size="15"  fill="#222"  >ends here (Boolean)</text>
+<rect x="970" y="3882" width="30" height="24" rx="10" fill="#e6f7ec" stroke="#2f9e58" stroke-width="2" />
+<text x="1010" y="3900" font-size="15"  fill="#222"  >output → next step</text>
+</svg>

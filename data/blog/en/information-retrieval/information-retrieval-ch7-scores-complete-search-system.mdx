@@ -1,0 +1,171 @@
+---
+title: 'CH7. Scores in a Complete Search System'
+date: '2026-10-27'
+tags: ['Information Retrieval']
+draft: false
+summary: 'Why ranking matters, eye-tracking studies, clicks on rank 1, the problem with cosine normalization, pivot normalization, tiered indexes, components of a search system, phrase, Boolean and wildcard queries with vector space retrieval, storing tf in postings, selecting the top k with a min heap, kNN, PageRank-ordered postings and early termination, document-at-a-time, term-at-a-time, weight-sorted postings, accumulators, conjunctive retrieval'
+---
+
+# 7. Scores in a complete search system
+
+## 7.1 Why rank?
+
+**Why does ranking matter so much → users only look at the top few results**
+
+1. Why ranking matters (continued from [ch6 6.1](/en/blog/information-retrieval/information-retrieval-ch6-scoring-term-weighting-vector-space/#61-why-ranked-retrieval))
+   - Users want to see a few results, not thousands
+   - Writing a query that returns only a few results is hard, even for experts
+   - **Ranking = shrinking a large result set down to a very small one** (you only need to look at the top few)
+
+2. Confirmed by experiment (Dan Russell at Google, 2007)
+   - Observe people searching in a controlled setting: recording, think aloud, interviews, eye-tracking, timing, counting clicks
+
+3. Results
+   - **Reading snippets**: snippets at ranks 1\~4 are read far more than ranks 7\~10
+   - **Clicks**: skewed even more toward the top than reading
+   - **1 in 2 clicks goes to rank 1**, and 30% still click rank 1 even when it is not relevant
+   - Conclusion: getting the ranking right matters, and **getting rank 1 right matters most**
+
+4. Exercise: why ranking is a barrier to entry for new search engines
+   - Good ranking needs lots of user click and query logs → incumbents with many users keep getting better → newcomers find it hard to catch up
+
+## 7.2 More on cosine
+
+**Normalizing length with cosine favors short documents → correct it with pivot normalization**
+
+1. Why cosine instead of distance (review of [ch6 6.4](/en/blog/information-retrieval/information-retrieval-ch6-scoring-term-weighting-vector-space/#64-the-vector-space-model))
+   - q [rich poor], d2 "Rich poor gap grows" → the word distribution is almost the same, but the Euclidean distance is large
+   - So length normalization = score with cosine
+
+2. Exercise: the problem with cosine normalization
+   - q "anti-doping rules Beijing 2008 olympics"
+   - d1 = short document on 2008 Olympics doping rules / d2 = d1 + 5 unrelated articles (long document) / d3 = short document on doping at the 2004 Athens Olympics
+   - Cosine penalizes the long d2 (its score is lower even though it contains all of d1) → it can even fall behind d3
+
+3. Pivot normalization
+   - **On average, cosine normalization gives weights that are too large for short documents and too small for long ones**
+   - Graph: x = document length, y = probability of relevance. The real probability is higher for longer documents, but the probability cosine predicts is lower than that → the length where the two lines cross = **pivot**
+   - Correction: rotate the normalization line around the pivot (linear adjustment)
+   - Effect: **short document scores ↓, long document scores ↑** → removes the unfair advantage of short documents
+   - Amit Singhal's experiments: pivot normalization raised the number of relevant documents found and the average precision
+
+## 7.3 The complete search system
+
+**Putting together the parts we have learned into one search system**
+
+1. Tiered index
+   - **Split the index into several tiers by importance**. Example: tier 1 = title index, tier 2 = the rest of the body (a page with the query term in its title is a better result than one with it only in the body)
+   - **Processing: start at tier 1 → stop once there are k (e.g. 100) or more results → if not enough, go to the next tier**
+   - Slide example: tier 1 = auto → Doc2 / car → Doc1, Doc3 / insurance → Doc2, Doc3, tier 2 = best → Doc1, Doc3, tier 3 = auto → Doc1 / car → Doc2
+   - Considered one of the reasons early Google (2000\~01) had better search quality than its competitors (along with PageRank, [anchor text](/en/blog/information-retrieval/information-retrieval-ch1-boolean-retrieval/#11-introduction), and proximity constraints)
+
+2. Tier design criteria (exercise)
+   - Each tier about 10 times smaller than the next
+   - For most queries the top 100 should be found in tier 1, and most of the rest in tier 2
+   - The "can we stop here?" check should be simple
+   - If you have to search almost every tier each time, splitting is pointless
+
+3. Components of a search system
+
+   | Learned so far                                                                                                                                                                                                                                                                        | Not yet covered                                                                  |
+   | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+   | [Document preprocessing (ch2)](/en/blog/information-retrieval/information-retrieval-ch2-term-vocabulary-postings/#22-terms)                                                                                                                                                           | Document cache: used to build result snippets                                    |
+   | [Positional index (ch2)](/en/blog/information-retrieval/information-retrieval-ch2-term-vocabulary-postings/#24-phrase-queries)                                                                                                                                                        | Zone index: index body, emphasized text, anchor text and metadata separately     |
+   | Tiered index (7.3)                                                                                                                                                                                                                                                                    | Machine-learned ranking functions                                                |
+   | [Spelling correction (ch3)](/en/blog/information-retrieval/information-retrieval-ch3-dictionaries-tolerant-retrieval/#34-spelling-correction)                                                                                                                                         | Proximity ranking: rank documents where query terms appear close together higher |
+   | [k-gram index for wildcards and spelling correction (ch3)](/en/blog/information-retrieval/information-retrieval-ch3-dictionaries-tolerant-retrieval/#32-wildcard-queries)                                                                                                             | Query parser                                                                     |
+   | Query processing, document scoring ([ch1](/en/blog/information-retrieval/information-retrieval-ch1-boolean-retrieval/#13-processing-boolean-queries), [ch6](/en/blog/information-retrieval/information-retrieval-ch6-scoring-term-weighting-vector-space/#64-the-vector-space-model)) |                                                                                  |
+
+4. Problems when mixing with vector space retrieval
+   - [Phrase search](/en/blog/information-retrieval/information-retrieval-ch2-term-vocabulary-postings/#24-phrase-queries) + vector space: we can't compute df and idf for every possible phrase (there are far too many phrases)
+   - Boolean + vector space: `+` (must include) / `-` (exclude) conditions → postfiltering is simple but can be very inefficient, no easy answer
+   - [Wildcard](/en/blog/information-retrieval/information-retrieval-ch3-dictionaries-tolerant-retrieval/#32-wildcard-queries) + vector space: no easy answer either
+
+## 7.4 Implementation of ranking
+
+**Making scoring fast: put tf in the postings → pick only the top k → stop early without looking at everything**
+
+1. Storing [tf](/en/blog/information-retrieval/information-retrieval-ch6-scoring-term-weighting-vector-space/#62-term-frequency) in postings
+   - Posting = (docID, tf). Example: Brutus → (1,2) (7,3) (83,1) (87,2) / Caesar → (1,1) (5,1) (13,1) (17,1) / Calpurnia → (7,1) (8,2) (40,1) (97,3)
+   - Store tf **as an integer** (real-valued log weights are hard to [compress](/en/blog/information-retrieval/information-retrieval-ch5-index-compression/#54-postings-compression)). Adds at most 1 byte per posting
+   - Positions are needed too, but left out here
+
+2. Selecting the top k: min heap
+
+   ![Min heap: the root 0.6 is the minimum of the top 7; a new score larger than the root replaces it](/static/images/information-retrieval-ch7-scores-complete-search-system/minheap.svg)
+   - We don't need the full ranking, only the top k (e.g. 100)
+   - Naive way: score all N → sort → take the first k → inefficient
+   - **Min heap**: a binary tree with parent &lt; children → root = minimum of the top k
+   - Keep the top k so far in a heap of size k. New document score s: **s ≤ root → discard / s > root → remove the root and insert s (O(log k))**
+   - Checking the root O(1), building it all O(N log k), extracting the k results at the end O(k log k)
+   - In the figure: k = 7, root 0.6. s = 0.5 is discarded; s = 0.75 pushes out 0.6 and goes in → new root 0.7
+
+3. Faster? (heuristics)
+   - Ranking itself is O(N), with N > 10¹⁰. Optimization only shrinks the constant; it is still O(N)
+   - What we are doing = the **kNN (k-nearest neighbor)** problem for the query vector. There is no general method that is both exact and faster than N (sublinear)
+   - Idea 1: sort postings by **"expected relevance"** instead of docID (items 4 and 6)
+   - Idea 2: **prune the search space** → occasionally wrong but rarely, almost constant time in practice. This needs the document-at-a-time / term-at-a-time concepts (item 5)
+
+4. PageRank-ordered postings + early termination calculation
+   - **PageRank g(d)**: a query-independent "goodness" score of a page. The more good pages link to d, the larger it is (ch21)
+   - Sort postings by g(d), largest first: g(d1) > g(d2) > g(d3) > …
+   - **net-score(q, d) = g(d) + cos(q, d)**
+   - Early termination: find the top k without reading the postings to the end
+   - Conditions: g ∈ [0, 1], current document g(d) &lt; 0.1, minimum of the top k so far = 1.2
+   - The remaining documents have g &lt; 0.1 (because they are sorted), and cos ≤ 1 → net-score &lt; 0.1 + 1 = **1.1 &lt; 1.2** → none of them can enter the top k → **stop**
+
+5. Document-at-a-time vs term-at-a-time
+
+   ![The same Brutus and Caesar postings processed by document (column) in document-at-a-time and by postings list (row) in term-at-a-time](/static/images/information-retrieval-ch7-scores-complete-search-system/daat-taat.svg)
+   - **Document-at-a-time**: finish computing the score of document d*i before starting d*(i+1)
+     - Both docID order and PageRank order give **the same order** to every postings list → this method works
+   - **Term-at-a-time**: process the entire postings list of the first query term → then the entire list of the second term → …
+     - Create one accumulator (running score slot) for each docID seen for the first time and keep adding to it
+   - In the figure: top = orange columns (documents) in order 1 → 7, a document's score is final when its column is done / bottom = blue rows (terms) in order 1 → 2, the green accumulators are final only after the last row (B + C = both Brutus and Caesar added)
+
+   |                    | Document-at-a-time                                 | Term-at-a-time                                                        |
+   | ------------------ | -------------------------------------------------- | --------------------------------------------------------------------- |
+   | Order              | Compute one document's score fully → next document | Process all postings of the first term → all postings of the second … |
+   | Condition          | All postings in the same order (docID or PageRank) | Postings order may differ per term                                    |
+   | Intermediate state | Only one document's score                          | An accumulator per document (`Scores[]` in CosineScore)               |
+   - The term-at-a-time code = [ch6 6.4 CosineScore](/en/blog/information-retrieval/information-retrieval-ch6-scoring-term-weighting-vector-space/#64-the-vector-space-model) as is. Each slot of `Scores[]` is an accumulator
+
+   ```text
+   CosineScore(q)
+    1 float Scores[N] = 0
+    2 float Length[N]
+    3 for each query term t
+    4 do calculate w(t,q) and fetch postings list for t
+    5    for each pair(d, tf(t,d)) in postings list
+    6    do Scores[d] += w(t,d) * w(t,q)
+    7 Read the array Length
+    8 for each d
+    9 do Scores[d] = Scores[d] / Length[d]
+   10 return Top k components of Scores[]
+   ```
+
+6. Weight-sorted postings
+   - Idea: don't process postings that contribute little to the final score
+   - Sort postings by **weight, largest first**. In the simplest case, [normalized tf-idf](/en/blog/information-retrieval/information-retrieval-ch6-scoring-term-weighting-vector-space/#63-tf-idf-weighting) (rare in practice: real-valued weights are hard to compress)
+   - The top k documents gather near the front → stopping without reading the tail (early termination) barely changes the top k
+   - Cost: a document's weight differs per term, so each postings list has a different order → **document-at-a-time is impossible → term-at-a-time**
+
+7. Accumulator calculation
+   - On the web (20 billion documents) the full `Scores[N]` array won't fit in memory → **create accumulators only for documents that appear in the postings**
+   - = no accumulator for documents with score 0 (documents with none of the query terms)
+   - Example: the postings in item 1 above, query [Brutus Caesar]
+
+   | Processing order | New accumulators created | Already exists, just add |
+   | ---------------- | ------------------------ | ------------------------ |
+   | Brutus postings  | 1, 7, 83, 87             |                          |
+   | Caesar postings  | 5, 13, 17                | 1                        |
+   - Union = **1, 5, 7, 13, 17, 83, 87 (7 of them)**. Nothing for 3, 8, etc. (8 is only in Calpurnia)
+
+8. Enforcing conjunctive search
+   - **Conjunctive (AND)**: look only at documents containing every query term and create accumulators only for them (Google's approach)
+   - In the example above: only d1 has both Brutus and Caesar → [intersection](/en/blog/information-retrieval/information-retrieval-ch1-boolean-retrieval/#13-processing-boolean-queries) = **only accumulator 1**
+
+9. Summary
+   - Scoring every document in the collection makes ranking very expensive
+   - But most documents score 0 for a query → lots of room to speed things up
+   - Still, there is no fast nearest-neighbor algorithm that is always exact → in practice, heuristics narrow the search space, and they mostly work well

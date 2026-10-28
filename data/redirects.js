@@ -116,6 +116,11 @@ const removedPageRedirects = [
   { source: '/:locale(kr|en)/latest', destination: '/:locale/', permanent: true },
   { source: '/blog/category', destination: '/kr/', permanent: true },
   { source: '/:locale(kr|en)/blog/category', destination: '/:locale/', permanent: true },
+  {
+    source: '/:locale(kr|en)/blog/information-retrieval/information-retrieval-ch7a-midterm-review',
+    destination: '/:locale/blog/category/information-retrieval/',
+    permanent: true,
+  },
 ]
 
 /**

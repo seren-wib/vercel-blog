@@ -154,7 +154,7 @@ export default function ListLayoutWithCategories({
           <div>
             <ul>
               {displayPosts.map((post) => {
-                const { path, date, title, summary, category } = post
+                const { path, date, title, summary, category, aiGenerated } = post
                 return (
                   <li key={path} className="py-5">
                     <article className="flex flex-col space-y-2 xl:space-y-0">
@@ -181,6 +181,11 @@ export default function ListLayoutWithCategories({
                           </div>
                         </div>
                         <div className="prose max-w-none text-gray-500 dark:text-gray-400">
+                          {aiGenerated && (
+                            <span className="mr-2 inline-block rounded border border-gray-300 px-1.5 py-0.5 align-middle text-xs font-medium text-gray-500 dark:border-gray-600 dark:text-gray-400">
+                              {dict.aiGenerated}
+                            </span>
+                          )}
                           {summary}
                         </div>
                       </div>

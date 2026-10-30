@@ -3,10 +3,10 @@ title: 'HW5. AWS 동적 자원 관리 프로그래밍'
 date: '2026-10-30'
 tags: ['Cloud Computing']
 draft: false
-summary: 'AWS EC2에 HTCondor main·worker 구성, worker AMI 생성, Python boto3로 만든 EC2 제어 프로그램(list·zones·start·regions·stop·create·reboot·images), start·stop·create에 따라 Condor Pool이 2→1→2→3→2→1대로 바뀌는 것 확인, IAM 사용자 키, Pool 비밀번호 공유, 재등록 지연·SigV4 시계 오차 문제 해결'
+summary: 'AWS EC2에 HTCondor main·worker 구성, worker AMI 생성, Python boto3로 만든 EC2 제어 프로그램(list·zones·start·regions·stop·create·reboot·images), start·stop·create에 따라 Condor Pool이 2→1→2→3→2→1대로 바뀌는 것 확인, IAM 사용자 키, Pool 비밀번호 공유, 재등록 지연·SigV4 시계 오차 문제 해결, 8·9장 연습문제(AMI 종류, 인스턴스 타입, 툴에서 condor_status 실행, 국내 클라우드 가상머신 API)'
 ---
 
-HW4까지는 맥 안의 VM으로 HTCondor 클러스터를 만들었다. 이번엔 교재 9장대로 클러스터를 AWS EC2로 옮겼다. main과 worker 인스턴스를 만들고, worker를 머신 이미지(AMI)로 떠 둔 다음, Ubuntu 호스트에서 SDK 프로그램으로 인스턴스를 시작·중지·생성하면 Condor Pool의 노드 수가 따라 바뀌는지 확인했다. 교재는 Java SDK를 쓰지만 과제에서 다른 언어 SDK를 허용해서 Python boto3로 작성했다.
+HW4까지는 맥 안의 VM으로 HTCondor 클러스터를 만들었다. 이번엔 교재 9장대로 클러스터를 AWS EC2로 옮겼다. main과 worker 인스턴스를 만들고, worker를 머신 이미지(AMI)로 떠 둔 다음, Ubuntu 호스트에서 SDK 프로그램으로 인스턴스를 시작·중지·생성하면 Condor Pool의 노드 수가 따라 바뀌는지 확인했다. 교재는 Java SDK를 쓰지만 과제에서 다른 언어 SDK를 허용해서 Python boto3로 작성했다. 뒤쪽에는 8·9장 연습문제 답을 정리했다.
 
 # 0. 실습 환경
 
@@ -584,3 +584,127 @@ _SSH 끊김 → 재접속, uptime 1분, condor_status 정상_
 | Ch9 74 | `apt install openjdk-8-jdk` 뒤 `java -version`이 25.0.3                 | 8을 설치했지만 기본 JDK가 25로 남은 화면. JDK를 쓰려면 `update-alternatives`로 골라야 함 |
 | Ch9 16 | `dnf install -y condor` 다음 프롬프트가 ip-172-31-20-99                 | main은 ip-172-31-17-242. 다른 인스턴스 화면이 섞임                                       |
 | Ch9 26 | worker 프롬프트 `[rocky@172-31-19-71 ~]`, 출력에 Rocky Linux 9 - BaseOS | `ip-` 누락, Rocky 10 이미지인데 9 저장소 출력                                            |
+
+# 6. 연습문제
+
+## Ch8-9. AWS에서 제공하는 다양한 AMI
+
+> 아마존 AWS에서 제공하는 다양한 AMI에 대해서 조사하고 특징을 설명하라.
+
+AMI(Amazon Machine Image)는 인스턴스를 띄울 때 쓰는 템플릿으로, 루트 볼륨의 스냅샷(OS와 설치된 소프트웨어), 시작 권한(누가 이 AMI를 쓸 수 있는지), 인스턴스에 붙일 볼륨 매핑 정보로 이루어진다. 같은 AMI로 여러 인스턴스를 띄우면 모두 같은 상태로 시작하므로, 이번 실습에서 HTCondor가 설치된 worker를 AMI로 만들어 두고 메뉴 6(create instance)으로 똑같은 worker를 하나 더 띄울 수 있었다. AMI는 누가 만들어 어디에 공개했는지에 따라 다음 네 가지로 나뉜다.
+
+| 구분                       | 내용 / 예                                                                                                                                       | 특징                                                                                                                                                                                                                                                                     |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Quick Start AMI (AWS 제공) | Amazon Linux 2023, Ubuntu, Red Hat Enterprise Linux, SUSE, Debian, Windows Server, macOS 등. 콘솔 인스턴스 시작 화면 첫 탭                      | AWS나 OS 배포처가 검증해 정기적으로 보안 패치판을 올림. Amazon Linux는 AWS CLI·SSM 에이전트가 미리 들어 있고 추가 요금이 없음. Windows·RHEL 등 상용 OS는 라이선스 비용이 시간당 요금에 포함됨                                                                            |
+| AWS Marketplace AMI        | 소프트웨어 회사가 OS에 자기 제품(방화벽, DB, 보안 솔루션 등)을 설치·설정해 판매하는 AMI. Rocky Linux·CIS 하드닝 이미지도 여기 있음              | 사용 전에 구독(약관 동의)이 필요하고, 유료 제품은 인스턴스 요금에 소프트웨어 요금이 더해짐. 설치·설정 없이 바로 제품을 쓸 수 있음                                                                                                                                        |
+| Community AMI (공개 AMI)   | 누구나 공개로 올린 AMI. 이번 실습의 `Rocky-10-EC2-Base-10.2-20260525.0.x86_64`(ami-0e86f920feb0e6b17)는 Rocky 공식 계정(792107900819)이 올린 것 | 구독 절차 없이 ID만 지정하면 바로 쓸 수 있음. 대신 아무나 올릴 수 있으므로 소유자 계정이 공식 배포처인지 반드시 확인해야 함(악성 코드가 심긴 AMI가 섞여 있을 수 있음)                                                                                                    |
+| My AMI (직접 만든 AMI)     | 실행 중이거나 중지된 내 인스턴스로 만든 AMI. 이번 실습의 aws-htcondor-worker(ami-055e133532793acd2)                                             | 기본은 비공개이고 특정 계정에만 공유하거나 공개로 바꿀 수 있음. 설정이 끝난 상태를 그대로 복제하므로 같은 노드를 빠르게 늘리는 데(오토 스케일링, 이번 create instance) 씀. AMI가 참조하는 EBS 스냅샷 저장 비용이 계속 나가므로 다 쓰면 등록 해제와 스냅샷 삭제를 해야 함 |
+
+그 밖에 특정 용도로 미리 맞춰 둔 AMI도 있다. 딥러닝 프레임워크와 GPU 드라이버를 넣은 Deep Learning AMI, 컨테이너 서비스용으로 Docker·에이전트를 넣은 ECS/EKS 최적화 AMI, 컨테이너 실행만을 위한 최소 OS인 Bottlerocket 등이다.
+
+AMI를 고를 때는 다음 속성을 함께 확인해야 한다.
+
+- **아키텍처**: x86_64(Intel·AMD) 또는 arm64(AWS Graviton). 인스턴스 타입과 맞아야 한다. 이번에는 t3.small을 쓰려고 x86_64 Rocky AMI를 골랐다(호스트 Ubuntu가 aarch64인 것과는 상관없음).
+- **루트 디바이스 유형**: EBS 기반은 중지(stop)·시작이 가능하고 디스크 내용이 남는다. 인스턴스 스토어 기반은 중지할 수 없고 종료하면 데이터가 사라진다. 지금은 대부분 EBS 기반이다.
+- **가상화 유형·부팅 모드**: 현재 세대 인스턴스는 HVM만 지원하며, 부팅 모드는 Legacy BIOS·UEFI 중 인스턴스 타입이 지원하는 것이어야 한다.
+- **리전**: AMI는 리전마다 따로 있고 ID도 다르다. 같은 Rocky 10.2라도 서울 리전의 ID를 써야 하며, 다른 리전에서 쓰려면 AMI를 복사(copy-image)해야 한다.
+
+## Ch8-13. AWS 인스턴스 타입의 종류와 특징
+
+> AWS에서 제공하는 인스턴스 타입(예: t3.nano)은 어떤 것이 있고 특징은 무엇인지 설명하라.
+
+인스턴스 타입은 인스턴스에 할당되는 vCPU 수, 메모리, 스토리지, 네트워크 성능의 조합이다. 이름은 `패밀리 + 세대 + (추가 속성) . 크기` 형식이다. 예를 들어 t3.nano는 T 패밀리(버스트형 범용) 3세대의 nano 크기이고, c7gn.xlarge는 C 패밀리(컴퓨팅 최적화) 7세대, g(Graviton 프로세서), n(네트워크 강화)의 xlarge 크기다. 숫자가 클수록 최신 세대로, 같은 가격에 성능이 더 좋다.
+
+| 분류            | 대표 패밀리              | 특징·용도                                                                                                                                                                                                             |
+| --------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 범용            | T, M, Mac                | CPU·메모리 균형(vCPU 1개당 메모리 약 4GiB). M은 웹 서버, 중소 규모 DB 등 일반 작업. T는 평소엔 기준 성능 아래로 쓰다가 필요할 때 CPU를 순간적으로 끌어올리는 버스트형으로 가장 저렴함. Mac은 macOS 실행용 전용 호스트 |
+| 컴퓨팅 최적화   | C                        | vCPU 대비 메모리가 적음(약 2GiB). 배치 처리, 과학 계산, 동영상 인코딩, 게임 서버처럼 CPU를 오래 많이 쓰는 작업. HTCondor 작업 노드로 쓰기 좋음                                                                        |
+| 메모리 최적화   | R, X, z, u-(High Memory) | vCPU 대비 메모리가 큼(R 약 8GiB, X 약 16GiB 이상). 인메모리 DB(Redis, SAP HANA), 대용량 분석. z는 높은 클럭 주파수                                                                                                    |
+| 가속 컴퓨팅     | P, G, Inf, Trn, F        | GPU(P: 머신러닝 학습·HPC, G: 그래픽·추론), AWS 자체 칩(Inferentia: 추론, Trainium: 학습), FPGA(F) 장착. 가장 비쌈                                                                                                     |
+| 스토리지 최적화 | I, D, H                  | 인스턴스에 직접 붙은 로컬 NVMe SSD·HDD로 디스크 입출력이 매우 빠름. NoSQL DB, 데이터 웨어하우스, 분산 파일 시스템                                                                                                     |
+| HPC 최적화      | Hpc                      | 고성능 컴퓨팅용. 노드 간 저지연 네트워크(EFA)를 갖춰 대규모 병렬 계산에 맞음                                                                                                                                          |
+
+이름 중간의 추가 속성은 다음과 같다: g AWS Graviton(Arm) 프로세서, a AMD 프로세서, i Intel 프로세서, d 로컬 NVMe 스토리지 포함, n 네트워크 대역폭 강화, e 메모리·스토리지 추가, flex 가격을 낮춘 유연형. 크기는 nano &lt; micro &lt; small &lt; medium &lt; large &lt; xlarge &lt; 2xlarge … 순으로 커지며, 한 단계 오를 때마다 대체로 자원과 요금이 두 배가 된다. metal은 가상화 없이 물리 서버 전체를 쓰는 베어메탈이다.
+
+문제의 예인 T3 패밀리는 크기별로 다음과 같다.
+
+| 타입                   | vCPU  | 메모리      | vCPU당 기준 성능 |
+| ---------------------- | ----- | ----------- | ---------------- |
+| t3.nano                | 2     | 0.5 GiB     | 5%               |
+| t3.micro               | 2     | 1 GiB       | 10%              |
+| t3.small               | 2     | 2 GiB       | 20%              |
+| t3.medium              | 2     | 4 GiB       | 20%              |
+| t3.large               | 2     | 8 GiB       | 30%              |
+| t3.xlarge / t3.2xlarge | 4 / 8 | 16 / 32 GiB | 40%              |
+
+T 패밀리는 기준 성능보다 적게 쓰는 동안 CPU 크레딧이 쌓이고, 순간적으로 CPU를 많이 쓸 때 크레딧을 소모해 100%까지 올린다. T3는 기본이 Unlimited 모드라 크레딧이 바닥나도 성능은 유지되지만, 기준을 넘긴 사용량만큼 추가 요금이 붙는다. 그래서 평소 한가한 개발·테스트 서버에는 싸고 적당하지만, CPU를 계속 100% 쓰는 계산 작업에는 C나 M 패밀리가 더 경제적이다. 이번 실습에서는 HTCondor 데몬 여러 개를 띄우기에 1GiB는 빠듯해 t3.small(2 vCPU, 2GiB)을 썼고, `condor_status`에 슬롯 메모리가 1711MB로 표시됐다(OS와 커널이 쓰는 몫을 뺀 값).
+
+## Ch9-3. 툴에서 condor_status 바로 실행하기
+
+> condor_status 명령을 프로그램 툴에서 직접 실행시킬 수 있도록 변경하라.
+
+실습에서는 툴에서 start·stop·create를 한 뒤 Pool이 바뀌었는지 보려고 main 인스턴스의 SSH 창으로 옮겨 가 `condor_status`를 따로 입력했다. 이걸 툴 안에서 바로 하도록 메뉴 `9. condor status`를 추가했다(`aws_control.py`).
+
+`condor_status`는 Collector가 돌고 있는 main 노드에서 실행해야 한다. 툴이 도는 Ubuntu 호스트에는 HTCondor가 없고, 보안 그룹에서 9618 포트를 VPC 내부(172.31.0.0/16)에만 열어 둬서 바깥에서 Collector에 직접 물어볼 수도 없다. 그래서 툴이 SSH로 main에 접속해 명령을 실행하고 결과를 받아 출력하게 했다.
+
+1. **주소 조회**: EC2 API `describe_instances`로 Name 태그가 htcondor-main이고 상태가 running인 인스턴스를 찾는다. main의 공인 DNS 이름은 중지·시작할 때마다 바뀌므로 고정값으로 두지 않고 매번 조회한다.
+2. **원격 실행**: 찾은 주소로 `ssh -i cloud-test.pem rocky@<공인 DNS> condor_status`를 실행한다(Python `subprocess`). 주소가 바뀌어도 멈추지 않게 처음 보는 호스트 키는 자동으로 받아들이고(`StrictHostKeyChecking=accept-new`), 접속 10초·전체 60초 제한을 뒀다.
+3. **결과 출력**: 표준 출력을 그대로 보여 주고, 실패하면 SSH의 오류 메시지를 출력한다. main이 꺼져 있으면 `htcondor-main is not running.`을 출력한다.
+
+```python:aws_control.py
+MAIN_NAME = os.environ.get("AWS_MAIN_NAME", "htcondor-main")
+KEY_FILE = os.path.expanduser(os.environ.get("AWS_KEY_FILE", "~/Downloads/cloud-test.pem"))
+SSH_USER = os.environ.get("AWS_SSH_USER", "rocky")
+
+def condor_status():
+    # The public DNS name changes on every stop/start, so look it up each time.
+    res = ec2.describe_instances(Filters=[
+        {"Name": "tag:Name", "Values": [MAIN_NAME]},
+        {"Name": "instance-state-name", "Values": ["running"]},
+    ])
+    insts = [i for r in res["Reservations"] for i in r["Instances"]]
+    if not insts:
+        print(f"{MAIN_NAME} is not running.")
+        return
+    host = insts[0].get("PublicDnsName") or insts[0].get("PublicIpAddress")
+    print(f"Running condor_status on {MAIN_NAME} ({insts[0]['InstanceId']}) ....")
+    try:
+        r = subprocess.run(
+            ["ssh", "-i", KEY_FILE,
+             "-o", "StrictHostKeyChecking=accept-new",
+             "-o", "ConnectTimeout=10",
+             f"{SSH_USER}@{host}", "condor_status"],
+            capture_output=True, text=True, timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        print("Error: condor_status timed out")
+        return
+    print(r.stdout, end="")
+    if r.returncode != 0:
+        print(f"Error: {r.stderr.strip()}")
+
+ACTIONS = {
+    ...
+    8: (list_images, None),
+    9: (condor_status, None),   # added
+}
+```
+
+메뉴에도 `9. condor status` 줄을 추가했다. 이제 "5 stop instance → 9 condor status → 3 start instance → 9 condor status"처럼 한 화면 안에서 인스턴스 조작과 Pool 변화를 이어서 확인할 수 있다. 키 파일 위치·접속 사용자·main 이름은 환경 변수(`AWS_KEY_FILE`, `AWS_SSH_USER`, `AWS_MAIN_NAME`)로 바꿀 수 있게 해서 다른 계정이나 클러스터에도 그대로 쓸 수 있다.
+
+다른 방법으로는 AWS Systems Manager의 Run Command(`ssm.send_command`)로 SSH 없이 명령을 보내는 방법이 있다. 키 파일을 들고 다닐 필요가 없고 22번 포트를 닫아도 되지만, 인스턴스에 SSM 에이전트와 IAM 역할을 따로 붙여야 하고(이번 Rocky AMI에는 에이전트가 없음) 결과를 다시 조회해야 해서, 이미 SSH로 운영 중인 이번 환경에는 SSH 방식이 간단하다.
+
+## Ch9-12. 가상머신 API를 제공하는 국내 클라우드
+
+> 가상머신을 제어할 수 있는 API를 제공하는 국내 클라우드 서비스 제공자에 대해 조사하고 내용을 요약하라.
+
+국내 주요 클라우드 사업자도 AWS처럼 콘솔 외에 API·CLI·SDK로 가상머신을 만들고 켜고 끌 수 있게 한다. 사업자마다 인증 방식과 API 체계가 다른데, 크게 AWS처럼 액세스 키로 요청에 서명하는 방식(네이버 클라우드)과 OpenStack처럼 먼저 토큰을 받아 요청 헤더에 넣는 방식(NHN Cloud, 카카오클라우드)으로 나뉜다.
+
+| 사업자                      | 가상머신 API                                                                                                                                                                                                                     | 인증·특징                                                                                                                                                                                                                                                                  |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 네이버 클라우드 플랫폼(NCP) | Server API(REST). VPC 환경은 `/vserver/v2/` 아래 `createServerInstances`, `startServerInstances`, `stopServerInstances`, `rebootServerInstances`, `getServerInstanceList` 등. CLI, Java·Python 등 SDK, Terraform 프로바이더 제공 | 콘솔에서 발급한 Access Key·Secret Key로 요청을 HmacSHA256 서명해 `x-ncp-apigw-signature-v2` 헤더에 넣고, 타임스탬프·액세스 키 헤더를 함께 보냄. 서버 시각과 5분 넘게 차이 나면 거부(AWS의 서명 방식과 비슷함). API 이름 체계가 이번 실습의 boto3 함수와 거의 일대일로 대응 |
+| NHN Cloud                   | OpenStack 기반. Compute(Instance) API가 OpenStack Nova와 호환되며, 리전(판교 kr1, 평촌 kr2 등)마다 엔드포인트가 다름                                                                                                             | 계정 비밀번호와 별도인 API 비밀번호를 설정하고, Identity API(`POST /v2.0/tokens`)에 테넌트 ID·사용자·API 비밀번호를 보내 토큰을 받은 뒤 `X-Auth-Token` 헤더로 호출. OpenStack 호환이라 OpenStack CLI·SDK·Terraform 도구를 그대로 쓸 수 있음                                |
+| 카카오클라우드              | OpenStack 기반 Virtual Machine 서비스. REST API, CLI, Terraform 제공                                                                                                                                                             | 콘솔 프로필에서 프로젝트별 액세스 키를 발급(IAM 역할에 따라 권한 결정, 보안 키는 생성 때만 조회 가능). `https://iam.kakaocloud.com/identity/v3/auth/tokens`로 토큰을 받아 응답 헤더 `X-Subject-Token`의 값을 사용, 12시간 후 만료                                          |
+| KT Cloud                    | Open API로 서버 생성·시작·정지·삭제(예: `deployVirtualMachine`). Python SDK 예제 제공                                                                                                                                            | API 키·비밀 키로 요청에 서명. 서버를 만들 때 템플릿 ID(OS), 서비스 오퍼링 ID(사양), 존을 지정하는 CloudStack 계열 구조                                                                                                                                                     |
+
+정리하면, 국내 사업자도 가상머신의 생성·시작·중지·재부팅·조회를 모두 API로 제공하므로, 이번 과제의 동적 자원 관리 툴에서 boto3 호출 부분만 각 사업자의 API로 바꾸면 같은 메뉴를 그대로 만들 수 있다. 특히 NHN Cloud와 카카오클라우드는 OpenStack 표준 API를 따르므로 OpenStack SDK 하나로 두 곳을 함께 다룰 수 있고, 네이버 클라우드는 AWS와 비슷한 키 서명 방식이라 AWS 툴의 구조를 옮기기 쉽다. 공공기관용으로는 네이버 클라우드·NHN Cloud·KT Cloud 모두 별도의 공공 리전(CSAP 인증)을 두고 같은 형태의 API를 제공한다.

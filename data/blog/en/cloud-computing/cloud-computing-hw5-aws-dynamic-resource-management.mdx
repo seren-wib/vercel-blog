@@ -3,10 +3,10 @@ title: 'HW5. AWS Dynamic Resource Management Programming'
 date: '2026-10-30'
 tags: ['Cloud Computing']
 draft: false
-summary: 'HTCondor main and worker on AWS EC2, building a worker AMI, an EC2 control program in Python boto3 (list, zones, start, regions, stop, create, reboot, images), watching the Condor pool go 2→1→2→3→2→1 nodes with start, stop and create, IAM user keys, sharing the pool password, fixing late re-registration and SigV4 clock skew'
+summary: 'HTCondor main and worker on AWS EC2, building a worker AMI, an EC2 control program in Python boto3 (list, zones, start, regions, stop, create, reboot, images), watching the Condor pool go 2→1→2→3→2→1 nodes with start, stop and create, IAM user keys, sharing the pool password, fixing late re-registration and SigV4 clock skew, Chapter 8 and 9 exercises (AMI types, instance types, running condor_status from the tool, VM APIs of Korean cloud providers)'
 ---
 
-Up to HW4 I built the HTCondor cluster out of VMs on my Mac. This time, following Chapter 9 of the textbook, I moved the cluster to AWS EC2. I created a main and a worker instance, saved the worker as a machine image (AMI), and then checked that the number of nodes in the Condor pool follows along when an SDK program on the Ubuntu host starts, stops and creates instances. The textbook uses the Java SDK, but the assignment allowed SDKs in other languages, so I wrote it in Python with boto3.
+Up to HW4 I built the HTCondor cluster out of VMs on my Mac. This time, following Chapter 9 of the textbook, I moved the cluster to AWS EC2. I created a main and a worker instance, saved the worker as a machine image (AMI), and then checked that the number of nodes in the Condor pool follows along when an SDK program on the Ubuntu host starts, stops and creates instances. The textbook uses the Java SDK, but the assignment allowed SDKs in other languages, so I wrote it in Python with boto3. At the end are my answers to the Chapter 8 and 9 exercises.
 
 # 0. Lab environment
 
@@ -584,3 +584,127 @@ _SSH dropped → reconnected, uptime 1 minute, condor_status normal_
 | Ch9 74 | After `apt install openjdk-8-jdk`, `java -version` shows 25.0.3             | 8 was installed but the default JDK stayed 25. To use it, pick it with `update-alternatives` |
 | Ch9 16 | The prompt after `dnf install -y condor` is ip-172-31-20-99                 | main is ip-172-31-17-242. A screen from another instance got mixed in                        |
 | Ch9 26 | Worker prompt `[rocky@172-31-19-71 ~]`, output shows Rocky Linux 9 - BaseOS | `ip-` missing, and a Rocky 10 image printing the Rocky 9 repository                          |
+
+# 6. Exercises
+
+## Ch8-9. The Various AMIs AWS Offers
+
+> Research the various AMIs offered by Amazon AWS and describe their characteristics.
+
+An AMI (Amazon Machine Image) is the template used to launch an instance. It consists of a snapshot of the root volume (the OS and installed software), launch permissions (who can use the AMI) and the block device mapping for volumes attached to the instance. Every instance launched from the same AMI starts in the same state, which is why in this lab I could save the worker with HTCondor installed as an AMI and launch an identical worker with menu 6 (create instance). AMIs fall into four groups depending on who made them and where they're published.
+
+| Type                              | What / examples                                                                                                                                                                        | Characteristics                                                                                                                                                                                                                                                                                                           |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Quick Start AMI (provided by AWS) | Amazon Linux 2023, Ubuntu, Red Hat Enterprise Linux, SUSE, Debian, Windows Server, macOS and so on. The first tab of the console's launch screen                                       | Verified by AWS or the OS vendor, with security-patched versions published regularly. Amazon Linux comes with the AWS CLI and SSM agent preinstalled at no extra cost. For commercial OSes like Windows and RHEL, the license fee is included in the hourly price                                                         |
+| AWS Marketplace AMI               | AMIs sold by software companies with their product (firewall, DB, security solution and so on) installed and configured on an OS. Rocky Linux and CIS hardened images are here too     | Requires a subscription (accepting terms) before use, and paid products add a software fee to the instance price. The product is ready to use with no installation or setup                                                                                                                                               |
+| Community AMI (public AMI)        | AMIs anyone has published publicly. The `Rocky-10-EC2-Base-10.2-20260525.0.x86_64` (ami-0e86f920feb0e6b17) used in this lab was published by the official Rocky account (792107900819) | Usable right away by specifying the ID, with no subscription. But since anyone can publish one, you must check that the owner account is the official publisher (AMIs with malware planted in them can be mixed in)                                                                                                       |
+| My AMI (self-made)                | AMIs made from my own running or stopped instances. aws-htcondor-worker (ami-055e133532793acd2) in this lab                                                                            | Private by default, and can be shared with specific accounts or made public. It clones a fully configured state, so it's used to scale out identical nodes quickly (auto scaling, or create instance here). The EBS snapshot the AMI references keeps costing storage, so deregister it and delete the snapshot when done |
+
+There are also AMIs prepared for specific purposes: the Deep Learning AMI with deep learning frameworks and GPU drivers, ECS/EKS optimized AMIs with Docker and agents for container services, and Bottlerocket, a minimal OS just for running containers.
+
+When choosing an AMI, check these attributes as well.
+
+- **Architecture**: x86_64 (Intel, AMD) or arm64 (AWS Graviton). It has to match the instance type. This time I picked the x86_64 Rocky AMI to use t3.small (unrelated to the Ubuntu host being aarch64).
+- **Root device type**: EBS-backed AMIs can be stopped and started and keep their disk contents. Instance store-backed ones can't be stopped and lose their data on termination. Almost all are EBS-backed now.
+- **Virtualization type and boot mode**: Current-generation instances only support HVM, and the boot mode (Legacy BIOS or UEFI) has to be one the instance type supports.
+- **Region**: AMIs exist per region with different IDs. Even for the same Rocky 10.2 you need the Seoul region's ID, and to use it in another region you have to copy the AMI (copy-image).
+
+## Ch8-13. AWS Instance Types and Their Characteristics
+
+> What instance types does AWS offer (e.g. t3.nano), and what are their characteristics?
+
+An instance type is the combination of vCPU count, memory, storage and network performance assigned to an instance. The name follows the format `family + generation + (extra attributes) . size`. For example, t3.nano is the nano size of the 3rd generation of the T family (burstable general purpose), and c7gn.xlarge is the xlarge size of the 7th generation of the C family (compute optimized) with g (Graviton processor) and n (enhanced networking). A higher number means a newer generation with better performance for the same price.
+
+| Category              | Main families             | Characteristics and uses                                                                                                                                                                                                                                               |
+| --------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| General purpose       | T, M, Mac                 | Balanced CPU and memory (about 4 GiB per vCPU). M for general work like web servers and small to mid-size DBs. T is the burstable type that normally runs below a baseline and briefly boosts CPU when needed; the cheapest. Mac is a dedicated host for running macOS |
+| Compute optimized     | C                         | Less memory per vCPU (about 2 GiB). For work that uses a lot of CPU for a long time, like batch processing, scientific computing, video encoding and game servers. Good for HTCondor execute nodes                                                                     |
+| Memory optimized      | R, X, z, u- (High Memory) | More memory per vCPU (R about 8 GiB, X about 16 GiB or more). In-memory DBs (Redis, SAP HANA), large-scale analytics. z has a high clock frequency                                                                                                                     |
+| Accelerated computing | P, G, Inf, Trn, F         | GPUs (P: ML training and HPC, G: graphics and inference), AWS's own chips (Inferentia: inference, Trainium: training), FPGAs (F). The most expensive                                                                                                                   |
+| Storage optimized     | I, D, H                   | Local NVMe SSDs or HDDs attached directly to the instance, so disk I/O is very fast. NoSQL DBs, data warehouses, distributed file systems                                                                                                                              |
+| HPC optimized         | Hpc                       | For high performance computing. Low-latency networking between nodes (EFA) suits large-scale parallel computation                                                                                                                                                      |
+
+The extra attributes in the middle of the name are: g AWS Graviton (Arm) processor, a AMD processor, i Intel processor, d includes local NVMe storage, n enhanced network bandwidth, e extra memory or storage, flex a cheaper flexible variant. Sizes grow in the order nano &lt; micro &lt; small &lt; medium &lt; large &lt; xlarge &lt; 2xlarge …, and each step up roughly doubles the resources and price. metal is bare metal, using the whole physical server without virtualization.
+
+The T3 family from the question, by size:
+
+| Type                   | vCPU  | Memory      | Baseline per vCPU |
+| ---------------------- | ----- | ----------- | ----------------- |
+| t3.nano                | 2     | 0.5 GiB     | 5%                |
+| t3.micro               | 2     | 1 GiB       | 10%               |
+| t3.small               | 2     | 2 GiB       | 20%               |
+| t3.medium              | 2     | 4 GiB       | 20%               |
+| t3.large               | 2     | 8 GiB       | 30%               |
+| t3.xlarge / t3.2xlarge | 4 / 8 | 16 / 32 GiB | 40%               |
+
+The T family earns CPU credits while it uses less than its baseline, and spends them to go up to 100% when it briefly needs a lot of CPU. T3 defaults to Unlimited mode, so performance holds even when credits run out, but usage above the baseline is billed extra. That makes it cheap and fine for development and test servers that are usually idle, but for computation that keeps the CPU at 100%, the C or M family is more economical. In this lab, 1 GiB was tight for running several HTCondor daemons, so I used t3.small (2 vCPU, 2 GiB), and `condor_status` showed 1711 MB of slot memory (what's left after the OS and kernel take their share).
+
+## Ch9-3. Running condor_status Directly from the Tool
+
+> Modify the program tool so that it can run the condor_status command directly.
+
+In the lab, after start, stop or create in the tool, I switched to the SSH window on the main instance and typed `condor_status` separately to see whether the pool had changed. To do this inside the tool, I added the menu `9. condor status` (`aws_control.py`).
+
+`condor_status` has to run on the main node where the Collector runs. The Ubuntu host running the tool has no HTCondor, and the security group only opens port 9618 inside the VPC (172.31.0.0/16), so the Collector can't be queried directly from outside either. So the tool connects to main over SSH, runs the command and prints the result.
+
+1. **Look up the address**: Use the EC2 API `describe_instances` to find the instance whose Name tag is htcondor-main and whose state is running. main's public DNS name changes on every stop and start, so it's looked up each time instead of hard-coded.
+2. **Run remotely**: Run `ssh -i cloud-test.pem rocky@<public DNS> condor_status` against that address (Python `subprocess`). So it doesn't hang when the address changes, unknown host keys are accepted automatically (`StrictHostKeyChecking=accept-new`), with a 10-second connect limit and a 60-second overall limit.
+3. **Print the result**: Show stdout as is, and print SSH's error message on failure. If main is off, print `htcondor-main is not running.`.
+
+```python:aws_control.py
+MAIN_NAME = os.environ.get("AWS_MAIN_NAME", "htcondor-main")
+KEY_FILE = os.path.expanduser(os.environ.get("AWS_KEY_FILE", "~/Downloads/cloud-test.pem"))
+SSH_USER = os.environ.get("AWS_SSH_USER", "rocky")
+
+def condor_status():
+    # The public DNS name changes on every stop/start, so look it up each time.
+    res = ec2.describe_instances(Filters=[
+        {"Name": "tag:Name", "Values": [MAIN_NAME]},
+        {"Name": "instance-state-name", "Values": ["running"]},
+    ])
+    insts = [i for r in res["Reservations"] for i in r["Instances"]]
+    if not insts:
+        print(f"{MAIN_NAME} is not running.")
+        return
+    host = insts[0].get("PublicDnsName") or insts[0].get("PublicIpAddress")
+    print(f"Running condor_status on {MAIN_NAME} ({insts[0]['InstanceId']}) ....")
+    try:
+        r = subprocess.run(
+            ["ssh", "-i", KEY_FILE,
+             "-o", "StrictHostKeyChecking=accept-new",
+             "-o", "ConnectTimeout=10",
+             f"{SSH_USER}@{host}", "condor_status"],
+            capture_output=True, text=True, timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        print("Error: condor_status timed out")
+        return
+    print(r.stdout, end="")
+    if r.returncode != 0:
+        print(f"Error: {r.stderr.strip()}")
+
+ACTIONS = {
+    ...
+    8: (list_images, None),
+    9: (condor_status, None),   # added
+}
+```
+
+I also added the `9. condor status` line to the menu. Now instance operations and pool changes can be checked in a row on one screen, like "5 stop instance → 9 condor status → 3 start instance → 9 condor status". The key file location, SSH user and main name can be changed with environment variables (`AWS_KEY_FILE`, `AWS_SSH_USER`, `AWS_MAIN_NAME`), so it works as is for other accounts or clusters.
+
+Another option is sending the command without SSH through AWS Systems Manager Run Command (`ssm.send_command`). There's no key file to carry around and port 22 can be closed, but each instance needs the SSM agent and an IAM role attached separately (this Rocky AMI has no agent), and the result has to be fetched in a second call, so for this environment, which already runs on SSH, the SSH approach is simpler.
+
+## Ch9-12. Korean Cloud Providers with VM APIs
+
+> Research Korean cloud service providers that offer APIs for controlling virtual machines and summarize them.
+
+Major Korean cloud providers, like AWS, let you create, start and stop virtual machines through APIs, CLIs and SDKs besides the console. Authentication and API design differ by provider, but they roughly split into signing each request with an access key like AWS (Naver Cloud) and getting a token first and putting it in the request header like OpenStack (NHN Cloud, Kakao Cloud).
+
+| Provider                   | VM API                                                                                                                                                                                                                                                          | Authentication and characteristics                                                                                                                                                                                                                                                                                                                          |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Naver Cloud Platform (NCP) | Server API (REST). For VPC, `createServerInstances`, `startServerInstances`, `stopServerInstances`, `rebootServerInstances`, `getServerInstanceList` and so on under `/vserver/v2/`. Provides a CLI, SDKs for Java, Python and others, and a Terraform provider | Requests are signed with HmacSHA256 using the Access Key and Secret Key issued in the console, put in the `x-ncp-apigw-signature-v2` header and sent along with timestamp and access key headers. Rejected if more than 5 minutes off from server time (similar to AWS's signing). The API naming maps almost one-to-one to the boto3 functions in this lab |
+| NHN Cloud                  | OpenStack based. The Compute (Instance) API is compatible with OpenStack Nova, with a different endpoint per region (Pangyo kr1, Pyeongchon kr2 and so on)                                                                                                      | Set an API password separate from the account password, send the tenant ID, user and API password to the Identity API (`POST /v2.0/tokens`) to get a token, then call with the `X-Auth-Token` header. Being OpenStack compatible, OpenStack CLI, SDK and Terraform tooling work as is                                                                       |
+| Kakao Cloud                | OpenStack-based Virtual Machine service. Provides a REST API, CLI and Terraform                                                                                                                                                                                 | Issue a per-project access key from the console profile (permissions set by IAM role; the secret key can only be viewed at creation). Get a token from `https://iam.kakaocloud.com/identity/v3/auth/tokens` and use the value of the `X-Subject-Token` response header; it expires after 12 hours                                                           |
+| KT Cloud                   | Open API to create, start, stop and delete servers (e.g. `deployVirtualMachine`). Python SDK examples provided                                                                                                                                                  | Requests are signed with an API key and secret key. A CloudStack-style design where creating a server specifies a template ID (OS), service offering ID (spec) and zone                                                                                                                                                                                     |
+
+In short, Korean providers also offer VM create, start, stop, reboot and list through APIs, so the same menu can be built by swapping only the boto3 calls in this assignment's dynamic resource management tool for each provider's API. In particular, NHN Cloud and Kakao Cloud follow the standard OpenStack API, so one OpenStack SDK can handle both, and Naver Cloud uses key signing similar to AWS, which makes the AWS tool's structure easy to port. For the public sector, Naver Cloud, NHN Cloud and KT Cloud all run separate public regions (CSAP certified) with the same kind of API.

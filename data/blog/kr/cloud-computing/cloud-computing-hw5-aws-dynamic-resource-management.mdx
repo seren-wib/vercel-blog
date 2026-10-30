@@ -1,0 +1,586 @@
+---
+title: 'HW5. AWS 동적 자원 관리 프로그래밍'
+date: '2026-10-30'
+tags: ['Cloud Computing']
+draft: false
+summary: 'AWS EC2에 HTCondor main·worker 구성, worker AMI 생성, Python boto3로 만든 EC2 제어 프로그램(list·zones·start·regions·stop·create·reboot·images), start·stop·create에 따라 Condor Pool이 2→1→2→3→2→1대로 바뀌는 것 확인, IAM 사용자 키, Pool 비밀번호 공유, 재등록 지연·SigV4 시계 오차 문제 해결'
+---
+
+HW4까지는 맥 안의 VM으로 HTCondor 클러스터를 만들었다. 이번엔 교재 9장대로 클러스터를 AWS EC2로 옮겼다. main과 worker 인스턴스를 만들고, worker를 머신 이미지(AMI)로 떠 둔 다음, Ubuntu 호스트에서 SDK 프로그램으로 인스턴스를 시작·중지·생성하면 Condor Pool의 노드 수가 따라 바뀌는지 확인했다. 교재는 Java SDK를 쓰지만 과제에서 다른 언어 SDK를 허용해서 Python boto3로 작성했다.
+
+# 0. 실습 환경
+
+HTCondor 클러스터는 AWS EC2 위에 만들었고, 인스턴스를 제어하는 프로그램은 HW2~HW4에서 쓰던 Ubuntu 호스트(UTM 위의 Ubuntu 24.04 ARM64 VM)에서 돌렸다. 인스턴스는 모두 x86_64(t3.small)지만, 제어 프로그램은 AWS API를 HTTPS로 호출할 뿐이라 호스트가 ARM64여도 상관없다.
+
+```text
+macOS (Apple M3)
+└─ UTM ─ Ubuntu 24.04 ARM64 (yoosung-vm, 강의의 "Ubuntu 호스트")
+         ├─ AWS CLI v2 (aarch64), Python 3.12 + boto3  ← aws_control.py
+         └─ SSH (cloud-test.pem), HTTPS (EC2 API)
+                │
+AWS 서울 리전 ap-northeast-2, 기본 VPC 172.31.0.0/16
+├─ htcondor-main    t3.small  Rocky 10.2  172.31.12.47  main
+├─ htcondor-worker  t3.small  Rocky 10.2  172.31.11.85  worker
+└─ AMI aws-htcondor-worker로 생성한 worker   172.31.6.235  worker
+```
+
+| 교재 (슬라이드)                            | 이 환경                                                                                                             |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Ubuntu 호스트 x86_64, 계정 cloudman@abelia | Ubuntu 24.04.5 aarch64, 계정 yoosung@yoosung-vm                                                                     |
+| 리전 us-east-1(버지니아 북부)              | ap-northeast-2(서울). 과제 요구 사항이 아니라서 SSH 지연이 작은 가까운 리전을 골랐다                                |
+| 루트 사용자 액세스 키                      | EC2 권한(AmazonEC2FullAccess)만 준 IAM 사용자 cloud-hw의 액세스 키                                                  |
+| Java SDK v1(1.11.643) + libs/ + OpenJDK    | Python boto3(AWS SDK for Python, Ubuntu 패키지 1.34.46)                                                             |
+| 콘솔에서 보안 그룹·키 페어·인스턴스 생성   | AWS CLI로 생성. 설정은 같고, 명령과 결과가 한 화면에 남아 다시 실행할 수 있다                                       |
+| Marketplace에서 Rocky Linux 10 검색·구독   | Rocky 공식 계정(792107900819)이 배포한 커뮤니티 AMI `Rocky-10-EC2-Base-10.2-20260525.0.x86_64` 직접 지정(구독 없음) |
+| 사설 DNS `ip-172-31-17-242.ec2.internal`   | `ip-172-31-12-47.ap-northeast-2.compute.internal` (us-east-1만 `ec2.internal`을 쓴다)                               |
+| HTCondor 버전 명시 없음                    | condor-25.0.14-1.el10.x86_64 (25.0 저장소)                                                                          |
+
+## 진행 순서
+
+목표는 슬라이드 5쪽 구성도와 같다. 진행 순서는 다음과 같다.
+
+| 단계 | 내용                                 | 슬라이드        | 그림  |
+| ---- | ------------------------------------ | --------------- | ----- |
+| 1    | AWS CLI 설치, 자격 증명 설정         | Ch9 66~70       | 1~2   |
+| 2    | 보안 그룹, 키 페어                   | Ch8 18~21·28~29 | 3~4   |
+| 3    | main 인스턴스 생성과 HTCondor 설치   | Ch9 6~19        | 5~10  |
+| 4    | worker 인스턴스 생성과 HTCondor 설치 | Ch9 20~28       | 11~14 |
+| 5    | SSH 키, Pool 비밀번호 공유, 2대 확인 | Ch9 29~35       | 15~21 |
+| 6    | worker AMI 생성                      | Ch9 36~38       | 22    |
+| 7    | 동적 관리 프로그램 작성·실행         | Ch9 39~64·71~76 | 23~37 |
+
+# 1. AWS 준비
+
+## AWS CLI 설치
+
+슬라이드 66쪽은 x86_64용 설치 파일을 받지만 이 호스트는 aarch64라서 `awscli-exe-linux-aarch64.zip`을 받았다. 또 슬라이드 명령의 `-o "awscliv2.zip“`는 닫는 따옴표가 둥근 따옴표(U+201C)라 그대로 붙여 넣으면 셸이 문자열을 닫지 못한다. 일반 따옴표로 입력했다.
+
+```bash
+uname -m
+curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip"
+sudo apt install unzip -y
+unzip -q awscliv2.zip
+sudo ./aws/install
+aws --version
+```
+
+![AWS CLI 설치](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/01.webp)
+
+_aarch64용 AWS CLI v2 설치 — aws-cli/2.38.5 ... exe/aarch64.ubuntu.24_
+
+## 자격 증명 설정
+
+슬라이드 67~70쪽은 루트 사용자의 액세스 키를 만든다. 루트 키는 결제·계정 해지까지 계정의 모든 권한을 갖고 정책으로 제한할 수도 없어서, AWS도 생성 화면에서 "권장하지 않음" 경고를 띄운다(슬라이드 69쪽 4번 체크박스). 그래서 IAM에서 콘솔 로그인 없이 AmazonEC2FullAccess 정책만 붙인 사용자 cloud-hw를 만들고, 그 사용자의 액세스 키(사용 사례: CLI)를 발급했다. 이 키로는 EC2만 다룰 수 있다.
+
+`aws configure`에 키와 리전(ap-northeast-2), 출력 형식(json)을 넣으면 `~/.aws/credentials`·`~/.aws/config`에 저장되고, AWS CLI와 boto3가 둘 다 이 파일을 읽는다. `aws sts get-caller-identity`로 이 키가 `user/cloud-hw`로 인증되는 것을 확인했다. 키는 끝 4자리만 보이게 가려져 출력된다.
+
+```bash
+aws configure
+aws configure list; aws sts get-caller-identity
+```
+
+![자격 증명 확인](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/02.webp)
+
+_자격 증명 확인 — 서울 리전, IAM 사용자 cloud-hw (계정 ID는 가림)_
+
+## 보안 그룹
+
+8장 슬라이드 18~21쪽처럼 이름이 HTCondor인 보안 그룹을 만들고 인바운드 규칙 두 개를 넣었다. SSH(22)는 Ubuntu 호스트에서 접속해야 하므로 Anywhere(0.0.0.0/0)로 뒀다. HTCondor 포트(9618)는 슬라이드에선 Anywhere지만, 노드끼리는 VPC 사설망 주소로 통신하고 설정이 `ALLOW_WRITE = *`라서 인터넷 전체에 열면 누구나 Pool에 노드를 붙일 수 있다. 그래서 기본 VPC 대역(172.31.0.0/16)만 허용했다.
+
+```bash
+SG=$(aws ec2 create-security-group --group-name HTCondor --description "HTCondor pool (SSH + 9618)" --query GroupId --output text); echo $SG
+aws ec2 authorize-security-group-ingress --group-id $SG --protocol tcp --port 22   --cidr 0.0.0.0/0     --query Return
+aws ec2 authorize-security-group-ingress --group-id $SG --protocol tcp --port 9618 --cidr 172.31.0.0/16 --query Return
+aws ec2 describe-security-groups --group-ids $SG --query "SecurityGroups[0].IpPermissions[].[IpProtocol,FromPort,ToPort,IpRanges[0].CidrIp]" --output table
+```
+
+![보안 그룹](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/03.webp)
+
+_보안 그룹 HTCondor — 22번은 어디서나, 9618번은 VPC 안에서만_
+
+## 키 페어
+
+8장 슬라이드 28~29·34쪽대로 cloud-test RSA 키 페어를 만들어 개인 키를 `~/Downloads/cloud-test.pem`에 저장하고, SSH가 받아들이도록 소유자만 읽을 수 있게 `chmod 400`했다. 슬라이드는 `cat`으로 개인 키 전체를 출력하지만, 개인 키가 화면에 남지 않도록 첫 줄만 확인했다.
+
+```bash
+aws ec2 create-key-pair --key-name cloud-test --key-type rsa --key-format pem --query KeyMaterial --output text > cloud-test.pem
+ls -l cloud-test.pem; head -1 cloud-test.pem
+chmod 400 cloud-test.pem; ls -l cloud-test.pem
+```
+
+![키 페어](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/04.webp)
+
+_키 페어 cloud-test 생성과 권한 변경(-rw-rw-r-- → -r--------)_
+
+# 2. HTCondor 클러스터 구성
+
+## main 인스턴스 생성과 접속
+
+Rocky Linux 10.2 x86_64 AMI, t3.small, 키 페어 cloud-test, 보안 그룹 HTCondor로 인스턴스를 만들고 이름 태그를 htcondor-main으로 붙였다(슬라이드 6~15쪽). `wait instance-running`으로 Pending → Running을 기다린 다음 사설·공인 DNS를 확인하고, 슬라이드처럼 rocky 계정으로 접속했다. Rocky 이미지는 root 로그인이 막혀 있다.
+
+```bash
+AMI=ami-0e86f920feb0e6b17      # Rocky-10-EC2-Base-10.2-20260525.0.x86_64
+MAIN=$(aws ec2 run-instances --image-id $AMI --instance-type t3.small --key-name cloud-test --security-groups HTCondor \
+       --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=htcondor-main}]" --query "Instances[0].InstanceId" --output text)
+aws ec2 wait instance-running --instance-ids $MAIN
+aws ec2 describe-instances --instance-ids $MAIN --query "Reservations[0].Instances[0].[InstanceId,InstanceType,State.Name,PrivateDnsName,PublicDnsName]" --output text
+ssh -i "cloud-test.pem" rocky@ec2-15-165-74-33.ap-northeast-2.compute.amazonaws.com
+```
+
+![main 인스턴스 생성](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/05.webp)
+
+_main 인스턴스 생성 — t3.small, running, 사설 DNS ip-172-31-12-47.ap-northeast-2.compute.internal_
+
+![main 접속](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/06.webp)
+
+_main에 SSH 접속 — Rocky Linux 10.2, x86_64_
+
+## main에 HTCondor 설치와 설정
+
+HTCondor 25.0 저장소 패키지를 설치하고(EPEL이 같이 설치된다) condor를 설치했다(슬라이드 16~19쪽). `condor_config.local`은 슬라이드와 같은 여섯 줄이고, `CONDOR_HOST`에는 main 자신의 사설 DNS 이름을 넣었다. main은 Pool의 중앙 관리자라서 COLLECTOR·NEGOTIATOR가, 작업 제출을 받으니 SCHEDD가, 작업도 실행하니 STARTD가 같이 뜬다. 서비스를 시작하자 `condor_status`에 main 슬롯 하나가 나타났고, 재부팅 후에도 뜨도록 enable했다.
+
+```bash
+sudo su -
+dnf install -y https://research.cs.wisc.edu/htcondor/repo/25.0/htcondor-release-current.el10.noarch.rpm
+dnf install -y condor
+cd /etc/condor/config.d
+printf "%s\n" "ALLOW_WRITE = *" "CONDOR_HOST = $(hostname)" "DAEMON_LIST = MASTER, SCHEDD, STARTD, COLLECTOR, NEGOTIATOR" \
+  "SEC_PASSWORD_FILE = /etc/condor/passwords.d/POOL" "SEC_DEFAULT_AUTHENTICATION_METHODS = PASSWORD,FS" \
+  "SEC_DAEMON_AUTHENTICATION_METHODS = PASSWORD,FS" > condor_config.local
+systemctl start condor; condor_status
+systemctl enable condor; systemctl status condor
+```
+
+![main HTCondor 설치](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/07.webp)
+
+_main에 HTCondor 25.0.14 설치_
+
+![main 설정 파일](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/08.webp)
+
+_main의 condor_config.local_
+
+![main condor_status](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/09.webp)
+
+_condor 시작 후 condor_status — main 슬롯 1개, enable_
+
+![main condor 서비스](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/10.webp)
+
+_main의 condor 서비스 — master·collector·schedd·startd·negotiator 실행 중_
+
+## worker 인스턴스 생성과 HTCondor 설치
+
+main과 같은 AMI·타입·키·보안 그룹으로 htcondor-worker를 만들고 같은 방법으로 HTCondor를 설치했다(슬라이드 20~28쪽). worker의 `condor_config.local`은 `CONDOR_HOST`가 main의 사설 DNS고, 작업만 실행하므로 데몬은 MASTER·STARTD뿐이다.
+
+```bash
+WORKER=$(aws ec2 run-instances --image-id $AMI --instance-type t3.small --key-name cloud-test --security-groups HTCondor \
+         --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=htcondor-worker}]" --query "Instances[0].InstanceId" --output text)
+ssh -i "cloud-test.pem" rocky@ec2-3-34-139-76.ap-northeast-2.compute.amazonaws.com
+sudo su -
+dnf install -y https://research.cs.wisc.edu/htcondor/repo/25.0/htcondor-release-current.el10.noarch.rpm
+dnf install -y condor
+cd /etc/condor/config.d
+printf "%s\n" "ALLOW_WRITE = *" "CONDOR_HOST = ip-172-31-12-47.ap-northeast-2.compute.internal" "DAEMON_LIST = MASTER, STARTD" \
+  "SEC_PASSWORD_FILE = /etc/condor/passwords.d/POOL" "SEC_DEFAULT_AUTHENTICATION_METHODS = PASSWORD" \
+  "SEC_DAEMON_AUTHENTICATION_METHODS = PASSWORD" > condor_config.local
+systemctl start condor; systemctl enable condor; systemctl status condor
+```
+
+![worker 인스턴스 생성](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/11.webp)
+
+_worker 인스턴스 생성 — 인스턴스 2대 running_
+
+![worker 접속](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/12.webp)
+
+_worker에 SSH 접속_
+
+![worker HTCondor 설치](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/13.webp)
+
+_worker에 HTCondor 설치_
+
+![worker 설정과 서비스](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/14.webp)
+
+_worker의 condor_config.local과 서비스 시작 — master·startd만 실행_
+
+## main → worker SSH 키
+
+Pool 비밀번호 파일을 main에서 worker로 복사하려고 main의 rocky 계정이 worker에 키로 접속할 수 있게 했다(슬라이드 29~31쪽). 두 노드에서 ed25519 키를 만들고(빈 암호), main의 공개 키를 worker의 `~/.ssh/authorized_keys`에 추가했다. 이 파일의 첫 줄은 인스턴스 생성 때 AWS가 넣은 cloud-test 키다. main에서 worker의 사설 DNS로 접속되는 것을 확인했다. 보안 그룹의 22번 규칙이 VPC 안 접속도 허용한다.
+
+```bash
+ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519          # main, worker 각각
+cat ~/.ssh/id_ed25519.pub                                   # main
+echo "ssh-ed25519 AAAA... rocky@ip-172-31-12-47..." >> ~/.ssh/authorized_keys   # worker
+ssh rocky@ip-172-31-11-85.ap-northeast-2.compute.internal   # main → worker
+```
+
+![main 키 생성](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/15.webp)
+
+_main의 키 생성과 공개 키_
+
+![worker 키 생성](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/16.webp)
+
+_worker의 키 생성_
+
+![worker authorized_keys](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/17.webp)
+
+_worker의 authorized_keys — cloud-test 키와 main의 키_
+
+![main에서 worker로 접속](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/18.webp)
+
+_main에서 worker로 SSH 접속_
+
+## Pool 비밀번호 공유와 2대 확인
+
+두 노드 설정이 데몬 간 인증을 PASSWORD 방식으로 하므로, 같은 Pool 비밀번호 파일을 둘 다 가져야 서로를 믿는다(슬라이드 32~35쪽). main에서 `condor_store_cred add -c`로 Pool 비밀번호를 만들면 `/etc/condor/passwords.d/POOL`(root만 읽기)이 생긴다. 비밀번호는 무작위 문자열로 넣고 기록하지 않았다. 이 파일을 rocky 소유로 복사해 scp로 worker의 `/tmp`에 보내고, worker에서 같은 위치로 옮겨 권한을 600·root로 되돌렸다. 두 노드의 md5가 같은 것을 확인하고 condor를 재시작하자 `condor_status`에 2대가 나타났다(중간에 생긴 문제는 아래 문제 1).
+
+```bash
+condor_store_cred add -c                                   # main, root
+cp /etc/condor/passwords.d/POOL /home/rocky/POOL; chown rocky:rocky /home/rocky/POOL; exit
+scp /home/rocky/POOL rocky@ip-172-31-11-85.ap-northeast-2.compute.internal:/tmp/ && rm /home/rocky/POOL
+mkdir -p /etc/condor/passwords.d && mv /tmp/POOL /etc/condor/passwords.d/          # worker, root
+chmod 600 /etc/condor/passwords.d/POOL; chown root:root /etc/condor/passwords.d/POOL
+md5sum /etc/condor/passwords.d/POOL; systemctl restart condor                    # 양쪽
+condor_status                                                                    # main
+```
+
+![POOL 파일 생성과 전송](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/19.webp)
+
+_main에서 Pool 비밀번호 파일 생성과 worker로 전송_
+
+![worker에 POOL 설치](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/20.webp)
+
+_worker에 POOL 설치 — 권한 600 root, md5 79330bd9…_
+
+![2대 확인](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/21.webp)
+
+_main의 md5가 같고 condor_status에 main·worker 2대 (슬라이드 35쪽)_
+
+## worker 머신 이미지 생성
+
+worker 인스턴스를 그대로 AMI aws-htcondor-worker로 떴다(슬라이드 36~38쪽). 이미지에는 HTCondor 패키지, main을 가리키는 설정, POOL 파일, enable된 서비스가 다 들어가므로, 이 이미지로 만든 인스턴스는 부팅만 되면 알아서 main에 붙는다. 이게 동적 관리의 기반이다. 이미지를 만드는 동안 worker는 일관된 디스크 스냅샷을 위해 한 번 재부팅되고, 재부팅 후 Pool에 다시 붙는 것도 확인했다.
+
+```bash
+WIMG=$(aws ec2 create-image --instance-id $WORKER --name aws-htcondor-worker --description "HTCondor worker (Rocky 10.2, condor 25.0)" --query ImageId --output text)
+aws ec2 wait image-available --image-ids $WIMG
+aws ec2 describe-images --owners self --query "Images[].[ImageId,Name,State,BlockDeviceMappings[0].Ebs.SnapshotId]" --output text
+```
+
+![AMI 생성](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/22.webp)
+
+_AMI aws-htcondor-worker 생성 — pending → available, EBS 스냅샷_
+
+# 3. 동적 관리 프로그램
+
+## Python boto3로 작성
+
+Java 대신 Python용 AWS SDK인 boto3로 작성했다(`~/cloud_project/aws_control.py`, 156줄). 교재의 Java SDK v1(1.11.x)은 2025년 말에 지원이 끝났고, boto3는 Ubuntu 패키지(`python3-boto3`)로 설치돼서 JDK·라이브러리 묶음을 따로 받을 필요가 없다. 메뉴와 출력 형식은 슬라이드 42~63쪽 화면에 맞췄다. 프로그램은 실행할 때 `boto3.client("ec2")` 하나를 만들고, 자격 증명과 리전은 앞에서 설정한 `~/.aws` 파일에서 읽는다. 메뉴별로 호출하는 EC2 API는 다음과 같다.
+
+| 메뉴                 | boto3 호출 (EC2 API)                | 동작                                                                                   |
+| -------------------- | ----------------------------------- | -------------------------------------------------------------------------------------- |
+| 1. list instance     | `describe_instances` (페이지네이터) | 모든 인스턴스의 ID·Name 태그·타입·상태·사설 IP                                         |
+| 2. available zones   | `describe_availability_zones`       | 현재 리전의 가용 영역 ID·이름과 개수                                                   |
+| 3. start instance    | `start_instances`                   | 입력한 ID의 인스턴스 시작                                                              |
+| 4. available regions | `describe_regions`                  | 계정에서 쓸 수 있는 리전과 EC2 엔드포인트                                              |
+| 5. stop instance     | `stop_instances`                    | 입력한 ID의 인스턴스 중지                                                              |
+| 6. create instance   | `run_instances`                     | 입력한 AMI로 t3.small·cloud-test·HTCondor 인스턴스 1대 생성, Name 태그 htcondor-worker |
+| 7. reboot instance   | `reboot_instances`                  | 입력한 ID의 인스턴스 재부팅                                                            |
+| 8. list images       | `describe_images(Owners=["self"])`  | 내 계정이 만든 AMI 목록                                                                |
+| 99. quit             | —                                   | 종료                                                                                   |
+
+API 오류(권한 없음, 잘못된 ID 등)는 `ClientError`로 잡아 메시지만 출력하고 메뉴로 돌아가고, 숫자가 아닌 입력은 `concentration!`을 출력하고 무시한다. create의 키 페어·보안 그룹·타입은 환경 변수로 바꿀 수 있다. 전체 소스는 다음과 같다.
+
+```python:aws_control.py
+#!/usr/bin/env python3
+"""Amazon AWS Control Panel using SDK (boto3).
+
+HW5 / Ch9 "AWS dynamic resource management" tool. Same menu as the
+textbook's Java version (awsTest.java), written with the AWS SDK for Python.
+
+Credentials and default region come from ~/.aws (set with `aws configure`).
+Settings for "create instance" can be overridden with environment variables:
+  AWS_KEY_NAME        key pair name           (default: cloud-test)
+  AWS_SECURITY_GROUP  security group name     (default: HTCondor)
+  AWS_INSTANCE_TYPE   instance type           (default: t3.small)
+"""
+import os
+import sys
+
+import boto3
+from botocore.exceptions import BotoCoreError, ClientError
+
+KEY_NAME = os.environ.get("AWS_KEY_NAME", "cloud-test")
+SECURITY_GROUP = os.environ.get("AWS_SECURITY_GROUP", "HTCondor")
+INSTANCE_TYPE = os.environ.get("AWS_INSTANCE_TYPE", "t3.small")
+
+ec2 = boto3.client("ec2")
+
+MENU = """
+------------------------------------------------------------
+           Amazon AWS Control Panel using SDK
+------------------------------------------------------------
+  1. list instance                2. available zones
+  3. start instance               4. available regions
+  5. stop instance                6. create instance
+  7. reboot instance              8. list images
+                                 99. quit
+------------------------------------------------------------"""
+
+
+def name_tag(tags):
+    for t in tags or []:
+        if t["Key"] == "Name":
+            return t["Value"]
+    return "-"
+
+
+def list_instances():
+    print("Listing instances....")
+    pages = ec2.get_paginator("describe_instances").paginate()
+    for page in pages:
+        for res in page["Reservations"]:
+            for i in res["Instances"]:
+                print(
+                    f"[id] {i['InstanceId']}, "
+                    f"[name] {name_tag(i.get('Tags')):<15}, "
+                    f"[type] {i['InstanceType']}, "
+                    f"[state] {i['State']['Name']:>10}, "
+                    f"[private IP] {i.get('PrivateIpAddress', '-')}"
+                )
+
+
+def available_zones():
+    print("Available zones....")
+    zones = ec2.describe_availability_zones()["AvailabilityZones"]
+    for z in zones:
+        print(f"[id] {z['ZoneId']}, [region] {z['RegionName']:>15}, [zone] {z['ZoneName']:>15}")
+    print(f"You have access to {len(zones)} Availability Zones.")
+
+
+def available_regions():
+    print("Available regions ....")
+    for r in ec2.describe_regions()["Regions"]:
+        print(f"[region] {r['RegionName']:>15}, [endpoint] {r['Endpoint']}")
+
+
+def start_instance(iid):
+    print(f"Starting .... {iid}")
+    ec2.start_instances(InstanceIds=[iid])
+    print(f"Successfully started instance {iid}")
+
+
+def stop_instance(iid):
+    ec2.stop_instances(InstanceIds=[iid])
+    print(f"Successfully stop instance {iid}")
+
+
+def reboot_instance(iid):
+    print(f"Rebooting .... {iid}")
+    ec2.reboot_instances(InstanceIds=[iid])
+    print(f"Successfully rebooted instance {iid}")
+
+
+def create_instance(ami):
+    res = ec2.run_instances(
+        ImageId=ami,
+        InstanceType=INSTANCE_TYPE,
+        KeyName=KEY_NAME,
+        SecurityGroups=[SECURITY_GROUP],
+        MinCount=1,
+        MaxCount=1,
+        TagSpecifications=[{
+            "ResourceType": "instance",
+            "Tags": [{"Key": "Name", "Value": "htcondor-worker"}],
+        }],
+    )
+    iid = res["Instances"][0]["InstanceId"]
+    print(f"Successfully started EC2 instance {iid} based on AMI {ami}")
+
+
+def list_images():
+    print("Listing images....")
+    for img in ec2.describe_images(Owners=["self"])["Images"]:
+        print(f"[ImageID] {img['ImageId']}, [Name] {img.get('Name', '-')}, "
+              f"[Owner] {img['OwnerId']}, [State] {img['State']}")
+
+
+ACTIONS = {
+    1: (list_instances, None),
+    2: (available_zones, None),
+    3: (start_instance, "Enter instance id: "),
+    4: (available_regions, None),
+    5: (stop_instance, "Enter instance id: "),
+    6: (create_instance, "Enter ami id: "),
+    7: (reboot_instance, "Enter instance id: "),
+    8: (list_images, None),
+}
+
+
+def main():
+    while True:
+        print(MENU)
+        try:
+            choice = int(input("Enter an integer: ").strip())
+        except ValueError:
+            print("concentration!")
+            continue
+        except EOFError:
+            return
+        if choice == 99:
+            print("bye!")
+            return
+        if choice not in ACTIONS:
+            print("concentration!")
+            continue
+        func, prompt = ACTIONS[choice]
+        try:
+            if prompt:
+                arg = input(prompt).strip()
+                if not arg:
+                    continue
+                func(arg)
+            else:
+                func()
+        except (ClientError, BotoCoreError) as e:
+            print(f"Error: {e}")
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+```bash
+sudo apt install -y python3-boto3
+cd ~/cloud_project && python3 aws_control.py
+```
+
+![프로그램 실행](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/23.webp)
+
+_프로그램 실행 — 메뉴, 1 list instance(인스턴스를 만들기 전이라 비어 있음), 2 available zones(서울 4개 영역)_
+
+![리전 목록](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/24.webp)
+
+_4 available regions — 17개 리전과 엔드포인트 (맨 윗줄은 숫자가 아닌 입력을 거른 메시지)_
+
+## 메뉴 구성
+
+과제에 나온 메뉴 1~8과 99를 같은 번호·배치로 구현했다. 각 메뉴가 호출하는 EC2 API는 위 표와 같고, 2·4번 결과는 위 두 그림, 1·3·5·6·7·8번 결과는 아래 Condor Pool 확인 과정에 나온다.
+
+## Java SDK와 비교
+
+boto3는 Java SDK와 같은 EC2 API를 같은 이름(snake_case)으로 제공해서 슬라이드의 Java 프로그램과 구조가 1:1로 대응한다. Java 판은 `AmazonEC2ClientBuilder`로 클라이언트를 만들고 `DescribeInstancesRequest` 객체를 만들어 넘기지만, boto3는 `client.describe_instances()`처럼 키워드 인자로 호출하고 응답을 딕셔너리로 받는다. 컴파일과 클래스패스 설정(슬라이드 75쪽)이 없어서 실행이 간단하다.
+
+## REST API와의 관계
+
+REST API를 직접 호출하지는 않았다. 다만 boto3와 AWS CLI는 내부에서 EC2의 HTTPS API(`https://ec2.ap-northeast-2.amazonaws.com/`에 `Action=DescribeInstances` 같은 요청)를 보내고, 요청마다 액세스 키로 서명(Signature Version 4)을 붙인다. 이 서명에 요청 시각이 들어가서, 실습 중 Ubuntu 호스트의 시계가 늦었을 때 요청이 거부됐다(아래 문제 2). 4번 메뉴의 엔드포인트 목록이 이 API 주소들이다.
+
+# 4. Condor Pool 동적 변경 확인
+
+프로그램(왼쪽 tmux 창 tool)으로 인스턴스를 조작하고, 매번 main 노드에서 `condor_status`로 Pool의 슬롯 수를 확인했다. 결과는 2 → 1 → 2 → 3 → 2 → 1대로 바뀌었다.
+
+| 조작 (메뉴)                          | 인스턴스 상태       | Pool | 그림         |
+| ------------------------------------ | ------------------- | ---- | ------------ |
+| 시작 상태 (1 list)                   | main·worker running | 2대  | 25 (그림 21) |
+| worker 중지 (5 stop)                 | worker stopping     | 1대  | 26, 27       |
+| worker 시작 (3 start)                | worker pending      | 2대  | 28, 29       |
+| AMI로 생성 (8 list images, 6 create) | 새 worker running   | 3대  | 30, 31       |
+| 새 worker 중지 (5 stop)              | 새 worker stopping  | 2대  | 32, 33       |
+| 첫 worker 중지 (5 stop)              | worker stopping     | 1대  | 34, 35       |
+| main 재부팅 (7 reboot)               | main 재부팅         | 1대  | 36, 37       |
+
+## stop — Pool에서 빠짐
+
+stop을 요청하면 인스턴스가 stopping이 되면서 운영체제가 종료되고, systemd가 condor를 끄는 과정에서 worker의 startd가 collector에 자기 광고를 철회한다. 그래서 몇 초 안에 main의 `condor_status`에서 worker가 사라졌다(슬라이드 53~58쪽).
+
+![list instance](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/25.webp)
+
+_1 list instance — main·worker running_
+
+![worker 중지](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/26.webp)
+
+_5 stop instance로 worker 중지 → list에서 stopping (맨 위 두 줄은 숫자가 아닌 입력을 거른 메시지)_
+
+![중지 후 condor_status](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/27.webp)
+
+_worker 중지 후 condor_status — main 1대_
+
+## start — Pool에 다시 들어옴
+
+중지된 worker를 시작하면 부팅 후 enable된 condor가 자동으로 올라오고, startd가 설정의 `CONDOR_HOST`(main)로 자기 정보를 보낸다. start 요청 후 약 20초 만에 Pool이 다시 2대가 됐다. 사설 IP는 중지·시작 후에도 그대로라 main 쪽에선 같은 노드로 보인다(슬라이드 43~48쪽).
+
+![worker 시작](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/28.webp)
+
+_stopped 확인 → 3 start instance → list에서 pending_
+
+![시작 후 condor_status](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/29.webp)
+
+_worker 시작 후 condor_status — 2대_
+
+## create — 새 노드가 자동으로 합류
+
+8 list images로 AMI ID를 확인하고 6 create instance에 넣자 새 인스턴스(i-07c62b6193bc399c5, 172.31.6.235)가 만들어졌다(슬라이드 49~52쪽). 이 노드에는 아무 설정도 안 했는데, 이미지에 들어 있던 설정과 POOL 파일 덕분에 부팅하자마자 main에 붙어서 약 40초 만에 Pool이 3대가 됐다. 노드를 늘리는 데 사람이 SSH로 들어갈 필요가 없다는 게 동적 자원 관리의 핵심이다.
+
+![AMI로 인스턴스 생성](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/30.webp)
+
+_8 list images → 6 create instance(AMI ami-055e133532793acd2) → list에 인스턴스 3대 (계정 ID는 가림)_
+
+![생성 후 condor_status](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/31.webp)
+
+_새 인스턴스 생성 후 condor_status — 3대 (172.31.6.235 추가)_
+
+## 다시 줄이기
+
+슬라이드 53~58쪽처럼 방금 만든 인스턴스와 처음 worker를 차례로 중지해서 Pool이 2대, 1대로 줄어드는 것을 확인했다.
+
+![새 인스턴스 중지](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/32.webp)
+
+_새 인스턴스 중지 → stopping_
+
+![2대](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/33.webp)
+
+_condor_status — 2대_
+
+![처음 worker 중지](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/34.webp)
+
+_처음 worker 중지 → stopping (새 인스턴스는 stopped)_
+
+![1대](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/35.webp)
+
+_condor_status — main 1대_
+
+## reboot
+
+main을 재부팅하자 슬라이드 59~61쪽처럼 main에 연결된 SSH 세션이 `closed by remote host`로 끊겼다. 다시 접속하면 uptime이 1분이고, condor가 enable돼 있어서 `condor_status`가 바로 다시 나온다.
+
+![main 재부팅](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/36.webp)
+
+_7 reboot instance로 main 재부팅_
+
+![재접속 후 확인](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/37.webp)
+
+_SSH 끊김 → 재접속, uptime 1분, condor_status 정상_
+
+# 5. 실습 중 생긴 문제
+
+## 문제 1. Pool 비밀번호를 맞춘 뒤에도 worker가 안 보임
+
+**증상**: 두 노드의 POOL md5가 같은데 main의 `condor_status`에 main 1대만 있었다. worker의 `/var/log/condor/StartLog`에 `attempt to connect to <172.31.12.47:9618> failed: Connection refused`, `TCP connection to collector ... failed`가 찍혀 있었다.
+
+**원인**: POOL 파일을 설치한 worker를 main보다 먼저 재시작해서, worker가 처음 등록하려던 시점에 main의 collector가 재시작 중이라 연결이 거부됐다. startd는 정기 갱신(기본 5분) 때 다시 보내므로 기다리면 붙지만, 그 전까지는 Pool에 없다.
+
+**해결**: main을 재시작한 다음 worker를 한 번 더 재시작하니 바로 2대가 됐다. 슬라이드 34쪽 순서(main → worker)대로 하면 안 생긴다.
+
+## 문제 2. AWS 요청이 갑자기 인증 실패
+
+**증상**: 실습 도중 Ubuntu 호스트의 aws 명령이 `AuthFailure`, `SignatureDoesNotMatch: Signature expired: 20261027T111114Z is now earlier than 20261027T114023Z`로 실패했다.
+
+**원인**: Ubuntu VM의 시계가 실제보다 44분 늦어 있었다. 맥이 잠자기에 들어간 동안 VM 시계가 멈췄던 것으로 보인다. AWS는 서명에 들어간 요청 시각이 서버 시각과 15분 넘게 차이 나면 재전송 공격으로 보고 거부한다.
+
+**해결**: `sudo systemctl restart systemd-timesyncd`로 NTP 동기화를 다시 해서 시계를 맞추자 바로 인증됐다.
+
+## 슬라이드의 오타·함정
+
+| 쪽     | 내용                                                                    | 결과                                                                                     |
+| ------ | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Ch9 66 | `-o "awscliv2.zip“`의 닫는 따옴표가 둥근 따옴표(U+201C)                 | 복사해 붙이면 셸이 문자열을 닫지 못함. 일반 따옴표로 입력                                |
+| Ch9 74 | `apt install openjdk-8-jdk` 뒤 `java -version`이 25.0.3                 | 8을 설치했지만 기본 JDK가 25로 남은 화면. JDK를 쓰려면 `update-alternatives`로 골라야 함 |
+| Ch9 16 | `dnf install -y condor` 다음 프롬프트가 ip-172-31-20-99                 | main은 ip-172-31-17-242. 다른 인스턴스 화면이 섞임                                       |
+| Ch9 26 | worker 프롬프트 `[rocky@172-31-19-71 ~]`, 출력에 Rocky Linux 9 - BaseOS | `ip-` 누락, Rocky 10 이미지인데 9 저장소 출력                                            |

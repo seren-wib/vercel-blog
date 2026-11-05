@@ -1,0 +1,192 @@
+---
+title: 'Woowangthon 4. Getting Into the School PCs From Home'
+date: '2026-11-06'
+tags: ['Woowangthon']
+draft: false
+summary: 'Build stage 2. Wall LAN port and switch wiring, a misdiagnosis where I thought the internet was blocked (the school only blocked 1.1.1.1), installing Tailscale and connecting through a relay (DERP), a separate SSH key per device, passwordless sudo for an AI agent, BIOS power-on after power loss and an unattended reboot test. What a human did on site and what the AI did remotely'
+---
+
+> Part 4 of the series. Build stage 2: remote access. Taking the disk images is in [part 3](/en/blog/woowangthon/woowangthon-03-disk-images/), and the big picture is in [Woowangthon 0](/en/blog/woowangthon/woowangthon-00-overview/).
+
+## In one line
+
+To keep three school PCs in the club room and manage them from home, I needed three things. A **path** from outside the school firewall to the PCs, a **key** to get in without a password, and **power** that comes back on with nobody there. The path is Tailscale, the key is a separate SSH key per device, and the power is a BIOS setting. Before all that the internet had to work, and I almost concluded "the school blocks the internet" when it didn't.
+
+## 1. On site, only what can't be done remotely
+
+I can't stay in front of the PCs for long. So I split the work into three batches.
+
+| Batch | Where                    | What                                                                                  |
+| ----- | ------------------------ | ------------------------------------------------------------------------------------- |
+| A     | At each of the three PCs | Disk image (part 3), wired internet check, SSH server, Tailscale                      |
+| B     | Once, from the laptop    | Register public keys on all three, passwordless sudo. One loop goes through all three |
+| C     | Back at the three PCs    | BIOS power setting, unattended reboot test                                            |
+
+The rule was "only do at the PC what has to happen before remote access exists." From B on, the AI coding agent on my laptop (Claude Code) goes in over SSH and does the work. For that, A had to build the path and B had to make the key first.
+
+## 2. Switch wiring and the wall port
+
+The club room wall had two ports. At first I plugged the switch into one of them, but it turned out to be what looked like a phone port. The LAN port was the other one, and the club's Wi-Fi router was already using it.
+
+One port, two things that need it. So I connected the wall port to our switch and moved the club's Wi-Fi router under the switch.
+
+![Wiring labels on each switch port](/static/images/woowangthon-04-remote-access/switch-wiring.webp)
+
+_From the top: wall port, the club's Wi-Fi router, worker 2, worker 1, leader. I labeled them so anyone can plug a cable back in if it gets pulled_
+
+- The router connects to the switch through its **WAN port**. If you plug in a LAN port, the router may try to hand out its own addresses on the school network
+- Only one cable goes to the wall. Two cables from the switch to the wall make a loop, and that can take down the whole club room network
+- The club's Wi-Fi router now hangs off our switch too. If the switch loses power, the club Wi-Fi goes down with it. The club members need to know this
+
+## 3. I thought the internet was blocked
+
+As I found in [part 3](/en/blog/woowangthon/woowangthon-03-disk-images/#7-what-i-checked-after-imaging), none of the three PCs has a Wi-Fi card. The only internet is the wall port. The PCs also already had static IPs assigned by the school. The question was whether the internet worked from this wall port with those static IPs as they were.
+
+It was a minimal install, so there wasn't even `ping`. I checked two things.
+
+```bash
+ip neigh
+curl -sSI -m 5 https://1.1.1.1
+```
+
+`ip neigh` shows devices on the same network that have answered. The gateway answered, and its vendor was the school's network equipment. The cable was properly on the school network. But `curl` timed out. Port 80 did the same. DNS answered once and then timed out on other names.
+
+From these results alone it looked like "the school blocks outside internet for this IP." I even made the next plan. Try getting an address automatically (DHCP) behind the club's Wi-Fi router, and if that fails, ask the school.
+
+Before that, I changed just one address.
+
+```bash
+curl -4 -sSI -m 8 https://tailscale.com | head -1
+```
+
+```text
+HTTP/2 200
+```
+
+The Ubuntu package server also returned 200. **The internet worked from the start.** What was blocked was `1.1.1.1` (Cloudflare's public DNS address), the target I picked for the test. I hit an IP directly instead of a name to rule out DNS problems, and that exact IP happened to be blocked.
+
+The lesson is simple. **If the test target is wrong, the diagnosis is wrong.** Now I check connectivity against the address of the service I'll actually use (`tailscale.com`). And when I write down results, I keep "no internet" and "can't reach 1.1.1.1" separate. The first is a conclusion, the second is an observation.
+
+## 4. The path: Tailscale
+
+The school PCs are behind a firewall, so nothing outside can open a connection to them first. With [Tailscale](https://tailscale.com), you install a program on each device and log in with the same account, and it ties those devices together like one private network. Each device opens a connection out to Tailscale first, so I didn't have to ask the school to open any ports.
+
+I installed it on each of the three and gave them names.
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up --hostname=k3s-leader
+```
+
+Open the login URL shown on screen on the laptop, approve it with the same account, and that's it. I named one machine wrong (`k3s-w1-1`) and fixed it remotely later.
+
+```bash
+sudo tailscale set --hostname=k3s-w2
+```
+
+### A relay, not a direct connection
+
+After connecting, I checked the route and it wasn't direct. Tailscale's Tokyo relay server (DERP) was linking the school PCs and my devices, and round-trip [latency](/en/blog/cloudflare/cloudflare-00-basics/#latency) was 70 to 80 ms. It looks like the firewall or address translation on the school network side keeps the two devices from making a direct connection, so traffic goes around through the relay server.
+
+That's enough for remote access. 80 ms doesn't show when you're typing a few commands. This confirms why in [part 2](/en/blog/woowangthon/woowangthon-02-network-design/#2-second-picture-a-switch-between-the-nodes) I chose a switch for node-to-node connections instead of Tailscale (option C). If every DB write had to go to Tokyo and back, it would be unusable. I'll measure the latency again in stage 6, when the platform server sends deploy commands over this path.
+
+Tailscale device keys expire after 180 days by default. You can turn expiry off, but I left it. It's much longer than the contest, and I'll delete everything when I return the PCs anyway.
+
+## 5. The key: a separate SSH key per device
+
+I work from both a Windows desktop at home and a Mac laptop. I need to get into all three PCs from both.
+
+The rule is **make a separate key on each device, and never copy a private key.** If you move a private key from one device to another and lose one of them, you don't know which key to remove. With a key per device, you just delete one public key line for the lost device.
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/wanggane_k3s -N "" -C "<device name> wanggane-k3s"
+```
+
+I put the same connection block on both devices. `HostName %h` means use the name as is, since Tailscale resolves device names to addresses (MagicDNS).
+
+```text:~/.ssh/config
+Host k3s-leader k3s-w1 k3s-w2
+  HostName %h
+  User <school PC account>
+  IdentityFile ~/.ssh/wanggane_k3s
+  IdentitiesOnly yes
+  ServerAliveInterval 30
+```
+
+I added the two public key lines to all three PCs at once from the laptop. This is the only time each PC asks for a password.
+
+```bash
+for h in k3s-leader k3s-w1 k3s-w2; do
+  ssh -o PubkeyAuthentication=no "$h" \
+    'umask 077; mkdir -p ~/.ssh; cat >> ~/.ssh/authorized_keys' < ~/.ssh/wanggane_k3s_all.pub
+done
+```
+
+## 6. Passwordless sudo for the AI agent
+
+Here I needed one thing ready for my AI teammate. **I don't give the AI agent passwords.** If you paste a password into a chat, it stays in the conversation history. But without a password, the install stops at every line with `sudo`.
+
+So I put one file on each of the three PCs that allows passwordless sudo.
+
+```bash
+for h in k3s-leader k3s-w1 k3s-w2; do
+  ssh -t "$h" 'echo "$USER ALL=(ALL) NOPASSWD:ALL" > /tmp/wanggane \
+    && sudo visudo -cf /tmp/wanggane \
+    && sudo install -m 440 -o root -g root /tmp/wanggane /etc/sudoers.d/wanggane; \
+    rm -f /tmp/wanggane; sudo -k; sudo -n true && echo "NOPASSWD-OK"'
+done
+```
+
+- Only a file that passes the syntax check with `visudo -cf` gets installed. A typo in a sudo config file breaks sudo itself, and remotely there's no way to undo it
+- The setting lives in this one file only, so when I return the PCs I just delete this file
+- I also fixed the removal order. If this file goes before Tailscale, removing Tailscale asks for a password and stops. The order for return day is written separately in the plan
+
+After `NOPASSWD-OK` came back three times, I never had to type a password again. Turning off sleep, checking time sync and checking the specs of all three were done remotely by the agent on the laptop. That's also when I confirmed all three have identical specs.
+
+```bash
+sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+```
+
+This line that turns off sleep is the basics of running unattended. If a PC falls asleep in an empty club room, remote access falls asleep with it.
+
+## 7. Power: coming back on after an outage
+
+The last part was back at the PCs. If the power went out or someone unplugged and replugged the power strip, these PCs stayed off. The BIOS "Restore after AC Power Loss" setting was `Power Off`. You can't change that remotely.
+
+On all three, I took a photo of the screen before changing anything and switched it to `Power On`. The BIOS isn't in the disk image, so I'll use these photos to set it back when I return the PCs.
+
+Next was the **unattended reboot test**. I saved, rebooted, did nothing at the PC, and connected right away from the laptop.
+
+```bash
+ssh k3s-leader 'uptime'
+```
+
+Even without anyone logged in, Tailscale reconnected and SSH worked on all three. That means internet, Tailscale and SSH all come back without a human touching anything. I didn't actually pull the power cord as a test. I only changed the setting, so if a PC is ever off after an outage, this setting is the first thing to suspect.
+
+That night I also confirmed from the Windows desktop at home that I could get into all three with the key and that `sudo -n` worked. That finished stage 2.
+
+## 8. Who did what
+
+In this stage, the work split clearly between human and AI.
+
+| Me (human), at the PCs                                      | AI agent, remotely                                                      |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Switch wiring, finding the wall port                        | Running the loop over all three PCs                                     |
+| Disk images, BIOS photos and settings                       | Turning off sleep, time sync, spec check                                |
+| First install of SSH server and Tailscale, approving logins | Cleaning up the on-site log sheet, updating the plan and the order page |
+| Everything that needs a password                            | Suggesting possible causes and the next test when stuck                 |
+
+The misdiagnosis in section 3 also happened inside this table. The agent was about to record the result from when I first plugged into the phone port as "static IP failed," and I corrected it: that wasn't a test. Because we didn't record untested things as failures and kept observation and conclusion separate, there was still room to try changing one address. It's the same idea as the "unverified" labels in part 2.
+
+## 9. Wrap-up
+
+| What happened                                           | What I learned                                                                                         |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Two wall ports, and the router was using the LAN one    | Move the router under the switch. Through its WAN port, and only one cable to the wall                 |
+| 1.1.1.1 was blocked, so I thought the internet was down | Test connectivity against the address you'll actually use. Write observation and conclusion separately |
+| Tailscale went through a relay, not a direct connection | Enough for remote access, but not usable for node-to-node connections                                  |
+| I had to connect from two devices                       | One key per device. Never copy a private key                                                           |
+| The AI agent can't type passwords                       | Instead of a password, one sudo file that's easy to delete                                             |
+| The PCs stayed off after a power outage                 | BIOS power-on after power loss, then reboot without logging in and check access                        |
+
+Now I don't have to go to school. From the next stage on, everything is remote. In stage 3, I name the nodes and set up the addresses and firewall the nodes use between themselves.

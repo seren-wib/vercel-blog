@@ -71,7 +71,12 @@
     "stairno/stairno-04a-payment-rehearsal",
     "unity/unity-01-basics",
     "unity/unity-err",
-    "web/web-00-basics"
+    "web/web-00-basics",
+    "woowangthon/woowangthon-00-overview",
+    "woowangthon/woowangthon-01-docs-and-prs",
+    "woowangthon/woowangthon-02-network-design",
+    "woowangthon/woowangthon-03-disk-images",
+    "woowangthon/woowangthon-04-remote-access"
   ],
   "en": [
     "ai/ai-05-03-deep-learning",
@@ -145,6 +150,11 @@
     "stairno/stairno-04a-payment-rehearsal",
     "unity/unity-01-basics",
     "unity/unity-err",
-    "web/web-00-basics"
+    "web/web-00-basics",
+    "woowangthon/woowangthon-00-overview",
+    "woowangthon/woowangthon-01-docs-and-prs",
+    "woowangthon/woowangthon-02-network-design",
+    "woowangthon/woowangthon-03-disk-images",
+    "woowangthon/woowangthon-04-remote-access"
   ]
 }

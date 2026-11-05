@@ -1,0 +1,136 @@
+---
+title: 'Woowangthon 3. A Way Back Before Touching Anything'
+date: '2026-11-06'
+tags: ['Woowangthon']
+draft: false
+summary: 'The day I imaged the whole internal disk of three borrowed school PCs with Clonezilla before installing anything. What I brought (Ventoy USB, external NVMe), why the BIOS screen did not show up (onboard HDMI, Fast Boot), the Ventoy MOK enrollment trap, savedisk and image checks, device names that change from PC to PC, an image I took again because a teammate had changed the password, and BIOS photos'
+---
+
+> Part 3 of the series. Build step 1: disk image backups. The design story is in [part 2](/en/blog/woowangthon/woowangthon-02-network-design/), and the big picture is in [Woowangthon 0](/en/blog/woowangthon/woowangthon-00-overview/).
+
+## In one line
+
+The three PCs we borrowed from school have to go back after the hackathon. So the first job was not installing anything. It was **saving the as-received state in one piece**. Before even logging in, I booted each PC from USB and imaged its internal disk to an external disk. Along the way the BIOS screen did not show up, device names were different on every PC, and one PC already had a changed password, so I had to take its image again.
+
+![Three school PCs with name labels](/static/images/woowangthon-03-disk-images/three-pcs.webp)
+
+_The leader is in the middle, the workers on each side. School asset tags and the original host names are covered_
+
+## 1. Why an image first
+
+There are two ways to put a PC back the way it was when you return it.
+
+| Method                 | How                                                                          | Catch                                                                                       |
+| ---------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Undo things one by one | Remove installed packages, created accounts and changed settings from a list | Whatever is missing from the list stays. I can't remember everything I changed over 3 weeks |
+| **Disk image**         | Image the whole disk at the start, write it back when returning the PC       | 20-30 minutes per PC at the start, and an external disk to store it on                      |
+
+I kept the one-by-one approach as a fallback only and went with images. There is one condition. **The image has to be taken before anything changes.** One account or one package and it is no longer the "as-received state". So the plan was to boot straight from USB without even logging in.
+
+Some things don't go into the image. BIOS settings live on the motherboard, not on the disk. So I decided to photograph the BIOS screens before changing anything.
+
+I don't know yet whether restoring the PCs is actually a condition for returning them. I left that as a question for the person who lent us the PCs, and prepared as if it were required.
+
+## 2. What I brought
+
+Things I packed the night before.
+
+| Item                 | Details                                                                                                                                                    |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Boot USB             | A 115GB USB with [Ventoy](https://www.ventoy.net). I put the Clonezilla live ISO on it and checked the checksum. Ubuntu and Windows ISOs too, just in case |
+| Image storage disk   | An old 512GB NVMe in a USB enclosure. One NTFS partition                                                                                                   |
+| Switch, 4 LAN cables | The ones I bought in part 2                                                                                                                                |
+| Monitor, keyboard    | One set from the club room                                                                                                                                 |
+
+Ventoy is a tool that lets you keep several ISO files on one USB and pick one at boot. You don't have to burn the USB again for every ISO.
+
+[Clonezilla](https://clonezilla.org) is a free tool that clones a whole disk or saves it as an image. It skips free space and only compresses and saves the used parts, so even a 1TB disk ends up as an image of a few dozen GB.
+
+## 3. The BIOS screen doesn't show up
+
+I got stuck on the very first PC. To boot from USB I needed the boot menu or the BIOS, but when I turned the PC on there was no vendor logo and no BIOS, just the login screen. There were two causes.
+
+- **Where the monitor was plugged in.** The monitor was on the motherboard's HDMI port. This PC has a separate graphics card (RTX 3080), so the motherboard output didn't show the early boot screens. When I moved it to the graphics card's HDMI, the BIOS screen appeared. On all three PCs the monitor has to go into the graphics card
+- **Fast Boot.** Fast Boot was on in the BIOS, so the boot went past before it took any keyboard input. Neither the key you press at the logo nor the boot menu key worked
+
+For the first PC I ended up logging in once and entering the BIOS with `sudo systemctl reboot --firmware-setup`. That command sends the next boot to the BIOS setup screen. So this one PC got one login record before its image was taken. The login record is the only thing that changed. From the next PC on, I plugged the monitor into the graphics card from the start and pressed the boot menu key at the logo (F11 on this motherboard) to pick the USB directly.
+
+![Boot settings screen in the BIOS](/static/images/woowangthon-03-disk-images/bios-boot.webp)
+
+_Boot settings in the MSI BIOS. Fast Boot is on. I photographed every screen like this before changing anything_
+
+## 4. The button not to press
+
+There was one trap I had written down while preparing. If you boot Ventoy on a PC with Secure Boot on, a blue "Verification failed" screen comes up and asks you to enroll a key. If you enroll it, the boot works, but **the key stays in the PC firmware.** Restoring the disk image doesn't remove it. That would leave a mark on someone else's PC that I can't erase.
+
+So the plan was: if that screen comes up, don't enroll, photograph the BIOS screen, and turn off only Secure Boot for a while. In practice Secure Boot was already off on all three PCs, so I never saw that screen.
+
+## 5. Taking the images
+
+This is the order I picked in Clonezilla.
+
+1. `device-image`: save a disk as an image file
+2. `local_dev`: the destination is the plugged-in external disk. The folder is the top level (`/`)
+3. `Beginner` → `savedisk`: save the whole disk
+4. Image name: `<PC name>-orig-2026-11-04`
+5. Source disk: the internal NVMe `nvme0n1`
+6. Default compression, **check the saved image: yes**, no encryption
+
+![Clonezilla saving the internal disk](/static/images/woowangthon-03-disk-images/clonezilla-saving.webp)
+
+_partclone reading the root partition. Only 48.6GB of the 956GB partition is in use, so it finishes quickly_
+
+A mistake at step 5 is game over. If you swap the source and the destination, the external disk overwrites the internal one. And **the device names were different on each PC.** On one PC the Ventoy USB was `sda` and the external disk was `sdb`, but on another the external disk showed up as `sda`. So I checked by size, not by name. 115GB is the USB, 477GB is the external disk, 931GB is the internal disk. Only the internal disk starts with `nvme`, so there was at least less room for confusion there.
+
+I always turned on the check at step 6. When saving is done, Clonezilla reads the image back and confirms it can be restored. An image that fails the check can't be trusted, so it has to be taken again. Finding out on return day that the restore doesn't work would be too late.
+
+| PC       | Image size | Notes                                                                        |
+| -------- | ---------- | ---------------------------------------------------------------------------- |
+| Leader   | 19G        | Saved the EFI, boot and root partitions. Skipped the swap partition (normal) |
+| Worker 1 | 9.6G       | Passed the check                                                             |
+| Worker 2 | 11G        | Taken again the next day (section 6)                                         |
+
+All three together came to under 40GB. The 512GB external disk is now the only place that holds the originals of all three PCs, so I don't use it for anything else.
+
+## 6. A password that was already changed
+
+Worker 2 had a problem. After taking the image I tried to log in, and the password from the person who lent us the PCs didn't work. It turned out a teammate had logged into this PC earlier and changed the password.
+
+That means the image I had just taken was not the "as-received state". If I wrote it back on return day, the person who lent us the PCs couldn't log in with their own password. So I set this order.
+
+1. Get the changed password from the teammate and log in
+2. Ask the teammate whether anything else changed besides the password (installed packages, changed settings)
+3. Set it back to the original password with `sudo passwd`
+4. Log out and confirm that the original password works again
+5. Take the image again under the same name
+
+![Worker 2 image passing the check](/static/images/woowangthon-03-disk-images/clonezilla-checked.webp)
+
+_The retaken worker 2 image. restorable on each partition means it can be restored_
+
+The image I took again the next day passed the check, and the old image was overwritten. I overwrote it under the same name because there should be only one image holding the "as-received state", so nobody gets confused.
+
+## 7. What I checked after imaging
+
+Only after the images were taken did I log in and look inside the PCs.
+
+| Check                          | Result                                                                                       |
+| ------------------------------ | -------------------------------------------------------------------------------------------- |
+| OS                             | Ubuntu 24.04.5 LTS on all three. Minimized server install with no desktop                    |
+| Where root lives (`findmnt /`) | An ext4 partition on the internal NVMe. An installed OS, not a live USB                      |
+| Already installed              | SSH server, Docker, open-iscsi. open-iscsi is needed later for volume replication (Longhorn) |
+| Wired LAN                      | All three have a free 2.5G LAN port. No USB LAN adapter needed                               |
+| **Wi-Fi**                      | **None of the three has a wireless card**                                                    |
+
+The last row mattered. One of the fallback plans from part 2 died here. If the wall LAN port had no internet, each PC was going to go out through the school Wi-Fi, but with no Wi-Fi card that path doesn't exist. Now internet depends on a single wall port. That story is [part 4](/en/blog/woowangthon/woowangthon-04-remote-access/).
+
+## 8. Wrap-up
+
+| What happened                                | What I learned                                                                               |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Borrowed PCs have to go back as they were    | Image the whole disk before changing anything. Check it too                                  |
+| The BIOS didn't show up                      | With a graphics card, plug the monitor into the card. With Fast Boot, use `--firmware-setup` |
+| Ventoy may ask to enroll a key               | Don't press anything that stays in the firmware. Turn off Secure Boot for a while            |
+| Device names differed from PC to PC          | Check the source and destination by size, not by name                                        |
+| Something had already changed before imaging | Check that it is the "as-received state" first. If not, revert and take it again             |
+| BIOS settings don't go into the image        | Photograph them before changing anything                                                     |

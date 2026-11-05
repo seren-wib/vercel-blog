@@ -1,0 +1,103 @@
+---
+title: 'Woowangthon 1. Fighting Over Docs Before Code'
+date: '2026-11-06'
+tags: ['Woowangthon']
+draft: false
+summary: 'The PR history of the first ten days of the hackathon. Three design docs I posted before anything was decided and that got closed, a rework of the doc structure that AI agents and teammates read together, the FR numbering rule, one fact scattered across ten files and the "tech names in one table only" rule, ADR rules, and new workflows not running on fork PRs'
+---
+
+> Part 1 of the series. These are the first ten days, before anyone touched the cluster, when the team ran into each other over docs. The big picture of the project is in [Woowangthon 0](/en/blog/woowangthon/woowangthon-00-overview/).
+
+## In one line
+
+From October 26 to the morning of November 3, fourteen PRs went up on the team repo, and not one of them had code in it. All docs. The three design docs I posted alone on the first day were closed because nothing had been decided yet. After that we spent our time settling "when do we write it, and where do we write it only once." Thanks to that, once code started coming in, we barely argued about docs.
+
+## 1. Three docs I posted alone on day one
+
+On October 26, two days after kickoff, I posted three PRs in a row.
+
+| PR                                                              | Content                                                                                                                                                                                                   |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [#2](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/2) | System diagram and flows, plus 19 "things we need to decide"                                                                                                                                              |
+| [#4](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/4) | ADR-002, a system architecture proposal. Static sites on [Cloudflare R2](/en/blog/cloudflare/cloudflare-00-basics/#r2), apps that need a server on k3s running on the school lab PCs, cloud VMs as backup |
+| [#5](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/5) | ADR-001, a tech stack proposal. The pick for each area and why                                                                                                                                            |
+
+The AI review bot the team had agreed to use (CodeRabbit) commented on every push. Some of its points were useful. But it read the proposals as specs to implement and kept asking me to "design this part." In the end I paused it on every PR (`@coderabbitai pause`).
+
+The humans answered more briefly. [TaeTaeJin](https://github.com/TaeTaeJin) moved a PR back to draft, saying this was something to decide after the meeting and after asking the school, so it was better to hold it. On another PR they left a note saying I had worked hard thinking it through alone, and we should decide together at the meeting the next day. The next morning I closed all three and moved the content to Notion.
+
+Looking back, I had the order wrong. An ADR records something that **has been decided**, along with the reasons. I posted things nobody had decided, with the status "Proposed." They weren't closed because the content was wrong. They were closed because they skipped the decision. In fact, the main idea of "run k3s on the school PCs" survived, but "static sites on R2" was later dropped by the team. Putting the results outside the school would throw away our strength of "running on school resources." If I had decided it alone, that plan would have stayed baked into the docs.
+
+One of my PRs did get merged that day. [#3](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/3), a single line saying "repo rules take priority over personal agent instructions." Each teammate runs their own AI coding agent with personal instructions, and if those clash with the team rules, the team rules win.
+
+## 2. The PR that rebuilt the doc structure
+
+On October 27, TaeTaeJin posted [#7](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/7), which rebuilt the whole doc structure. On this team, people aren't the only ones reading the docs. Each teammate's AI agent reads the same docs and works from them. So the structure had two criteria. Is it easy for a person to find things, and is it cheap enough for an agent to read every time.
+
+| What changed                           | Details                                                                                                                         |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `CLAUDE.md` as the one entry           | The single entry point agents and teammates read before work. Cut down to 61 lines, keeping only the rules needed every session |
+| `CONTRIBUTING.md` split out            | Rules needed only for branches, commits and PRs go here                                                                         |
+| Forced to read rules before committing | A hook that blocks `git commit` and PR creation until the agent has read `CONTRIBUTING.md`. A one-line note can be ignored      |
+| requirements spec (SRS)                | Ordered as use cases (UC) → functional requirements (FR) → non-functional requirements (NFR) → demo scenario                    |
+| ADR status                             | Dropped the "Proposed → Accepted" step. Decide in a meeting, then write it, and it's final once merged                          |
+
+The last row is the team's answer to section 1. Proposals happen in meetings and in Notion, and only decided things go into the repo.
+
+I read this PR all the way through and left a review. Since I read it together with my agent, I marked which parts I had checked myself and which parts only the AI had checked. One of the things I asked to fix before merge was FR numbering. The first draft was `FR-<UC number>-<seq>`. But the same doc also said "once an ID is assigned, it never changes" and "if priorities get mixed within one UC, split the UC." If you split a UC, the FRs that move either get renumbered (breaking the first rule) or keep the old UC number (breaking the format). So I suggested a plain sequence `FR-NNN` that has nothing to do with the UC, and it went in as is.
+
+Some suggestions didn't make it. Running tests twice, locally and in CI, and running mutation tests before opening a PR. The call was that this was too much for a three-week hackathon, and looking at it now, that was the right call.
+
+## 3. One fact in ten files
+
+On October 31, TaeTaeJin posted the system definition document ([#12](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/12)). It defined users, components, flows and infra in one doc, and also included a tech stack ADR and diagram fixes.
+
+While reading the infra part I saw a problem. The container registry was written as AWS ECR, and at merge time **the word ECR appeared in 10 files, on 25 lines**. The system definition document, the ADR, the AI scope document, and seven diagrams. On top of that, it was a value nobody had decided. At the October 29 meeting we said we'd use AWS for the cloud, and that got written down as if it meant the registry was ECR too.
+
+The next day on Discord we settled on GHCR (GitHub Container Registry) with public images. The rule was "don't keep expiring credentials on the school PCs."
+
+- With private ECR, the token for pulling images expires every 12 hours. That means the school PCs would need a token refresh job and AWS credentials
+- With private GHCR, the free tier (500MB storage, 1GB transfer per month) runs out after two or three student app images
+- Public GHCR needs no token to pull. We accepted that student code is visible inside the image. We only pull public repos anyway
+
+Instead of leaving a review asking for 25 lines to be fixed, I approved #12 as it was. Rewriting the infra part myself in one go after the merge was faster than asking the author to clear out 25 lines. In exchange, I proposed a rule to stop the cause.
+
+> **The tech stack is written in only one place, the table in §3 of the system definition document.** Other docs and diagrams use only component names, like "container registry."
+
+This rule went in with [#20](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/20). Now if we change the registry again, we only fix one cell in the table and one ADR.
+
+## 4. ADR rules
+
+We set ADR rules in the same PR.
+
+- **One decision per ADR.** One question, like "how do we protect student volumes," is one decision. A light choice like picking a single tool ends as one row in a table, no ADR
+- **Merged ADR bodies don't get edited.** If something changes, write a new ADR and only change the status line of the old one. ADR-001, which bundled the whole tech stack, is now `Valid (partly superseded: registry → 003)`
+
+Then I posted four cluster ADRs in [#21](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/21). The registry (GHCR), the connection between the platform server and the cluster (Tailscale), the k3s setup on 3 school PCs, and metrics (Prometheus on the leader). All four were agreed on in a meeting or on Discord first. The order I learned in section 1.
+
+## 5. The diagrams had the same disease
+
+The diagrams had the same problem. The team diagrams had the physical network (⑤) and the cluster (⑥) as separate pictures, and both were out of line with my build plan. Things like the 40% resource cap on classroom PCs, the club room router LAN, and the WebSocket agent on the leader. That story is in [Part 2](/en/blog/woowangthon/woowangthon-02-network-design/).
+
+In [#15](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/15) I merged the two into one picture and redrew it. While drawing, I set one principle. **Diagrams only show structure.** Zones, boxes with a one-line role, numbered lines, and what gets cut off when something fails. Once you put config values or rules in a diagram, the diagram becomes a second copy of the plan, and copies always drift. Then in [#22](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/22) I brought the infra parts of the system definition document, the AI scope document and the SRS in line with the build plan.
+
+## 6. Fork PRs can't run new workflows
+
+On the afternoon of November 3, code finally came in. TaeTaeJin posted the web project setup ([#23](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/23)) and the design system ([#24](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/24)). But the [CI](/en/blog/devops/devops-00-basics/#ci) workflow added in #23 never ran once.
+
+On this team, everyone forks the repo and opens PRs from their fork. When I checked, a PR from a fork didn't run a workflow that the PR itself added. After #23 was merged and the workflow landed on `main`, it started running on `main` pushes, and from the next push on #24 it ran on PRs too. I couldn't find the exact rule in the official docs, but this is how it behaved in this repo.
+
+So a PR that adds or changes a workflow can't prove itself with CI. For those PRs, run `pnpm verify` (lint → test → build) locally, and check the run on the next PR or `main` push once more.
+
+## 7. Wrap-up
+
+| What happened                                         | Rule we kept                                                      |
+| ----------------------------------------------------- | ----------------------------------------------------------------- |
+| Posted ADRs before deciding, and they got closed      | Proposals in meetings and Notion. Only decided things in the repo |
+| Agents can miss a rule written as a note              | Anything that must hold gets blocked by a hook, not a sentence    |
+| FR numbers tied to UCs clashed with the fixed-ID rule | FRs use a sequence unrelated to UCs                               |
+| Undecided ECR spread across 10 files                  | Tech stack in one table only, component names everywhere else     |
+| Diagrams drifted from the plan                        | Diagrams show structure only                                      |
+| New workflows didn't run on fork PRs                  | Check workflow PRs locally and watch the next run                 |
+
+At first, spending ten days without code made me nervous. Now I think those ten days are why we argued less about docs for the rest of the hackathon. From the next post on, it's about the school PCs.

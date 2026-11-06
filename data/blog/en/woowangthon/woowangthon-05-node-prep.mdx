@@ -1,0 +1,216 @@
+---
+title: 'Woowangthon 5. Work Where One Mistake Means a Walk to the Club Room'
+date: '2026-11-06'
+tags: ['Woowangthon']
+draft: false
+summary: 'Build stage 3, node prep. The last site checks (no firewall at all, tunnel port 7844 open), hostnames and a cloud-init trap, an automatic revert armed before every remote change, a node address on the same LAN card and 941 Mbit/s, SSH keys only, an inbound firewall that filters by source and an outbound one that filters by port, and the Pod traffic trap a design doc review caught'
+---
+
+> Part 5 of the series. Build stage 3: node prep. Setting up remote access is in [part 4](/en/blog/woowangthon/woowangthon-04-remote-access/), and the big picture is in [Woowangthon 0](/en/blog/woowangthon/woowangthon-00-overview/).
+
+## In one line
+
+Everything in this stage is remote. And everything in it is **the kind of change that can cut remote access**: network settings, SSH settings, the firewall. Get one wrong and I have to walk to the club room and plug in a monitor. So before each change I first scheduled "put it back by itself in 2 minutes 30 seconds", and cleared that schedule only after I got back in. I never needed it, but it let me make the changes without fear.
+
+## 1. The last site checks
+
+Three things were left over from stage 2.
+
+| What to check                                                | Result                                                             |
+| ------------------------------------------------------------ | ------------------------------------------------------------------ |
+| Is the firewall (ufw) on?                                    | **Not even installed** on any of the three. It's a minimal install |
+| Can we get out on port 7844, the one Cloudflare Tunnel uses? | Yes, over TCP on all three                                         |
+| Does the school network only allow 443?                      | No. 80, 443, 7844, 8080 and other ports all get out                |
+
+7844 was the worry. We chose Cloudflare Tunnel as the way visitors reach student apps, and the tunnel program connects to Cloudflare on 7844, not 443. I had heard the school network might only allow 443 (TaeTaeJin), so I had two fallbacks ready: ask the school to open the port, or make the AWS server the public entry and forward over the private network. Neither is needed now.
+
+I was careful with the test target again. In [part 4](/en/blog/woowangthon/woowangthon-04-remote-access/#3-i-thought-the-internet-was-blocked) I poked `1.1.1.1`, which the school blocks, and concluded the internet was down. This time I connected straight to the Cloudflare tunnel server the tunnel will actually use.
+
+```bash
+timeout 6 bash -c '</dev/tcp/region1.v2.argotunnel.com/7844' && echo open
+```
+
+The minimal install has neither `ping` nor `nc`, so I used bash's `/dev/tcp` to just open a TCP connection.
+
+No firewall also means that until now **every inbound connection was open**. Wired networks have no client isolation like Wi-Fi does, so a school device on the same wire can reach our PCs directly. I closed that within this stage (sections 5 and 6).
+
+## 2. Names and time zone
+
+k3s uses the hostname as the node name. I replaced the names the school had given the PCs with `k3s-leader`, `k3s-w1` and `k3s-w2`. The original names are written down so they can go back at return time.
+
+```bash
+sudo hostnamectl set-hostname k3s-w2
+sudo sed -i 's/^127\.0\.1\.1[[:space:]].*/127.0.1.1 k3s-w2/' /etc/hosts
+sudo timedatectl set-timezone Asia/Seoul
+```
+
+The `127.0.1.1` line in `/etc/hosts` has to change too. Otherwise every `sudo` prints a warning that it can't resolve the hostname.
+
+### cloud-init puts the name back
+
+Before changing anything, the agent read through the config files and found one thing. These PCs had this in `/etc/cloud/cloud.cfg`:
+
+```yaml
+preserve_hostname: false
+cloud_init_modules:
+  - set_hostname
+  - update_hostname
+```
+
+cloud-init is the tool that sets a machine up on first boot. With this setting it can rewrite the hostname to its own value on reboot, so a name changed with `hostnamectl` could revert after one restart. I added a separate file telling it to keep the name.
+
+```bash
+echo 'preserve_hostname: true' | sudo tee /etc/cloud/cloud.cfg.d/99-wanggane-preserve-hostname.cfg
+```
+
+Then I rebooted them one at a time: worker 2, worker 1, then the leader. The leader went last because it's the worst one to lose. All three came back within about a minute with nobody logged in, internet, Tailscale and SSH included, and kept the new names.
+
+## 3. Put the undo in place before it breaks
+
+This is where the risky part starts. Apply a bad network setting and the PC drops off the internet on the spot, taking Tailscale with it. There's no way to fix that remotely.
+
+So before each change I **scheduled the command that undoes it**. systemd's `systemd-run` can set a command to "run in N seconds".
+
+```bash
+sudo systemd-run --unit=wanggane-revert --on-active=150 \
+  /bin/sh -c 'rm -f /etc/netplan/60-wanggane-node.yaml; netplan apply'
+sudo netplan apply
+```
+
+```bash
+sudo systemctl stop wanggane-revert.timer
+```
+
+1. Schedule a job that, in 150 seconds, removes the new config file and applies again
+2. Apply the new setting
+3. Connect again from the laptop
+4. If it works, cancel the job. If not, it puts things back by itself after 150 seconds, and I connect then
+
+I used this for the node addresses, the SSH settings, the inbound firewall and the outbound firewall. Always one PC at a time, starting with worker 2. The job never actually fired. Still, without it my hands would have shaken every time I turned the firewall on.
+
+## 4. Node addresses: one more address on the same LAN card
+
+As decided in [part 2](/en/blog/woowangthon/woowangthon-02-network-design/#6-what-the-wall-port-changed), the three PCs share one switch, plugged into the wall LAN port, for both internet and node-to-node traffic. Each LAN card gets two addresses.
+
+| Address                         | Used for                              | Gateway            |
+| ------------------------------- | ------------------------------------- | ------------------ |
+| Static address from the school  | Internet                              | The school gateway |
+| Node address `192.168.77.11~13` | Node to node (k3s uses only this one) | None               |
+
+The school address can change for reasons on the school's side. If k3s were tied to it, the nodes would lose each other the day it changed. So we keep an address of our own.
+
+I didn't touch the original network config file. cloud-init made it, so it might get rewritten at any time, and it's harder to roll back. Instead I added one more file holding only the node address. netplan merges every file that describes the same LAN card.
+
+```yaml:/etc/netplan/60-wanggane-node.yaml
+network:
+  version: 2
+  ethernets:
+    enp4s0:
+      addresses:
+        - '192.168.77.13/24'
+```
+
+Before applying, I looked at the merged result with `netplan generate`: two addresses, one gateway on the school side. Put a gateway on the node address as well and the default route goes the wrong way, cutting the internet.
+
+Then I checked that the three reach each other on the node addresses, and measured the speed.
+
+```bash
+iperf3 -c 192.168.77.12 -t 5
+```
+
+About 941 Mbit/s on all three paths, zero retransmits. That's close to everything a gigabit switch can do.
+
+### A small accident by the AI
+
+The agent made one mistake in this stage. It tried to handle worker 1 and the leader in one go by passing "name address" pairs through a loop, but the shell on my laptop was zsh. Unlike bash, zsh doesn't split unquoted variables on spaces. So the name and address went through as one lump, like `ssh "k3s-w1 192.168.77.12"`, and the connection never happened.
+
+Luckily nothing ran. The agent spotted the cause right away, checked that nothing on worker 1 had changed, rewrote the script as a bash file and ran it again. It never even got as far as the revert job, but it was a reminder that in remote work you have to tell "the command didn't run" apart from "the command half ran".
+
+## 5. SSH with keys only
+
+In part 4 I made an SSH key per device, but password login was still on. With no firewall, anyone on the school network who guessed the password could get in. I left key login only.
+
+```text:/etc/ssh/sshd_config.d/10-wanggane-keys-only.conf
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+```
+
+The number at the front of the file name matters. The same folder had a `50-cloud-init.conf` made by cloud-init, with `PasswordAuthentication yes` in it. For the same option, sshd uses **the first value it reads**, and it reads files in name order. `10-` comes before `50-`, so our value wins. After applying, I checked with `sshd -T` that the effective value was `no`, then deliberately tried to log in with a password.
+
+```text
+Permission denied (publickey).
+```
+
+That's the server saying it only takes public keys. This one also went in with the revert job armed. Turn off passwords while key login is broken and you're locked out for good.
+
+## 6. Firewall: inbound by source, outbound by port
+
+### Inbound
+
+Inbound connections are denied by default, with only these open.
+
+| Allowed                                | Used for                                           |
+| -------------------------------------- | -------------------------------------------------- |
+| The Tailscale interface (`tailscale0`) | Remote access from home, later server → leader API |
+| Source `192.168.77.0/24`               | Node to node (k3s API, kubelet, flannel and so on) |
+| Source `10.42.0.0/16`, `10.43.0.0/16`  | k3s Pod and service ranges                         |
+
+The key point is opening the node range **by source address, not by LAN card**. The node address and the school address sit on the same LAN card, so "allow what comes in on this card" would also let through every school device on the same wire.
+
+After turning it on, each PC poked the others at both addresses.
+
+| Target                        | Port 22 |
+| ----------------------------- | ------- |
+| Another node's node address   | Open    |
+| Another node's school address | Blocked |
+
+A connection from a school address gets the same treatment as a school device, so this confirms that inbound connections from the school network are blocked.
+
+### Outbound
+
+I switched outbound to deny by default as well, to limit where a compromised worker PC could go. At first I wanted to tie it to destinations, like "only GHCR (the image registry) and the Ubuntu package servers", but ufw doesn't know about domains. Pinning IPs doesn't work either: the registry, the package servers and Tailscale all sit behind CDNs, so their IPs keep changing. So I tied it to **ports**.
+
+| Allowed                            | Used for                                        |
+| ---------------------------------- | ----------------------------------------------- |
+| 53, 123/udp                        | DNS, time sync                                  |
+| 80, 443/tcp                        | Packages, registry, Tailscale control and relay |
+| 41641/udp, 3478/udp                | Tailscale's attempts at a direct connection     |
+| Node range, k3s ranges, tailscale0 | Inside the cluster, remote access               |
+| 7844 (leader only)                 | Cloudflare Tunnel                               |
+
+After the switch I checked that DNS, HTTPS, the registry, `apt update`, time sync and Tailscale all still worked, and that other ports such as 8080 were blocked. With 443 open, anything can still leave on 443. That's the limit of filtering by port.
+
+## 7. What the design doc review caught
+
+With node prep done, and before the next stage (installing k3s), I wrote the cluster design doc as the team repo's rules require ([woowangthon/WOOWANGTHON_TEAM_18#31](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/31)). The agent wrote the draft, and I said "looks fine, but let's run one review before we open it". Running the agent's code review on the doc turned up seven findings. Two of them would have actually blown up in the next stage.
+
+- **The firewall doesn't apply to Pod traffic.** The outbound rules in section 6 only cover programs running directly on the PC (host processes). Traffic leaving a Pod inside the cluster goes through address translation and takes a different path (FORWARD). Once the tunnel program and the image cache run as Pods, they'll be either blocked outright or wide open regardless of these rules. The doc now spells out the difference, and the operational Pods get their own rules when k3s goes in.
+- **flannel might pick the school address.** k3s's Pod network (flannel) uses an address on the LAN card when it builds tunnels between nodes. Our LAN card has the school address first. If flannel builds its tunnel on the school address, the firewall from section 6 blocks that source, and Pod traffic between nodes breaks. The install now names the LAN card explicitly and includes a step to check which address it actually picked.
+- On top of that, the volume setting meant to move a student's DB to the other worker when one goes down was written with a value that moves the app but misses the DB.
+
+The fun part is that an AI wrote this doc and an AI caught what was wrong with it. The same agent missed these while writing, and saw them once it looked again with a different eye: review. But it was a person who asked for the review. Without that, the draft would have gone up as it was.
+
+## 8. Who did what
+
+Everything in this stage was remote, so I never went to the PCs.
+
+| Me (the human)                                                     | The AI agent                                               |
+| ------------------------------------------------------------------ | ---------------------------------------------------------- |
+| Deciding whether to go ahead, one block at a time                  | Running the commands, arming and clearing the revert job   |
+| Judging where plans disagreed, like the tunnel location            | Reading configs before changes (found the cloud-init trap) |
+| "Let's run one review before we open it"                           | Drafting the design doc, reviewing it, fixing the findings |
+| Didn't notice the Mac's Tailscale was off (the agent turned it on) | The zsh loop mistake, finding the cause and rerunning      |
+
+## 9. Wrap-up
+
+| What happened                                                       | What I learned                                                                 |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| There was no firewall at all                                        | Don't trust a minimal install's defaults. Check each one                       |
+| I worried 7844 would be blocked                                     | Test against the address you'll actually use. Two fallbacks became unnecessary |
+| A changed hostname could revert on reboot                           | Look at cloud-init's `preserve_hostname` first                                 |
+| Each remote change could cut access                                 | Schedule the undo before making the change                                     |
+| One LAN card carries both the school address and the node address   | Leave the original config alone and add a file. Filter by source               |
+| Outbound destinations couldn't be tied to domains                   | Tie them to ports. As long as 443 is open, the limit remains                   |
+| The AI-written design doc had holes that would break the next stage | Look once more with a different eye. Asking for that is a person's job         |
+
+Node prep is done. In the next stage the three PCs become one k3s cluster. That's also when the two things from the review (Pod traffic and the flannel address) get checked for real.

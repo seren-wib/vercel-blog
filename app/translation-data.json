@@ -76,7 +76,8 @@
     "woowangthon/woowangthon-01-docs-and-prs",
     "woowangthon/woowangthon-02-network-design",
     "woowangthon/woowangthon-03-disk-images",
-    "woowangthon/woowangthon-04-remote-access"
+    "woowangthon/woowangthon-04-remote-access",
+    "woowangthon/woowangthon-05-node-prep"
   ],
   "en": [
     "ai/ai-05-03-deep-learning",
@@ -155,6 +156,7 @@
     "woowangthon/woowangthon-01-docs-and-prs",
     "woowangthon/woowangthon-02-network-design",
     "woowangthon/woowangthon-03-disk-images",
-    "woowangthon/woowangthon-04-remote-access"
+    "woowangthon/woowangthon-04-remote-access",
+    "woowangthon/woowangthon-05-node-prep"
   ]
 }

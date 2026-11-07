@@ -41,11 +41,11 @@ The users are students. When you build a web service in a project course, you de
 
 From the student's side, one deploy goes like this.
 
-1. The student logs in with a GitHub account, enters a public repo URL, picks a type (static web / server / web+server) and whether they need a DB, and submits
+1. The student logs in with a GitHub account, enters a public repo URL, picks a type (static web / server / web+server) and, if they use a DB, the connection details for their own DB, and submits
 2. **AI reviews it.** It pulls the repo read-only and looks for risks like exposed secret keys or overly broad public permissions, with evidence. If something needs fixing, a bot account opens a PR with a suggested fix
 3. **The operator decides.** They read the review summary and pick one of approve, request changes, or block
 4. Only approved code gets built into a container image, on an isolated build server outside the school
-5. The school PC cluster pulls that image and runs it. If the student picked a DB, MySQL comes up with it
+5. The school PC cluster pulls that image and runs it. The app connects to the student's own DB with those details
 6. Visitors come in through a `name.stairnoworks.com` address
 7. If something goes wrong while it runs, like running out of memory or restarting over and over, rules stop or restart it first, and AI sends an alert explaining the cause and what to do next
 
@@ -90,7 +90,7 @@ The cluster looks like this.
 | PC 2 | Worker | One student project                                                                        |
 | PC 3 | Worker | One student project                                                                        |
 
-The three are wired with LAN cables to one switch we bought. If a worker goes down, the leader brings that project back up on the remaining worker, and the DB data is replicated on both workers so it moves along with it. There is only one leader, so if the leader goes down, new deploys stop. With only three PCs, we accept that.
+The three are wired with LAN cables to one switch we bought. If a worker goes down, the leader brings that project back up on the remaining worker. The DB is the student's own and lives outside the cluster, so there is no data to move with it. There is only one leader, so if the leader goes down, new deploys stop. With only three PCs, we accept that.
 
 ## 6. New terms
 
@@ -125,30 +125,32 @@ I ([seren-wib](https://github.com/seren-wib)) took the **school PC cluster**. Th
 | November 4    | Took disk images of all three in the club room (part 3). Server project setup                                  |
 | November 5    | Internet through the wall LAN port, and remote access to all three from home (part 4)                          |
 | November 6    | Node prep: names, node addresses, firewall. Cluster design doc PR (part 5)                                     |
+| November 7~8  | k3s install and reboot test (part 6). Builds run on AWS, and students bring their own DB                       |
 
-I split the cluster build into seven stages, and stage 3 is done.
+I split the cluster build into seven stages, and stage 4 is in progress.
 
-| Stage | Task                   | Done when                                                                                               | Status  |
-| ----- | ---------------------- | ------------------------------------------------------------------------------------------------------- | ------- |
-| 1     | Image backup           | Full disk images of all three taken and verified                                                        | ✅ Done |
-| 2     | Remote access          | Passwordless login to all three from my home desktop and laptop                                         | ✅ Done |
-| 3     | Node prep              | All three reach each other by node address, and inbound connections from the school network are blocked | ✅ Done |
-| 4     | Bring up the cluster   | All 3 nodes Ready, and they come back after a reboot with no one touching them                          | Next    |
-| 5     | Frame for student apps | Turn off the worker running an app and its DB, and it reopens on the other one with the same data       |         |
-| 6     | Connect to the outside | Deploys work from the platform server, and the visitor address opens                                    |         |
-| 7     | Monitoring             | Metrics are visible and can be queried from the platform server                                         |         |
-| End   | Return                 | Overwrite with the images and put the BIOS back the way it was                                          |         |
+| Stage | Task                   | Done when                                                                                                              | Status      |
+| ----- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------- |
+| 1     | Image backup           | Full disk images of all three taken and verified                                                                       | ✅ Done     |
+| 2     | Remote access          | Passwordless login to all three from my home desktop and laptop                                                        | ✅ Done     |
+| 3     | Node prep              | All three reach each other by node address, and inbound connections from the school network are blocked                | ✅ Done     |
+| 4     | Bring up the cluster   | All 3 nodes Ready, they come back after a reboot with no one touching them, and a local model runs on the leader's GPU | In progress |
+| 5     | Frame for student apps | A test app runs on a worker and can't reach the school network or other students' spaces                               |             |
+| 6     | Connect to the outside | Deploys work from the platform server, and the visitor address opens                                                   |             |
+| 7     | Monitoring             | Metrics are visible and can be queried from the platform server                                                        |             |
+| End   | Return                 | Overwrite with the images and put the BIOS back the way it was                                                         |             |
 
 ## 9. Series index
 
-| Post                                                                                                                  | Contents                                                         |
-| --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Woowangthon 0. Building a Student Deploy Platform on School PCs (this post)                                           | What, why and how                                                |
-| [Woowangthon 1. Fighting Over Docs Before Code](/en/blog/woowangthon/woowangthon-01-docs-and-prs/)                    | The first ten days through PR history. Closed PRs, doc rules     |
-| [Woowangthon 2. The Network Design That Flipped Four Times](/en/blog/woowangthon/woowangthon-02-network-design/)      | From classroom PCs to dedicated PCs, from Wi-Fi to the wall port |
-| [Woowangthon 3. A Way Back Before Touching Anything](/en/blog/woowangthon/woowangthon-03-disk-images/)                | The day we got the PCs. Disk images and BIOS                     |
-| [Woowangthon 4. Getting Into the School PCs From Home](/en/blog/woowangthon/woowangthon-04-remote-access/)            | Misdiagnosing the wall port, Tailscale, unattended reboots       |
-| [Woowangthon 5. Work Where One Mistake Means a Walk to the Club Room](/en/blog/woowangthon/woowangthon-05-node-prep/) | Automatic revert, node addresses, firewall, design doc review    |
+| Post                                                                                                                        | Contents                                                                  |
+| --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Woowangthon 0. Building a Student Deploy Platform on School PCs (this post)                                                 | What, why and how                                                         |
+| [Woowangthon 1. Fighting Over Docs Before Code](/en/blog/woowangthon/woowangthon-01-docs-and-prs/)                          | The first ten days through PR history. Closed PRs, doc rules              |
+| [Woowangthon 2. The Network Design That Flipped Four Times](/en/blog/woowangthon/woowangthon-02-network-design/)            | From classroom PCs to dedicated PCs, from Wi-Fi to the wall port          |
+| [Woowangthon 3. A Way Back Before Touching Anything](/en/blog/woowangthon/woowangthon-03-disk-images/)                      | The day we got the PCs. Disk images and BIOS                              |
+| [Woowangthon 4. Getting Into the School PCs From Home](/en/blog/woowangthon/woowangthon-04-remote-access/)                  | Misdiagnosing the wall port, Tailscale, unattended reboots                |
+| [Woowangthon 5. Work Where One Mistake Means a Walk to the Club Room](/en/blog/woowangthon/woowangthon-05-node-prep/)       | Automatic revert, node addresses, firewall, design doc review             |
+| [Woowangthon 6. When the First Address on the Card Belongs to the School](/en/blog/woowangthon/woowangthon-06-k3s-install/) | k3s install, flannel host-gw, side roads around the firewall, reboot test |
 
 I'll add the next posts as each build stage finishes. The plan is to write them in this order: the cluster, the frame for student apps, server connection and public exposure, monitoring, and then the contest and returning the PCs. If a stage ends without a fight, it gets folded into the post next to it.
 

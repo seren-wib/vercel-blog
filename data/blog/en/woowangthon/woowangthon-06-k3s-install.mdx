@@ -1,0 +1,177 @@
+---
+title: 'Woowangthon 6. When the First Address on the Card Belongs to the School'
+date: '2026-11-08'
+tags: ['Woowangthon']
+draft: false
+summary: 'Build stage 4, bringing up the cluster. The options fixed before install, moving flannel to host-gw after it grabbed the school address, two side roads around the firewall (ServiceLB, NodePort), new Pods losing their first packet, our own CoreDNS, the reboot test, and a NotReady delay that measured 50 seconds'
+---
+
+> Part 6 of the series. Build stage 4: bringing up the cluster. Node prep is in [part 5](/en/blog/woowangthon/woowangthon-05-node-prep/), and the big picture is in [Woowangthon 0](/en/blog/woowangthon/woowangthon-00-overview/).
+
+## In one line
+
+Installing k3s is one command. What took time came after. Our PCs carry both the school address and the node address on one LAN card, and the school address comes **first**. Kubernetes parts use the first address unless told otherwise, and the firewall drops anything that comes from a school address. Two of the three things that got stuck in this stage came from that. The third was about the order in which the firewall and Kubernetes lay down their rules.
+
+## 1. What I fixed before installing
+
+You can install k3s with options on the install script, but I put the options in a config file (`/etc/rancher/k3s/config.yaml`) and pinned only the version at install time. Rebuilding the same cluster then doesn't mean digging through shell history, and changing an option is just editing the file and restarting. The same files are in the repo (`Infra/k3s/server.yaml`, `agent.yaml`).
+
+```bash
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.37.2+k3s1 sh -s - server
+```
+
+| Option                           | Why                                                                                                                                 |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Pinned version `v1.37.2+k3s1`    | A rebuild has to produce the same thing                                                                                             |
+| Embedded etcd (`cluster-init`)   | There is one server, but this keeps the option to restore the leader from a snapshot later. One install option, no cost             |
+| Node address (`node-ip`)         | Otherwise it grabs the school address                                                                                               |
+| Packaged CoreDNS off             | It runs one replica that can land on the leader, and k3s resets it on every start so it can't be edited. We run our own (section 5) |
+| ServiceLB off                    | It goes around the firewall (section 3)                                                                                             |
+| Secret encryption                | Turning it on later means a restart and re-encrypting existing Secrets. At install it is one option                                 |
+| Taint on the leader              | Keeps student apps off the leader, from the moment of install                                                                       |
+| 30-second wait after a node dies | With the default 5 minutes, a dead worker means student apps stay down for 5 minutes. Set once on the API server, not per Pod       |
+
+The tool that lets containers use the leader's GPU (nvidia-container-toolkit) was planned to go in before k3s. Installed first, k3s picks up the GPU runtime by itself. It turned out to be on the PC already as we received it, and k3s picked it up.
+
+Every change again ran under [the revert from part 5](/en/blog/woowangthon/woowangthon-05-node-prep/#3-put-the-undo-in-place-before-it-breaks). This time it was "stop k3s entirely in 300 seconds". k3s adds a lot of firewall rules, and if they block remote access, stopping k3s is enough to clear them.
+
+## 2. flannel grabbed the school address
+
+What [the design doc review flagged](/en/blog/woowangthon/woowangthon-05-node-prep/#7-what-the-design-doc-review-caught) at the end of part 5 happened exactly. flannel is the k3s part that lays down paths so Pods on different nodes can talk. After installing the leader, the address flannel had recorded for this node was the school address.
+
+The fix from the review was `--flannel-iface=enp4s0`, which names the LAN card to use. But that **only picks the card**. The address is the card's first address, and our card's first address is the school one.
+
+Next I added the options that announce the node address separately as an "external address" (`node-external-ip`, `flannel-external-ip`). The recorded address changed to the node address. But when I opened the device that actually wraps and sends the packets (`flannel.1`), its sending address was still the school address.
+
+```bash
+ip -d link show flannel.1
+```
+
+flannel's default mode is VXLAN. It puts each Pod packet in one more envelope and sends it to the other node, and the envelope's sender is the card's first address. The receiving firewall [filters by source since part 5](/en/blog/woowangthon/woowangthon-05-node-prep/#6-firewall-inbound-by-source-outbound-by-port), so it drops envelopes from a school address. This version of k3s had no option to choose the envelope's sender.
+
+So I dropped the envelope. host-gw mode uses no envelope and only lays a route on each node: "this Pod range goes to that node". It only works when the nodes share one switch, which is exactly our setup.
+
+```yaml:/etc/rancher/k3s/config.yaml (leader, excerpt)
+node-ip: 192.168.77.11
+flannel-iface: enp4s0
+flannel-backend: host-gw
+node-external-ip: 192.168.77.11
+flannel-external-ip: true
+```
+
+After the change, each node's routing table had `10.42.N.0/24 via 192.168.77.x`. The next hop is a node address, so it passes the firewall. Without the envelope it is lighter, if anything.
+
+## 3. Two side roads around the firewall
+
+Going over the plan again before installing, one thing stood out. k3s ships with a feature called ServiceLB that opens ports 80/443 on every node and hands them straight to Traefik (the entrance that takes outside requests and routes them to student apps).
+
+The problem is that ports opened this way never go through the firewall's "inbound" check. The Linux firewall checks packets in three places: what comes into this PC (INPUT), what leaves this PC (OUTPUT), and what passes through this PC to somewhere else (FORWARD). ServiceLB rewrites an incoming packet's destination to a Pod address (DNAT), and then the packet goes through FORWARD, not INPUT. What part 5 blocked was INPUT. Left as is, any PC on the school network could reach our 80/443.
+
+I turned ServiceLB off. Visitors reach Traefik from **inside** the cluster through the [Cloudflare tunnel](/en/blog/woowangthon/woowangthon-05-node-prep/#1-the-last-site-checks), so the PCs don't need 80/443. NodePort (which opens a Service on a 30000-range port on every node) takes the same side road, so I bound it to the node network only.
+
+```yaml
+disable:
+  - coredns
+  - servicelb
+kube-proxy-arg:
+  - nodeport-addresses=192.168.77.0/24
+```
+
+## 4. A new Pod's first packet went missing
+
+With both workers joined, I put test Pods on different workers and had them talk. It worked, but right after a new Pod started, the first connection came up about a second late. The firewall log showed the Pod's first packet being dropped.
+
+It was about order. A packet going through FORWARD passes several rule sets in turn. First is kube-router, which enforces NetworkPolicy (the firewall between Pods), then Kubernetes, Docker and Tailscale, and then ufw. kube-router takes a little over a second to lay down the pass rule for a new Pod. A first packet sent in that window gets no verdict from kube-router, falls through to ufw, and hits ufw's "default deny for routed traffic". The packet resent a second later gets through.
+
+A second sounds tolerable, but every reboot costs dozens of Pods the same delay. I let the Pod range through ufw.
+
+```bash
+sudo ufw route allow from 10.42.0.0/16
+sudo ufw route allow to 10.42.0.0/16
+```
+
+Doesn't that open everything between Pods? No, because NetworkPolicy runs **before** ufw. I applied a policy that blocks inbound traffic and saw it refused, then removed the policy and saw it work again. Walling student spaces off from each other is done with these policies in the next stage.
+
+Adding these rules tripped me once more. I gave a rule a comment with the words `in` and `out` in it, and ufw read those words inside the comment as direction keywords and rejected the rule as a bad interface clause. I took the words out of the comment.
+
+## 5. CoreDNS on both workers
+
+CoreDNS is the phone book inside the cluster: a Pod asks for a name and gets an address. The packaged one runs a single copy, and it can land on the leader. If the leader goes down, student apps running fine on the workers can't look up their DB by name and stop too. I turned off the k3s one, took the manifest of the same version, edited it and ran it myself.
+
+- 2 replicas
+- Only on workers with the student label
+- Never two on one node (one per worker)
+
+The Pods then sat in `ContainerCreating`. The config bundle (ConfigMap) needed an entry called `NodeHosts`, and it was empty. It is the list of node names and addresses, and k3s fills it only while its own CoreDNS is on. I wrote the three nodes into it and the Pods came up.
+
+## 6. One worker's download stalled
+
+On worker 2, the k3s binary download stalled. One GitHub release server address never answered the start of the connection, and a file of a few hundred bytes took more than 10 seconds. It was the school network, so there was no telling whether waiting would help.
+
+The leader already had the same binary. I streamed it from the leader to worker 2 over SSH by way of my home desktop, matched it against the official hash (sha256), and installed with the option that skips the download.
+
+To join the cluster, a worker needs the join token the leader created. That too went straight over SSH from the leader into a file on the worker (`/etc/rancher/k3s/token`, mode 600). It never shows up on screen, in the repo, or in chat.
+
+## 7. Checks
+
+| Check                                                 | Result                                               |
+| ----------------------------------------------------- | ---------------------------------------------------- |
+| Nodes                                                 | 3 Ready, internal addresses 192.168.77.x             |
+| Secret encryption                                     | Enabled                                              |
+| Pods on different workers                             | ping about 0.66 ms, HTTP works                       |
+| Cluster DNS                                           | Service names, node names and outside names all work |
+| HTTPS out from a Pod                                  | Works                                                |
+| 6443 · 80 · 443 · 10250 · NodePort via school address | All closed                                           |
+| 6443 · NodePort via node address                      | Open                                                 |
+
+The school-address checks were tricky. They should be run from a laptop on the same school network, but I was at home. Instead I probed the other nodes from worker 1's school address, and from a Pod on worker 1 (a Pod's outgoing traffic leaves with the school address). The receiving firewall logged the source as a school address, which confirmed it was treated the same as a device on the school network.
+
+## 8. Reboot test
+
+The next day I rebooted worker 1, worker 2 and the leader remotely, one at a time. I scheduled the reboot 2 seconds out so the SSH call could return first.
+
+All three came back in 35–45 seconds with nobody logged in, with k3s, the firewall (including the rules from section 4), node addresses and Pod routes intact. After the leader reboot, all three nodes were Ready together.
+
+### NotReady takes 50 seconds, not 40
+
+But rebooting didn't give me the number I wanted: when student apps move to another worker after one goes down. A while after the leader loses contact with a worker, it marks that node NotReady, then waits the 30 seconds from section 1 before moving its Pods. A reboot is shorter than that judgment, so the leader never marked a worker NotReady. CoreDNS didn't move either. It restarted on the same worker.
+
+So I stopped only worker 1's k3s for 150 seconds (with a restart scheduled, of course). The containers keep running and only the contact with the leader is cut.
+
+| After stopping | What happened                                                                     |
+| -------------- | --------------------------------------------------------------------------------- |
+| ~50 s          | The leader marks worker 1 NotReady                                                |
+| ~80 s          | Replacement CoreDNS Pod created (waits for worker 1 to come back, one per worker) |
+
+The docs said 40 seconds. That was the agent's estimate from Kubernetes defaults. Measured on this version, it was about 50. I changed "about 40 seconds" to "about 50 seconds" in the cluster design doc, the system definition and two diagrams.
+
+Only the full power cut test is left. Whether [the BIOS "power on after an outage" setting](/en/blog/woowangthon/woowangthon-04-remote-access/#7-power-coming-back-on-after-an-outage) really works has to be seen in the club room.
+
+## 9. Accidents by the AI, catches by people
+
+- **It cut its own connection.** The agent used `pkill -f` to kill a stuck process by name, but that name was also in the command string it had sent over SSH. It killed the SSH session running it along with the process. It reconnected and killed by process ID.
+- **The plan pages drifted out of sync.** Between the build plan, the big-picture order, the server connection doc, the site record and the runbook, there are seven pages. As the stages moved on, changes went into one page and not the others. Finished stages were still marked "in progress", and the Wi-Fi fallback we no longer have was still written down. One line, "sync the status values", got the agent to read all seven and fix them. But a person had to say that line.
+- **An old picture a teammate caught.** On the diagram PR ([woowangthon/WOOWANGTHON_TEAM_18#34](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/34)), suda5936 commented that the deploy flow in the picture differs from what we decided. Fair point. Moving deploys to the deploy agent on the leader (GoCD Agent) was decided only the day before, so there is no decision record (ADR) yet. The repo rule is to write the ADR first and then fix the pictures. So that PR fixed only the wired network and the student DB, and left the deploy flow alone on purpose. This stage's install config and reboot results went separately into [woowangthon/WOOWANGTHON_TEAM_18#37](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/37).
+
+## 10. Who did what
+
+| Person (me)                                            | AI agent                                                           |
+| ------------------------------------------------------ | ------------------------------------------------------------------ |
+| Read the plan first, then "start"                      | Install, tests, revert timers                                      |
+| Decided to fold the reboot results into the install PR | Traced flannel, switched to host-gw                                |
+| Asked for the status values to be synced               | Found the ServiceLB · NodePort side roads, traced the first packet |
+| Read the teammate's comment, decided the reply         | How to measure NotReady (stop the agent), fixed the doc numbers    |
+|                                                        | Killed its own connection with `pkill`                             |
+
+## 11. Wrap-up
+
+| What happened                                                          | Lesson                                                                                      |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Gave `--flannel-iface` and it still used the school address            | Picking the card is not picking the address. Check the actual device (`flannel.1`)          |
+| Couldn't choose the VXLAN envelope's sender                            | If the nodes share a switch, drop the envelope with host-gw                                 |
+| ServiceLB nearly opened 80/443 to the school network past the firewall | DNATed ports go through FORWARD, not INPUT. Turn off entrances you don't use                |
+| A new Pod's first packet was dropped                                   | Look at the order the firewall rules are laid down. Test that NetworkPolicy comes first     |
+| Our own CoreDNS wouldn't start                                         | A manifest taken from a distribution needs the values the distribution used to fill in      |
+| Rebooting didn't reveal the NotReady time                              | To measure the judgment, cut only the contact. Replace estimated numbers with measured ones |
+
+The three PCs are now one cluster. Next is running a local model (Qwen3-8B-AWQ) on the leader's GPU, and after that the frame for student apps. The power cut test happens the next time I'm in the club room.

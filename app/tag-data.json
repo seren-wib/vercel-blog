@@ -1,8 +1,8 @@
 {
   "ai": 10,
   "auth": 2,
-  "cloudflare": 2,
   "cloud-computing": 10,
+  "cloudflare": 2,
   "data-structures": 2,
   "computer-systems": 8,
   "devblog": 6,
@@ -18,5 +18,5 @@
   "stairno": 12,
   "unity": 4,
   "web": 2,
-  "woowangthon": 14
+  "woowangthon": 16
 }

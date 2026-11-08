@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="188" viewBox="0 0 900 188" role="img" aria-label="Terminal output of kubectl -n vllm logs deploy/vllm">
+  <rect width="900" height="188" rx="12" fill="#0d1117"/>
+  <rect width="900" height="36" rx="12" fill="#161b22"/>
+  <rect y="24" width="900" height="12" fill="#161b22"/>
+  <circle cx="22" cy="18" r="6" fill="#ff5f57"/>
+  <circle cx="42" cy="18" r="6" fill="#febc2e"/>
+  <circle cx="62" cy="18" r="6" fill="#28c840"/>
+  <text x="450" y="23" text-anchor="middle" fill="#8b949e" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">--kv-cache-dtype fp8</text>
+  <g font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13.5" fill="#e6edf3">
+    <text x="24" y="64"><tspan fill="#3fb950">$</tspan> kubectl -n vllm logs deploy/vllm</text>
+    <text x="24" y="84" xml:space="preserve">Using fp8 data type to store kv cache. ...</text>
+    <text x="24" y="104" xml:space="preserve">Model loading took 5.71 GiB memory and 3.282143 seconds</text>
+    <text x="24" y="124" xml:space="preserve">Available KV cache memory: 1.67 GiB</text>
+    <text x="24" y="144" xml:space="preserve">GPU KV cache size: 24,352 tokens, Maximum concurrency for 16,384 tokens per request: 1.49x</text>
+    <text x="24" y="164" xml:space="preserve">Application startup complete.</text>
+  </g>
+</svg>

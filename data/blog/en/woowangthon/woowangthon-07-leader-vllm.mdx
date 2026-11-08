@@ -1,0 +1,159 @@
+---
+title: "Woowangthon 7. When 16K Didn't Fit in 10 GB"
+date: '2026-11-09'
+tags: ['Woowangthon']
+draft: false
+summary: "The last piece of build stage 4: a local model on the leader's GPU. Moving the team meeting's new deploy design into the docs, making the GPU visible to Kubernetes, switching the KV cache to FP8 when one 16K request didn't fit, vLLM refusing to start because of a Service name, and turning an unsourced concurrency of 3 into 1"
+---
+
+> Part 7 of the series. The last piece of build stage 4: the day a local model went up on the leader's GPU. The cluster install is in [part 6](/en/blog/woowangthon/woowangthon-06-k3s-install/), and the big picture is in [Woowangthon 0](/en/blog/woowangthon/woowangthon-00-overview/).
+
+## In one line
+
+I put Qwen3-8B-AWQ on the leader PC's RTX 3080 (10 GB) with vLLM. The model file is 6 GB, so I expected plenty of room, but there wasn't enough left for a single 16K-token request and it stopped right at start-up. Storing the memory that holds the conversation so far (the KV cache) in FP8 made it fit. The same day a team meeting changed the deploy design, so moving that into the docs came first.
+
+## 1. What changed in the meeting
+
+We held a team meeting on Discord in the early hours. Five decisions touched the cluster.
+
+| Decision                                                                                                       | What changes on the cluster side                                                                                            |
+| -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Deploys (building manifests, applying them, checking they work) are run by a GoCD executor on the leader       | The platform server no longer writes deploys to the cluster. The executor gets its own account                              |
+| Everything from intake to the build request, plus the security scan, runs in the platform server (Nest)        | Nothing on the cluster, but one reason for keeping a separate AI server is reversed                                         |
+| Student secrets (.env) go from the platform server straight to the leader over the private network (Tailscale) | Secrets skip the deploy pipeline and the build. The server account keeps write access to secrets                            |
+| Logs are kept only as snapshots cut at the moment of a spike                                                   | No log collector on the cluster                                                                                             |
+| The message queue (Kafka) and the local model install move down the list                                       | The local model is off the demo path. The GPU was sitting idle, though, so I decided to bring it up that day (sections 2–7) |
+
+In part 6 [I left the deploy flow drawing alone on purpose](/en/blog/woowangthon/woowangthon-06-k3s-install/#9-accidents-by-the-ai-catches-by-people) because there was no decision record (ADR) yet. Now that the decision was made, I wrote the ADRs first, as the repo rules say.
+
+- **ADR-009**: deploys run on a GoCD executor on the leader, and the GoCD server sits on the same AWS EC2 instance as the platform server. It replaces only the "deploy" item of the older ADR-004 (the server calls the leader's Kubernetes API directly to deploy). Writing secrets, actions like restart, and reading status still go straight from the server.
+- **ADR-010**: everything from intake to the build request, plus the security scan, runs in the platform server. The first ADR gave "keep the part that reads student code apart from the backend" as one reason for a separate AI server, and this decision undoes it. So the cost went into the ADR too: the repo is fetched read-only into a temporary folder, deleted afterwards, and never run.
+
+The system definition, the AI scope doc and five diagrams changed along with them. In the cluster design doc I rewrote the permissions section. Until now one platform server account held everything, deploy rights included. Now there are two accounts.
+
+| Account         | Gets                                                                                                         | Can't                                             |
+| --------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| Platform server | Create and delete student spaces, create their limits and block rules, write secrets, restart and stop, read | Create deploy resources, read secrets             |
+| Deploy executor | Create, change and delete deploy resources inside a student space, read what it needs to check a deploy      | Touch spaces, limits or block rules, read secrets |
+
+Before a deploy, the executor has to check that the secrets are in place. But Kubernetes has no permission that lets you see only whether a Secret exists. Grant read and you see the values too. So the executor never reads Secrets. It checks against the list of key names the platform server left when it wrote them.
+
+## 2. Making the GPU visible to Kubernetes
+
+The tool that attaches the GPU to containers was [already picked up when k3s was installed](/en/blog/woowangthon/woowangthon-06-k3s-install/#1-what-i-fixed-before-installing). What was left was for Kubernetes to know "this node has one GPU". The NVIDIA device plugin tells it that. It runs once per node, and I changed it to run on the leader only.
+
+```yaml
+spec:
+  runtimeClassName: nvidia
+  nodeSelector:
+    kubernetes.io/hostname: k3s-leader
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+```
+
+Without `runtimeClassName: nvidia` the plugin can't see the GPU. With it, the leader's allocatable resources gained `nvidia.com/gpu: 1`. A test Pod asking for one GPU landed on the leader, printed RTX 3080, 10240 MiB, and exited.
+
+## 3. Downloading the model
+
+The model comes from Hugging Face. Before downloading I measured the school network. Fetching the first 300 MB of the model file ran at about 47 MB per second.
+
+The model is downloaded once into a volume on the leader's disk (30Gi), and vLLM reads that folder offline. It doesn't fetch from the internet every time it restarts. I pinned the model repo's commit for the download, since the same name can point at different content later. 6.1 GB took 69 seconds.
+
+## 4. 16K didn't fit in 10 GB
+
+The vLLM settings come from the AI lead's (suda5936) design. The length it reads at once (the context) is 16K tokens. I brought it up and it died straight away.
+
+![vLLM log with an fp16 KV cache. Loading the model took 5.71 GiB, 1.66 GiB left for the KV cache, and an error saying one request of length 16384 needs 2.25 GiB](/static/images/woowangthon-07-leader-vllm/kv-fp16.svg)
+
+_fp16 KV cache: 1.66 GiB left, while one 16K request needs 2.25 GiB_
+
+A language model writes one token at a time and keeps the values it computed for every token it has read so far in memory. That's the KV cache. Qwen3-8B uses about 144 KiB per token. At 16K tokens that's 2.25 GiB. When vLLM starts, it first checks whether it can hold one request of the maximum length, and if it can't, it doesn't start at all.
+
+By the numbers I had worked out beforehand, it should have fit. With 90% of GPU memory (about 9 GiB) available and 5.7 GiB of weights taken out, I expected around 3 GiB left. What was actually left was 1.66 GiB. CUDA's base memory, the memory used briefly during computation, and the pre-recorded computation graphs take about 1.6 GiB between them, and the estimate had left that out.
+
+There were three ways out.
+
+| Option                       | Result                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------ |
+| Raise GPU memory use to 0.95 | Gains about 0.5 GiB, still around 2.2 GiB and short. And there's no slack left |
+| Cut the context to 12K       | It fits, but 16K is the AI side's design value, not mine to change alone       |
+| Store the KV cache in FP8    | Halves it to about 72 KiB per token. The same 1.67 GiB holds 24,352 tokens     |
+
+I went with FP8. Storing the numbers in 8 bits can cost a little accuracy, so the tests also checked that tool calls and a long log summary still came out right (section 7).
+
+![vLLM log after switching the KV cache to FP8. KV cache 24,352 tokens, 1.49 concurrent requests at 16,384 tokens each, start-up complete](/static/images/woowangthon-07-leader-vllm/kv-fp8.svg)
+
+_FP8 KV cache: 24,352 tokens, room for one 16K request with space to spare_
+
+## 5. If the Service is called vllm, vLLM won't start
+
+After the switch to FP8 it died with a different error. A setting called `VLLM_PORT` held an address like `tcp://...:8000`. I had never set anything like that.
+
+Kubernetes did. For every Service in the same space, it injects environment variables like `<NAME>_PORT` into Pods. It's an old way of finding services. The Service in front of vLLM was named `vllm`, so `VLLM_PORT` appeared, and vLLM read it as its own setting. Adding `enableServiceLinks: false` to the Pod turned the automatic variables off. These days DNS finds services by name, so the feature isn't needed.
+
+## 6. Where did a concurrency of 3 come from
+
+The plan said "3 concurrent requests". After it was up, I asked, "Where did this 3 come from?"
+
+When the agent looked, the source was thin. On November 6 we asked the AI lead how many concurrent requests to allow and got no answer. So the agent had set 3 as "2 student slots + 1 analysis call". The AI lead's design doc ([woowangthon/WOOWANGTHON_TEAM_18#32](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/32)) has no such number. It only says one deploy job has one open problem ticket.
+
+With no decided value, I changed it to 1. Extra requests don't fail. They wait in line. FP8 is still needed with fewer concurrent requests, because the start-up check is about "one 16K request".
+
+## 7. Checks
+
+The tests ran from a test Pod inside the cluster, in the same space as vLLM. The API key came straight from the Secret and was never printed.
+
+![Results from the test Pod in the cluster. No key and a wrong key get 401, one request in 0.38 seconds, a tool call in 29 tokens, and three requests sent at once are handled in turn](/static/images/woowangthon-07-leader-vllm/vllm-test.svg)
+
+_Test Pod results. The fourth line is three 300-token requests sent at once_
+
+| Check                                       | Result                                                         |
+| ------------------------------------------- | -------------------------------------------------------------- |
+| No key, wrong key                           | Rejected with 401                                              |
+| One request                                 | 0.4 seconds                                                    |
+| Tool call with thinking mode off            | Called `get_logs(proj-demo, 50)` correctly in 29 tokens        |
+| Three 300-token requests at once            | Finished in turn at 2.6, 5.2 and 7.8 seconds (one at a time)   |
+| Summary of a 15.1K-token log                | 2.4 seconds, named the cause (OOMKilled) correctly             |
+| 16,385 tokens                               | Rejected with 400 (the limit is 16,384)                        |
+| GPU memory                                  | 8.3–8.6 of 10 GB                                               |
+| Kubernetes API server response during tests | 91 ms at most (71 ms idle). The control plane didn't slow down |
+| vLLM start-up                               | About 52 seconds                                               |
+
+vLLM has a lower priority than student apps (it goes first when room runs out, and never pushes anything else out), with CPU and memory limits. It only accepts traffic from its own space. The path from outside (the AI server on AWS) opens in the server connection stage. It never goes on a public address. Put it there and anyone on the internet gets our GPU.
+
+## 8. And the merges
+
+Two doc PRs from this week were waiting for review. As the meeting decisions and this stage's results kept piling onto the diagram PR ([#34](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/34)), it came to overlap the k3s install PR ([#37](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/37)) in two places in the same doc. The team had gone over both in the meeting, so we decided to merge them past the review rule. I switched main's protection rules off for a moment, merged #34, and switched them straight back on. #37 was moved onto the new main, the overlapping spots merged keeping both sides, and once CI passed it went in the same way.
+
+## 9. Accidents by the AI, catches by people
+
+- **The memory estimate was wrong.** The "fits in 10 GB" calculation the agent wrote down earlier left out CUDA's base memory and the memory used during computation. vLLM caught this at start-up, not a person.
+- **An unsourced number was written down like a sourced one.** Concurrency 3 was a value the agent picked because no answer came, but the plan listed it like a decision. One "where did this come from?" brought it out.
+- **A doc that went wrong within hours.** While moving the meeting decisions over, the agent wrote "local model: deferred, not built" in the AI scope doc, then brought the model up the same day. It was caught and fixed on another pass after I said "update everything".
+- **A merge nobody asked for.** It read "let's merge past the rule, just give me one Discord line for the team" as an instruction to merge, and merged #34. I only wanted the sentence. The team had seen the PR, so there was nothing to undo, but anything that goes out should have been asked first.
+- **"Fix what was flagged" read as review comments only.** I meant the meeting decisions as well. It only redid the work after answering "no" to "you applied the meeting decisions, right?"
+
+## 10. Who did what
+
+| Person (me)                                             | AI agent                                                       |
+| ------------------------------------------------------- | -------------------------------------------------------------- |
+| Bring decisions back from the meeting                   | Two ADRs, docs and five diagrams                               |
+| Decide to bring up the local model despite the schedule | Device plugin, model download, vLLM deploy, tests              |
+| Ask "where did 3 come from?" and set it to 1            | Find and fix the two start-up failures (KV cache, `VLLM_PORT`) |
+| Decide on the bypass merge, tell the team on Discord    | Rebase, merge the conflicts, merge the PRs                     |
+| Move the API key into the team vault                    | Generate the key straight into a Secret (never printed)        |
+|                                                         | Get the memory estimate wrong, merge without being asked       |
+
+## 11. Wrap-up
+
+| What happened                                             | What I learned                                                                                                 |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| A 6 GB model on a 10 GB GPU couldn't hold 16K             | Weights and KV cache aren't everything. Another 1–2 GB goes elsewhere. Replace estimates with measured numbers |
+| Storing the KV cache in FP8 made it fit                   | Look at KV cache precision before cutting the context. Check the quality cost with tests                       |
+| vLLM wouldn't start because of a Service name             | Kubernetes injects environment variables per Service. If a name collides, `enableServiceLinks: false`          |
+| The executor needed read access just to check for secrets | Read access shows the values. Check against the key names left behind, not the values                          |
+| Concurrency 3 had no source                               | Write down a value picked for lack of an answer as exactly that. Written like a decision, nobody asks again    |
+
+Build stage 4 is done. All that's left is pulling the power on all three in the club room. Next is the frame for student apps: the leader's image cache and the student space template, then checking that a student app can't reach the school network or other students' spaces.

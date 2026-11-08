@@ -78,7 +78,8 @@
     "woowangthon/woowangthon-03-disk-images",
     "woowangthon/woowangthon-04-remote-access",
     "woowangthon/woowangthon-05-node-prep",
-    "woowangthon/woowangthon-06-k3s-install"
+    "woowangthon/woowangthon-06-k3s-install",
+    "woowangthon/woowangthon-07-leader-vllm"
   ],
   "en": [
     "ai/ai-05-03-deep-learning",
@@ -159,6 +160,7 @@
     "woowangthon/woowangthon-03-disk-images",
     "woowangthon/woowangthon-04-remote-access",
     "woowangthon/woowangthon-05-node-prep",
-    "woowangthon/woowangthon-06-k3s-install"
+    "woowangthon/woowangthon-06-k3s-install",
+    "woowangthon/woowangthon-07-leader-vllm"
   ]
 }

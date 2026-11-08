@@ -2,30 +2,30 @@
   "kr": {
     "ai": 5,
     "auth": 1,
-    "cloud-computing": 5,
-    "cloudflare": 1,
-    "computer-systems": 4,
     "data-structures": 1,
+    "cloud-computing": 5,
     "database-systems": 5,
+    "computer-systems": 4,
+    "cloudflare": 1,
     "devblog": 3,
     "devops": 1,
     "git": 2,
     "information-retrieval": 8,
-    "os": 10,
     "network": 9,
     "payments": 1,
+    "os": 10,
     "sql": 1,
     "software-engineering": 6,
+    "web": 1,
     "stairno": 6,
     "unity": 2,
-    "web": 1,
-    "woowangthon": 7
+    "woowangthon": 8
   },
   "en": {
     "ai": 5,
     "auth": 1,
-    "cloudflare": 1,
     "cloud-computing": 5,
+    "cloudflare": 1,
     "data-structures": 1,
     "computer-systems": 4,
     "devblog": 3,
@@ -41,6 +41,6 @@
     "stairno": 6,
     "unity": 2,
     "web": 1,
-    "woowangthon": 7
+    "woowangthon": 8
   }
 }

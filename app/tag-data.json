@@ -3,20 +3,20 @@
   "auth": 2,
   "cloud-computing": 10,
   "cloudflare": 2,
-  "data-structures": 2,
   "computer-systems": 8,
+  "data-structures": 2,
   "devblog": 6,
   "database-systems": 10,
   "devops": 2,
   "git": 4,
   "information-retrieval": 16,
-  "network": 18,
   "os": 20,
+  "network": 18,
   "payments": 2,
   "software-engineering": 12,
   "sql": 2,
   "stairno": 12,
   "unity": 4,
   "web": 2,
-  "woowangthon": 16
+  "woowangthon": 18
 }

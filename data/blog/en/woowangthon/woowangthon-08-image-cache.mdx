@@ -1,0 +1,132 @@
+---
+title: 'Woowangthon 8. Refused Is Not the Same as No Answer'
+date: '2026-11-10'
+tags: ['Woowangthon']
+draft: false
+summary: 'The first piece of build stage 5: an image cache on the leader. How the cache stays behind the firewall, the second worker pulling in one second, the first pull being slower through the cache, the difference between refused and no answer that an AI reviewer pointed out, and the still-open place of the verify step'
+---
+
+> Part 8 of the series. The first piece of build stage 5 (a frame for student apps): the day an image cache went up on the leader. The leader GPU work is in [part 7](/en/blog/woowangthon/woowangthon-07-leader-vllm/), and the big picture is in [Woowangthon 0](/en/blog/woowangthon/woowangthon-00-overview/).
+
+## In one line
+
+Student app images go to GitHub's registry (GHCR). So that the two workers don't each pull the same image over the school network, I put a cache on the leader that pulls from GHCR on their behalf. The second worker got the image in 1.1 seconds. I also tested that nodes pull straight from GHCR when the cache is off, and an AI reviewer pointed out that "off" and "not answering" are different. Measured again, that cost 30 more seconds.
+
+## 1. Why a cache
+
+When a student deploys, the build runs on AWS and the image goes to GHCR. A worker pulls that image and runs it. With two workers, the same image gets pulled twice at times, for example when one worker goes down and the app moves to the other.
+
+GHCR was slow from the school network, in the same way that [one worker's download stalled](/en/blog/woowangthon/woowangthon-06-k3s-install/#6-one-workers-download-stalled) in part 6. So the leader pulls from GHCR once and the workers take it from the leader over the switch (about 940 Mbit/s).
+
+The cache is a pull-through cache. When a node asks for an image, the cache hands over what it has; if it has nothing, it fetches from GHCR, passes it on, and keeps it for 7 days. The product is the open-source registry Docker started (CNCF Distribution, `registry:3.1.2`). One config file is enough, and student images are public, so no GHCR login is needed.
+
+## 2. Where to bind the cache
+
+The cache listens on the leader's node address, `192.168.77.11:5000`. Kubernetes has two ways to open a Pod on a node's port.
+
+| Way         | How                                                        | Firewall                                                                                                                                             |
+| ----------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| hostPort    | Traffic to the node port is rewritten to the Pod's address | The rewritten path [goes around](/en/blog/woowangthon/woowangthon-06-k3s-install/#3-two-side-roads-around-the-firewall) the firewall's inbound check |
+| hostNetwork | The Pod uses the node's network as is (same address too)   | The firewall applies exactly as it does to a program running on the node                                                                             |
+
+I picked hostNetwork, and had the cache listen on the node address only. Nothing on the school address is accepted in the first place, and the firewall lets in only the node network.
+
+There is one price. The security level planned for student spaces (baseline) forbids hostNetwork, so only the cache's space has that level lifted. In return the container runs as a normal user, with no special privileges (capabilities) and a read-only file system. The level is lifted for one reason only: using the node's network.
+
+## 3. Making nodes look at the cache first
+
+On all three nodes I put `/etc/rancher/k3s/registries.yaml`. It is four lines.
+
+```yaml
+mirrors:
+  ghcr.io:
+    endpoint:
+      - 'http://192.168.77.11:5000'
+```
+
+k3s reads it and writes the settings the container runtime (containerd) uses. In the result the cache is a `host` and GHCR is the `server`. The runtime tries the `host` first and the `server` last.
+
+![hosts.toml for ghcr.io written by k3s. The cache address is a host, and the original https://ghcr.io is the server. containerd tries hosts first and the server last](/static/images/woowangthon-08-image-cache/hosts-toml.svg)
+
+That `server` line is what sends pulls to GHCR when the cache is dead. Nothing else to set.
+
+Changing this file means restarting k3s. I did it one node at a time, w2 → w1 → leader, [in the order from part 5](/en/blog/woowangthon/woowangthon-05-node-prep/#3-put-the-undo-in-place-before-it-breaks). Restarting k3s leaves running containers alone, so zero Pods restarted. On the leader, the Kubernetes API was back in 2 seconds.
+
+## 4. One second for the second worker
+
+The test image was a small public image on GHCR (34.8 MB). I started it on w1 first, and on w2 as soon as that finished.
+
+![Image pull records of the two test Pods. w1 took 1 m 53 s, w2 took 1.1 s](/static/images/woowangthon-08-image-cache/pull-events.svg)
+
+The cache log confirmed it. The cache writes a line each time it fetches something new from GHCR: nine lines for w1, none at all for w2. w2 got everything from the cache.
+
+With the cache scaled to zero and the image removed from w1, the next pull had the runtime's connection to the cache refused, moved straight on to GHCR, and finished in 44 seconds. From the school address, port 5000 on the leader could not be reached. All three done-criteria passed.
+
+## 5. The first pull was slower through the cache
+
+Putting the numbers side by side shows something odd.
+
+| Path                             | Time     |
+| -------------------------------- | -------- |
+| Through the cache, first (empty) | 1 m 53 s |
+| From the cache (second worker)   | 1.1 s    |
+| Straight from GHCR (cache off)   | 44 s     |
+
+The very first pull through the cache was more than twice as slow as a direct pull. The cache adds a step while it fetches from GHCR and passes things on, and GHCR's speed from the school network also varied (section 6). It is one measurement, so I did not pin down the cause. The fix is clear anyway: pull the images the demo needs once beforehand, and these 1 m 53 s never show up in front of the judges. It is in the docs as a known limit.
+
+## 6. What the reviewer AI caught: refused vs no answer
+
+I opened the PR, and the review bot (CodeRabbit) didn't come. Instead it left a note: "this repository does not receive automatic reviews because it has fewer than 10 stars." Until last week it reviewed every PR on its own, so the bot's free plan seems to have changed. After a comment calling it in, three findings came. All three were right.
+
+| Finding                                                                                     | Right?                                                                                                                                                     |
+| ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The doc says the cache can only go out on 443 and 53, which differs from the firewall table | Yes. Programs on the node also have 80, time sync and Tailscale ports open. 443 and 53 are just what the cache actually uses                               |
+| The 50Gi volume is not a limit                                                              | Yes. The storage in use (local-path) is a plain folder on the node and doesn't cap size. The cache has no size limit either, so 7 days is the only cleanup |
+| "Pulls go straight to GHCR when the leader is down" was never tested                        | Yes. Below                                                                                                                                                 |
+
+The third one stung the most. What I tested in section 4 was the cache scaled to zero. The leader was still on then, so it answered "refused" right away because nothing was on port 5000. A refusal makes the runtime move to the next address at once. But when the leader loses power, nobody is there to refuse. The runtime opens a connection to an address that never answers, and waits.
+
+So I faked a dead leader. On w1 I made packets to the leader's port 5000 get dropped silently (DROP) and pulled the same image. Just in case, I first armed a timer that removes the rule by itself after 5 minutes.
+
+![containerd log on w1. With the cache off: connection refused, moved on at once, 44 s. With no answer: i/o timeout after 30 s, 216.6 s in total](/static/images/woowangthon-08-image-cache/fallback.svg)
+
+It moved to GHCR after waiting 30 seconds, and the whole pull took 3 m 37 s. Even minus those 30 seconds that is 3 m 6 s, while the same image took 44 seconds a few minutes earlier. GHCR's speed from the school network changes from one moment to the next. The docs now say "when the cache can't be reached, every pull first waits 30 seconds; this was not tested by actually powering off the leader."
+
+The docs in this PR were written by an AI agent, and the wrong sentences were caught by an AI reviewer. The contest theme is "Can AI be a colleague?", and this time the colleagues reviewed each other. Calling the reviewer in and pressing the merge button were still done by a person.
+
+## 7. A question left in the deploy flow
+
+The same night, the deploy flow design by the AI teammate (suda5936) was merged. Its steps are named W0 to W7.
+
+- **W4 build** goes as far as building the image on AWS and pushing it to GHCR. The cache from this post pulls that image.
+- **W5 deploy**: the leader's runner takes the image tag and the deploy settings, renders the Kubernetes files and applies them. Same as [the meeting decision in part 7](/en/blog/woowangthon/woowangthon-07-leader-vllm/#1-what-changed-in-the-meeting).
+- **W6 verify** has not settled. The design doc's last commit moved it to the platform server (AWS), but right after the merge the AI teammate said on Discord that keeping it on the leader with W5 would be better. The team lead (TaeTaeJin) asked for a settled answer.
+
+From the cluster side, the leader is easier. The runner account designed in part 7 already includes read access for verification, and no new path from AWS to student apps would be needed. One question is left: is it a single check at the end of a deploy, or does an ongoing watch after the deploy move to the leader too? The latter adds an always-on program to the leader. The plan marks it as "not decided yet."
+
+## 8. Accidents by the AI, catches by people
+
+- **Wrote something untested as if tested.** "Pulls go straight to GHCR when the leader is down" was written after seeing only a refused connection. The review bot caught it, not a person.
+- **Shortened the firewall description into something wrong.** "443 and 53 only" were the ports the cache uses, not the ports that are open. The review bot caught this too.
+- **Didn't carry the fixes into the plan page.** The repo docs were fixed after the review, but the build plan page still had the old numbers. One question, "did you update the pages with this work?", showed it.
+
+## 9. Who did what
+
+| Person (me)                                         | AI agent                                                          |
+| --------------------------------------------------- | ----------------------------------------------------------------- |
+| Deciding to start stage 07 past midnight            | Cache manifest, node settings, one-by-one rollout, tests          |
+| Bringing the W6 question in from the Discord thread | Working out what it means for the cluster, putting it in the plan |
+| Calling the review bot, merging                     | Applying review findings, measuring the no-answer case            |
+| Asking "is the plan page updated too?"              | Writing an untested sentence, forgetting the plan page            |
+
+## 10. Wrap-up
+
+| What happened                                | What I learned                                                                                       |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| The cache had to open a port on the node     | hostPort goes around the firewall. hostNetwork bound to the node address keeps the firewall in place |
+| Second worker 1.1 s, first pull 1 m 53 s     | A cache pays off from the second pull. Pull the demo images once beforehand                          |
+| Only tested the cache being off              | Refused and no answer are different. Fake a failure the way it will really happen (DROP this time)   |
+| Wrote down a volume size that wasn't a limit | local-path doesn't cap size. Watch what piles up with a disk alert                                   |
+| The review bot didn't come                   | Repos under 10 stars now need a comment to call it                                                   |
+
+The first piece of stage 5 is done. Next is the student space template: making the space student apps run in, with resource caps and blocking rules. The cap values have to be agreed with the platform server owner first.

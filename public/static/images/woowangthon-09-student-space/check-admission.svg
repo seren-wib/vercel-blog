@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="368" viewBox="0 0 900 368" role="img" aria-label="Terminal output">
+  <rect width="900" height="368" rx="12" fill="#0d1117"/>
+  <rect width="900" height="36" rx="12" fill="#161b22"/>
+  <rect y="24" width="900" height="12" fill="#161b22"/>
+  <circle cx="22" cy="18" r="6" fill="#ff5f57"/>
+  <circle cx="42" cy="18" r="6" fill="#febc2e"/>
+  <circle cx="62" cy="18" r="6" fill="#28c840"/>
+  <text x="450" y="23" text-anchor="middle" fill="#8b949e" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">Infra/student/check.sh · placement, Traefik, admission</text>
+  <g font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13.5" fill="#e6edf3">
+    <text x="24" y="64" xml:space="preserve">== placement</text>
+    <text x="24" y="84" xml:space="preserve">PASS proj-demo: client on a worker (k3s-w1)</text>
+    <text x="24" y="104" xml:space="preserve">PASS proj-check: client on a worker (k3s-w1)</text>
+    <text x="24" y="124" xml:space="preserve">PASS netpol-control: client on a worker (k3s-w2)</text>
+    <text x="24" y="144" xml:space="preserve"><tspan fill="#79c0ff">Warning</tspan>: would violate PodSecurity "restricted:latest": allowPrivilegeEscalation != false ...</text>
+    <text x="24" y="164" xml:space="preserve">PASS Pod pinned to the leader stays Pending</text>
+    <text x="24" y="184" xml:space="preserve">== Traefik -&gt; student Service (Ingress with a test host)</text>
+    <text x="24" y="204" xml:space="preserve">PASS Traefik -&gt; proj-check web (200)</text>
+    <text x="24" y="224" xml:space="preserve">== admission (server dry run)</text>
+    <text x="24" y="244" xml:space="preserve">PASS hostNetwork Pod rejected</text>
+    <text x="24" y="264" xml:space="preserve">PASS privileged Pod rejected</text>
+    <text x="24" y="284" xml:space="preserve">PASS Pod asking 5 CPU rejected</text>
+    <text x="24" y="304" xml:space="preserve">PASS NodePort Service rejected</text>
+    <text x="24" y="324" xml:space="preserve">== cleanup</text>
+    <text x="24" y="344" xml:space="preserve">ALL PASS</text>
+  </g>
+</svg>

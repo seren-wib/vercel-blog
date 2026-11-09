@@ -1,0 +1,184 @@
+---
+title: "Woowangthon 9. How Do You Know It's Blocked"
+date: '2026-11-10'
+tags: ['Woowangthon']
+draft: false
+summary: 'The last piece of build stage 5: the student space template. Security level, resource caps, blocking rules. Who sets the caps, why a cap of 8 with a default of 2 means four containers, the ServiceAccount left out of the template, proving a block with a control namespace that has no policy, and a test script that could pass without testing anything'
+---
+
+> Part 9 of the series. The last piece of build stage 5 (a frame for student apps): the day the student space template went up. The first piece, the image cache, is in [part 8](/en/blog/woowangthon/woowangthon-08-image-cache/), and the big picture is in [Woowangthon 0](/en/blog/woowangthon/woowangthon-00-overview/).
+
+## In one line
+
+Every student project gets its own Kubernetes space (namespace). I set the template for that space. Risky Pods are rejected, resources are capped under half a worker, and outbound traffic may reach the internet but not the school network, the nodes or other students' spaces. To prove "blocked", I ran a control namespace without the policy next to it. And a self review showed that the test script I had written could print PASS without measuring anything.
+
+## 1. What goes into one student space
+
+When a student project is created, the platform server makes a space called `proj-<id>`. Four things go into it.
+
+| Object        | What it does                                                                                               |
+| ------------- | ---------------------------------------------------------------------------------------------------------- |
+| Namespace     | The space itself. It carries the security level labels                                                     |
+| LimitRange    | Default values filled in when a container doesn't state its resources                                      |
+| ResourceQuota | The resource cap for the whole space                                                                       |
+| NetworkPolicy | Who may come in and where Pods may go. Inbound only from the same space and Traefik (the visitor entrance) |
+
+The template is one file in the repo, `Infra/student/space.yaml`. The server creates it with only the name changed. I applied the file as it is to the test space `proj-demo`.
+
+The security level uses a built-in Kubernetes feature (Pod Security). It has three levels, and enforcing the strictest, restricted, rejects official images that run as root (nginx, node and so on). Students write Dockerfiles like that all the time. So it is **enforce baseline, warn restricted**. baseline rejects Pods that use the node's network (hostNetwork) and privileged Pods.
+
+baseline leaves one permission in place: `NET_RAW`, which lets a process craft raw packets. With it, a student Pod could intercept other Pods' traffic on the same worker with ARP spoofing. So the deploy executor drops it from every container, and the admission policy of the next step (build 09) rejects Pods that don't. The fields the executor must set are written down in `Infra/student/app-example.yaml` with a test app (the public image podinfo).
+
+## 2. Who sets the caps
+
+At the end of part 8 I wrote "the cap values have to be agreed with the platform server owner first". The build plan had carried a line "confirm the proposed values with the server owner" since the design doc PR ([woowangthon/WOOWANGTHON_TEAM_18#31](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/31)).
+
+When the agent put the proposed values on the table, I asked: "Go with your proposed values. But why do we have to decide this together with the server owner?"
+
+The answer was simple. The server creates this template as it is with only the name changed. It never reads the values or uses them in any calculation. There was no reason to settle values with the server owner when they don't touch the server code. That line was closed as "decided by the infra owner, shared through the PR".
+
+| Item                              | Project cap | Container default (request / limit) |
+| --------------------------------- | ----------- | ----------------------------------- |
+| CPU request / limit               | 4 / 8       | 250m / 2                            |
+| Memory request / limit            | 16Gi / 32Gi | 256Mi / 4Gi                         |
+| Ephemeral storage request / limit | 10Gi / 40Gi | 1Gi / 8Gi                           |
+| Pods                              | 10          |                                     |
+| Volumes (PVC)                     | 0           |                                     |
+| NodePort · LoadBalancer Services  | 0           |                                     |
+
+The rule is **under half of one worker (24 threads, 125 GiB)**. If one worker goes down and two projects end up on the remaining one, there is still room for the system. Volumes are 0 because students bring their own DB (no student data lives in the cluster). NodePort is 0 because of [the side road from part 6](/en/blog/woowangthon/woowangthon-06-k3s-install/#3-two-side-roads-around-the-firewall). A NodePort opens the app on the node network without going through Traefik or the blocking rules. Visitors come in through Traefik and nowhere else. The ephemeral storage row wasn't there at first. It comes back in section 7.
+
+## 3. A cap of 8 with a default of 2 means four
+
+After setting the caps I worked through the numbers and got an odd one. Containers that only use the defaults fit **four** to a space.
+
+At first I read that as "so the CPU cap is meaningless?" But a Kubernetes space cap doesn't measure what is actually used. It counts **the sum of the values written in the specs**. When a container states no limit, the LimitRange fills in 2, and the space cap is 8, so 8 ÷ 2 = 4. Counted the other ways it is 16 by CPU request, 8 by memory limit, 5 by ephemeral storage limit and 10 by Pod count, so the sum of CPU limits is hit first.
+
+Four is tight. A student project has up to three services: FE, BE and AI. That is a limit sum of 6. And when a Deployment rolls out a new version, it starts the new Pod before removing the old one. Even with one replica there are briefly two during a rollout. 6 + 2 = 8, exactly full.
+
+| Situation                        | Sum of CPU limits | Result                                                    |
+| -------------------------------- | ----------------- | --------------------------------------------------------- |
+| Three services running           | 6                 | Runs                                                      |
+| One of them rolling out          | 8                 | Runs (exact fit)                                          |
+| Two services rolling out at once | 10                | The second new Pod waits until the first rollout finishes |
+
+It waits rather than fails, so nothing breaks. Still, the design doc now says the deploy executor rolls out a project's services **one at a time**. If the chart states a limit for each service, the defaults aren't used at all, so this math is the floor for when a student states nothing.
+
+## 4. The ServiceAccount left out of the template
+
+Student Pods don't need a Kubernetes API token. By default Kubernetes puts the token of the space's `default` ServiceAccount into every Pod. There are two ways to turn it off: on the space's `default` ServiceAccount, or on each Pod.
+
+At first I wanted to put the `default` ServiceAccount into the template and turn it off there. Turn it off once for the space and no Pod has to care. I applied the template right after creating the space and got this.
+
+```text
+serviceaccounts "default" already exists
+```
+
+When a space is created, a Kubernetes controller makes the `default` ServiceAccount right away. If the template comes later, it tries to create something that already exists and collides. Applying again went through, and the agent summed it up as "use apply (update if it exists) instead of create".
+
+At that point we went to check whether the backend server already creates spaces. The server code had only login, health check and repo listing; nothing created spaces yet. But looking for it surfaced the permissions section of the cluster design doc. Of [the two accounts split in part 7](/en/blog/woowangthon/woowangthon-07-leader-vllm/#1-what-changed-in-the-meeting), the platform server account may only **create** objects inside a space. That was on purpose: if the server account leaks, it can't start by loosening its own space's caps and blocking rules. With no permission to update, "use apply" was never something the server could do.
+
+So the `default` ServiceAccount came out of the template. The deploy executor turns the token off on each Pod (`automountServiceAccountToken: false`), and the build-09 admission policy rejects Pods that leave it on. An admission policy that a Pod can't override is sturdier than a space setting anyway. It also left one note for the server: right after a space is created, the `default` ServiceAccount doesn't exist yet, so Pods can't be created. The server waits until it shows up before moving on.
+
+## 5. How do you know it's blocked
+
+The outbound side of the blocking rule looks like this: the same space, cluster DNS, and the whole internet minus the private ranges.
+
+```yaml
+- to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+          - 10.0.0.0/8
+          - 172.16.0.0/12
+          - 192.168.0.0/16
+          - 100.64.0.0/10
+          - 169.254.0.0/16
+```
+
+The internet is open because student DBs live outside. The school network, the Pod and Service ranges (which include other students' spaces and the leader API), the node network and the Tailscale range all fall inside these exceptions. [The node firewall from part 5](/en/blog/woowangthon/woowangthon-05-node-prep/#6-firewall-inbound-by-source-outbound-by-port) [doesn't apply to Pod traffic](/en/blog/woowangthon/woowangthon-05-node-prep/#7-what-the-design-doc-review-caught), so this rule is the only thing on a student Pod's way out.
+
+Writing the rule is easy. Checking it is the problem. If a student Pod can't connect to the leader API, you can't tell whether that's this rule, a path that never existed, or a target that's down. "It doesn't work" proves nothing.
+
+So the test script (`Infra/student/check.sh`) uses three spaces.
+
+| Space            | Role                                                                                |
+| ---------------- | ----------------------------------------------------------------------------------- |
+| `proj-demo`      | The student space with the template applied                                         |
+| `proj-check`     | One more from the same template. Are student spaces blocked from each other         |
+| `netpol-control` | A control space with only the blocking rule missing. It must reach the same targets |
+
+Each space gets one test Pod, and they all probe the same targets. Blocked from the student space and reached from the control space means the rule did the blocking.
+
+![check.sh output. From the student space, DNS, the same space, the internet and outside DB ports work, while the leader API, image cache, kubelet, school DNS, Tailscale, local model and other spaces are blocked. From the control space the same targets are reached](/static/images/woowangthon-09-student-space/check-isolation.svg)
+
+Blocked connections were refused at once rather than timing out (curl exit code 7). The blocking rule implementation built into k3s (kube-router) sends back a refusal. In terms of [refused vs no answer from part 8](/en/blog/woowangthon/woowangthon-08-image-cache/#6-what-the-reviewer-ai-caught-refused-vs-no-answer), that is the kind side for student apps. An app trying a blocked address gets an error right away instead of hanging for 30 seconds.
+
+The test Pod itself failed to start once. I made it run as a non-root user to meet the restricted level, and the container stopped like this.
+
+```text
+CreateContainerConfigError: container has runAsNonRoot and image has non-numeric user (curl_user)
+```
+
+When the image names its user only by name (`curl_user`), Kubernetes can't verify that it isn't root, so it refuses. Stating `runAsUser: 100` as a number got it running.
+
+## 6. Port 3306 failed once
+
+I ran the same script again and one line came out red.
+
+![An earlier run. outside DB port 3306 shows blocked instead of ok, SOME FAILED](/static/images/woowangthon-09-student-space/check-3306.svg)
+
+Student DBs live outside, so this item checks that outside DB ports (MySQL 3306, PostgreSQL 5432) are open. The target was a public MySQL server anyone can connect to. The rule hadn't changed but the result had, so I suspected the target before the rule. Measured separately, that server took 2.6 seconds to accept a connection. The script's connect limit is 4 seconds. On a slow moment it goes over.
+
+Not our problem. I switched the target to a test server that answers on every port (portquiz.net). Use someone else's server as a test target and that server's day becomes your test result.
+
+## 7. It could pass without testing
+
+I opened the PR ([woowangthon/WOOWANGTHON_TEAM_18#68](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/68)) and ran a self review (the agent's code review). It found five things.
+
+| Finding                                                       | Why it matters                                                                                                                           |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| No ephemeral storage cap                                      | Logs, temp folders and the container's writable layer have no end. One Pod filling a worker's disk gets every Pod on that worker evicted |
+| A probe that never got into the test Pod counted as "blocked" | With no test Pod, every item that should be blocked comes out PASS                                                                       |
+| Stopping midway leaves the test spaces behind                 | Including the control space with no blocking rule                                                                                        |
+| The doc credited the script with tests it didn't run          | Worker placement, the leader-pinned Pod staying Pending and the Traefik test from the other worker were not in the script                |
+| The Traefik test waits a fixed 3 seconds                      | If Traefik picks up the new Ingress late, it's a false FAIL                                                                              |
+
+The second one was the scariest. The script runs curl inside the test Pod and calls it "reached" if the connect time is above 0, "blocked" otherwise. But with no test Pod, `kubectl exec` itself fails, there's no output, and with no output the "reached" condition can't hold. So it becomes "blocked". Twelve items that should be blocked all PASS without measuring a thing. It was a security test that passed by not testing.
+
+All five are fixed. Ephemeral storage was added to the space cap and the container defaults, no output now means "couldn't test" and a FAIL, a stop still deletes what was created (`trap`), worker placement and the leader-pinned Pod are in the script, the doc now says the Traefik test from the other worker was measured by hand, and Traefik is retried for up to 30 seconds. This is the run after the fix.
+
+![check.sh after the fix. All test Pods land on workers, the leader-pinned Pod stays Pending, Traefik to the student service returns 200, hostNetwork, privileged, 5 CPU and NodePort requests are rejected, ALL PASS](/static/images/woowangthon-09-student-space/check-admission.svg)
+
+The `Warning` line in the middle is what the warn level (restricted) does. The leader-pinned test Pod passes baseline but falls short of restricted. It isn't rejected; it just gets flagged like this.
+
+The test script was written by an AI, and it was an AI review that caught it could give a false PASS. The contest theme is "Can AI be a teammate?", and a teammate has to doubt even what their own test proves. This time a second pair of eyes, the review, did that.
+
+## 8. Accidents by the AI, catches by people
+
+- **Kept copying a premise nobody checked.** "Confirm the cap values with the server owner" had been there since the design doc, and the last sentence of part 8 copied it as is. Nobody had checked whether the server reads the values. One line, "why do we have to decide this together with the server owner?", undid it.
+- **Advice that forgot the permission design.** Seeing `AlreadyExists`, it said "use apply", but the server account can only create. It came out of the design doc while checking the server code.
+- **A test that passes without testing.** With no test Pod, every item that should be blocked was PASS. The self review caught it.
+- **Credited the script with tests it didn't run.** The self review caught this too.
+
+## 9. Who did what
+
+| Person (me)                                                     | AI agent                                                                                              |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| "Go with your values", "why decide this with the server owner?" | Template, test app and test script; applying and testing on the cluster                               |
+| Asking whether the server already creates spaces                | Checking the server code against the permission design, dropping the ServiceAccount from the template |
+| Waiting for a teammate's approval                               | Self review, five fixes, finding why 3306 failed                                                      |
+| Clearing a wrong premise with one question                      | Copying a wrong premise, "use apply", a false-PASS script                                             |
+
+## 10. Wrap-up
+
+| What happened                                                    | What I learned                                                                                          |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| I had written that the caps must be agreed with the server owner | Look first at who uses a value. A value nobody reads is set by whoever made it                          |
+| Only four default containers fit                                 | A space cap counts the sum of values in the specs, not usage. The extra Pod during a rollout counts too |
+| Collided with a `default` ServiceAccount that already existed    | Before choosing how to update something, check whether that account may update it                       |
+| How do you prove "blocked"                                       | Show the same targets being reached from a control space with only the policy removed                   |
+| One failure because of a public MySQL                            | Use someone else's server as a test target and its state becomes your result                            |
+| PASS was possible with no test Pod                               | Count "couldn't measure" apart from "blocked". Test that the test fails when it should                  |
+
+That finishes stage 5. A test app runs on a worker and can't reach the school network or other students' spaces. The PR is waiting for a teammate's approval (the cluster already runs with this setup). Next is stage 6, connecting to the outside. The platform server connects to the leader API over the private network, and the server account permissions and admission policy go in. The things this post put off with "build 09 will reject it" (`NET_RAW`, the API token, the leader toleration) get checked there to see whether they are really blocked.

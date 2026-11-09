@@ -128,19 +128,20 @@ I ([seren-wib](https://github.com/seren-wib)) took the **school PC cluster**. Th
 | November 7~8  | k3s install and reboot test (part 6). Builds run on AWS, and students bring their own DB                                         |
 | November 9    | Team meeting: deploys run from an executor on the leader, logs are kept as snapshots. A local model on the leader's GPU (part 7) |
 | November 10   | Image cache on the leader. One second for the second worker; refused vs no answer, caught by the review bot (part 8)             |
+| November 10   | Student space template: security level, resource caps, blocking rules. Proving the block with a control space (part 9)           |
 
-I split the cluster build into seven stages. Stages 1 to 4 are done, and stage 5 is in progress: the image cache is done, the student space template is left.
+I split the cluster build into seven stages. Stages 1 to 5 are done. Next is stage 6, connecting the platform server to the cluster.
 
-| Stage | Task                   | Done when                                                                                                              | Status      |
-| ----- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------- |
-| 1     | Image backup           | Full disk images of all three taken and verified                                                                       | ✅ Done     |
-| 2     | Remote access          | Passwordless login to all three from my home desktop and laptop                                                        | ✅ Done     |
-| 3     | Node prep              | All three reach each other by node address, and inbound connections from the school network are blocked                | ✅ Done     |
-| 4     | Bring up the cluster   | All 3 nodes Ready, they come back after a reboot with no one touching them, and a local model runs on the leader's GPU | ✅ Done     |
-| 5     | Frame for student apps | A test app runs on a worker and can't reach the school network or other students' spaces                               | In progress |
-| 6     | Connect to the outside | Deploys work from the platform server, and the visitor address opens                                                   |             |
-| 7     | Monitoring             | Metrics are visible and can be queried from the platform server                                                        |             |
-| End   | Return                 | Overwrite with the images and put the BIOS back the way it was                                                         |             |
+| Stage | Task                   | Done when                                                                                                              | Status  |
+| ----- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------- |
+| 1     | Image backup           | Full disk images of all three taken and verified                                                                       | ✅ Done |
+| 2     | Remote access          | Passwordless login to all three from my home desktop and laptop                                                        | ✅ Done |
+| 3     | Node prep              | All three reach each other by node address, and inbound connections from the school network are blocked                | ✅ Done |
+| 4     | Bring up the cluster   | All 3 nodes Ready, they come back after a reboot with no one touching them, and a local model runs on the leader's GPU | ✅ Done |
+| 5     | Frame for student apps | A test app runs on a worker and can't reach the school network or other students' spaces                               | ✅ Done |
+| 6     | Connect to the outside | Deploys work from the platform server, and the visitor address opens                                                   |         |
+| 7     | Monitoring             | Metrics are visible and can be queried from the platform server                                                        |         |
+| End   | Return                 | Overwrite with the images and put the BIOS back the way it was                                                         |         |
 
 ## 9. Series index
 
@@ -155,8 +156,9 @@ I split the cluster build into seven stages. Stages 1 to 4 are done, and stage 5
 | [Woowangthon 6. When the First Address on the Card Belongs to the School](/en/blog/woowangthon/woowangthon-06-k3s-install/) | k3s install, flannel host-gw, side roads around the firewall, reboot test |
 | [Woowangthon 7. When 16K Didn't Fit in 10 GB](/en/blog/woowangthon/woowangthon-07-leader-vllm/)                             | The deploy design the meeting changed, leader GPU, vLLM, FP8 KV cache     |
 | [Woowangthon 8. Refused Is Not the Same as No Answer](/en/blog/woowangthon/woowangthon-08-image-cache/)                     | Leader image cache, hostNetwork, the no-answer test, where W6 goes        |
+| [Woowangthon 9. How Do You Know It's Blocked](/en/blog/woowangthon/woowangthon-09-student-space/)                           | Student space template, cap math, control space test, false PASS          |
 
-I'll add the next posts as each build stage finishes. The plan is to write them in this order: the frame for student apps, server connection and public exposure, monitoring, and then the contest and returning the PCs. If a stage ends without a fight, it gets folded into the post next to it.
+I'll add the next posts as each build stage finishes. The plan is to write them in this order: server connection and public exposure, monitoring, and then the contest and returning the PCs. If a stage ends without a fight, it gets folded into the post next to it.
 
 ## 10. Links
 

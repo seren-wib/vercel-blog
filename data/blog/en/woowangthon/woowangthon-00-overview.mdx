@@ -116,32 +116,33 @@ I ([seren-wib](https://github.com/seren-wib)) took the **school PC cluster**. Th
 
 ## 8. Where we are now
 
-| Date          | What happened                                                                                                                    |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| October 24    | Kickoff                                                                                                                          |
-| October 26~28 | First PRs. The design doc I put up on my own got closed, and we redid the team doc structure (part 1)                            |
-| October 31    | System definition merged. Bought a switch and LAN cables                                                                         |
-| November 1~3  | Agreed on the registry and how servers connect. Four cluster ADRs. Web project setup. **Got the 3 school PCs**                   |
-| November 4    | Took disk images of all three in the club room (part 3). Server project setup                                                    |
-| November 5    | Internet through the wall LAN port, and remote access to all three from home (part 4)                                            |
-| November 6    | Node prep: names, node addresses, firewall. Cluster design doc PR (part 5)                                                       |
-| November 7~8  | k3s install and reboot test (part 6). Builds run on AWS, and students bring their own DB                                         |
-| November 9    | Team meeting: deploys run from an executor on the leader, logs are kept as snapshots. A local model on the leader's GPU (part 7) |
-| November 10   | Image cache on the leader. One second for the second worker; refused vs no answer, caught by the review bot (part 8)             |
-| November 10   | Student space template: security level, resource caps, blocking rules. Proving the block with a control space (part 9)           |
+| Date          | What happened                                                                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| October 24    | Kickoff                                                                                                                                          |
+| October 26~28 | First PRs. The design doc I put up on my own got closed, and we redid the team doc structure (part 1)                                            |
+| October 31    | System definition merged. Bought a switch and LAN cables                                                                                         |
+| November 1~3  | Agreed on the registry and how servers connect. Four cluster ADRs. Web project setup. **Got the 3 school PCs**                                   |
+| November 4    | Took disk images of all three in the club room (part 3). Server project setup                                                                    |
+| November 5    | Internet through the wall LAN port, and remote access to all three from home (part 4)                                                            |
+| November 6    | Node prep: names, node addresses, firewall. Cluster design doc PR (part 5)                                                                       |
+| November 7~8  | k3s install and reboot test (part 6). Builds run on AWS, and students bring their own DB                                                         |
+| November 9    | Team meeting: deploys run from an executor on the leader, logs are kept as snapshots. A local model on the leader's GPU (part 7)                 |
+| November 10   | Image cache on the leader. One second for the second worker; refused vs no answer, caught by the review bot (part 8)                             |
+| November 10   | Student space template: security level, resource caps, blocking rules. Proving the block with a control space (part 9)                           |
+| November 10   | Cluster side of stage 6: platform server account, admission policies, private network access rules. The server is not on the private network yet |
 
-I split the cluster build into seven stages. Stages 1 to 5 are done. Next is stage 6, connecting the platform server to the cluster.
+I split the cluster build into seven stages. Stages 1 to 5 are done, and stage 6, connecting the platform server to the cluster, is in progress. The cluster side is in place. The server joining the private network and the deploy executor on the leader are left.
 
-| Stage | Task                   | Done when                                                                                                              | Status  |
-| ----- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------- |
-| 1     | Image backup           | Full disk images of all three taken and verified                                                                       | ✅ Done |
-| 2     | Remote access          | Passwordless login to all three from my home desktop and laptop                                                        | ✅ Done |
-| 3     | Node prep              | All three reach each other by node address, and inbound connections from the school network are blocked                | ✅ Done |
-| 4     | Bring up the cluster   | All 3 nodes Ready, they come back after a reboot with no one touching them, and a local model runs on the leader's GPU | ✅ Done |
-| 5     | Frame for student apps | A test app runs on a worker and can't reach the school network or other students' spaces                               | ✅ Done |
-| 6     | Connect to the outside | Deploys work from the platform server, and the visitor address opens                                                   |         |
-| 7     | Monitoring             | Metrics are visible and can be queried from the platform server                                                        |         |
-| End   | Return                 | Overwrite with the images and put the BIOS back the way it was                                                         |         |
+| Stage | Task                   | Done when                                                                                                              | Status      |
+| ----- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------- |
+| 1     | Image backup           | Full disk images of all three taken and verified                                                                       | ✅ Done     |
+| 2     | Remote access          | Passwordless login to all three from my home desktop and laptop                                                        | ✅ Done     |
+| 3     | Node prep              | All three reach each other by node address, and inbound connections from the school network are blocked                | ✅ Done     |
+| 4     | Bring up the cluster   | All 3 nodes Ready, they come back after a reboot with no one touching them, and a local model runs on the leader's GPU | ✅ Done     |
+| 5     | Frame for student apps | A test app runs on a worker and can't reach the school network or other students' spaces                               | ✅ Done     |
+| 6     | Connect to the outside | Deploys work from the platform server, and the visitor address opens                                                   | In progress |
+| 7     | Monitoring             | Metrics are visible and can be queried from the platform server                                                        |             |
+| End   | Return                 | Overwrite with the images and put the BIOS back the way it was                                                         |             |
 
 ## 9. Series index
 

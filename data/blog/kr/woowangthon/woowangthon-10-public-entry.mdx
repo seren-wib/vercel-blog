@@ -1,0 +1,197 @@
+---
+title: 'Woowangthon 10. 절반이 아니라 전부 끊겼다'
+date: '2026-11-10'
+tags: ['Woowangthon']
+draft: false
+summary: '구축 6단계의 방문자 쪽, 공개 진입. Cloudflare 터널과 stairnoworks.com 와일드카드, 워커 둘에 하나씩 둔 Traefik과 maxSurge 0, 평문 HTTP 뒤의 X-Forwarded 헤더, 비밀값을 화면에 안 띄운 터널 만들기, 확인 안 했던 UDP 7844, 워커 끄기 시험과 인터넷 끊기 시험, 셀프 리뷰가 잡은 틀린 설명과 겹치는 이름, 서버 주소까지 정한 도메인'
+---
+
+> 시리즈 10편. 구축 6단계(바깥이랑 잇기) 중 방문자가 들어오는 길, 구축 10을 끝낸 날이다. 같은 날 먼저 들어간 서버 쪽 준비(플랫폼 서버 계정, 검사 규칙, 사설망 접근 규칙)는 따로 글을 쓰지 않고 [Woowangthon 0](/kr/blog/woowangthon/woowangthon-00-overview/#8-지금-어디쯤인가)에 한 줄로 남겼다. 바로 앞 글은 [9편](/kr/blog/woowangthon/woowangthon-09-student-space/)이다.
+
+## 한 줄 요약
+
+학교로 들어오는 포트는 하나도 열지 않고 `https://demo.stairnoworks.com`을 열었다. 리더가 Cloudflare에 먼저 터널을 걸어 두고, 방문자 요청은 그 터널을 타고 워커의 Traefik으로 간다. 그다음 워커 하나를 끄고 리더의 인터넷을 끊어 봤다. 워커를 끄면 요청이 절반쯤 끊길 줄 알았는데 80초 동안 전부 끊겼다. 그리고 셀프 리뷰가 에이전트가 쓴 틀린 설명 하나와, 학생 이름과 겹칠 수 있는 시험 공간 이름을 잡았다.
+
+## 1. 방문자가 들어오는 길
+
+학교 PC는 학교 방화벽 안에 있다. 바깥에서 먼저 연결을 걸 수 없고, 우리도 학교에 포트를 열어 달라고 하지 않기로 했다. 그래서 [전체 구조](/kr/blog/woowangthon/woowangthon-00-overview/#5-전체-구조)에서 정한 대로, 연결은 학교 PC가 먼저 밖으로 건다.
+
+| 구간                  | 하는 일                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------ |
+| 방문자 → Cloudflare   | HTTPS. 인증서는 Cloudflare가 낸다                                                    |
+| Cloudflare → 리더     | 리더의 cloudflared가 먼저 걸어 둔 터널(7844 포트)로 요청이 들어온다                  |
+| 리더 → 워커의 Traefik | 평문 HTTP. Traefik은 바깥 요청을 받아 주소(호스트 이름)를 보고 학생 앱으로 나눠 준다 |
+| Traefik → 학생 앱     | 학생 공간 `proj-<slug>`의 Service                                                    |
+
+도메인은 내가 가진 `stairnoworks.com`을 썼다. DNS가 이미 Cloudflare에 있어서 살 것도 옮길 것도 없었다. `*.stairnoworks.com` 와일드카드 레코드 하나가 터널을 가리킨다. 학생 주소는 `<slug>.stairnoworks.com`처럼 한 단계 아래 이름이라 Cloudflare의 무료 인증서로 HTTPS가 된다. 학생 주소가 하나 늘어도 DNS, 인증서, 터널은 그대로고 Traefik이 읽는 Ingress 하나만 는다.
+
+다른 길도 따져 봤다. AWS 서버를 공개 입구로 두고 사설망으로 워커에 넘기는 방법은 방문자 트래픽이 전부 AWS를 거쳐 느려지고, 그 서버가 꺼지면 학생 서비스도 끊긴다. `stairnoworks.com/<이름>` 같은 경로 방식은 루트 경로를 가정한 학생 앱이 깨진다. 결정은 팀 레포의 ADR-013에 남겼다.
+
+## 2. Traefik을 워커 둘에 하나씩
+
+k3s는 Traefik을 기본으로 깔아 준다. 확인해 보니 하나뿐이었고, 워커 2에 떠 있었다. 워커 2가 꺼지면 터널이 멀쩡해도 모든 학생 주소가 끊긴다.
+
+k3s가 깐 Traefik은 설정 묶음(HelmChartConfig)으로 값만 덮어쓸 수 있다. 복제본 2, 학생용 워커에만, 같은 노드에는 둘이 못 뜨게. [CoreDNS를 워커 둘에 둔 것](/kr/blog/woowangthon/woowangthon-06-k3s-install/#5-coredns는-워커-둘에)과 같은 모양이다.
+
+적용하고 기다리는데 배포가 끝나지 않았다. 차트의 기본 교체 방식은 새 Pod를 먼저 하나 더 띄우고(maxSurge 1) 옛 Pod를 지운다(maxUnavailable 0). 그런데 워커는 둘이고, 둘 다 이미 Traefik이 하나씩 있다. 같은 노드에 둘이 못 뜨는 규칙 때문에 새 Pod가 갈 자리가 없다. 세 번째 노드가 생길 때까지 영원히 기다린다.
+
+그래서 순서를 뒤집었다. 하나를 먼저 내리고 그 자리에 새 것을 띄운다(maxSurge 0, maxUnavailable 1). 교체하는 동안은 Traefik이 하나로 버틴다.
+
+![Traefik Pod 목록. 바꾸기 전에는 워커 2에 하나, 바꾼 뒤에는 워커 1과 워커 2에 하나씩. 마지막 줄은 maxSurge 0, maxUnavailable 1](/static/images/woowangthon-10-public-entry/traefik.svg)
+
+_바꾸기 전과 후. 대기 루프의 숫자는 복제본 / 준비됨 / 새 버전 수다_
+
+## 3. 터널은 평문 HTTP로 넘긴다
+
+방문자와 Cloudflare 사이는 HTTPS지만, 리더의 cloudflared가 Traefik에 넘길 때는 평문 HTTP다. 암호화는 Cloudflare에서 끝난다. 그대로 두면 학생 앱은 자기가 http로 불렸다고 믿는다. https로 강제로 보내는 앱이면 이미 https로 들어온 방문자를 또 https로 보내고, 리다이렉트가 끝없이 돈다.
+
+cloudflared는 방문자의 원래 정보를 `X-Forwarded-Proto: https` 같은 헤더로 같이 보낸다. 문제는 Traefik이 아무나 보낸 이 헤더를 믿지 않는다는 점이다. 누구든 헤더를 지어낼 수 있으니까. 그래서 Traefik이 **리더의 Pod 대역(`10.42.0.0/24`)에서 온 것만** 믿게 했다. cloudflared가 그 대역에 있다.
+
+확인은 시험 앱(podinfo)으로 했다. podinfo에는 받은 요청 헤더를 그대로 돌려주는 `/headers`가 있다.
+
+![데스크탑에서 본 demo.stairnoworks.com. https 200, 없는 이름 404, http도 200. 앱이 받은 헤더는 X-Forwarded-Proto https, X-Forwarded-Port 443. 인증서는 *.stairnoworks.com 와일드카드, Let's Encrypt 발급](/static/images/woowangthon-10-public-entry/demo.svg)
+
+_방문자 주소(203.0.113.10)는 가린 값이다_
+
+앱이 `X-Forwarded-Proto: https`를 받는다. 없는 이름은 Traefik의 404가 난다. `http://`로 들어와도 200인 건 Cloudflare의 "Always Use HTTPS" 설정이 아직 꺼져 있어서다. 도메인 설정 하나라 따로 켜면 된다.
+
+## 4. 비밀값을 화면에 안 띄우고 터널 만들기
+
+터널은 로컬 관리 방식으로 만들었다. 라우팅 규칙(`*.stairnoworks.com`은 전부 Traefik으로, 나머지는 404)이 Cloudflare 대시보드가 아니라 레포의 설정 파일에 있다. 바꾸면 PR로 남는다.
+
+터널을 만들려면 Cloudflare 로그인이 필요하고, 로그인은 브라우저에서 승인한다. 브라우저는 리더가 아니라 집 데스크탑에 있다. 그래서 터널은 데스크탑에서 만들었다. 도메인 주인이 나라서 승인도 내가 직접 눌렀다.
+
+```text
+$ cloudflared tunnel create wanggane
+Created tunnel wanggane with id <tunnel id>
+$ cloudflared tunnel route dns wanggane '*.stairnoworks.com'
+INF Added CNAME *.stairnoworks.com which will route to this tunnel tunnelID=<tunnel id>
+```
+
+터널을 만들면 인증 파일이 하나 생긴다. 이게 이 터널의 유일한 비밀값이다. 이걸 리더로 옮기는데, 파일로 복사하지 않고 SSH 너머로 바로 쿠버네티스 Secret에 흘려 넣었다.
+
+```bash
+ssh k3s-leader 'sudo k3s kubectl -n cloudflared create secret generic tunnel-credentials \
+  --from-file=credentials.json=/dev/stdin' < ~/.cloudflared/<tunnel id>.json
+```
+
+양쪽 크기(175바이트)만 맞춰 보고, 데스크탑의 인증 파일과 로그인 인증서(`cert.pem`)는 지웠다. 내용은 한 번도 화면에 찍히지 않았다. 레포에도, 데스크탑에도 남은 게 없다.
+
+## 5. 확인 안 했던 UDP 7844
+
+cloudflared는 Cloudflare에 7844 포트로 붙는다. TCP와 UDP 둘 다 쓰고, UDP가 되면 QUIC으로 붙는다. [2편에서는 7844가 학교망을 통과하는지 3단계에서 보기로](/kr/blog/woowangthon/woowangthon-02-network-design/#5-모든-줄에-상태를-붙이다) 했고, [5편에서 확인한 건 TCP뿐](/kr/blog/woowangthon/woowangthon-05-node-prep/#1-남은-현장-값)이었다. UDP는 그 뒤로 아무도 재지 않았다. 막혀 있으면 TCP(HTTP/2)로 내려가니 큰일은 아니지만, 어느 쪽인지는 알고 싶었다.
+
+```text
+INF Initial protocol quic
+INF Registered tunnel connection connIndex=0 ... location=icn07 protocol=quic
+INF Registered tunnel connection connIndex=1 ... location=icn06 protocol=quic
+INF Registered tunnel connection connIndex=2 ... location=icn06 protocol=quic
+INF Registered tunnel connection connIndex=3 ... location=icn07 protocol=quic
+INF |  UDP Connectivity  region1.v2.argotunnel.com  PASS    QUIC connection successful    |
+INF |  TCP Connectivity  region1.v2.argotunnel.com  PASS    HTTP/2 connection successful  |
+INF |  SUMMARY: Environment is healthy. cloudflared will use 'quic' as primary protocol.  |
+```
+
+그냥 됐다. 첫 실행에서 QUIC 연결 넷이 서울(icn06, icn07)에 붙었다. 이번 단계에서 유일하게 싱겁게 끝난 일이다.
+
+## 6. 워커 하나 끄기: 절반이 아니라 전부
+
+이제 깨 볼 차례다. 시험 앱이 떠 있던 워커 1에서 k3s와 컨테이너를 전부 멈췄다(`k3s-killall.sh`, 240초 뒤 다시 켜는 예약을 걸고). 데스크탑에서는 1초마다 데모 주소를 불렀다.
+
+계획에서 예상한 건 이랬다. [워커가 NotReady로 판정되는 50초](/kr/blog/woowangthon/woowangthon-06-k3s-install/#notready는-40초가-아니라-50초) 동안은 요청이 Traefik 둘에 나뉘어 가니, 죽은 워커의 Traefik으로 간 절반쯤이 끊긴다. 결과는 달랐다.
+
+![워커 끄기 시험. 0초부터 50초까지 응답 없음(000), 54초부터 78초까지 503, 80초부터 200. 리더 쪽에서는 49초에 워커 1이 Unknown, 78초에 워커 2에 새 Pod. cloudflared는 클러스터 DNS 조회 시간 초과](/static/images/woowangthon-10-public-entry/worker-off.svg)
+
+_k3s를 멈춘 시각을 0초로 둔 데스크탑 쪽 요청과 리더 쪽 상태_
+
+**0~50초는 전부 끊겼다.** 이유는 둘이다.
+
+- 시험 앱이 하나뿐이었고, 그게 죽은 워커 1에 있었다. 살아 있는 워커 2의 Traefik도 요청을 워커 1의 앱으로 보냈다. Traefik이 둘이어도 앱이 하나면 소용없다.
+- cloudflared는 Traefik 주소를 이름(`traefik.kube-system.svc.cluster.local`)으로 찾는다. 그 조회는 클러스터 DNS로 가는데, CoreDNS도 워커 둘에 하나씩이라 절반은 죽은 워커 1의 CoreDNS로 갔다. 그쪽은 시간 초과다.
+
+죽은 노드의 주소들은 NotReady가 되기 전까지 목록에서 안 빠진다. 그 50초 동안은 Traefik이든 CoreDNS든 죽은 쪽으로 계속 간다.
+
+**50~78초는 503**이었다. 49초에 워커 1이 NotReady(정확히는 Unknown)가 되면서 워커 1 쪽 주소들이 빠졌다. 앱의 주소 목록이 비었으니 Traefik이 "갈 데가 없다"는 503을 돌려준다. 처음 정리할 때 이 구간을 502로 적었는데, 원본 기록을 다시 보니 503이었다. 고쳐 적었다.
+
+**80초부터 200.** NotReady 뒤 30초를 기다린 쿠버네티스가 78초에 워커 2에 새 앱을 띄웠다. 방문자가 본 공백은 약 80초, NotReady 50초에 포기 대기 30초다.
+
+하나 더 있었다. 새 Traefik과 CoreDNS는 워커 1이 돌아올 때까지 Pending이었다. 같은 노드에 둘이 못 뜨는 규칙이라 워커 2에는 이미 자리가 없다. 그동안은 하나씩으로 버텼다. 워커 1은 k3s를 다시 켠 지 34초 만에 Ready로 돌아왔다.
+
+앱이 살아 있는 워커에 있었다면 계획대로 절반쯤만 끊겼을 것이다. 이건 재지 않았다. 학생 앱은 프로젝트마다 하나씩 뜨니, 실제로 워커가 꺼지면 그 워커의 학생은 이번처럼 약 80초를 통째로 잃는다.
+
+## 7. 리더 인터넷 끊기: 502 다음 530
+
+다음은 리더의 인터넷이다. 동아리방에 가서 벽 랜선을 뽑을 수는 없으니, 리더의 기본 경로를 120초 지웠다가 다시 붙이는 스크립트를 돌렸다. 노드끼리는 그대로 통하고 바깥만 끊긴다. 스크립트가 경로를 못 되돌리면 7분 뒤 재부팅하는 예약도 같이 걸었다. 원격 작업은 [끊기기 전에 되돌리기부터](/kr/blog/woowangthon/woowangthon-05-node-prep/#3-끊기기-전에-되돌리기부터)다.
+
+![인터넷 끊기 시험. 6초에 경로 삭제, 126초에 복구. 리더 쪽 연결 수 지표는 4에서 1로 내려가고 0이 되지 않는다. 데스크탑 쪽은 502, 58초부터 530, 137초에 200](/static/images/woowangthon-10-public-entry/internet-cut.svg)
+
+_cf는 cloudflared의 연결 수 지표, ts는 Tailscale 상태, route는 기본 경로 유무다_
+
+방문자는 처음 약 50초 동안 502를 받았다. Cloudflare는 아직 터널 연결이 살아 있다고 보고 요청을 보내는데 답이 없는 상태다. 그다음부터는 530, Cloudflare가 터널이 오프라인이라고 판정한 응답이다. 경로가 돌아오자 Tailscale과 SSH는 3초, 터널은 9초 만에 다시 붙었고 11초 뒤 데모가 200이 됐다. 사람 손은 안 들었다.
+
+로그를 보다가 걸린 게 둘 있다.
+
+첫째, cloudflared가 끊긴 지 58초에 재시작돼 있었다. 생존 검사(liveness probe)가 연결이 없다고 보고 컨테이너를 다시 띄운 것이다. 120초 끊김에서는 문제가 없었다. 그런데 몇 분짜리 끊김이면 재시작이 거듭되고, kubelet은 재시작할 때마다 다음 재시작까지 기다리는 시간을 늘린다(최대 5분). 인터넷이 돌아와도 cloudflared는 대기 중이라 그만큼 늦게 붙는다. cloudflared는 혼자 다시 붙으니 생존 검사는 뺐다. 준비 검사(`/ready`)만 남겼다.
+
+둘째, cloudflared의 연결 수 지표(`cloudflared_tunnel_ha_connections`)는 끊긴 내내 1이었다. 0으로 안 떨어졌다. 다음 단계(모니터링)에서 "터널 끊김" 알림을 이 지표가 0일 때로 걸려고 했는데, 그러면 이번 같은 끊김에 알림이 안 온다. 알림은 `/ready`나 Cloudflare 쪽 상태로 걸기로 설계 문서를 고쳤다.
+
+몇 분 넘게 끊기는 경우와 진짜 랜선을 뽑는 경우는 아직 재지 않았다. 동아리방에 가는 날 본다.
+
+## 8. 셀프 리뷰가 잡은 것 둘
+
+PR([woowangthon/WOOWANGTHON_TEAM_18#91](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/91))을 열고 셀프 리뷰(에이전트의 코드 리뷰)를 돌렸다. 일곱 개가 나왔고 다 고쳤다. 그중 둘을 적는다. 둘 다 이번 구축을 같이 한 에이전트가 쓴 것이다.
+
+### 리더 방화벽은 cloudflared를 못 막는다
+
+설계 문서에는 "cloudflared가 나가는 길은 [리더 방화벽의 7844 규칙](/kr/blog/woowangthon/woowangthon-05-node-prep/#나가는-연결)이 좁힌다"고 적혀 있었다. 틀렸다. 그 규칙은 리더에서 직접 도는 프로그램에만 걸린다. cloudflared는 Pod다. Pod의 통신은 다른 길(FORWARD)로 나가고, 거기엔 Pod 대역 전체를 허용하는 규칙이 있다. cloudflared는 어디로든 나갈 수 있었다.
+
+이건 [5편의 설계 문서 리뷰가 이미 잡았던 바로 그 얘기](/kr/blog/woowangthon/woowangthon-05-node-prep/#7-설계-문서-리뷰가-잡은-것)다. 그때 "터널 프로그램을 Pod로 띄우면 이 규칙과 상관없이 통째로 열린다"고 적어 두고도, 실제로 Pod로 띄우는 날 같은 실수가 다시 들어왔다.
+
+cloudflared는 인터넷에서 오는 요청을 받는 유일한 프로세스고, 그게 리더에서 돈다. 뚫리면 k3s API, kubelet, 이미지 캐시까지 닿는 자리다. 그래서 cloudflared 공간에 나가는 길 규칙(NetworkPolicy)을 따로 붙였다. 클러스터 DNS, Traefik Pod, 그리고 사설 대역을 뺀 인터넷의 7844와 443만 연다. 시험 Pod로 찔러 봤다.
+
+```text
+traefik svc :80 (demo host) -> exit=0 200
+k3s API 10.43.0.1:443 -> exit=7 000
+leader API :6443 -> exit=7 000
+image cache :5000 -> exit=7 000
+kubelet w1 :10250 -> exit=7 000
+vllm svc -> exit=7 000
+internet 443 -> exit=0 200
+internet 80 -> exit=7 000
+```
+
+열어 둔 곳만 닿고, 나머지는 바로 거절(종료 코드 7)이다.
+
+### 시험 공간 `proj-check`
+
+[9편의 시험 스크립트](/kr/blog/woowangthon/woowangthon-09-student-space/#5-막혔다는-걸-어떻게-아나)는 두 번째 학생 공간으로 `proj-check`를 만들고, 끝나면 지운다. 이번에 학생 주소 규칙을 정하면서 보니 `check`는 학생이 쓸 수 있는 멀쩡한 이름이다. 학생이 `check`라는 프로젝트를 만들면 시험 스크립트의 공간과 겹치고, 시험이 끝날 때 그 학생의 공간을 지울 수 있다.
+
+시험 공간을 `proj--check`로 바꿨다. 학생 이름은 하이픈으로 시작할 수 없으니 어떤 입력으로도 이 이름이 안 나온다. 예약어 목록에 `check`를 넣는 것보다 확실하다. 목록은 누가 빠뜨릴 수 있지만, 규칙상 못 만드는 이름은 빠뜨릴 게 없다.
+
+## 9. 서버 주소도 이 도메인으로
+
+처음 계획에서는 학생 주소만 이 도메인에 붙였다. 플랫폼의 웹과 서버 주소는 시스템 정의서의 열린 질문 5번(도메인을 어디까지 연결하나, 사고 비용은 누가 내나)에 걸려 있어서, 에이전트는 이걸 "팀이 정할 것"으로 남겨 두고 이번 범위에서 뺐다.
+
+나는 그 질문을 다시 봤다. 도메인은 내 것이고, DNS는 이미 Cloudflare에 있고, 살 것도 없다. 비용 질문은 답이 이미 나와 있었다. 학생 주소를 이 도메인에 다 붙이면서 플랫폼 웹과 서버만 AWS가 준 긴 주소로 두는 건 이상했다. 그 자리에서 정했다. 웹은 `app.stairnoworks.com`, 서버는 `api.stairnoworks.com`. 열린 질문 5번은 닫혔다.
+
+이름을 콕 집은 레코드가 와일드카드보다 먼저 걸리니, 배포처(CloudFront, EC2)가 생기는 날 레코드를 하나씩 더하면 된다. 그 전까지는 와일드카드가 받아서 Traefik의 404가 난다. 학생이 `app`이나 `api`를 프로젝트 이름으로 쓰면 안 되니, 플랫폼 · 메일 · 시험용 이름을 예약어 목록으로 묶었다. 서버가 프로젝트를 저장할 때 이 목록으로 거른다.
+
+[9편에서 상한 값을 누가 정하나](/kr/blog/woowangthon/woowangthon-09-student-space/#2-상한-값은-누가-정하나) 따졌을 때와 같은 모양이다. 에이전트는 "팀이 정할 것"이라고 적힌 줄을 넘지 않았다. 조심하는 건 맞다. 그런데 그 줄이 실제로 누구의 결정인지, 이미 답이 나와 있는지는 그 줄만 봐서는 모른다. 그걸 아는 건 도메인을 가진 사람, 팀 사정을 아는 사람이다. 동료라면 "이건 내가 정할 일이 아니다"에서 멈추지 말고 "누가 정하면 되는지"까지 물어야 한다. 이번엔 그 질문을 내가 했다.
+
+## 10. 정리
+
+| 겪은 일                                          | 배운 것                                                                                                |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Traefik 배포가 영원히 기다렸다                   | 노드 둘에 하나씩 강제하면 먼저 띄울 자리가 없다. 하나 내리고 하나 띄운다                               |
+| 터널 뒤의 앱이 자기가 http로 불렸다고 믿는다     | 평문으로 넘기는 구간이 있으면, 원래 정보를 담은 헤더를 그 출발지에서 온 것만 믿게 한다                 |
+| 터널 인증 파일을 옮겨야 했다                     | 브라우저가 있는 곳에서 만들고, 비밀값은 파일 대신 SSH 너머로 바로 Secret에 넣고 지운다                 |
+| 워커를 끄면 절반쯤 끊길 줄 알았다                | 입구가 둘이어도 앱이 하나면 전부 끊긴다. 죽은 노드는 NotReady 전까지 DNS 조회까지 붙잡는다             |
+| 인터넷이 끊긴 동안 cloudflared가 재시작됐다      | 혼자 다시 붙는 클라이언트에 연결 기준 생존 검사를 달면, 긴 끊김에서 재시작 대기만 쌓인다               |
+| 연결 수 지표가 끊긴 동안에도 0이 아니었다        | 알림을 걸 지표는 실제로 끊어 보고 고른다                                                               |
+| 리더 방화벽이 cloudflared를 막는다고 적혀 있었다 | Pod의 바깥 길은 호스트 방화벽이 아니라 NetworkPolicy가 막는다. 한 번 배운 것도 새 자리에서 또 확인한다 |
+| 시험 공간 이름이 학생 이름과 겹칠 수 있었다      | 시험용 이름은 사용자 입력으로 만들 수 없는 모양으로 짓는다                                             |
+| 서버 주소를 "팀이 정할 것"으로 미뤄 뒀다         | 열린 질문이라고 적혀 있어도, 누가 답할 수 있는지부터 본다                                              |
+
+남은 건 셋이다. Cloudflare의 "Always Use HTTPS"를 켜는 것, 동아리방에서 진짜 랜선을 뽑아 보는 것, 그리고 터널을 워커 둘로 옮겨 리더가 꺼져도 방문자 길이 열려 있게 하는 것이다. 마지막 건 미뤘다. 지금은 리더가 꺼지면 새 배포와 방문자가 같이 끊긴다.
+
+팀 레포 PR은 팀원 승인을 기다리고 있다. 6단계에서는 아직 플랫폼 서버가 사설망에 들어오는 일과 리더의 배포 실행기가 남았다. 그다음이 7단계, 모니터링이다. 이번에 0이 안 된 지표가 거기서 다시 나온다.

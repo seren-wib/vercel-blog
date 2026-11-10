@@ -147,23 +147,7 @@ The docs said 40 seconds. That was the agent's estimate from Kubernetes defaults
 
 Only the full power cut test is left. Whether [the BIOS "power on after an outage" setting](/en/blog/woowangthon/woowangthon-04-remote-access/#7-power-coming-back-on-after-an-outage) really works has to be seen in the club room.
 
-## 9. Accidents by the AI, catches by people
-
-- **It cut its own connection.** The agent used `pkill -f` to kill a stuck process by name, but that name was also in the command string it had sent over SSH. It killed the SSH session running it along with the process. It reconnected and killed by process ID.
-- **The plan pages drifted out of sync.** Between the build plan, the big-picture order, the server connection doc, the site record and the runbook, there are seven pages. As the stages moved on, changes went into one page and not the others. Finished stages were still marked "in progress", and the Wi-Fi fallback we no longer have was still written down. One line, "sync the status values", got the agent to read all seven and fix them. But a person had to say that line.
-- **An old picture a teammate caught.** On the diagram PR ([woowangthon/WOOWANGTHON_TEAM_18#34](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/34)), suda5936 commented that the deploy flow in the picture differs from what we decided. Fair point. Moving deploys to the deploy agent on the leader (GoCD Agent) was decided only the day before, so there is no decision record (ADR) yet. The repo rule is to write the ADR first and then fix the pictures. So that PR fixed only the wired network and the student DB, and left the deploy flow alone on purpose. This stage's install config and reboot results went separately into [woowangthon/WOOWANGTHON_TEAM_18#37](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/37).
-
-## 10. Who did what
-
-| Person (me)                                            | AI agent                                                           |
-| ------------------------------------------------------ | ------------------------------------------------------------------ |
-| Read the plan first, then "start"                      | Install, tests, revert timers                                      |
-| Decided to fold the reboot results into the install PR | Traced flannel, switched to host-gw                                |
-| Asked for the status values to be synced               | Found the ServiceLB · NodePort side roads, traced the first packet |
-| Read the teammate's comment, decided the reply         | How to measure NotReady (stop the agent), fixed the doc numbers    |
-|                                                        | Killed its own connection with `pkill`                             |
-
-## 11. Wrap-up
+## 9. Wrap-up
 
 | What happened                                                          | Lesson                                                                                      |
 | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |

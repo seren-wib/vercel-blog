@@ -27,7 +27,7 @@ The template is one file in the repo, `Infra/student/space.yaml`. The server cre
 
 The security level uses a built-in Kubernetes feature (Pod Security). It has three levels, and enforcing the strictest, restricted, rejects official images that run as root (nginx, node and so on). Students write Dockerfiles like that all the time. So it is **enforce baseline, warn restricted**. baseline rejects Pods that use the node's network (hostNetwork) and privileged Pods.
 
-baseline leaves one permission in place: `NET_RAW`, which lets a process craft raw packets. With it, a student Pod could intercept other Pods' traffic on the same worker with ARP spoofing. So the deploy executor drops it from every container, and the admission policy of the next step (build 09) rejects Pods that don't. The fields the executor must set are written down in `Infra/student/app-example.yaml` with a test app (the public image podinfo).
+baseline leaves one permission in place: `NET_RAW`, which lets a process craft raw packets. With it, a student Pod could intercept other Pods' traffic on the same worker with ARP spoofing. So the deploy executor drops it from every container, and the admission policy planned for the next step (build 09) will reject Pods that don't. The fields the executor must set are written down in `Infra/student/app-example.yaml` with a test app (the public image podinfo).
 
 ## 2. Who sets the caps
 
@@ -78,7 +78,7 @@ When a space is created, a Kubernetes controller makes the `default` ServiceAcco
 
 At that point we went to check whether the backend server already creates spaces. The server code had only login, health check and repo listing; nothing created spaces yet. But looking for it surfaced the permissions section of the cluster design doc. Of [the two accounts split in part 7](/en/blog/woowangthon/woowangthon-07-leader-vllm/#1-what-changed-in-the-meeting), the platform server account may only **create** objects inside a space. That was on purpose: if the server account leaks, it can't start by loosening its own space's caps and blocking rules. With no permission to update, "use apply" was never something the server could do.
 
-So the `default` ServiceAccount came out of the template. The deploy executor turns the token off on each Pod (`automountServiceAccountToken: false`), and the build-09 admission policy rejects Pods that leave it on. An admission policy that a Pod can't override is sturdier than a space setting anyway. It also left one note for the server: right after a space is created, the `default` ServiceAccount doesn't exist yet, so Pods can't be created. The server waits until it shows up before moving on.
+So the `default` ServiceAccount came out of the template. The deploy executor turns the token off on each Pod (`automountServiceAccountToken: false`), and the admission policy planned for build 09 will reject Pods that leave it on. An admission policy that a Pod can't override is sturdier than a space setting anyway. It also left one note for the server: right after a space is created, the `default` ServiceAccount doesn't exist yet, so Pods can't be created. The server has no right to read ServiceAccounts, so it doesn't wait. If the Deployment can't create a Pod in the meantime, the controller retries and it comes up shortly.
 
 ## 5. How do you know it's blocked
 
@@ -154,23 +154,7 @@ The `Warning` line in the middle is what the warn level (restricted) does. The l
 
 The test script was written by an AI, and it was an AI review that caught it could give a false PASS. The contest theme is "Can AI be a teammate?", and a teammate has to doubt even what their own test proves. This time a second pair of eyes, the review, did that.
 
-## 8. Accidents by the AI, catches by people
-
-- **Kept copying a premise nobody checked.** "Confirm the cap values with the server owner" had been there since the design doc, and the last sentence of part 8 copied it as is. Nobody had checked whether the server reads the values. One line, "why do we have to decide this together with the server owner?", undid it.
-- **Advice that forgot the permission design.** Seeing `AlreadyExists`, it said "use apply", but the server account can only create. It came out of the design doc while checking the server code.
-- **A test that passes without testing.** With no test Pod, every item that should be blocked was PASS. The self review caught it.
-- **Credited the script with tests it didn't run.** The self review caught this too.
-
-## 9. Who did what
-
-| Person (me)                                                     | AI agent                                                                                              |
-| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| "Go with your values", "why decide this with the server owner?" | Template, test app and test script; applying and testing on the cluster                               |
-| Asking whether the server already creates spaces                | Checking the server code against the permission design, dropping the ServiceAccount from the template |
-| Waiting for a teammate's approval                               | Self review, five fixes, finding why 3306 failed                                                      |
-| Clearing a wrong premise with one question                      | Copying a wrong premise, "use apply", a false-PASS script                                             |
-
-## 10. Wrap-up
+## 8. Wrap-up
 
 | What happened                                                    | What I learned                                                                                          |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -181,4 +165,4 @@ The test script was written by an AI, and it was an AI review that caught it cou
 | One failure because of a public MySQL                            | Use someone else's server as a test target and its state becomes your result                            |
 | PASS was possible with no test Pod                               | Count "couldn't measure" apart from "blocked". Test that the test fails when it should                  |
 
-That finishes stage 5. A test app runs on a worker and can't reach the school network or other students' spaces. The PR is waiting for a teammate's approval (the cluster already runs with this setup). Next is stage 6, connecting to the outside. The platform server connects to the leader API over the private network, and the server account permissions and admission policy go in. The things this post put off with "build 09 will reject it" (`NET_RAW`, the API token, the leader toleration) get checked there to see whether they are really blocked.
+That finishes stage 5. A test app runs on a worker and can't reach the school network or other students' spaces. The PR was approved by the team lead (TaeTaeJin) and merged. Right before the merge, a review bot (CodeRabbit) finding led to one more fix in the test script: curl errors other than refused or timed out (a failed name lookup, for example) no longer count as "blocked" either. Next is stage 6, connecting to the outside. The platform server connects to the leader API over the private network, and the server account permissions and admission policy go in. The things this post put off with "build 09 will reject it" (`NET_RAW`, the API token, the leader toleration) get checked there to see whether they are really blocked.

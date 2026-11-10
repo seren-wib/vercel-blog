@@ -104,22 +104,7 @@ The same night, the deploy flow design by the AI teammate (suda5936) was merged.
 
 From the cluster side, the leader is easier. The runner account designed in part 7 already includes read access for verification, and no new path from AWS to student apps would be needed. One question is left: is it a single check at the end of a deploy, or does an ongoing watch after the deploy move to the leader too? The latter adds an always-on program to the leader. The plan marks it as "not decided yet."
 
-## 8. Accidents by the AI, catches by people
-
-- **Wrote something untested as if tested.** "Pulls go straight to GHCR when the leader is down" was written after seeing only a refused connection. The review bot caught it, not a person.
-- **Shortened the firewall description into something wrong.** "443 and 53 only" were the ports the cache uses, not the ports that are open. The review bot caught this too.
-- **Didn't carry the fixes into the plan page.** The repo docs were fixed after the review, but the build plan page still had the old numbers. One question, "did you update the pages with this work?", showed it.
-
-## 9. Who did what
-
-| Person (me)                                         | AI agent                                                          |
-| --------------------------------------------------- | ----------------------------------------------------------------- |
-| Deciding to start stage 07 past midnight            | Cache manifest, node settings, one-by-one rollout, tests          |
-| Bringing the W6 question in from the Discord thread | Working out what it means for the cluster, putting it in the plan |
-| Calling the review bot, merging                     | Applying review findings, measuring the no-answer case            |
-| Asking "is the plan page updated too?"              | Writing an untested sentence, forgetting the plan page            |
-
-## 10. Wrap-up
+## 8. Wrap-up
 
 | What happened                                | What I learned                                                                                       |
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |

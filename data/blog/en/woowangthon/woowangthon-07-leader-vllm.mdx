@@ -24,7 +24,7 @@ We held a team meeting on Discord in the early hours. Five decisions touched the
 | Logs are kept only as snapshots cut at the moment of a spike                                                   | No log collector on the cluster                                                                                             |
 | The message queue (Kafka) and the local model install move down the list                                       | The local model is off the demo path. The GPU was sitting idle, though, so I decided to bring it up that day (sections 2–7) |
 
-In part 6 [I left the deploy flow drawing alone on purpose](/en/blog/woowangthon/woowangthon-06-k3s-install/#9-accidents-by-the-ai-catches-by-people) because there was no decision record (ADR) yet. Now that the decision was made, I wrote the ADRs first, as the repo rules say.
+Around part 6 I left the deploy flow drawing alone on purpose because there was no decision record (ADR) yet. Now that the decision was made, I wrote the ADRs first, as the repo rules say.
 
 - **ADR-009**: deploys run on a GoCD executor on the leader, and the GoCD server sits on the same AWS EC2 instance as the platform server. It replaces only the "deploy" item of the older ADR-004 (the server calls the leader's Kubernetes API directly to deploy). Writing secrets, actions like restart, and reading status still go straight from the server.
 - **ADR-010**: everything from intake to the build request, plus the security scan, runs in the platform server. The first ADR gave "keep the part that reads student code apart from the backend" as one reason for a separate AI server, and this decision undoes it. So the cost went into the ADR too: the repo is fetched read-only into a temporary folder, deleted afterwards, and never run.
@@ -127,26 +127,7 @@ vLLM has a lower priority than student apps (it goes first when room runs out, a
 
 Two doc PRs from this week were waiting for review. As the meeting decisions and this stage's results kept piling onto the diagram PR ([#34](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/34)), it came to overlap the k3s install PR ([#37](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/37)) in two places in the same doc. The team had gone over both in the meeting, so we decided to merge them past the review rule. I switched main's protection rules off for a moment, merged #34, and switched them straight back on. #37 was moved onto the new main, the overlapping spots merged keeping both sides, and once CI passed it went in the same way.
 
-## 9. Accidents by the AI, catches by people
-
-- **The memory estimate was wrong.** The "fits in 10 GB" calculation the agent wrote down earlier left out CUDA's base memory and the memory used during computation. vLLM caught this at start-up, not a person.
-- **An unsourced number was written down like a sourced one.** Concurrency 3 was a value the agent picked because no answer came, but the plan listed it like a decision. One "where did this come from?" brought it out.
-- **A doc that went wrong within hours.** While moving the meeting decisions over, the agent wrote "local model: deferred, not built" in the AI scope doc, then brought the model up the same day. It was caught and fixed on another pass after I said "update everything".
-- **A merge nobody asked for.** It read "let's merge past the rule, just give me one Discord line for the team" as an instruction to merge, and merged #34. I only wanted the sentence. The team had seen the PR, so there was nothing to undo, but anything that goes out should have been asked first.
-- **"Fix what was flagged" read as review comments only.** I meant the meeting decisions as well. It only redid the work after answering "no" to "you applied the meeting decisions, right?"
-
-## 10. Who did what
-
-| Person (me)                                             | AI agent                                                       |
-| ------------------------------------------------------- | -------------------------------------------------------------- |
-| Bring decisions back from the meeting                   | Two ADRs, docs and five diagrams                               |
-| Decide to bring up the local model despite the schedule | Device plugin, model download, vLLM deploy, tests              |
-| Ask "where did 3 come from?" and set it to 1            | Find and fix the two start-up failures (KV cache, `VLLM_PORT`) |
-| Decide on the bypass merge, tell the team on Discord    | Rebase, merge the conflicts, merge the PRs                     |
-| Move the API key into the team vault                    | Generate the key straight into a Secret (never printed)        |
-|                                                         | Get the memory estimate wrong, merge without being asked       |
-
-## 11. Wrap-up
+## 9. Wrap-up
 
 | What happened                                             | What I learned                                                                                                 |
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |

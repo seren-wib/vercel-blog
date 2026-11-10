@@ -120,12 +120,6 @@ iperf3 -c 192.168.77.12 -t 5
 
 About 941 Mbit/s on all three paths, zero retransmits. That's close to everything a gigabit switch can do.
 
-### A small accident by the AI
-
-The agent made one mistake in this stage. It tried to handle worker 1 and the leader in one go by passing "name address" pairs through a loop, but the shell on my laptop was zsh. Unlike bash, zsh doesn't split unquoted variables on spaces. So the name and address went through as one lump, like `ssh "k3s-w1 192.168.77.12"`, and the connection never happened.
-
-Luckily nothing ran. The agent spotted the cause right away, checked that nothing on worker 1 had changed, rewrote the script as a bash file and ran it again. It never even got as far as the revert job, but it was a reminder that in remote work you have to tell "the command didn't run" apart from "the command half ran".
-
 ## 5. SSH with keys only
 
 In part 4 I made an SSH key per device, but password login was still on. With no firewall, anyone on the school network who guessed the password could get in. I left key login only.
@@ -190,18 +184,7 @@ With node prep done, and before the next stage (installing k3s), I wrote the clu
 
 The fun part is that an AI wrote this doc and an AI caught what was wrong with it. The same agent missed these while writing, and saw them once it looked again with a different eye: review. But it was a person who asked for the review. Without that, the draft would have gone up as it was.
 
-## 8. Who did what
-
-Everything in this stage was remote, so I never went to the PCs.
-
-| Me (the human)                                                     | The AI agent                                               |
-| ------------------------------------------------------------------ | ---------------------------------------------------------- |
-| Deciding whether to go ahead, one block at a time                  | Running the commands, arming and clearing the revert job   |
-| Judging where plans disagreed, like the tunnel location            | Reading configs before changes (found the cloud-init trap) |
-| "Let's run one review before we open it"                           | Drafting the design doc, reviewing it, fixing the findings |
-| Didn't notice the Mac's Tailscale was off (the agent turned it on) | The zsh loop mistake, finding the cause and rerunning      |
-
-## 9. Wrap-up
+## 8. Wrap-up
 
 | What happened                                                       | What I learned                                                                 |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------------------ |

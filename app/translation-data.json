@@ -83,6 +83,7 @@
     "woowangthon/woowangthon-08-image-cache",
     "woowangthon/woowangthon-09-student-space",
     "woowangthon/woowangthon-10-public-entry",
+    "woowangthon/woowangthon-11-server-link",
     "woowangthon/woowangthon-13-metrics"
   ],
   "en": [
@@ -169,6 +170,7 @@
     "woowangthon/woowangthon-08-image-cache",
     "woowangthon/woowangthon-09-student-space",
     "woowangthon/woowangthon-10-public-entry",
+    "woowangthon/woowangthon-11-server-link",
     "woowangthon/woowangthon-13-metrics"
   ]
 }

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="408" viewBox="0 0 900 408" role="img" aria-label="Terminal output of bash Infra/platform/check.sh">
+  <rect width="900" height="408" rx="12" fill="#0d1117"/>
+  <rect width="900" height="36" rx="12" fill="#161b22"/>
+  <rect y="24" width="900" height="12" fill="#161b22"/>
+  <circle cx="22" cy="18" r="6" fill="#ff5f57"/>
+  <circle cx="42" cy="18" r="6" fill="#febc2e"/>
+  <circle cx="62" cy="18" r="6" fill="#28c840"/>
+  <text x="450" y="23" text-anchor="middle" fill="#8b949e" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">Infra/platform/check.sh — 2026-11-12</text>
+  <g font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13.5" fill="#e6edf3">
+    <text x="24" y="64"><tspan fill="#3fb950">$</tspan> bash Infra/platform/check.sh</text>
+    <text x="24" y="84" xml:space="preserve">== real token over the tailnet</text>
+    <text x="24" y="104" xml:space="preserve">PASS create a space (dry run) (201)</text>
+    <text x="24" y="124" xml:space="preserve">PASS create an existing space (409)</text>
+    <text x="24" y="144" xml:space="preserve">PASS space without the proj- prefix (422)</text>
+    <text x="24" y="164" xml:space="preserve">PASS read Secrets (403)</text>
+    <text x="24" y="184" xml:space="preserve">PASS stop proj-demo web (dry run) (200)</text>
+    <text x="24" y="204" xml:space="preserve">PASS resume proj-demo web (dry run) (200)</text>
+    <text x="24" y="224" xml:space="preserve">PASS scale proj-demo web to 2 (dry run) (422)</text>
+    <text x="24" y="244" xml:space="preserve">PASS restart proj-demo web (dry run) (200)</text>
+    <text x="24" y="264" xml:space="preserve">PASS read node usage (200)</text>
+    <text x="24" y="284" xml:space="preserve">PASS read Pod usage in proj-demo (200)</text>
+    <text x="24" y="304" xml:space="preserve">PASS read Pod usage in vllm (403)</text>
+    <text x="24" y="324" xml:space="preserve">PASS stop a Deployment in vllm (403)</text>
+    <text x="24" y="344" xml:space="preserve">PASS wrong token (401)</text>
+    <text x="24" y="364" xml:space="preserve">== cleanup</text>
+    <text x="24" y="384" xml:space="preserve">ALL PASS</text>
+  </g>
+</svg>

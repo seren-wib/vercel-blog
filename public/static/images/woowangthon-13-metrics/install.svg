@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="468" viewBox="0 0 900 468" role="img" aria-label="Terminal output">
+  <rect width="900" height="468" rx="12" fill="#0d1117"/>
+  <rect width="900" height="36" rx="12" fill="#161b22"/>
+  <rect y="24" width="900" height="12" fill="#161b22"/>
+  <circle cx="22" cy="18" r="6" fill="#ff5f57"/>
+  <circle cx="42" cy="18" r="6" fill="#febc2e"/>
+  <circle cx="62" cy="18" r="6" fill="#28c840"/>
+  <text x="450" y="23" text-anchor="middle" fill="#8b949e" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">k3s-leader · monitoring</text>
+  <g font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13.5" fill="#e6edf3">
+    <text x="24" y="64" xml:space="preserve">$ kubectl -n kube-system logs job/helm-install-monitoring --previous</text>
+    <text x="24" y="84" xml:space="preserve">+ helm install --namespace monitoring --version 93.1.1 monitoring monitoring/kube-prometheus-stack ...</text>
+    <text x="24" y="104" xml:space="preserve"><tspan fill="#79c0ff">Error</tspan>: INSTALLATION FAILED: Get "https://release-assets.githubusercontent.com/github-production-</text>
+    <text x="24" y="124" xml:space="preserve">  release-asset/286108332/...&amp;rscd=attachment%3B+filename%3Dkube-prometheus-stack-93.1.1.tgz&amp;..."</text>
+    <text x="24" y="144" xml:space="preserve"></text>
+    <text x="24" y="164" xml:space="preserve">$ kubectl -n kube-system get helmchart monitoring -o jsonpath='{.spec.chart}  {.spec.version}'</text>
+    <text x="24" y="184" xml:space="preserve">oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack  93.1.1</text>
+    <text x="24" y="204" xml:space="preserve"></text>
+    <text x="24" y="224" xml:space="preserve">$ kubectl -n monitoring get pods</text>
+    <text x="24" y="244" xml:space="preserve"><tspan fill="#79c0ff">NAME</tspan>                                            READY            NODE         STATUS</text>
+    <text x="24" y="264" xml:space="preserve">monitoring-grafana-7fccd5b9f5-xds8j             true,true,true   k3s-leader   Running</text>
+    <text x="24" y="284" xml:space="preserve">monitoring-kube-state-metrics-6b46c7bc7-d95pg   true             k3s-leader   Running</text>
+    <text x="24" y="304" xml:space="preserve">monitoring-operator-6448746564-mnscs            true             k3s-leader   Running</text>
+    <text x="24" y="324" xml:space="preserve">monitoring-prometheus-node-exporter-cjtdn       true             k3s-w1       Running</text>
+    <text x="24" y="344" xml:space="preserve">monitoring-prometheus-node-exporter-jwtxk       true             k3s-leader   Running</text>
+    <text x="24" y="364" xml:space="preserve">monitoring-prometheus-node-exporter-m2j2l       true             k3s-w2       Running</text>
+    <text x="24" y="384" xml:space="preserve">prometheus-monitoring-prometheus-0              true,true        k3s-leader   Running</text>
+    <text x="24" y="404" xml:space="preserve"></text>
+    <text x="24" y="424" xml:space="preserve">$ kubectl -n monitoring get prometheus monitoring-prometheus -o jsonpath='{.spec.retention} {.spec.retentionSize}'</text>
+    <text x="24" y="444" xml:space="preserve">14d 20GB</text>
+  </g>
+</svg>

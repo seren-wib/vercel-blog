@@ -82,7 +82,8 @@
     "woowangthon/woowangthon-07-leader-vllm",
     "woowangthon/woowangthon-08-image-cache",
     "woowangthon/woowangthon-09-student-space",
-    "woowangthon/woowangthon-10-public-entry"
+    "woowangthon/woowangthon-10-public-entry",
+    "woowangthon/woowangthon-13-metrics"
   ],
   "en": [
     "ai/ai-05-03-deep-learning",
@@ -167,6 +168,7 @@
     "woowangthon/woowangthon-07-leader-vllm",
     "woowangthon/woowangthon-08-image-cache",
     "woowangthon/woowangthon-09-student-space",
-    "woowangthon/woowangthon-10-public-entry"
+    "woowangthon/woowangthon-10-public-entry",
+    "woowangthon/woowangthon-13-metrics"
   ]
 }

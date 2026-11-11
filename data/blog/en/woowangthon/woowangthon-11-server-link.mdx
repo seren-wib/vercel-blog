@@ -1,0 +1,223 @@
+---
+title: 'Woowangthon 11. Write-Only Was Not Write-Only'
+date: '2026-11-12'
+tags: ['Woowangthon']
+draft: false
+summary: 'The server side of build stage 6: build 09. The platform server account and its token, admission policies layered over an RBAC that cannot filter by namespace name, a reference space so that only template values pass, a Secret readable through an empty patch, reads that admission policies cannot see, a refusal test that could actually have deleted things, stop · resume · restart rights, another branch already applied to the same leader, Tailscale access rules, and what stays unchecked without the EC2'
+---
+
+> Part 11 of the series. Build 09, the way the platform server reaches the cluster, which is part of build stage 6 (connecting to the outside). When I wrote [part 10](/en/blog/woowangthon/woowangthon-10-public-entry/) this was a single line in [Woowangthon 0](/en/blog/woowangthon/woowangthon-00-overview/); the action rights added the next day made it a post of its own. The cluster side was finished on November 10–11. The EC2 the server will run on does not exist yet.
+
+## In one line
+
+I made the account the platform server on AWS will use to call the leader's Kubernetes API at school, and tied it to the student spaces (`proj-`). RBAC cannot filter by namespace name, so admission policies sit on top. Secrets were meant to be write-only, but a single patch could read them, and reads were invisible to the admission policies altogether. A self review showed that a test expecting a refusal could, on a day the policies were off, have deleted the whole local model namespace. 111 checks pass now. Nobody has yet seen a request actually arrive from the EC2.
+
+## 1. How the server reaches the cluster
+
+As [part 2 redrew it](/en/blog/woowangthon/woowangthon-02-network-design/#3-third-picture-how-the-server-reaches-the-cluster), the platform server joins the Tailscale private network and calls the leader's Kubernetes API (`:6443`) directly. [The meeting in part 7](/en/blog/woowangthon/woowangthon-07-leader-vllm/#1-what-changed-in-the-meeting) gave deploys to the executor on the leader, which leaves the server four jobs.
+
+| What the server does   | What it needs in the cluster                                                                                                           |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Create a student space | Create the namespace and the [template objects](/en/blog/woowangthon/woowangthon-09-student-space/#1-what-goes-into-one-student-space) |
+| Put in secrets         | Write a student's `.env` as a Secret                                                                                                   |
+| Show status            | Read Pods, logs and Deployments in the space; read nodes                                                                               |
+| Actions                | Stop, resume and restart a student service                                                                                             |
+
+This account's token lives outside the cluster, on an EC2 at AWS. That server takes requests from the internet, so it is a more likely target than the school PCs. The design came down to one question: **if this token leaks, how far does the damage go?** The answer had to be "stopping and starting services inside student spaces". System namespaces, the local model, other students' secrets, and a space's resource caps and blocking rules had to stay out of reach.
+
+There was no EC2 yet. My part was to build the place the server would plug into, so there was no reason to wait for it. The account, rights and admission policies are made on the leader, and the test runs from my desktop with the real token against the leader's Tailscale address. It is the same path; only the starting point is not the EC2. What truly needs the EC2 is collected at the end (section 9).
+
+## 2. RBAC cannot filter by name
+
+The account is one ServiceAccount, `platform-server` in the operations namespace `platform`, with one token that does not expire. I did not want a credential to renew in the middle of the contest. If the token leaks, deleting its Secret on the leader revokes it.
+
+Writing the rights hit a wall right away. The server has to create and delete `proj-<id>` spaces. Kubernetes RBAC has no place for a condition like "only namespaces whose name starts with `proj-`". Grant namespace deletion and `kube-system` or `vllm` can be deleted too. Secret writes cannot be granted ahead of time in a space that does not exist yet, so they have to be cluster-wide.
+
+So the rights are broad, and **admission policies (ValidatingAdmissionPolicy)** sit on top. They are a built-in Kubernetes feature that checks a request with an expression just before it is stored.
+
+| Admission policy                    | Passes when                                                                                                           |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `wanggane-platform-server`          | The server account writes or deletes only in `proj-` spaces. A space carries the two security labels and nothing else |
+| `wanggane-space-quota` and two more | Caps, defaults and blocking rules have the template's name and values                                                 |
+| `wanggane-space-readers`            | The read binding has the template's name, role and subject (section 4)                                                |
+| `wanggane-student-pods`             | Pods in `proj-` spaces drop `NET_RAW` and turn off the API token. Applies to every account                            |
+
+The last row is what [part 9 put off](/en/blog/woowangthon/woowangthon-09-student-space/#4-the-serviceaccount-left-out-of-the-template). The Pod rule did not go straight to deny; it went in as warnings (`Warn, Audit`) first. The test app in `proj-demo` restarted without a warning, and only a bare Pod that broke the rule got one. After that I switched it to deny.
+
+This setup comes with an order. The only thing that keeps the server account inside `proj-` is the admission policies. If the account exists while the policies are off, its token can write Secrets in any namespace and delete namespaces. So **policies go in first and the account after; when removing, the account goes first.** The order is written at the top of the manifests and in the design doc.
+
+### Not copying the template values into the rules
+
+To check that caps, defaults and blocking rules are "the template's values", the rules have to know those values. Writing them into the rules means changing two places every time the template changes, and one day only one of them gets changed.
+
+So I applied the template file (`Infra/student/space.yaml`) under another name to a reference namespace, `student-template`, and had the rules compare against the objects there (`paramKind`). The first comparison I wrote, `object.spec == params.spec`, failed type checking.
+
+```text
+found no matching overload for '_==_' applied to '(NetworkPolicy634666355.spec, NetworkPolicy635355785.spec)'
+```
+
+Both sides are NetworkPolicies, but they get different generated type names, so they cannot be compared. Wrapping both in `dyn()` fixed it.
+
+The blocking rule is tied to its name as well as its values. NetworkPolicies add up: next to a rule with exactly the right values, a second "allow everything" rule under another name would undo the block.
+
+## 3. Write-only was not write-only
+
+Secrets were write-only from the start. [Part 2](/en/blog/woowangthon/woowangthon-02-network-design/#3-third-picture-how-the-server-reaches-the-cluster) says so too. The server puts in a student's `.env` and never needs to read it back. So the planned rights were create, update and patch on Secrets, with no read (`get`).
+
+That broke while I was building it. The response to a patch request is **the whole object after the change**. Send an empty patch that changes nothing, and the Secret's values come back in the response. A read without a read right. The response to a replace (PUT) holds only what the server sent, so it has no such path.
+
+Patch came out. The server first sends a create (POST), and when it gets `409` (already exists) it sends a replace (PUT). I put that order into the server-side cluster client module I wrote (#118) and checked it against the real leader: `POST 201`, then on the second call `409` → `PUT 200`. It has a price: after a PUT, the server cannot read back whether the keys really changed. A `200` is all it knows.
+
+Secrets got one more rule. They pass only with type `Opaque` and a name shaped like `<service>-secrets`. If you create a Secret of the service-account-token type, Kubernetes fills an API token into it. That closes the way to mint a new token inside a student space.
+
+![The Secrets group of check.sh. Read, list, patch and delete are refused for lack of rights; another name, the token type, a Secret outside proj- and overwriting the vLLM key are refused by an admission policy. Creating a Pod, Deployment or Middleware is also not allowed](/static/images/woowangthon-11-server-link/check-secrets.svg)
+
+_The word in parentheses is what refused it: rbac for a missing right, policy for an admission policy_
+
+## 4. Admission policies don't see reads
+
+The first version of the account had no reads at all. But the server shows student Pod status on screen, hands logs to the AI, and has to look at the Deployment to see whether an action took effect.
+
+This is where admission policies stop helping. They only see write requests; reads never reach them. A cluster-wide read right would let the server token read things like these:
+
+- Traefik logs in `kube-system`: who visited which student site
+- logs in `vllm`: traces of what the AI server sent to the local model
+- Pod lists and configuration in the other operations namespaces
+
+The server manages student apps and nothing else. System namespaces are for me, the operator, over SSH. So I decided to narrow reads to `proj-` spaces. The way to do that is a separate grant per space. There is one read role, `proj-reader`, and when the server creates a space it also creates the RoleBinding `platform-server-read` in it. The student space template went from four objects to five (six now, with the executor's binding). The only role the server can bind is `proj-reader` (RBAC `bind`), and an admission policy compares the binding's name, role and subject with the one in the reference namespace. Only nodes, which belong to no space, are read cluster-wide.
+
+Applying this on the leader produced:
+
+```text
+The rolebindings "platform-server-read" is invalid: : ValidatingAdmissionPolicy 'wanggane-space-readers'
+with binding 'wanggane-space-readers' denied request: failed to configure binding:
+no params found for policy binding with `Deny` parameterNotFoundAction
+```
+
+I had set the policies to refuse when the reference object is missing (`parameterNotFoundAction: Deny`), and that refusal hit **every account**, not only the server's. Kubernetes looks up the reference before it checks whether the request comes from the server account. So even my own request, as the operator, to create the reference itself was refused. The three template policies from the first round had the same shape; it never showed because the references went in before the policies. Now the policies skip the reference namespace `student-template`.
+
+Narrow reads left a mark on the server code too. Reading a space the server did not create (or has already deleted) returns `403`, not `404`. Without a binding, "not there" looks like "not allowed". The operator API by the team lead TaeTaeJin (#121) was fixed in review to treat that `403` as an empty list as well.
+
+## 5. A test expecting a refusal could have deleted things
+
+The check script `Infra/platform/check.sh` runs from the operator's machine. Most of it acts as the server account through the leader's kubectl (impersonation); only the last group calls the leader's Tailscale address with the real token. The token stays in a shell variable and is never printed.
+
+I opened the first PR ([woowangthon/WOOWANGTHON_TEAM_18#87](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/87)) and ran a self review (the agent's code review). It found nine things, and the scariest was in the test script.
+
+The lines testing "is deleting the `vllm` namespace refused" and "is overwriting the vLLM API key Secret refused" were **real requests**. With the policies on, they are refused and nothing happens. But the day this script matters most is the day a policy is broken or turned down to warnings. Run it that day and the `vllm` namespace is gone, together with the model volume and the only copy of the API key, which was generated on the leader straight into a Secret.
+
+Every refusal test aimed at a real object became a server dry run. The admission policies judge it the same way, and even if it passes nothing is stored. With a policy off, the test just fails.
+
+It pairs with [the false PASS in part 9](/en/blog/woowangthon/woowangthon-09-student-space/#7-it-could-pass-without-testing). That time the test could pass without measuring anything; this time the test could have caused the accident it was meant to rule out. The same agent wrote both, and the same review caught both.
+
+The other findings were fixed too.
+
+| Finding                                                    | Fix                                                    |
+| ---------------------------------------------------------- | ------------------------------------------------------ |
+| With automount off, the token can still be mounted by hand | Also refuse a projected `serviceAccountToken` volume   |
+| The token went to curl as an argument                      | That shows in the process list; it goes on stdin now   |
+| The relabel test only saw a read refusal                   | It tests with a direct patch                           |
+| It might not run on the Mac                                | No more gawk multi-character separators or `base64 -d` |
+| The PR body had the removal order backwards                | Corrected: the account goes first                      |
+
+Writing the script also turned up two refusals that passed for the wrong reason. The name `proj-` is refused as an invalid name before any policy sees it, and deleting `kube-system` is blocked by Kubernetes itself. Neither proves that a policy did the blocking. The first test was dropped, and the second now counts its reason separately as `builtin`. A refusal test passes only when the reason matches too.
+
+## 6. Stop, resume, restart
+
+The next day TaeTaeJin's operator force-stop API (#121) was merged first. The server account had no right to stop anything, so the stop part was a placeholder that always returned `CLUSTER_FORBIDDEN`. TaeTaeJin sent a proposal on Discord: put `get`, `patch` and `update` on the `deployments/scale` subresource into `proj-reader`, and since scale only changes the replica count, no admission policy seemed necessary.
+
+Putting it in `proj-reader` I took as is. The read binding every space already has points at that role, so changing the role reaches existing spaces right away. Neither the template nor the server's space-creation code changes. A role named "reader" that can stop things is a mismatch; I wrote it into the comments and docs and lived with it.
+
+Two parts I narrowed. The agent judged that the server only calls PATCH, so `get` and `update` were unnecessary. And "only the replica count changes" is not "only zero". A leaked token could also scale up within the space's caps. So only `patch`, plus a rule (`wanggane-platform-server-scale`) that lets the server's scale requests through only at zero replicas.
+
+I put the tests in first and ran them before applying, to see that only the new lines fail. The failure was not the one I expected.
+
+```text
+FAIL scale it to 0: Error from server (Forbidden): deployments.apps "web" is forbidden: User
+"system:serviceaccount:platform:platform-server" cannot get resource "deployments/scale" ...
+```
+
+It stopped at `get`, not `patch`. The `kubectl patch --subresource=scale` the test uses reads the scale object before it patches. There was a reason `get` was on TaeTaeJin's list. `get` went back in; it shows the replica count and nothing else. `update` never went in.
+
+One more thing: a Scale object at zero leaves `spec.replicas` out entirely. Write "only zero" as `replicas == 0` and a perfectly normal stop request is refused. The rule treats a missing value as zero. That was [woowangthon/WOOWANGTHON_TEAM_18#125](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/125), and the script was at 87 checks.
+
+That evening resume and restart followed ([woowangthon/WOOWANGTHON_TEAM_18#134](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/134)). The student operation controls are defined as restart and stop/resume, and the AI tools call the same two. The script went to 101 checks.
+
+- **Resume**: the scale rule widened from "0 only" to "0 or 1". 2 and up is still `422`. Whether there is room to resume is the server's check.
+- **Restart**: `kubectl rollout restart` sends a patch to the Deployment itself and adds a `restartedAt` annotation to the Pod template. That needs a Deployment patch right, which can also change the image, command and volumes. A leaked server token could then run other code in a student space or start a Pod that mounts its Secrets.
+
+So the restart rule (`wanggane-platform-server-restart`) allows nothing but the `restartedAt` annotation on the Pod template to change. It compares the whole Pod spec, the Pod labels and other annotations, and replicas, selector, strategy and rollout settings with the old object, one by one. The comparison covers every field of today's DeploymentSpec, so a field added by a later version would not be compared. That is written down as a known limit.
+
+![The actions group of check.sh. Stop to 0, back to 1, 2 refused, restartedAt present after rollout restart. Changing the image, replicas, labels, other annotations or pausing the rollout is refused by an admission policy; PUT, delete, and scale or restart in other namespaces are refused for lack of rights](/static/images/woowangthon-11-server-link/check-actions.svg)
+
+## 7. Another branch was already on the leader
+
+The same night another session was adding CPU and memory usage reads to the server account as the first piece of build 11, monitoring (that story is in [part 13](/en/blog/woowangthon/woowangthon-13-metrics/)). Its branch was cut from `main`, and before touching anything it ran the existing checks. Three lines failed.
+
+![check.sh run from main. Scaling to 1 is accepted, a patch to the Deployment itself is refused for a reason other than rights, and the real-token scale to 1 returns 200 instead of 422](/static/images/woowangthon-11-server-link/check-stacked.svg)
+
+_The rest of the second line is a PodSecurity warning and was cut_
+
+The tests expected `main`'s state: "only 0 works, patching the Deployment itself has no right". But the leader already had the resume and restart rights. That branch had not been pushed yet; it had only been applied to the leader.
+
+What if that session had applied the account file from `main` as it was? `kubectl apply` replaces a role's rule list with the file's. The resume and restart rights would have vanished without a sound, and nobody would have noticed until someone ran the checks again. Instead, the session rebased its branch onto the resume and restart commit before applying. The PRs were merged in that order too, #134 and then #133.
+
+The repo can have many branches, but there is one leader. The moment a branch is applied, it becomes the cluster's present. Running the existing checks before changing anything paid off here.
+
+Finally, writing this post on November 12, I ran the same script again. All 111 checks passed in 1 minute 6 seconds. The real-token group looks like this.
+
+![The real-token group of check.sh. Create a space (dry run) 201, existing space 409, a name without proj- 422, read Secrets 403, stop · resume · restart dry runs 200, scale to 2 is 422, usage reads 200, vllm 403, wrong token 401, ALL PASS](/static/images/woowangthon-11-server-link/check-token.svg)
+
+This is how the server tells responses apart: `403` for a missing right, `422` for an admission policy (the message names the policy and the reason), `409` when it already exists, `401` for a wrong token. The table went to the server-side issue as is.
+
+## 8. Private network access rules
+
+[The Tailscale set up in part 4](/en/blog/woowangthon/woowangthon-04-remote-access/#4-the-path-tailscale) was still on the default policy: every device reaches every device on every port. A school PC could open a connection to my desktop. Once the EC2 joined, the same would hold for it.
+
+The rule file lives in the repo as `Infra/tailscale/acl.hujson`, with the addresses left blank because the repo is public. They are filled in only when pasting into the admin console. These are the only paths it opens.
+
+| From             | To                                                     |
+| ---------------- | ------------------------------------------------------ |
+| Operator devices | SSH on the three nodes, the leader API                 |
+| Server tag (EC2) | The leader API `:6443` only                            |
+| Leader           | The GoCD server on the EC2, `:8153` only (November 11) |
+
+The policy file carries its own tests, such as "operator devices reach SSH on the three nodes" and "the server tag reaches neither SSH nor my desktop". If any of them fails, the admin console refuses to save. A rule that cuts my own SSH cannot be saved. It is the same idea as [putting the undo in place before it breaks](/en/blog/woowangthon/woowangthon-05-node-prep/#3-put-the-undo-in-place-before-it-breaks) when changing the nodes.
+
+It went in on November 10 and saved on the first try. Afterwards, from the desktop, SSH and sudo worked on all three nodes; worker 1 could no longer reach the leader's tailnet address on port 22, while the node network still could. Both check scripts passed again. Before this, a compromised school PC had a path to my personal devices. Now it does not.
+
+Because these rules close node-to-node traffic over the tailnet, one line of [the control space test in part 9](/en/blog/woowangthon/woowangthon-09-student-space/#5-how-do-you-know-its-blocked) was dropped. That path no longer works even from the control space, which has no blocking rule.
+
+The leader-to-GoCD line is how the deploy executor fetches its jobs ([part 12](/en/blog/woowangthon/woowangthon-12-deploy-executor/)). Since it is based on a tag, it could go into the file before the EC2 exists. It is not in the admin console yet.
+
+## 9. What stays unchecked without the EC2
+
+The cluster side is done, but "the server connects" is not proven. Calling with the real token from my desktop is a test of rights. "Does a request leaving the EC2 arrive at the leader" is a different question, and it involves things the leader cannot see.
+
+- Does the EC2 join the private network with the server tag? The one-time join key gets made on the day there is a device to use it, and used right away. Made in advance, it would be an unused secret lying around somewhere.
+- Does the server-tag line in the access rules really open only the leader's `:6443`? The policy's own tests pass, but no tagged device has tried it.
+- Does the EC2's firewall (security group) let Tailscale's outgoing connections through?
+- Does the server verify the leader's certificate with the cluster CA? It worked with curl on the desktop.
+- On the day the token goes into the EC2's secret settings, does it move straight from the leader without showing on a screen?
+- The path from the leader to the EC2's `:8153`.
+- The server code's actual stop, resume and restart calls. Only the cluster rights are in; the server owner wires the calls.
+
+One known gap remains. The server account could create a space and skip its caps and blocking rules. Admission policies only check the values of what gets created. The server account cannot create Pods, so an app in that space has to go through the deploy executor, and the plan is for the executor to check that all three exist before it deploys.
+
+## 10. Wrap-up
+
+| What happened                                               | What I learned                                                                                                           |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Rights could not be given by namespace name                 | Layer admission policies for conditions RBAC cannot express. If they are the only fence, fix the apply and removal order |
+| The template values would have been written twice           | Keep a reference object and compare with it. Two copies kept in sync eventually drift                                    |
+| "Write-only" Secrets included patch                         | Look at what a response returns. An empty patch reads the whole Secret                                                   |
+| Reads almost went cluster-wide                              | Admission policies do not see reads. Narrow reads with a binding per space                                               |
+| A missing reference locked out even the operator            | The reference is looked up before the account condition. Exclude the place that holds the references                     |
+| A refusal test could have deleted real objects on a bad day | Send refusal tests that could do damage as dry runs. A test must not be able to cause the accident it checks for         |
+| I thought `patch` alone would do                            | Running the tests before applying shows what the tool reads first                                                        |
+| Restart needed a Deployment patch                           | Give a broad right together with a rule that pins it to the one field it may change                                      |
+| Three checks failed before anything was touched             | There is one leader. Before applying, find out which branch the leader is on                                             |
+
+TaeTaeJin approved the stop-right PR and said the server side would follow in the next PR. The agent, trimming that proposal, also cut `get`, the line that was right, and what put it back was not a person but the tests run first. A teammate that corrects someone else's proposal should doubt that correction as hard as its own work.
+
+Next is [part 12](/en/blog/woowangthon/woowangthon-12-deploy-executor/), the executor that actually deploys from the leader. Monitoring, usage reads included, is in [part 13](/en/blog/woowangthon/woowangthon-13-metrics/). On the day the EC2 joins the private network, the list in section 9 gets crossed off one item at a time.

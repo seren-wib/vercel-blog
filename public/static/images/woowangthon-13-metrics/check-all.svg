@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1028" viewBox="0 0 900 1028" role="img" aria-label="Terminal output">
+  <rect width="900" height="1028" rx="12" fill="#0d1117"/>
+  <rect width="900" height="36" rx="12" fill="#161b22"/>
+  <rect y="24" width="900" height="12" fill="#161b22"/>
+  <circle cx="22" cy="18" r="6" fill="#ff5f57"/>
+  <circle cx="42" cy="18" r="6" fill="#febc2e"/>
+  <circle cx="62" cy="18" r="6" fill="#28c840"/>
+  <text x="450" y="23" text-anchor="middle" fill="#8b949e" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">k3s-leader · monitoring</text>
+  <g font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13.5" fill="#e6edf3">
+    <text x="24" y="64" xml:space="preserve">== where it runs</text>
+    <text x="24" y="84" xml:space="preserve">PASS everything but node-exporter is on the leader</text>
+    <text x="24" y="104" xml:space="preserve">PASS retention 14d, size cap 20GB, admin API off</text>
+    <text x="24" y="124" xml:space="preserve">PASS Grafana is Ready</text>
+    <text x="24" y="144" xml:space="preserve">PASS the operator is Ready</text>
+    <text x="24" y="164" xml:space="preserve">PASS kube-state-metrics is Ready</text>
+    <text x="24" y="184" xml:space="preserve">PASS Prometheus is Ready</text>
+    <text x="24" y="204" xml:space="preserve">PASS node-exporter is Ready on three nodes</text>
+    <text x="24" y="224" xml:space="preserve">== who can reach it</text>
+    <text x="24" y="244" xml:space="preserve">PASS Prometheus is out of reach from another namespace</text>
+    <text x="24" y="264" xml:space="preserve">PASS Grafana is out of reach from another namespace</text>
+    <text x="24" y="284" xml:space="preserve">== public address (Grafana only)</text>
+    <text x="24" y="304" xml:space="preserve">PASS the login page is served (200)</text>
+    <text x="24" y="324" xml:space="preserve">PASS a dashboard address without a login goes to the login page (302)</text>
+    <text x="24" y="344" xml:space="preserve">PASS the API without a login (401)</text>
+    <text x="24" y="364" xml:space="preserve">PASS Prometheus through Grafana without a login (401)</text>
+    <text x="24" y="384" xml:space="preserve">PASS Grafana's own /metrics is not served (302)</text>
+    <text x="24" y="404" xml:space="preserve">PASS only the platform's page may frame Grafana</text>
+    <text x="24" y="424" xml:space="preserve">PASS only Traefik reaches in, and only Grafana's port 3000</text>
+    <text x="24" y="444" xml:space="preserve">PASS the view-only account reads dashboards (200)</text>
+    <text x="24" y="464" xml:space="preserve">PASS the view-only account cannot save a dashboard (403)</text>
+    <text x="24" y="484" xml:space="preserve">PASS the view-only account cannot read Grafana's settings (403)</text>
+    <text x="24" y="504" xml:space="preserve">PASS Prometheus has no public address (404)</text>
+    <text x="24" y="524" xml:space="preserve">== what is collected</text>
+    <text x="24" y="544" xml:space="preserve">PASS node-exporter on the three nodes (3)</text>
+    <text x="24" y="564" xml:space="preserve">PASS kubelet on the three nodes (3)</text>
+    <text x="24" y="584" xml:space="preserve">PASS Pod usage (cAdvisor) from the three nodes (3)</text>
+    <text x="24" y="604" xml:space="preserve">PASS kube-state-metrics (1)</text>
+    <text x="24" y="624" xml:space="preserve">PASS three nodes Ready (3)</text>
+    <text x="24" y="644" xml:space="preserve">PASS Traefik on both workers (2)</text>
+    <text x="24" y="664" xml:space="preserve">PASS cloudflared (1)</text>
+    <text x="24" y="684" xml:space="preserve">PASS no target is down ()</text>
+    <text x="24" y="704" xml:space="preserve">PASS disk <tspan fill="#3fb950">free</tspan> is known for the three nodes (3)</text>
+    <text x="24" y="724" xml:space="preserve">PASS restart count of the demo app is known (1)</text>
+    <text x="24" y="744" xml:space="preserve">== server account</text>
+    <text x="24" y="764" xml:space="preserve">PASS query Prometheus through the service proxy</text>
+    <text x="24" y="784" xml:space="preserve">PASS Grafana through the proxy refused</text>
+    <text x="24" y="804" xml:space="preserve">PASS Prometheus through its other Service refused</text>
+    <text x="24" y="824" xml:space="preserve">PASS Prometheus Pod proxy refused</text>
+    <text x="24" y="844" xml:space="preserve">PASS read Services in monitoring refused</text>
+    <text x="24" y="864" xml:space="preserve">PASS read Pods in monitoring refused</text>
+    <text x="24" y="884" xml:space="preserve">PASS read Secrets in monitoring refused</text>
+    <text x="24" y="904" xml:space="preserve">PASS service proxy in another namespace (vllm) refused</text>
+    <text x="24" y="924" xml:space="preserve">== real token over the tailnet</text>
+    <text x="24" y="944" xml:space="preserve">PASS query Prometheus (200)</text>
+    <text x="24" y="964" xml:space="preserve">PASS query by POST (the right is GET only) (403)</text>
+    <text x="24" y="984" xml:space="preserve">PASS Grafana through the proxy (403)</text>
+    <text x="24" y="1004" xml:space="preserve">ALL PASS</text>
+  </g>
+</svg>

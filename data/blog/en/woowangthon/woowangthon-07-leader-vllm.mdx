@@ -95,9 +95,9 @@ Kubernetes did. For every Service in the same space, it injects environment vari
 
 ## 6. Where did a concurrency of 3 come from
 
-The plan said "3 concurrent requests". After it was up, I asked, "Where did this 3 come from?"
+The plan said "3 concurrent requests". After it was up, I traced where this 3 had come from.
 
-When the agent looked, the source was thin. On November 6 we asked the AI lead how many concurrent requests to allow and got no answer. So the agent had set 3 as "2 student slots + 1 analysis call". The AI lead's design doc ([woowangthon/WOOWANGTHON_TEAM_18#32](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/32)) has no such number. It only says one deploy job has one open problem ticket.
+The source was thin. On November 6 we asked the AI lead how many concurrent requests to allow and got no answer. So the agent had set 3 as "2 student slots + 1 analysis call". The AI lead's design doc ([woowangthon/WOOWANGTHON_TEAM_18#32](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/32)) has no such number. It only says one deploy job has one open problem ticket.
 
 With no decided value, I changed it to 1. Extra requests don't fail. They wait in line. FP8 is still needed with fewer concurrent requests, because the start-up check is about "one 16K request".
 

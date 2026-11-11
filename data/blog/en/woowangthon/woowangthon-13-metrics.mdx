@@ -1,0 +1,183 @@
+---
+title: 'Woowangthon 13. Closing Grafana, Then Opening It Again'
+date: '2026-11-12'
+tags: ['Woowangthon']
+draft: false
+summary: "Build stage 7, metrics. An install postponed behind the demo path and brought back the same day, a metrics.k8s.io read right as the first step, kube-prometheus-stack through the k3s Helm controller and from GHCR, a 20 GB cap because local-path does not enforce volume size, a service proxy call that RBAC allowed and the admission policy refused (CONNECT), the check script's query encoding and job labels, a metrics namespace left open that the review bot caught, a public Grafana address for the operator page, and what the self review caught right after: /metrics, frame-ancestors and the admin account. JWT login deferred"
+---
+
+> Part 13 of the series. Build stage 7 (monitoring), build 11, from the night of November 11 to the early hours of the 12th. What we are building and why is in [Woowangthon 0](/en/blog/woowangthon/woowangthon-00-overview/). The previous post is [part 12](/en/blog/woowangthon/woowangthon-12-deploy-executor/).
+
+## In one line
+
+I installed Prometheus and Grafana on the leader and let the platform server query metrics over the private network. At first I postponed the install behind the demo path, and reversed that a little over an hour later. The rights were right, but an admission policy refused the server's query with 422, and the review bot caught that the metrics namespace was wide open inside the cluster. So I closed it. Less than 40 minutes later I opened Grafana again on a public address, to put it in the operator page. The self review I ran right after caught one path that opened without a login, and a way for student apps to put Grafana inside their own pages.
+
+## 1. Postponed, then installed the same day
+
+Three things use the metrics: the screen where a student sees their app's CPU and memory, usage on the operator page, and cost estimates. Spotting trouble right after a deploy (memory over the limit, restart loops) is done by the platform server watching Pods and events directly, so it does not go through Prometheus.
+
+All three are P1, though. The team has a rule, "no P1 before P0 runs end to end", and the deploy P0 path had not run end to end even once, because the EC2 instance for the platform server did not exist yet. The agent recommended postponing the Prometheus and Grafana install behind the demo path, and doing one small thing first. I took that as it was.
+
+The small thing was a read right on `metrics.k8s.io`. k3s ships metrics-server by default (the thing behind `kubectl top`), so current CPU and memory of nodes and Pods can be read without Prometheus. The operator API already had a `usage` field, and the server was filling it with `not_collected`. The server owner (TaeTaeJin) had written in an issue that he needed "read rights on node and Pod usage". I added a node usage read to the [platform server account](/en/blog/woowangthon/woowangthon-11-server-link/), and a Pod usage read to the student namespace read role.
+
+The checks all passed (111 for the server account). The self review that came next doubted that pass. The new allow checks only looked at whether the request was accepted. If metrics-server died and returned an empty list, it was still PASS. Same shape as [the check in part 9 that passed without measuring anything](/en/blog/woowangthon/woowangthon-09-student-space/#7-it-could-pass-without-testing). Now node usage passes only when exactly three entries carry values. That is team repo [#133](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/133).
+
+#133 contained the sentence "Prometheus and Grafana are installed after P0." A little over 20 minutes after merging it, I reversed that order. EC2 has to wait on the server side, and this is work the cluster side can finish in the meantime. It does not push the demo path back either. I did not delete "after P0" from the design doc; I left the history as "postponed, then changed the same day".
+
+## 2. The way k3s installs Traefik
+
+I used the kube-prometheus-stack chart (93.1.1, Prometheus Operator v0.95.1, Grafana 13.3.0). Prometheus, Grafana, node-exporter (reads the nodes), kube-state-metrics (reads the state of Kubernetes objects) and the default dashboards come as one bundle.
+
+It goes in through the k3s Helm controller. Apply one HelmChart object and k3s starts an install job that installs the chart. That is how k3s puts in [Traefik](/en/blog/woowangthon/woowangthon-10-public-entry/#2-one-traefik-on-each-worker). No helm and no release state is left on my machine.
+
+The first install failed. The job ran for over three minutes and nothing appeared in the metrics namespace. The install job's Pod had died once on worker 1 and was running again, and its log had a line where fetching the chart file from a GitHub release asset address failed. The chart repository's index lives on GitHub Pages, but the files themselves come from GitHub's release CDN. That did not come down over the school network. I switched to fetching the same chart from its OCI address on GHCR, and the job finished in about 30 seconds. GHCR is where the [image cache](/en/blog/woowangthon/woowangthon-08-image-cache/#1-why-a-cache) pulls images from, so the path from the school network was already proven.
+
+![The install job's failure log (fetching the chart from a GitHub release asset address failed), the chart address after the change, oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack 93.1.1, all seven Pods of the metrics namespace Running (node-exporter one per node, the rest on the leader), retention 14d and size cap 20GB](/static/images/woowangthon-13-metrics/install.svg)
+
+_The failure log is from the night of the install; the three below were taken again while writing this post_
+
+A lot is switched off on k3s.
+
+| Switched off                                       | Why                                                                                                                        |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| etcd · scheduler · controller-manager · kube-proxy | k3s runs these inside its own single process. There is no separate target to scrape, so left on they always show as "down" |
+| Alertmanager                                       | The cluster sends no alerts (section 6)                                                                                    |
+| The Operator's admission webhook                   | It needs a separate job to make a certificate, and all it does is check rule syntax at apply time                          |
+| Prometheus admin API                               | An API that deletes metrics. Off, as the chart default                                                                     |
+
+Storage is k3s's local-path (a folder on the node): 30Gi requested for Prometheus, 2Gi for Grafana. Retention is two weeks. But just like [the cache volume's 50Gi in part 8 was not a limit](/en/blog/woowangthon/woowangthon-08-image-cache/#6-what-the-reviewer-ai-caught-refused-vs-no-answer), local-path does not enforce volume size. 30Gi is only a request. The leader's disk also holds etcd and the model volume. So Prometheus itself also gets a 20 GB size cap. Whichever fills first, two weeks or 20 GB, the oldest data goes.
+
+node-exporter has to look into the host, so the metrics namespace runs at privileged, not at [the baseline of student namespaces](/en/blog/woowangthon/woowangthon-09-student-space/#1-what-goes-into-one-student-space). Everything else runs on the leader. The scrape targets are node-exporter and the kubelet (Pod usage) on the three nodes, kube-state-metrics, the API server, CoreDNS, Traefik on the two workers, and cloudflared. The cloudflared namespace has [the NetworkPolicy added in part 10](/en/blog/woowangthon/woowangthon-10-public-entry/#the-leaders-firewall-doesnt-stop-cloudflared), so I added one rule letting only Prometheus in on the metrics port (2000).
+
+Right after the install Grafana was using about 450Mi of memory. The limit I had first set was 512Mi, too tight, so I raised it to 1Gi.
+
+## 3. The rights say yes, and still 422
+
+The platform server is on AWS and reaches the leader's API over the private network. Instead of opening one more port for Prometheus, it goes through the leader API's service proxy, a feature where the API server forwards the request to a Service on the caller's behalf.
+
+```text
+GET /api/v1/namespaces/monitoring/services/monitoring-prometheus:9090/proxy/api/v1/query?query=...
+```
+
+The rights (RBAC) given to the server account are `get` on `services/proxy` for that one Service name, nothing else. Through the same path `POST` is 403, and so is Grafana. Reading Pods and Secrets in the metrics namespace is refused too.
+
+A query with the real server token came back 422. Not 403 (no right), 422. It passed the rights check and was refused by the admission policy (ValidatingAdmissionPolicy) after it. The [platform server account](/en/blog/woowangthon/woowangthon-11-server-link/) carries a rule: "the server writes only inside `proj-` namespaces". That rule looks at create, update, delete, and CONNECT. Calls like exec, running a command inside a Pod, are CONNECT.
+
+When the Kubernetes API server hands a service proxy call to admission, it counts it as CONNECT, even when the HTTP method is `GET`. So a read-only metrics query was caught as "writing outside `proj-`". The rights allowed it; the rule refused it.
+
+I added one exception to the rule, naming exactly that call.
+
+```yaml
+- name: isPrometheusQuery
+  expression: >-
+    request.operation == 'CONNECT' && request.resource.group == '' && request.resource.resource == 'services'
+    && request.subResource == 'proxy' && request.namespace == 'monitoring' && request.name == 'monitoring-prometheus:9090'
+```
+
+When the agent tried to apply this on the leader, the automatic approval check stopped it as "weakening a security rule". Not a wrong call. It is the first path where the server token reaches outside `proj-`. The cost is clear too: through it, the metric numbers of every namespace can be read (the local model's, the system ones). Logs, Secrets and objects are still `proj-` only. I could have put a proxy in front that filters queries by namespace, but that is one more part to stand up and test. If what leaks is only numbers, I would write that cost down and accept it. I checked that and told it to apply.
+
+After the apply I ran all four checks: metrics 23, server account 111, deploy executor 63, student namespaces 31, all PASS. That night I merged a few PRs that stayed inside my own part without a teammate's approval, but not this one ([#138](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/138)). A change that adds an exception to an admission policy needs the server owner to look at it at least once.
+
+## 4. The check script was wrong first
+
+Apart from the 422, almost every check failed at first. Most of it was the check script's fault.
+
+![First run: every collection check got nothing, the service proxy query hit a bash syntax error, the real-token query got 422. Second run: only Traefik and cloudflared got nothing, and the service proxy query was refused by ValidatingAdmissionPolicy wanggane-platform-server](/static/images/woowangthon-13-metrics/first-check.svg)
+
+_Two runs while fixing the check script. `...` stands for passing lines left out_
+
+**On the first run the query broke.** The check script runs on my machine (Windows), and the query goes through the leader's shell over SSH to the API. PromQL is full of parentheses, quotes and braces. They broke on the way through the remote shell and Windows argument passing; the bash syntax error is that. Now the query goes in on standard input, not as a command-line argument, and everything except letters and digits is percent-encoded.
+
+**On the second run the labels were wrong.** Only Traefik and cloudflared said "nothing". Those two are not from the chart; I attached them myself with PodMonitors, and the check looked for `job="traefik"`. The job name a PodMonitor sets is `<namespace>/<name>`, so `monitoring/traefik`. I asked Prometheus for its list of job names and matched it.
+
+What was left was the 422 from section 3.
+
+## 5. The open metrics namespace the review bot caught
+
+As in [part 8](/en/blog/woowangthon/woowangthon-08-image-cache/#6-what-the-reviewer-ai-caught-refused-vs-no-answer), the review bot (CodeRabbit) does not come to this repo on its own. I called it on #138. Three comments came.
+
+The heaviest was "the metrics namespace has no inbound NetworkPolicy". I checked it myself. From inside a Pod of the local model's namespace, I called Prometheus and Grafana, and both answered 200. The Prometheus API has no login. Narrowing the server account down to a single `get` meant nothing in front of a path that does not go through the service proxy.
+
+A few hours earlier, under "what we don't do" in the design doc, the agent had written this: no NetworkPolicy for the metrics namespace, because student namespaces [cannot reach in-cluster ranges thanks to their own block rules](/en/blog/woowangthon/woowangthon-09-student-space/#5-how-do-you-know-its-blocked). That reasoning only thought about student Pods. Besides student namespaces, the cluster has namespaces for ops tools like the local model, the tunnel and the image cache. The reasoning left their Pods out entirely. I read that sentence and let it pass, too.
+
+The fix is one NetworkPolicy: the metrics namespace only lets in traffic from Pods of the same namespace. Prometheus scraping its own parts and Grafana asking Prometheus stay inside the namespace, so they still work. So do the server's service proxy and the operator's port forward: both are traffic from the leader itself to a Pod, and the policy engine always lets a node reach its own Pods. node-exporter uses the host network, so it is not covered by this rule but by [the host firewall](/en/blog/woowangthon/woowangthon-05-node-prep/#inbound).
+
+![Before the policy, Prometheus and Grafana answer 200 from another namespace. After applying the policy the check still says FAIL (command terminated with exit code 1). A direct call shows Connection refused. After fixing the check, both PASS as out of reach](/static/images/woowangthon-13-metrics/reach.svg)
+
+_Before the policy, after it, and after fixing the check_
+
+The check still failed after the policy went in. The check again. I had written "blocked" as a connection timeout, but what actually came back was an immediate Connection refused. k3s's policy engine (kube-router) does not drop blocked connections; it refuses them. [Exactly what part 9 had already shown](/en/blog/woowangthon/woowangthon-09-student-space/#5-how-do-you-know-its-blocked). The new script missed what I had learned then. At first it only looked at the last line of the output, so it did not even show that message. It took two fixes.
+
+The other two comments: one was that the checks passed even with Grafana or the Operator missing entirely. I added checks that the four components and the three node-exporters are Ready. The other was "P1 work before P0"; I answered that I had set that order and written down why. The metrics checks became 30.
+
+Had I merged this PR that night without approval, the open metrics namespace would have gone into main as it was.
+
+## 6. Putting Grafana in the operator page
+
+That night the direction changed in the team's Discord. TaeTaeJin takes the operator dashboard, in the platform's operator page (FE). The alerts I meant to send to Discord from Grafana rules moved to the platform side too: alert together when a metric anomaly calls the AI, done if time allows. So the cluster sends no alerts. A cut tunnel cannot be seen from inside the leader, so it is watched through Cloudflare's own tunnel notifications, not through cloudflared's connection count metric. In [part 10's internet-cut test](/en/blog/woowangthon/woowangthon-10-public-entry/#7-cutting-the-leaders-internet-502-then-530) that value never dropped to 0.
+
+There were two ways to show metrics on the operator page. The server takes values from Prometheus and the FE draws its own charts (the query path already exists), or Grafana's screens go in as an iframe. I chose Grafana. If we only take numbers and draw them ourselves, there is no reason to install Grafana. You install it for its screens.
+
+The cost is that Grafana has to come outside. One path into the namespace I had just closed.
+
+- **Address**: `grafana.stairnoworks.com`. The path is the same as student addresses (tunnel → Traefik → Ingress). [The wildcard record](/en/blog/woowangthon/woowangthon-10-public-entry/#1-the-way-in-for-visitors) already points at the tunnel, so DNS stays as it is and only one Ingress is added.
+- **The way in**: NetworkPolicy `grafana-from-traefik`. Traefik's Pods reach Grafana's port 3000 and nothing else. Prometheus has no public address (`prometheus.stairnoworks.com` is 404).
+- **Grafana settings**: `root_url` set to the public address, and `allow_embedding` on so it stops sending the header that blocks iframes (`X-Frame-Options`).
+
+How to log in was left. At first I said to go with JWT login. Grafana takes an address for the public keys it verifies JWTs with, and we can give it the same one the platform server uses to verify its login tokens (Supabase). No new server API needed. Put the operator's login token on the iframe address as `?auth_token=` and Grafana opens straight away.
+
+The catch was that "on the address". An iframe cannot attach request headers, so the token has to ride in the URL. That token is not Grafana-only; it is the operator's token that also works on the platform API, valid until it expires (an hour by default). URLs leave more traces than headers: access logs, developer tools, screen sharing. And without JWT, the operator only has to log in to Grafana inside the iframe once; the browser remembers the session. So JWT was deferred.
+
+Six public-address checks took the metrics checks to 36. A dashboard address without a login goes to the login page, and the API answers 401. I wrote in the design doc that "nothing opens without a login".
+
+## 7. The self review right after opening it
+
+Right on the commit that opened the public address, I ran a self review (the agent's code review). It found nine things. Three were heavy.
+
+**Grafana's own `/metrics` was open without a login.** Hitting it directly gave 200 and 868 KB. Not the cluster's metrics but Grafana's own, yet it holds the exact build and commit, plugins and their versions, user and dashboard counts, and login counters. The doc's "nothing opens" was wrong. I switched off Grafana's metrics endpoint, and the Prometheus scrape of it with it.
+
+**Student apps could put Grafana inside their own pages.** `allow_embedding` only removes `X-Frame-Options`; it does not say who may embed. With no header filling that gap, any site could put Grafana in an iframe. The problem is the student addresses. `<slug>.stairnoworks.com` and `grafana.stairnoworks.com` are different origins but, to the browser, the same site, since they sit under the same registrable domain. So the operator's Grafana login cookie (SameSite=Lax) is sent inside an iframe on a student app as well. If a student app lays Grafana underneath as a transparent iframe, an operator visiting that app could have their clicks land on a logged-in Grafana.
+
+One Traefik Middleware stops it: Grafana's responses get `Content-Security-Policy: frame-ancestors 'self' https://app.stairnoworks.com`. Now only Grafana itself and the platform page may embed Grafana.
+
+**There was only an admin account.** Opening the operator page with it means a viewing screen that can delete dashboards, change data sources and add accounts. I added a script (`make-viewer.sh`) that creates a view-only account, `viewer`. Its password is made on the leader and kept only in a Secret. The operator page opens with this account. I got one wrong while writing the checks, too: I expected 403 for the view-only account listing data sources, and got 200. Grafana allows that for viewers by design. I changed the check to reading settings (403).
+
+The rest was small. `Secure` on the cookie, an HSTS header. And the checks, once more: the iframe header check passed whenever the response had no `X-Frame-Options`, so with the tunnel down and curl getting nothing, "missing" meant PASS. Part 9's false PASS showed up here too. I also added a check on the NetworkPolicy's shape, that only Traefik → Grafana 3000 is open. Two of the nine I did not fix; they are written down as known limits in the design doc.
+
+![Response headers of the public address: content-security-policy frame-ancestors 'self' https://app.stairnoworks.com, strict-transport-security. /metrics is a 302 to the login page](/static/images/woowangthon-13-metrics/headers.svg)
+
+_The public address checked again from my desktop while writing this post_
+
+![All 41 metrics checks PASS: placement, reach from another namespace, the public address (login page 200, dashboard without login 302, API 401, /metrics 302, frame-ancestors, the view-only account), scrape targets, the server account, real-token query 200](/static/images/woowangthon-13-metrics/check-all.svg)
+
+_The metrics checks run again while writing this post. They change nothing on the cluster_
+
+The metrics checks went to 30 after the review bot, 36 when the public address opened, and 41 after the self review.
+
+## 8. What is still unverified
+
+- **The iframe inside the operator page.** The FE is not wired up yet. `app.` and `grafana.` are the same site, so I expect the login cookie to stick. An FE served from `localhost` is a different site: it is not on the frame-ancestors allowlist and the cookie would not be sent. If it has to be tried locally first, a dev address goes in for a while then.
+- **Whether two-week retention and the 20 GB cap actually delete.** It has been installed for less than a day.
+- **Whether Cloudflare's tunnel notifications work on the free plan.** The design doc says "check at install time", and I have not yet.
+- On screen, I logged in once on the public address and saw the home page load. I have not opened the dashboards one by one.
+
+#138 is waiting for a teammate's review as I write this. It is already applied on the leader, so waiting changes nothing about how it runs.
+
+## 9. Wrap-up
+
+| What happened                                                     | What I learned                                                                                                                  |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| I postponed the install behind P0 and reversed it an hour later   | If the reason to postpone was "who uses it", the reason to reverse is "whom does it push back now". Keep the history in the doc |
+| The usage allow check passed on an empty list                     | Check that values came back, not that the request was accepted                                                                  |
+| The chart did not come down from GitHub's release CDN             | A chart repository and its chart files can live in different places. Fetch from a registry proven on the school network (GHCR)  |
+| I requested 30Gi on local-path                                    | When volume size is not a limit, put the limit on the program itself                                                            |
+| RBAC said yes, and 422                                            | A service proxy call looks like CONNECT to admission. It has to pass both the rights and the rules                              |
+| The check's query broke in the remote shell and Windows argv      | Pass values with special characters on standard input, not as arguments, and encode all of them                                 |
+| The metrics namespace was open to Pods of other namespaces        | "Students can't get out" only looks at students. Block the way in at the namespace that receives                                |
+| I judged "blocked" by a timeout                                   | kube-router refuses. Check again in a new script even what you learned once                                                     |
+| I wrote "nothing opens without a login" and `/metrics` was open   | Opening a public address opens every path on it. The app's own metrics path is a path too                                       |
+| With just `allow_embedding`, student apps could embed Grafana too | When you drop the blocking header, put an allowlist (frame-ancestors) in its place. Subdomains are the same site                |
+| The only account was admin                                        | A viewing screen gets a viewing account                                                                                         |
+| I wanted JWT so it would open in one go                           | If it is not urgent enough to pay for a platform token in a URL, defer it                                                       |
+
+That ends the cluster side of stage 7. The metrics are visible and the platform server account can query them. The real server connects on the day EC2 comes up, together with stage 6. This time the metrics namespace was closed once and opened once, and both times a review saw the problem before a person did: once the bot, once the agent itself. The one habit that paid off most in this stage was whoever opens something running a review right away.

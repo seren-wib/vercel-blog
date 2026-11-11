@@ -14,7 +14,7 @@ Every student project gets its own Kubernetes space (namespace). I set the templ
 
 ## 1. What goes into one student space
 
-When a student project is created, the platform server makes a space called `proj-<id>`. Four things go into it.
+When a student project is created, the platform server makes a space called `proj-<id>`. Five things go into it. There were four when this post first went up. The fifth, a RoleBinding, was added on November 10 in build 09.
 
 | Object        | What it does                                                                                               |
 | ------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -22,20 +22,19 @@ When a student project is created, the platform server makes a space called `pro
 | LimitRange    | Default values filled in when a container doesn't state its resources                                      |
 | ResourceQuota | The resource cap for the whole space                                                                       |
 | NetworkPolicy | Who may come in and where Pods may go. Inbound only from the same space and Traefik (the visitor entrance) |
+| RoleBinding   | Lets the platform server read this space's Pods, logs and Deployments (`platform-server-read`)             |
 
-The template is one file in the repo, `Infra/student/space.yaml`. The server creates it with only the name changed. I applied the file as it is to the test space `proj-demo`.
+The template is one file in the repo, `Infra/student/space.yaml`. The server creates all five with only the name changed. I applied the file as it is to the test space `proj-demo`.
 
 The security level uses a built-in Kubernetes feature (Pod Security). It has three levels, and enforcing the strictest, restricted, rejects official images that run as root (nginx, node and so on). Students write Dockerfiles like that all the time. So it is **enforce baseline, warn restricted**. baseline rejects Pods that use the node's network (hostNetwork) and privileged Pods.
 
-baseline leaves one permission in place: `NET_RAW`, which lets a process craft raw packets. With it, a student Pod could intercept other Pods' traffic on the same worker with ARP spoofing. So the deploy executor drops it from every container, and the admission policy planned for the next step (build 09) will reject Pods that don't. The fields the executor must set are written down in `Infra/student/app-example.yaml` with a test app (the public image podinfo).
+baseline leaves one permission in place: `NET_RAW`, which lets a process craft raw packets. With it, a student Pod could intercept other Pods' traffic on the same worker with ARP spoofing. So the deploy executor is to drop it from every container, and an admission policy rejects Pods that don't. That policy went onto the cluster on November 10 in build 09, and it applies to Pods and Deployments in `proj-` spaces whichever account creates them. The fields the executor must set are written down in `Infra/student/app-example.yaml` with a test app (the public image podinfo).
 
 ## 2. Who sets the caps
 
 At the end of part 8 I wrote "the cap values have to be agreed with the platform server owner first". The build plan had carried a line "confirm the proposed values with the server owner" since the design doc PR ([woowangthon/WOOWANGTHON_TEAM_18#31](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/31)).
 
-When the agent put the proposed values on the table, I asked: "Go with your proposed values. But why do we have to decide this together with the server owner?"
-
-The answer was simple. The server creates this template as it is with only the name changed. It never reads the values or uses them in any calculation. There was no reason to settle values with the server owner when they don't touch the server code. That line was closed as "decided by the infra owner, shared through the PR".
+I decided to use the values the agent proposed as they were. Then I looked at that line again. The server creates this template as it is with only the name changed. It never reads the values or uses them in any calculation. There was no reason to settle values with the server owner when they don't touch the server code. That line was closed as "decided by the infra owner, shared through the PR".
 
 | Item                              | Project cap | Container default (request / limit) |
 | --------------------------------- | ----------- | ----------------------------------- |
@@ -74,11 +73,11 @@ At first I wanted to put the `default` ServiceAccount into the template and turn
 serviceaccounts "default" already exists
 ```
 
-When a space is created, a Kubernetes controller makes the `default` ServiceAccount right away. If the template comes later, it tries to create something that already exists and collides. Applying again went through, and the agent summed it up as "use apply (update if it exists) instead of create".
+When a space is created, a Kubernetes controller makes the `default` ServiceAccount right away. If the template comes later, it tries to create something that already exists and collides. Applying again went through. The agent proposed switching from create to apply (update if it exists).
 
-At that point we went to check whether the backend server already creates spaces. The server code had only login, health check and repo listing; nothing created spaces yet. But looking for it surfaced the permissions section of the cluster design doc. Of [the two accounts split in part 7](/en/blog/woowangthon/woowangthon-07-leader-vllm/#1-what-changed-in-the-meeting), the platform server account may only **create** objects inside a space. That was on purpose: if the server account leaks, it can't start by loosening its own space's caps and blocking rules. With no permission to update, "use apply" was never something the server could do.
+At that point we went to check whether the backend server already creates spaces. The server code had only login, health check and repo listing; nothing created spaces yet. But looking for it surfaced the permissions section of the cluster design doc. Of [the two accounts split in part 7](/en/blog/woowangthon/woowangthon-07-leader-vllm/#1-what-changed-in-the-meeting), the platform server account may only **create** objects inside a space. That was on purpose: if the server account leaks, it can't start by loosening its own space's caps and blocking rules. With no permission to update, apply was never something the server could do.
 
-So the `default` ServiceAccount came out of the template. The deploy executor turns the token off on each Pod (`automountServiceAccountToken: false`), and the admission policy planned for build 09 will reject Pods that leave it on. An admission policy that a Pod can't override is sturdier than a space setting anyway. It also left one note for the server: right after a space is created, the `default` ServiceAccount doesn't exist yet, so Pods can't be created. The server has no right to read ServiceAccounts, so it doesn't wait. If the Deployment can't create a Pod in the meantime, the controller retries and it comes up shortly.
+So the `default` ServiceAccount came out of the template. The deploy executor turns the token off on each Pod (`automountServiceAccountToken: false`), and an admission policy rejects Pods that leave it on. That policy also went in on November 10 in build 09. An admission policy that a Pod can't override is sturdier than a space setting anyway. It also left one note for the server: right after a space is created, the `default` ServiceAccount doesn't exist yet, so Pods can't be created. The server has no right to read ServiceAccounts, so it doesn't wait. If the Deployment can't create a Pod in the meantime, the controller retries and it comes up shortly.
 
 ## 5. How do you know it's blocked
 
@@ -111,6 +110,8 @@ So the test script (`Infra/student/check.sh`) uses three spaces.
 Each space gets one test Pod, and they all probe the same targets. Blocked from the student space and reached from the control space means the rule did the blocking.
 
 ![check.sh output. From the student space, DNS, the same space, the internet and outside DB ports work, while the leader API, image cache, kubelet, school DNS, Tailscale, local model and other spaces are blocked. From the control space the same targets are reached](/static/images/woowangthon-09-student-space/check-isolation.svg)
+
+The last line of this capture (reaching the leader over the private network from the control space) was taken out of the script on November 10. The Tailscale access rules put in that day close node-to-node traffic over the private network, so the control space can't reach it either, even with no blocking rule.
 
 Blocked connections were refused at once rather than timing out (curl exit code 7). The blocking rule implementation built into k3s (kube-router) sends back a refusal. In terms of [refused vs no answer from part 8](/en/blog/woowangthon/woowangthon-08-image-cache/#6-what-the-reviewer-ai-caught-refused-vs-no-answer), that is the kind side for student apps. An app trying a blocked address gets an error right away instead of hanging for 30 seconds.
 
@@ -152,6 +153,8 @@ All five are fixed. Ephemeral storage was added to the space cap and the contain
 
 The `Warning` line in the middle is what the warn level (restricted) does. The leader-pinned test Pod passes baseline but falls short of restricted. It isn't rejected; it just gets flagged like this.
 
+This capture is also from before the script changed on November 10. The test Pods now follow the build 09 Pod rule (API token off, `NET_RAW` dropped), and the rejection checks also look at the reason for the rejection (PodSecurity, exceeded quota).
+
 The test script was written by an AI, and it was an AI review that caught it could give a false PASS. The contest theme is "Can AI be a teammate?", and a teammate has to doubt even what their own test proves. This time a second pair of eyes, the review, did that.
 
 ## 8. Wrap-up
@@ -166,3 +169,5 @@ The test script was written by an AI, and it was an AI review that caught it cou
 | PASS was possible with no test Pod                               | Count "couldn't measure" apart from "blocked". Test that the test fails when it should                  |
 
 That finishes stage 5. A test app runs on a worker and can't reach the school network or other students' spaces. The PR was approved by the team lead (TaeTaeJin) and merged. Right before the merge, a review bot (CodeRabbit) finding led to one more fix in the test script: curl errors other than refused or timed out (a failed name lookup, for example) no longer count as "blocked" either. Next is stage 6, connecting to the outside. The platform server connects to the leader API over the private network, and the server account permissions and admission policy go in. The things this post put off with "build 09 will reject it" (`NET_RAW`, the API token, the leader toleration) get checked there to see whether they are really blocked.
+
+On November 10 the cluster side of that went in first. The platform server account and the admission policies are on the leader, and Pods that keep `NET_RAW` or leave the API token on are now rejected. The leader toleration is handled together with the deploy executor (build 09′). The platform server has not joined the private network yet, and the team repo PR is still open.

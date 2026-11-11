@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="408" viewBox="0 0 900 408" role="img" aria-label="Terminal output">
+  <rect width="900" height="408" rx="12" fill="#0d1117"/>
+  <rect width="900" height="36" rx="12" fill="#161b22"/>
+  <rect y="24" width="900" height="12" fill="#161b22"/>
+  <circle cx="22" cy="18" r="6" fill="#ff5f57"/>
+  <circle cx="42" cy="18" r="6" fill="#febc2e"/>
+  <circle cx="62" cy="18" r="6" fill="#28c840"/>
+  <text x="450" y="23" text-anchor="middle" fill="#8b949e" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">Traefik · one replica before, two after</text>
+  <g font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="13.5" fill="#e6edf3">
+    <text x="24" y="64" xml:space="preserve"># before: the k3s default</text>
+    <text x="24" y="84" xml:space="preserve">$ kubectl -n kube-system get pods -l app.kubernetes.io/name=traefik -o wide</text>
+    <text x="24" y="104" xml:space="preserve"><tspan fill="#79c0ff">NAME</tspan>                       READY   STATUS    RESTARTS        AGE     IP          NODE</text>
+    <text x="24" y="124" xml:space="preserve">traefik-68df944ff7-5626p   1/1     Running   1 (2d20h ago)   2d22h   10.42.1.9   k3s-w2</text>
+    <text x="24" y="144" xml:space="preserve"></text>
+    <text x="24" y="164" xml:space="preserve"># after the HelmChartConfig: wait loop, replicas/ready/updated</text>
+    <text x="24" y="184" xml:space="preserve">1 job= deploy=1/1/1</text>
+    <text x="24" y="204" xml:space="preserve">...</text>
+    <text x="24" y="224" xml:space="preserve">3 job=1 deploy=2/1/1</text>
+    <text x="24" y="244" xml:space="preserve">...</text>
+    <text x="24" y="264" xml:space="preserve">6 job=1 deploy=2/1/2</text>
+    <text x="24" y="284" xml:space="preserve">...</text>
+    <text x="24" y="304" xml:space="preserve">8 job=1 deploy=2/2/2</text>
+    <text x="24" y="324" xml:space="preserve"><tspan fill="#79c0ff">NAME</tspan>                       READY   STATUS    RESTARTS   AGE   IP           NODE</text>
+    <text x="24" y="344" xml:space="preserve">traefik-84d68f6dbf-6nsl4   1/1     Running   0          30s   10.42.2.52   k3s-w1</text>
+    <text x="24" y="364" xml:space="preserve">traefik-84d68f6dbf-lfm5r   1/1     Running   0          12s   10.42.1.30   k3s-w2</text>
+    <text x="24" y="384" xml:space="preserve">{"rollingUpdate":{"maxSurge":0,"maxUnavailable":1},"type":"RollingUpdate"}</text>
+  </g>
+</svg>

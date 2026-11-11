@@ -1,22 +1,22 @@
 {
   "ai": 10,
-  "computer-systems": 8,
   "auth": 2,
+  "cloud-computing": 10,
+  "computer-systems": 8,
   "data-structures": 2,
   "devblog": 6,
   "cloudflare": 2,
-  "cloud-computing": 10,
-  "database-systems": 10,
   "devops": 2,
+  "git": 4,
   "network": 18,
+  "database-systems": 10,
   "os": 20,
   "information-retrieval": 16,
   "payments": 2,
-  "git": 4,
   "software-engineering": 12,
-  "sql": 2,
   "stairno": 12,
   "unity": 4,
+  "sql": 2,
   "web": 2,
-  "woowangthon": 24
+  "woowangthon": 26
 }

@@ -1,0 +1,200 @@
+---
+title: 'Woowangthon 12. A Deploy Executor Built Before Its Server'
+date: '2026-11-12'
+tags: ['Woowangthon']
+draft: false
+summary: "Build stage 6, the deploy executor on the leader (build 09′). Why the leader's GoCD Agent dials out, the executor account split from the platform server, no cluster-wide rights and one binding per space, admission policies (proj- spaces only, stripPrefix only, ClusterIP only, no tolerations or nodeName), the externalIPs hole a self review found, the nodeName a taint cannot stop, Verify through Traefik and Middleware names with collapsed hyphens, an executor Pod with no image of our own, JSON that is concatenated rather than a list, and what nobody could check without the server"
+---
+
+> Part 12 of the series. The story of November 11, when I did build 09′, the deploy executor on the leader, part of build stage 6 (connecting to the outside). The platform server side of the same stage is in [part 11](/en/blog/woowangthon/woowangthon-11-server-link/), and the big picture is in [Woowangthon 0](/en/blog/woowangthon/woowangthon-00-overview/).
+
+## In one line
+
+Student apps are deployed by a GoCD Agent running on the leader. I built the account it will use: it has no cluster-wide rights at all and works only through one binding attached to each student space. What the rights can't stop, four admission policies do. A self review found one of them: a student Service could claim the image cache's address as its own. I also wrote the executor Pod manifest, but there is no GoCD server yet, so it is not on the leader; I only checked it with a throwaway Pod of the same shape. Nobody has seen it register or reach the server over the private network yet.
+
+## 1. Why the executor sits on the leader
+
+Who deploys was settled at [the meeting in part 7](/en/blog/woowangthon/woowangthon-07-leader-vllm/#1-what-changed-in-the-meeting) (ADR-009). The GoCD server lives on the same AWS EC2 as the platform server, and the executor that does the work (the GoCD Agent) runs on the leader.
+
+One deploy splits like this.
+
+| Stage            | Where           | What it does                                                                      |
+| ---------------- | --------------- | --------------------------------------------------------------------------------- |
+| Build            | AWS             | Builds an image from the student repo and pushes it                               |
+| Prepare · Render | Leader executor | Clears the target slot, renders the manifests and runs a server-side dry run      |
+| Apply            | Leader executor | Applies them and waits until the Pods are Ready                                   |
+| Verify · Switch  | Leader executor | Requests the new slot through Traefik and, if it passes, moves the public address |
+
+The server doesn't call the executor; the executor goes to the server for work. The leader dials the GoCD server on the EC2 over the private network (Tailscale) first and picks up its jobs. [Inbound ports into the school are still zero](/en/blog/woowangthon/woowangthon-00-overview/#5-overall-structure).
+
+There are two reasons to put it on the leader. The right to write into student spaces never leaves the cluster, and Verify reaches Traefik inside the cluster directly. The other options are recorded in the ADR.
+
+| Option                                          | Why we dropped it                                                                                               |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| The platform server deploys directly            | Apply, wait, verify and roll back would all be server code, and the write right would sit on AWS                |
+| An executor on the EC2 deploys over the tailnet | The write right stays outside the cluster, and Verify has to run across the private network                     |
+| ArgoCD (pulls from git inside the cluster)      | Not reviewed at the meeting. The AI owner is looking at it separately; if the team switches, this stage changes |
+
+## 2. Two accounts
+
+When [part 7 rewrote the rights section](/en/blog/woowangthon/woowangthon-07-leader-vllm/#1-what-changed-in-the-meeting), the cluster got two accounts. The platform server account creates spaces, writes secrets and reads status. It went in a day earlier, in build 09 ([part 11](/en/blog/woowangthon/woowangthon-11-server-link/)). This post is about the other one, the deploy executor account `deploy/deploy-executor`.
+
+The split is about blast radius. The executor runs whatever the GoCD server tells it to. The GoCD server sits on an EC2 that faces the internet. If that is compromised, everything the executor account can do goes to the attacker. So nearly all of this stage was narrowing that account down to "deploys inside student spaces".
+
+I created no token for it. When the executor Pod starts in the `deploy` namespace, Kubernetes mounts a short-lived token as a file. No token leaves the leader, and there is nothing to revoke by hand.
+
+## 3. Zero cluster-wide rights
+
+The executor account has no cluster-wide binding (ClusterRoleBinding) at all. Everything it may do is collected in the role `proj-deployer`, and it holds that role only in spaces where the RoleBinding `deploy-executor` exists. The platform server creates that binding together with the student space. [Part 9's student space template](/en/blog/woowangthon/woowangthon-09-student-space/#1-what-goes-into-one-student-space) went from five objects to six.
+
+The binding per space exists because of reads. The executor has to read Pods, events and Endpoints to wait for a rollout and to verify. But the admission policies in the next section only filter writes, so reads cannot be narrowed by namespace name. To avoid granting reads cluster-wide, every space needs a binding anyway. Then the writes can go into that same binding. In a space without it, the executor can do nothing.
+
+The design doc gives the reason as "`kubectl apply` reads the object before writing it". But the pipeline code merged the same day (suda5936's Render stage) doesn't use kubectl; it calls the k3s API directly with server-side apply. The premise of that sentence is wrong. The conclusion stands, because the rollout wait and Verify need reads.
+
+![The executor account's rights. Zero ClusterRoleBindings, two RoleBindings in proj-demo and student-template. In proj-demo only creating Deployments and Middlewares and reading Pods are yes; Secrets, logs and exec are no. In kube-system everything is no, and so is reading nodes](/static/images/woowangthon-12-deploy-executor/rights.svg)
+
+_Asked on the leader as the executor account (impersonation). The table below is `kubectl auth can-i` run per space and item_
+
+What is missing was chosen too.
+
+| Missing right                                          | Why                                                                                                    |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Reading or writing Secrets                             | The platform server writes student secrets. The executor only checks the key names the server recorded |
+| Pod logs, running commands in a Pod                    | The platform server reads logs. Exec would be a way to pull Secrets out of a space                     |
+| Creating Pods directly                                 | Deploys go through Deployments only                                                                    |
+| Namespaces, caps, blocking rules, bindings             | A compromised account must not be able to lift its own limits first                                    |
+| Traefik resources like IngressRoute (Middleware aside) | An Ingress is enough                                                                                   |
+
+The extra binding in `student-template` is for comparison. That is the reference space with [part 9](/en/blog/woowangthon/woowangthon-09-student-space/#1-what-goes-into-one-student-space)'s template applied as is, and the admission policies compare the bindings the platform server creates against the one there. As far as RBAC goes, though, the executor could write into that space. The first policy in the next section is what stops it.
+
+## 4. What rights can't stop, admission policies do
+
+RBAC only asks "may this account create this kind of object". It doesn't look inside. If you can create a Deployment, you can create one that lands on the leader. So admission policies (ValidatingAdmissionPolicy) filter the content. This time four were added or widened.
+
+| Policy                         | Passes when                                                                               | Applies to    |
+| ------------------------------ | ----------------------------------------------------------------------------------------- | ------------- |
+| `wanggane-deploy-executor`     | The executor account's writes and deletes are in spaces starting with `proj-`             | Executor      |
+| `wanggane-student-middlewares` | A Middleware in a `proj-` space has `stripPrefix` and nothing else in `spec`              | Every account |
+| `wanggane-student-services`    | A Service in a `proj-` space is of type ClusterIP and has no `externalIPs`                | Every account |
+| `wanggane-student-pods`        | On top of dropping `NET_RAW` and turning off the API token: no tolerations, no `nodeName` | Every account |
+
+"Every account" includes me, the operator. If I make one by mistake, it is refused too.
+
+The first policy is the second layer for cases like the reference space in section 3. Wherever a binding turns up by mistake, the executor still can't write outside `proj-`.
+
+The Middleware story started with an issue suda5936 opened ([woowangthon/WOOWANGTHON_TEAM_18#72](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/issues/72)). The deploy input has `stripPrefix`. If the public path is `/api`, a visitor's `/api/users` reaches the student backend as `/users`. An Ingress alone can't do that; it takes a Traefik Middleware, and the executor's rights had no Middleware. The issue asked for one of two answers: grant the right, or forbid `stripPrefix` and make student apps accept `/api` themselves.
+
+I chose to grant it. Student backends expect different paths (some `/api/usr`, some `/usr`), and each project has one hostname, so the backend can't move to a name of its own. In exchange, only `stripPrefix` gets through. A Middleware changes a request before it reaches the app. A redirect sends visitors elsewhere, and `forwardAuth` sends request headers to another server. A student space has no reason to make either.
+
+`NET_RAW` and the API token were already covered by a policy in [part 9](/en/blog/woowangthon/woowangthon-09-student-space/#1-what-goes-into-one-student-space). The other two, Services and tolerations / `nodeName`, each have a story.
+
+## 5. When a student Service claims the image cache's address
+
+I opened the PR ([woowangthon/WOOWANGTHON_TEAM_18#114](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/114)) and ran a self review (the agent's code review). It found nine things, and one of them was the biggest finding of this stage.
+
+The executor account may create Services. A Service has a field called `externalIPs`. Put an address there, and kube-proxy sends cluster traffic for that address and port to this Service's Pods. It doesn't care whose address it is. If a student Service lists `192.168.77.11:5000`, the address of [the leader's image cache](/en/blog/woowangthon/woowangthon-08-image-cache/#2-where-to-bind-the-cache), the requests the nodes send to pull images go to a student Pod.
+
+The review pointed this out, and a server-side dry run as the executor account went through. [Part 9's resource caps](/en/blog/woowangthon/woowangthon-09-student-space/#1-what-goes-into-one-student-space) only count NodePorts and LoadBalancers, so they never see this field. So I added a policy: a Service in a student space must be ClusterIP and must not have `externalIPs`. `ExternalName` (a Service that becomes an alias for any name) is blocked too.
+
+![Two refusals. The executor account tries a dry-run Service with externalIPs 192.168.77.11 and port 5000, and wanggane-student-services refuses it. The operator tries a Pod with nodeName k3s-leader, and wanggane-student-pods refuses it](/static/images/woowangthon-12-deploy-executor/refusals.svg)
+
+_Server-side dry runs sent again on the leader while writing this post. Neither creates anything_
+
+Kubernetes prints a warning as well: `externalIPs` is deprecated and "may no longer be implemented in some clusters". Deprecated is not the same as gone. Before the policy, the server printed the warning and accepted the object.
+
+The new policy changed another test. The NodePort refusal in the student space check now hits this policy before the cap. It is still refused, but for a different reason, so I updated that test's expectation.
+
+The PR was written by the agent that has been building this cluster with me, and the hole was found by the same agent's review. Even when one side writes and reviews alone, a separate review pass finds what writing missed. People work the same way.
+
+## 6. A taint can't stop a Pod that names its node
+
+The leader [has carried a taint since install](/en/blog/woowangthon/woowangthon-06-k3s-install/#1-what-i-fixed-before-installing), to keep student apps off it. But a `NoSchedule` taint only stops the scheduler from placing a Pod on that node. Two ways around it remain.
+
+- **A toleration**: a Pod that says "I tolerate this taint" can be placed on the leader by the scheduler.
+- **`nodeName`**: a Pod that names its node up front never goes through the scheduler. The leader's kubelet just runs it.
+
+The leader holds the k3s API, the image cache, the local model and this very executor. So the student Pod policy refuses both. The second half of the image above is a Pod with `nodeName: k3s-leader`. It is refused even from the operator account.
+
+There are two exceptions. Kubernetes adds two tolerations (`not-ready` and `unreachable`, both `NoExecute`) to every Pod by itself. They set how long a Pod waits before being moved off a lost node. Blocking those would refuse every Pod, so they pass.
+
+The policy checks Deployments as well as Pods. If it only checked Pods, the executor's Deployment would be accepted and the refusal would only show up as an event on the ReplicaSet that creates the Pods. The executor should get the refusal the moment it applies, so it learns about the failure quickly.
+
+## 7. Verify goes through Traefik
+
+The Verify stage checks that the app in the new slot actually answers. A student space [only accepts connections from its own space and from Traefik](/en/blog/woowangthon/woowangthon-09-student-space/#1-what-goes-into-one-student-space). The executor can't reach a student Service directly. So it puts the target slot's test hostname in the Host header and asks the workers' Traefik, the same way a visitor comes in. `stripPrefix` gets checked on that path as well.
+
+The check script (`Infra/executor/check.sh`) creates a test space, deploys the example app there for real as the executor account, and then sends requests through Traefik.
+
+![The first part of check.sh. As the executor account: dry run, apply, rollout wait and reads pass. /readyz through Traefik 200, /svc/readyz with stripPrefix 200, logs and exec refused, /svc/readyz 404 once the Middleware is removed, scaling to 0 and deleting pass](/static/images/woowangthon-12-deploy-executor/check-deploy.svg)
+
+_The example app serves `/readyz`. A 200 on `/svc/readyz` means the prefix was stripped. Without the Middleware the same path is 404_
+
+The test space's name tripped me up once. [Following what I learned in part 10](/en/blog/woowangthon/woowangthon-10-public-entry/#the-test-namespace-proj-check), I named it `proj--exec`, which no student name can produce, since a student name can't start with a hyphen. But an Ingress points at a Middleware as `<space>-<Middleware name>@kubernetescrd`, and Traefik (3.7.15) collapses repeated hyphens in that name. In `proj--exec`, the Middleware `web-strip` is `proj-exec-web-strip` inside Traefik. An annotation written with the space name as is points at nothing, and the whole Ingress answers 404.
+
+I renamed the test space to something longer than the longest student name (40 characters): `proj-check-of-the-deploy-executor-not-a-student-space`. It can't collide with a student name, and it has no double hyphen. The chart now writes the annotation with the collapsed name.
+
+## 8. The executor Pod: no image of our own
+
+After the account was in, I wrote the executor Pod manifest (`Infra/executor/agent.yaml`) later the same night. These are the choices.
+
+| Choice                                                         | Why                                                                                                                              |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| The official GoCD agent image `gocd-agent-debian-12:v26.1.0`   | It has to match the GoCD server's version. No answer came on the server version (26.1.0) and port (8153), so I set them          |
+| `node` 24.15.0 and `helm` 3.22.1 brought in by init containers | Copied from their official images into a shared volume. We build and store no image, so the leader holds no registry token       |
+| No `kubectl`, no `aws`                                         | The pipeline calls the k3s API directly. Build belongs to the AWS executor, so a school PC has no reason to hold AWS credentials |
+| The token is passed only as a file path                        | Only paths like `KUBE_TOKEN_FILE` sit in env. The token value never lands in env or a job log                                    |
+| Rollout strategy `Recreate`                                    | One agent, one identity. The old Pod stops before the new one registers                                                          |
+| Server URL and register key in the leader Secret `gocd-agent`  | Never in the repo or a chat. Without the Secret the Pod won't start (`CreateContainerConfigError`). That is the intended failure |
+
+`aws` was in the original plan. The plan said "an image with node · helm · aws", but while writing the manifest the agent saw that this contradicted the deploy design, where Build runs on AWS, and left it out. It then told me separately that it had deviated from the plan. It was the right call, so it stayed.
+
+Egress is pinned down by a NetworkPolicy: cluster DNS, the leader API (6443), Traefik's Pods (8000, for Verify), the GoCD port (8153) in the tailnet range, and 443 on the internet minus private ranges (the pipeline fetches git). I learned with cloudflared that [the leader's firewall can't stop a Pod's traffic](/en/blog/woowangthon/woowangthon-10-public-entry/#the-leaders-firewall-doesnt-stop-cloudflared), so this time the Pod-side rule came first. Even a hijacked job can't reach the kubelets, the image cache, the local model, the node range or the school network.
+
+## 9. Testing without the server
+
+With no GoCD server, starting the agent would leave it with nowhere to register. Instead I added a check script (`Infra/executor/agent-check.sh`). It takes the Pod template from the manifest as is (same node, account, security settings, tools and env), swaps the agent for a test command, starts that throwaway Pod under the same NetworkPolicy, and deletes it at the end.
+
+The first time it didn't even run. The agent's auto-approval check blocked the command that starts a temporary Pod on the leader. The agent didn't route around it; it stopped, wrote down what it wanted to do and why, and asked me. I told it to go ahead.
+
+The second time, the script crashed.
+
+![agent-check.sh twice. The first run fails in JSON.parse with a SyntaxError, a non-whitespace character after JSON at position 3380 (line 118, column 1), and can't create the check Pod. The second runs on the leader: node v24.15.0, helm v3.22.1, git 2.39.5, not root, Deployments readable with the executor token 200, Traefik 200, public HTTPS 200, Secrets and kube-system 403, image cache, local model, kubelet and plain HTTP 000. ALL PASS](/static/images/woowangthon-12-deploy-executor/agent-check.svg)
+
+_Two runs on the operator's machine on November 11. Part of the Node stack trace in the first is cut. 000 means no connection at all_
+
+The script feeds the manifest to `kubectl create --dry-run=client -o json`, reads the JSON, and builds the check Pod from it. The file holds two objects (a NetworkPolicy and a Deployment). The agent guessed kubectl would wrap them in one List and read `.items`. In fact it prints the two objects one after the other. At line 118, where the first object ends, the second `{` appears and the JSON parser stops. I changed it to split the output into objects before parsing, and on the next run all 15 checks passed.
+
+Both the passes and the refusals mean something. The tools arrived through the init containers, the executor token reads the student space, and Traefik and public HTTPS are reachable. Secrets and `kube-system` are 403, and the image cache, the local model, a worker's kubelet and plain HTTP can't even be connected to.
+
+The account check (`check.sh`) has 63 checks. When I ran it again for this post, the first run printed one FAIL because an SSH connection was reset once; the second run passed all 63. Its last part covers the policies from sections 4 to 6.
+
+![The last part of check.sh. The Middleware rule (redirectScheme, forwardAuth, plugin, stripPrefixRegex, stripPrefix mixed with something else and an empty spec are refused, also for the operator; stripPrefix alone passes), the Service rule (externalIPs and ExternalName refused, also for the operator; ClusterIP passes), the Pod rules (tolerations of the leader taint or of every taint, nodeName and the API token refused), the proj-demo app still running. ALL PASS](/static/images/woowangthon-12-deploy-executor/check-rules.svg)
+
+_2026-11-12, the second run. Refusal tests that aim at real objects are sent as server-side dry runs_
+
+## 10. What nobody has seen yet
+
+The executor Pod is merged but not on the leader. The EC2 that will hold the GoCD server doesn't exist yet. So none of this has been checked:
+
+- whether the GoCD agent process actually starts with these settings (env, user, volumes)
+- whether it registers with the server using the auto-register key, and whether deploy jobs that ask for the resource `leader` go only to this agent
+- the path from the Pod to the GoCD port (8153) on the private network. The NetworkPolicy opens 8153 in the tailnet range, but nobody has seen that traffic ride the leader's Tailscale all the way to the EC2. The tailnet access rule (leader → EC2 on 8153) is, per the design doc, only in the repo file and not yet in the admin console
+- whether a test pipeline deploys to `proj-demo` and passes Verify
+
+The account was tested on the real cluster as the executor account (impersonation), and the Pod template was tested with a throwaway Pod of the same shape. The real executor, both put together, will be seen for the first time on the day the EC2 exists, when one Secret goes in and the manifest is applied.
+
+## 11. Wrap-up
+
+| What happened                                                      | What I learned                                                                                                                           |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| The executor almost got cluster-wide rights                        | If reads must be granted per space, put the writes in the same binding. A space without it gives the account nothing                     |
+| The stated reason assumed `kubectl apply`; the code called the API | When the premise behind a decision changes, fix the sentence too. The conclusion can be right with the reason wrong                      |
+| A student Service could claim the image cache's address            | If someone may create Services in a namespace, block `externalIPs` first. Resource caps don't look at it                                 |
+| I assumed the leader taint kept student Pods off                   | A `NoSchedule` taint stops neither a toleration nor a `nodeName` that skips the scheduler                                                |
+| A test space named with a double hyphen made the whole Ingress 404 | Traefik collapses repeated hyphens in Middleware names. I avoided it with length instead                                                 |
+| I expected to build our own executor image                         | Put official tools on the official image with init containers, and there is no image to store and no registry token                      |
+| I expected kubectl to give JSON as a list                          | `--dry-run=client -o json` prints several objects back to back. Split before parsing                                                     |
+| The agent dropped `aws`, which was in the plan                     | When you deviate from the plan, say so separately afterwards, so a person can check it                                                   |
+| No server, so the executor couldn't start                          | Check tools, rights and paths first with a throwaway Pod of the same template. What's left narrowed to registration and the tailnet path |
+
+The account PR was merged with the team lead's (TaeTaeJin) approval, and the Pod manifest PR ([woowangthon/WOOWANGTHON_TEAM_18#132](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/132)) was merged later that night. That is as far as the cluster side of stage 6 can go. The rest moves when the EC2 exists. In the meantime I moved on to stage 7, monitoring ([part 13](/en/blog/woowangthon/woowangthon-13-metrics/)).

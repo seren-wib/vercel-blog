@@ -84,6 +84,7 @@
     "woowangthon/woowangthon-09-student-space",
     "woowangthon/woowangthon-10-public-entry",
     "woowangthon/woowangthon-11-server-link",
+    "woowangthon/woowangthon-12-deploy-executor",
     "woowangthon/woowangthon-13-metrics"
   ],
   "en": [
@@ -171,6 +172,7 @@
     "woowangthon/woowangthon-09-student-space",
     "woowangthon/woowangthon-10-public-entry",
     "woowangthon/woowangthon-11-server-link",
+    "woowangthon/woowangthon-12-deploy-executor",
     "woowangthon/woowangthon-13-metrics"
   ]
 }

@@ -1,0 +1,187 @@
+---
+title: 'Woowangthon 14. The Day Connection Refused Was Good News'
+date: '2026-11-12'
+tags: ['Woowangthon']
+draft: false
+summary: 'The end of build 09, the day the EC2 for the platform server appeared. An instance type that differs from the plan, an EC2 with no SSH, joining the tailnet by approval with no key, access rules read through "connection refused" and "timed out", a 401 seen from inside a container, 18 server-account checks run from the EC2 and their response time, a commit missing from a merged PR, the api. address going from 530 to 200, and the leader called through the server''s own code, with a first test that was wrong'
+---
+
+> Part 14 of the series. Build stage 6 (connecting to the outside), the end of build 09: November 12, the day the EC2 for the platform server appeared. What we are building and why is in [Woowangthon 0](/en/blog/woowangthon/woowangthon-00-overview/). The cluster side was ready in [part 11](/en/blog/woowangthon/woowangthon-11-server-link/), and this post crosses off that post's [last list](/en/blog/woowangthon/woowangthon-11-server-link/#9-what-stays-unchecked-without-the-ec2). The GoCD server and the leader executor's registration that afternoon get their own post, part 15.
+
+## In one line
+
+The EC2 joined the tailnet with no key, through an admin's approval. From the leader, the EC2's GoCD port answered "connection refused", and the paths we had closed timed out. On the tailnet, refused means open. Eighteen checks calling the leader API from the EC2 with the server account passed, at about 0.1 s per response. In the evening we called the leader through the server's own code, and the first try failed with a certificate error. The server was fine. The test was wrong.
+
+## 1. An EC2 that differs from the plan
+
+The EC2 was made by our team lead TaeTaeJin, who owns it. One thing differs from what the November 11 meeting settled.
+
+| Item              | Settled                                           | Actual                                                         |
+| ----------------- | ------------------------------------------------- | -------------------------------------------------------------- |
+| Instance type     | t3.large                                          | m7i-flex.large (same 8 GB of memory)                           |
+| OS · region       | Amazon Linux 2023, Seoul                          | Same                                                           |
+| Inbound rules     | None                                              | None (the security group has no inbound rule at all)           |
+| Instance metadata | IMDSv2, hop limit 1                               | Same                                                           |
+| Permissions       | An instance role that reads the server's settings | Same (the server settings and tunnel token in Parameter Store) |
+| Operator access   | SSM Session Manager                               | Same. No SSH                                                   |
+
+t3.large failed because of the AWS account. It could only launch free-tier instance types, and the t3.large request was refused. We took m7i-flex.large from the free-tier list because it has the same memory. The plan puts the server, the AI server and the GoCD server on this one machine, so less memory would have hurt. It is still 8 GB.
+
+No SSH is a condition that follows this whole post. The only way into the EC2 is AWS SSM. People come in through the Session Manager window in the console, and the agent sends commands through SSM's Run Command (`aws ssm send-command`). With no inbound port at all, there are no SSH keys to manage and nobody knocking on port 22.
+
+## 2. Joining the tailnet with no key
+
+In part 11 I wrote that "the one-time join key will be made on the day there is a device to use it, and used right away." In the end we made no key at all.
+
+This is the command Run Command sent to the EC2.
+
+```bash
+tailscale up --hostname wcp-platform --advertise-tags=tag:platform-server
+```
+
+Without a key, Tailscale prints a login URL and waits. I am the tailnet admin, so I opened that URL in the browser and approved it, and the EC2 came in carrying `tag:platform-server`. Who may apply a tag is set by `tagOwners` in the [access rule file](/en/blog/woowangthon/woowangthon-11-server-link/#8-private-network-access-rules). Here that is admins only, so one approval also declares "this device is the server".
+
+Making no key was the cleanest choice of this step. Even a one-time key gets written down somewhere at least once, and afterwards someone has to check that it was revoked. An approval ends on the spot and leaves no secret behind. There is nothing to delete later.
+
+With no inbound rule at all, the path still turned direct quickly. The security group lets in the replies to packets that went out, and Tailscale opens a path by having both sides send UDP first. The EC2 having a public address probably helps too. Compare the path between the school PCs and my devices, which [still goes through the Tokyo relay](/en/blog/woowangthon/woowangthon-04-remote-access/#a-relay-not-a-direct-connection).
+
+## 3. Why "connection refused" was good news
+
+The leader → EC2 `:8153` rule had been in the file since November 11 (it is how [part 12](/en/blog/woowangthon/woowangthon-12-deploy-executor/)'s deploy executor fetches work from the GoCD server). On the day the EC2 joined, it went into the admin console, with two more tests, and was saved.
+
+```text
+{
+	"src": "k3s-leader",
+	"accept": ["tag:platform-server:8153"],
+	"deny": ["tag:platform-server:22", "operator-desktop:22"],
+},
+{
+	"src": "k3s-w1",
+	"deny": ["operator-desktop:22", "operator-laptop:22", "k3s-leader:22", "tag:platform-server:8153"],
+},
+```
+
+The tests inside the policy only check the rules as text. So after saving, we probed the real paths.
+
+| From → to                                | Result             |
+| ---------------------------------------- | ------------------ |
+| leader → EC2 `:8153`                     | Connection refused |
+| EC2 → leader `:6443`                     | `401`              |
+| EC2 → leader `:22`, w1 `:22`, w2 `:6443` | Timed out          |
+| leader → EC2 `:22`, w1 → EC2 `:8153`     | Timed out          |
+
+The first row is the title of this post. From the leader, the connection to the EC2's 8153 was **refused**. At that moment there was no GoCD on the EC2 yet. Refused means the packet reached the EC2 and came back with "nothing is listening on that port". The path is open. Every path we had closed, on the other hand, **timed out**. Tailscale's access rules silently drop what they do not allow.
+
+[Part 8](/en/blog/woowangthon/woowangthon-08-image-cache/#6-what-the-reviewer-ai-caught-refused-vs-no-answer)'s lesson, "refused is not the same as no answer", came back here, but with the meaning flipped. In [part 9](/en/blog/woowangthon/woowangthon-09-student-space/#5-how-do-you-know-its-blocked)'s student spaces, the network policy (kube-router) sent a refusal back. There, refused meant "blocked". On the tailnet, refused means "open", and blocked is no answer. The same refusal can only be read once you know who is doing the blocking. Had the results been written down in two columns, "reaches / doesn't", the first row would have read as a failure.
+
+While writing this post in the evening I probed the same paths again. The GoCD server came up in between, so 8153 now answers.
+
+![From the leader, the EC2's 8153 gives health OK and 22 times out after 5 seconds; from w1, the EC2's 8153 also times out; tailscale ping goes direct to the EC2's public address in 5 ms](/static/images/woowangthon-14-ec2-joins/reach.svg)
+
+_`$EC2` is the EC2's tailnet address. Addresses are masked_
+
+## 4. A 401 seen from inside a container
+
+The other way, from the EC2 to the leader API, gave `401`. We called it with no token, so Kubernetes sent us back with "who are you". A 401 means TLS was set up and the API server itself answered, which makes it the best possible answer for a path check.
+
+We saw this **from inside a Docker container**, not from the EC2 host. The server runs as a container. Reaching the leader from the host does not promise the same from a container. A container's packets pass through Docker's network once before they leave through the host's Tailscale.
+
+Two things got in the way. Through Session Manager the shell user is `ssm-user`, so Docker needed `sudo`. And when the agent tried to send the Docker command through Run Command, the session's safety classifier blocked it: it counted as sending shell writes to a remote machine. I typed this check into the console's Session Manager window myself.
+
+## 5. The server-account checks from the EC2
+
+Part 11's server-account checks called the leader from my desktop with the real token. The rights are the same, but the starting point is not. So we ran them once more from the EC2.
+
+The script runs on the EC2. It uses the instance role to read the server's settings from Parameter Store (`/wcp/be/K8S_*`: the leader address, CA and token, put there in advance on November 11) and calls the leader's tailnet address directly. These are exactly the values the server will use. The token stays in a shell variable and goes to curl on standard input. Every write is a server dry run, so nothing is left in the cluster.
+
+```bash
+api() { # api <token> <method> <path> [body] [content type] -> HTTP status
+  printf 'header = "Authorization: Bearer %s"\n' "$1" | curl -s -K - -o /dev/null -m 10 -w '%{http_code}' --cacert "$CA" -H "Content-Type: ${5:-application/json}" -X "$2" ${4:+-d "$4"} "$URL$3"
+}
+```
+
+This also went through Run Command, and all 18 got the answer we expected.
+
+| Allowed (7)                                        | Refused (11)                                            |
+| -------------------------------------------------- | ------------------------------------------------------- |
+| Read nodes `200`                                   | A space not named `proj-`, a space without labels `422` |
+| Create a `proj-` space `201`                       | Read Secrets in `proj-demo` `403`                       |
+| Write a Secret whose name ends in `-secrets` `201` | Write a Secret outside `proj-` (`vllm`) `422`           |
+| Read Pods in `proj-demo` `200`                     | Read · stop Pods in `vllm` `403`                        |
+| Read Deployments in `proj-demo` `200`              | List all namespaces `403`                               |
+| Stop `proj-demo` (replicas 0) `200`                | Replicas 2 `422`                                        |
+| Read node usage `200`                              | Delete `vllm` `422`, wrong token `401`                  |
+
+The row to look at is the Secret write outside `proj-`. The answer is `422`, not `403`. The server account holds Secret create rights across the whole cluster ([part 11](/en/blog/woowangthon/woowangthon-11-server-link/#2-rbac-cannot-filter-by-name)), so the rights let it through and the admission policy stops it. That makes this row proof that the policy is on right now. Run the check on a day the policy is off, and the dry run passes with `201` and the check fails. Nothing gets deleted.
+
+We timed it too. Ten node reads averaged about 0.1 s, the slowest 0.29 s. During the measurement the path switched from the Tokyo relay (DERP) to a direct connection. The design doc lists "the relay makes server → leader API calls slow" as a known limit. At least on this day, that worry did not apply.
+
+## 6. A commit missing from a merged PR
+
+The results went into the team repo. The tailnet rule and the path checks went up as [woowangthon/WOOWANGTHON_TEAM_18#154](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/154), and the EC2 check results as one more commit on the same branch.
+
+But #154 had already been merged before that commit went up. A merge takes the branch only up to its head at that moment. The later commit stayed on the branch and never reached `main`. The PR page already said "Merged", so from the outside everything looked done. The same commit went up separately as [woowangthon/WOOWANGTHON_TEAM_18#155](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/155) and went in 17 minutes after #154's merge.
+
+Push every commit before the merge. After the merge, check that the line is on `main`. Obvious, and still easy to get wrong when work keeps going while a PR waits for review.
+
+## 7. The api. address went from 530 to 200
+
+In [part 10](/en/blog/woowangthon/woowangthon-10-public-entry/#9-server-addresses-on-the-same-domain) we set the server's address to `api.stairnoworks.com` and made its tunnel before the EC2 existed. Until now the address returned `530`. That is Cloudflare saying no connector is attached to the tunnel, the same number we saw [when we cut the leader's internet](/en/blog/woowangthon/woowangthon-10-public-entry/#7-cutting-the-leaders-internet-502-then-530).
+
+Once the connector was up on the EC2 and the server came up, `/api/health` turned `200`. This address's tunnel is separate from the one for student apps. The leader's tunnel sends visitors to the school, and the EC2's tunnel sends platform users to the server. Neither opens an inbound port.
+
+## 8. The leader through the server's own code, and a first test that was wrong
+
+Section 5's checks are curl. What actually calls the leader is the server code's cluster client module. In the evening we looked at that last. Inside the server container (`wcp-be`), we called it in the same order the built server code does. The environment check (`validateEnv`) reads the settings, the client (`K8sClient`) is built, and the read module (`ClusterReader`) makes the calls. The settings are the container's own environment variables.
+
+| Called                            | Result                   |
+| --------------------------------- | ------------------------ |
+| Node list                         | Three Ready, about 80 ms |
+| Deployments in `proj-demo`        | One, `web`, about 20 ms  |
+| A space the server did not create | `403`                    |
+
+The last row is [part 11's narrowed reads](/en/blog/woowangthon/woowangthon-11-server-link/#4-admission-policies-dont-see-reads) as written. A space without the binding gives `403`, not `404`.
+
+These results came from the second try. The first one failed like this.
+
+```text
+SELF_SIGNED_CERT_IN_CHAIN
+```
+
+It means the server did not trust the leader's certificate. Reported as is, this would have become "the server's cluster connection has a certificate bug". The cause was on the test side. On the first try the agent skipped `validateEnv` and handed the environment values to the client directly. The leader's CA sits in the environment as one line of base64, and decoding it into PEM is `validateEnv`'s job. Given raw base64, the client did not recognize the CA and rejected the leader's self-signed certificate chain. Called through the app's own config parsing, it passed right away.
+
+When you test the server, put the way the server reads its settings into the test. A test that skips it measures the test, not the server.
+
+This one, too, was meant to go into Docker through Run Command, was blocked by the classifier as in section 4, and was run in the console's Session Manager window in my browser.
+
+The theme of this contest is "Can AI be a colleague?". On this day the agent did both. It read "connection refused" correctly as "open", and its own test shortcut nearly made us suspect a working server. What separated the two was reading each result together with the path it came from: who the refusal came from, which line of the server code the failure came from. A colleague's result is only as trustworthy as the path it took. The same goes for a person's.
+
+## 9. Part 11's list, now
+
+[Part 11, section 9](/en/blog/woowangthon/woowangthon-11-server-link/#9-what-stays-unchecked-without-the-ec2) listed "what stays unchecked without the EC2". Most of it was crossed off in one day.
+
+| Left in part 11                                                        | November 12                                                         |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Does the EC2 join the tailnet with the server tag                      | It did. No key, by admin approval (section 2)                       |
+| Does the server tag open only the leader's `:6443`                     | `6443` gives `401`; leader SSH and the workers time out (section 3) |
+| Does the security group block Tailscale's outbound connections         | It doesn't. Even the direct path works (section 2)                  |
+| Does the server verify the leader's certificate against the cluster CA | Both curl and the server code did (sections 5 and 8)                |
+| Putting the token in the EC2's secret settings                         | In Parameter Store a day before the EC2 existed (section 5)         |
+| The path from the leader to the EC2's `:8153`                          | Open. Refused that morning, GoCD answers in the evening (section 3) |
+| The server code's real stop · resume · restart calls                   | Not yet. Through the server code we have only seen reads            |
+
+The last row, and the end-to-end deploy test (pressing deploy on the platform and having the leader executor put an app into a student space), went to the EC2 owner. It runs after the AI owner's work is done.
+
+## 10. Wrap-up
+
+| What happened                                        | What we learned                                                                                                |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| The planned instance type was refused by the account | Write the condition (8 GB of memory) into the plan, not the type. If the condition holds, another type is fine |
+| We meant to use a one-time key                       | With an admin approval no key is needed. Pick the option that leaves no secret behind                          |
+| A path we had opened answered "connection refused"   | On the tailnet, refused means open and no answer means blocked. Know who blocks before you read the result     |
+| We checked the path from a container, not the host   | Check from where the server runs. Reaching from the host and from a container are different things             |
+| A Secret write outside `proj-` gave 422, not 403     | A check passes only if the right layer refused. That row becomes proof that the policy is on                   |
+| A commit pushed later was missing from a merged PR   | Push everything before the merge, and check `main` after it                                                    |
+| The server-code test failed with a certificate error | Tests go through the app's own config parsing. A test that takes a shortcut measures itself                    |
+
+That closes build 09. The server account was made in part 11, and on this day we saw it used from the real server's seat by the real server code. The same afternoon, a GoCD server came up on the EC2 and the leader's deploy executor registered with it. That story is the next post.

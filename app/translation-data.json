@@ -85,7 +85,8 @@
     "woowangthon/woowangthon-10-public-entry",
     "woowangthon/woowangthon-11-server-link",
     "woowangthon/woowangthon-12-deploy-executor",
-    "woowangthon/woowangthon-13-metrics"
+    "woowangthon/woowangthon-13-metrics",
+    "woowangthon/woowangthon-14-ec2-joins"
   ],
   "en": [
     "ai/ai-05-03-deep-learning",
@@ -173,6 +174,7 @@
     "woowangthon/woowangthon-10-public-entry",
     "woowangthon/woowangthon-11-server-link",
     "woowangthon/woowangthon-12-deploy-executor",
-    "woowangthon/woowangthon-13-metrics"
+    "woowangthon/woowangthon-13-metrics",
+    "woowangthon/woowangthon-14-ec2-joins"
   ]
 }

@@ -1,0 +1,145 @@
+---
+title: 'Woowangthon 15. Not Broken, Just Slow'
+date: '2026-11-12'
+tags: ['Woowangthon']
+draft: false
+summary: "Build stage 6, the day the leader's deploy executor met the GoCD server (the end of build 09′). GoCD 26.1.0 open on the tailnet address only, Secret keys that were two in the manifest header and three in practice, moving values from Parameter Store into a leader Secret without printing them, checking for a trailing newline through base64 lengths and the case lengths can't catch, a first registration 6.5 minutes after Running (agent.jar and plugins over a Tokyo relay path), the Agents API seen through the leader, and a deploy pipeline that has not run once"
+---
+
+> Part 15 of the series. The story of the afternoon of November 12, when the deploy executor on the leader registered with the GoCD server on the EC2, part of build stage 6 (connecting to the outside). The EC2 joining the private network earlier that day is in [part 14](/en/blog/woowangthon/woowangthon-14-ec2-joins/), the executor account and the Pod manifest are in [part 12](/en/blog/woowangthon/woowangthon-12-deploy-executor/), and the big picture is in [Woowangthon 0](/en/blog/woowangthon/woowangthon-00-overview/).
+
+## In one line
+
+The GoCD server came up on the EC2, and I applied the leader's executor Pod and got it registered. Two things caught. One was the key list in the manifest header. The header, written before the server existed, listed two keys, but the deploy job script that arrived in the meantime used a third. The other was the first boot. The Pod was Running almost at once, but registration came 6.5 minutes later. The executor downloads its main program and plugins from the server, and the tailnet path was going through a relay in Tokyo. It was not broken, just slow. The real deploy pipeline has not run once yet.
+
+## 1. The server is up
+
+[Part 12](/en/blog/woowangthon/woowangthon-12-deploy-executor/#10-what-nobody-has-seen-yet) ended with "the EC2 for the GoCD server doesn't exist yet". Around 3:48 PM on November 12, TaeTaeJin, who owns the EC2, started GoCD server 26.1.0 and the platform server on it. The version and the port (8153) were values I had picked in part 12 when no answer came, and the server came up matching them. Earlier in [part 14](/en/blog/woowangthon/woowangthon-14-ec2-joins/#3-why-connection-refused-was-good-news), the leader → EC2 8153 got connection refused because the path was open but no server was there to answer yet. Now there is one.
+
+The GoCD port is open only on the EC2's tailnet (Tailscale) address. The setup script binds it to `127.0.0.1` first and moves it to the tailnet address once setup is done. I checked from both sides.
+
+| From                        | What                                         | Result        |
+| --------------------------- | -------------------------------------------- | ------------- |
+| Leader host                 | `/go/api/version` on the tailnet address     | 26.1.0        |
+| Leader host                 | health on the tailnet address                | OK            |
+| Internet (operator desktop) | 8153 and 3000 (server) on the public address | both time out |
+
+Neither GoCD nor the platform server is visible from the internet. The platform server goes out only through a Cloudflare tunnel, the same way as [the visitor address in part 10](/en/blog/woowangthon/woowangthon-10-public-entry/).
+
+## 2. Not two keys, three
+
+TaeTaeJin, who started the server, sent a request: create the Secret `gocd-agent` on the leader and apply the executor. The request said there were three keys.
+
+The manifest header listed two: the GoCD server address (`GO_SERVER_URL`) and the auto-register key (`AGENT_AUTO_REGISTER_KEY`). Those two are all the executor needs to reach the server. The third, `PIPELINE_NOTIFY_TOKEN`, is used by the deploy job script (`Infra/gocd/job.sh`). Each time a stage ends, the script reports the result to the platform server, and this is the token it shows.
+
+The header was written on November 11, from the plan, when there was no server. The job script came in the next day in a server-side PR. In between, the key list drifted from the code. I worked out what would have happened with only the two keys from the header. The manifest reads the whole Secret into env (`envFrom`). With a key missing, the Pod still starts and still registers. Then, on the first deploy, as soon as a stage ended and the job script tried to report it, it would have failed for lack of a token. Since registration works fine, nobody would notice before then.
+
+The values live in AWS Parameter Store under `/wcp/gocd/`. The GoCD setup script also leaves the same three lines in a `leader-agent.env` file on the EC2. Only the server address has no stored source, so I wrote the EC2's tailnet address directly. It is an address, not a name, because the Pod uses cluster DNS, and cluster DNS does not know tailnet device names.
+
+## 3. Making the Secret without showing it
+
+In [part 11](/en/blog/woowangthon/woowangthon-11-server-link/#9-what-stays-unchecked-without-the-ec2) I listed "on the day the token moves, does it move without being printed" as an open item. This was that day. The flow looks like this.
+
+```bash
+v() { aws ssm get-parameter --name "/wcp/gocd/$1" --with-decryption \
+        --query Parameter.Value --output text | tr -d '\r\n'; }
+{ printf 'GO_SERVER_URL=%s\n' 'http://<EC2 tailnet address>:8153/go'
+  printf 'AGENT_AUTO_REGISTER_KEY=%s\n' "$(v AGENT_AUTO_REGISTER_KEY)"
+  printf 'PIPELINE_NOTIFY_TOKEN=%s\n' "$(v PIPELINE_NOTIFY_TOKEN)"
+} | ssh k3s-leader 'sudo k3s kubectl -n deploy create secret generic gocd-agent --from-env-file=/dev/stdin'
+```
+
+The values come out of Parameter Store and flow only through pipes, and kubectl on the leader reads them from standard input. They never land on the screen, on a command line or in a file.
+
+The `tr -d '\r\n'` is there because the operator machine runs Windows. The Windows `aws` can add a CR at the end of its output. With one CR at the end, both the register key and the token differ from what the server knows by one character. It's an invisible character, so it only shows up as "wrong key", and the cause is hard to find.
+
+I checked for a trailing newline without looking at the values. A Secret stores its values in base64, so I looked only at the lengths.
+
+![The Pod and Secret in the deploy namespace. One deploy-executor Pod Running, 0 restarts. Secret gocd-agent with 3 keys. Base64 length per key: AGENT_AUTO_REGISTER_KEY 48, GO_SERVER_URL 36, PIPELINE_NOTIFY_TOKEN 88](/static/images/woowangthon-15-gocd-registration/secret.svg)
+
+_Checked again on the leader while writing this post. No values, only key names and base64 lengths_
+
+| Key                       | Raw length | Base64 length | With one more character |
+| ------------------------- | ---------- | ------------- | ----------------------- |
+| `GO_SERVER_URL`           | 27         | 36            | 40                      |
+| `AGENT_AUTO_REGISTER_KEY` | 36         | 48            | 52                      |
+| `PIPELINE_NOTIFY_TOKEN`   | 64         | 88            | 88                      |
+
+Base64 turns 3 bytes into 4 characters. 27 and 36 are multiples of 3, so a single extra byte adds 4 to the length. The token, though, is 64 bytes. 64 and 65 both become 88 characters (only the number of `=` at the end differs). Length alone can't catch a newline at the end of the token. While writing this post I decoded the three values on the leader and counted only the CR and LF characters. All three had zero.
+
+## 4. Running, but not on the list
+
+After the Secret came the apply.
+
+```bash
+ssh k3s-leader 'sudo k3s kubectl apply -f -' < Infra/executor/agent.yaml
+```
+
+At 4:23 PM the Pod was Running almost at once. [The init containers from part 12](/en/blog/woowangthon/woowangthon-12-deploy-executor/#8-the-executor-pod-no-image-of-our-own) put node and helm in place and the executor started. But minutes later it still hadn't appeared in GoCD's agent list. Running without registering looks like a blocked path or a wrong key.
+
+The log said it was neither.
+
+![The executor's log. At 16:23 (07:23 UTC in the log) the launcher starts and begins downloading agent.jar. It finishes 268332 ms later; the plugin bundle takes 34 ms and tfs-impl.jar 122027 ms. 391977 ms after first boot it launches the agent, and six registration lines follow within a second: This agent is now approved by the server, Successfully registered agent](/static/images/woowangthon-15-gocd-registration/first-boot.svg)
+
+_The log inside the executor Pod. Times are UTC; add 9 hours for Korean time. Class names at the start of lines and md5 values are cut_
+
+The GoCD agent image doesn't contain the agent itself. The program that starts first (the launcher) downloads `agent.jar` (about 27 MB) and the plugins from the server, and only then starts the agent. That download took 6.5 minutes: 4 min 28 s for `agent.jar` alone and 2 minutes for one plugin, `tfs-impl.jar`. The server itself answered 0.1 seconds after the request (`Got server response`). The path was open. It was just slow.
+
+The tailnet path was the reason. The leader wasn't reaching the EC2 directly but through Tailscale's relay server (DERP) in Tokyo. It's the same shape as [the relay between the school PCs and my devices in part 4](/en/blog/woowangthon/woowangthon-04-remote-access/#a-relay-not-a-direct-connection). Back then I wrote that I'd measure the platform server's latency again in stage 6, and this is how it got measured. A curl from the leader host to the same server got 5.5 MB in 60 seconds, a little over 90 KB per second. A path you don't notice for a few commands turns into four minutes in front of 27 MB.
+
+Once the download finished and the agent started, registration took under a second: it showed the auto-register key, the server approved it, and it fetched its registration. Right after registration the path switched to a direct connection. Today a `tailscale ping` from the leader to the EC2 answers in 5 ms with no relay (figure in section 5). I don't know why the relay stuck around just then. Tailscale starts on a relay and moves once it finds a direct path, and this time that seems to have taken a while.
+
+One more thing follows. The executor's working folder is an `emptyDir`. [Part 12](/en/blog/woowangthon/woowangthon-12-deploy-executor/#8-the-executor-pod-no-image-of-our-own) did that on purpose, treating one deploy as one pipeline run. It also means that every time the Pod restarts, it downloads the 27 MB and the plugins from scratch. If the path goes through the relay again, that's another 6.5 minutes. So the executor Pod does not get restarted right before a demo. The manifest header says so too.
+
+## 5. Checking registration through the leader
+
+Registration shows up in GoCD's Agents API. But the operator desktop can't reach 8153. [The tailnet access rules from part 11](/en/blog/woowangthon/woowangthon-11-server-link/#8-private-network-access-rules) open the EC2's 8153 to the leader only. I didn't widen that rule to make my own checks easier.
+
+So I went through the leader. The GoCD admin password is in Parameter Store too. I read it on the desktop, passed it over SSH's standard input, and had curl on the leader read it from standard input instead of a config file (`curl -K -`). The password doesn't land on the leader's command line (where `ps` would show it) or on disk. The server address came from the Secret I had just made on the leader.
+
+![The Agents API called from the operator desktop through the leader. k3s-leader-executor with resource leader, Enabled, Idle, 26.1.0. Next to it wcp-aws-agent with resource aws, Enabled, Idle. tailscale ping from the leader to the EC2 is direct, 5 ms. 8153 and 3000 on the EC2's public address time out after 8 seconds](/static/images/woowangthon-15-gocd-registration/agents.svg)
+
+_Called again while writing this post. Only the name, resource, state and version are pulled out of the Agents API JSON. Addresses are masked_
+
+There are two agents. `wcp-aws-agent` runs on the EC2 with the resource `aws`; it handles the Build stage, which builds images from student repos. `k3s-leader-executor` is the leader's executor that just joined, with the resource `leader`. The stages that write to the cluster, Prepare through Switch, carry that resource and come to the leader. [The table in part 12](/en/blog/woowangthon/woowangthon-12-deploy-executor/#1-why-the-executor-sits-on-the-leader) now has two real agents behind it.
+
+## 6. What went into the docs
+
+On the day of the apply I opened an issue in the team repo ([woowangthon/WOOWANGTHON_TEAM_18#164](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/issues/164)) and fixed the docs in a PR ([woowangthon/WOOWANGTHON_TEAM_18#166](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/166)), which is merged.
+
+| Where                            | What                                                                                                                    |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `agent.yaml` header              | Three keys and where each value comes from, the command to load them, the 6.5-minute first boot and the restart warning |
+| Cluster design §8                | The executor Pod is applied on the leader and registered as `leader`                                                    |
+| Cluster design §12               | The deploy notify token added to the secrets table, source Parameter Store `/wcp/gocd/`                                 |
+| AI scope table                   | Executor start, registration and the 8153 path are verified; real pipeline jobs are still unverified                    |
+| Platform hosting doc, task files | The same, plus the first-boot record                                                                                    |
+
+The AI scope table records what was checked directly and what hasn't been checked yet, so I wrote the two apart. "The executor joined" must not read as "deploys work".
+
+## 7. What has never run
+
+Of the list at the end of part 12, three items are now crossed off: the executor process starting with this setup, registering with the auto-register key, and the path from the Pod to 8153 on the tailnet. This is what's left.
+
+- **The real deploy pipeline.** I have never seen Prepare → Render → Apply → Verify → Switch run on the leader's executor. Registration means it's ready to take work, not that it can do the work. A test agent with node and helm on the same official image did pick up a Prepare job from a local GoCD server once. But not on the leader, under the executor account's rights and [part 12's admission policies](/en/blog/woowangthon/woowangthon-12-deploy-executor/#4-what-rights-cant-stop-admission-policies-do).
+- **Deploy jobs going only to the leader.** Whether jobs with the `leader` resource stay off the `aws` agent only shows once jobs actually arrive.
+- **The trial pipeline.** `student-trial`, for trial deploys of student apps, isn't defined yet, either in GoCD or in the repo.
+
+TaeTaeJin, the EC2 owner, took the end-to-end deploy test. After the AI owner's (suda5936) work lands, he'll start a deploy from the platform server and see whether the leader's executor puts it in a student space and passes Verify. That's the next post.
+
+Two scenes stay with me from this one. The header was written by the agent I've been building with, from the plan, and the plan was a day behind the code. What caught it wasn't a check but the teammate who sent the request. And the Pod that was Running for 6.5 minutes without showing up on the list. Agent or human, before saying "it doesn't work" we should have looked first at whether the log showed the server answering and whether the tailnet path was a relay. If being a good teammate isn't about never making mistakes, it's probably about keeping that order.
+
+## 8. Wrap-up
+
+| What happened                                                      | What I learned                                                                                                                            |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| The header listed two keys; the job script used three              | A list written before the server exists gets checked again once the server-side code lands. `envFrom` starts quietly with a key missing   |
+| The Windows `aws` could add a CR to its output                     | When piping secrets, add `tr -d '\r\n'`, then check the base64 lengths once they're in                                                    |
+| A 64-byte token has the same base64 length with one more byte      | The length check is only sure for multiples of 3. Otherwise decode and count only the newlines                                            |
+| Running, but not registered for 6.5 minutes                        | A GoCD agent downloads its main program and plugins from the server on first boot. If the log has `Got server response`, the path is open |
+| Leader → EC2 went through the Tokyo relay at 90 KB/s               | Before reading a slow transfer as a failure, check `tailscale status` for relay vs direct                                                 |
+| The working folder is an `emptyDir`, so every restart re-downloads | Don't restart the executor Pod right before a demo                                                                                        |
+| The desktop can't reach 8153                                       | Don't widen access rules to check something. Go through the path that's open (the leader) and pass the password on standard input only    |
+| Registration worked                                                | Registration only means ready to take work. Write down separately that the deploy pipeline hasn't run once                                |
+
+That's everything on the cluster side of stage 6. What's left is one deploy running from start to finish. After that come the contest and the return.

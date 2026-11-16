@@ -1,0 +1,227 @@
+---
+title: 'Hardware 0. Before Building a Bluetooth Speaker: What to Buy and What to Learn'
+date: '2026-11-17'
+tags: ['Hardware']
+draft: false
+summary: 'First post of a hardware hobby series. The build order for the first project, a portable Bluetooth speaker (breadboard, perfboard, factory PCB, 3D-printed case, battery), new terms, a shopping list with prices for soldering, measuring and assembly tools, the tools to learn at each stage (PlatformIO, KiCad, CadQuery), and how much of it Claude Code can handle directly'
+---
+
+> This is the first post of a series I am writing as I start hardware as a hobby. The first project is a portable Bluetooth speaker. This post covers what I will build and in what order, and what to buy and which tools to learn before starting. I wrote it before buying anything (November 17, 2026), so every price is what the shops listed on that day.
+
+## 1. What I am building
+
+A portable speaker that receives music from a phone over Bluetooth and plays it through a speaker. It has four main parts.
+
+| Part                                         | What it does                                                                                                    |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| ESP32 dev board                              | Receives sound from the phone over Bluetooth. The firmware I write runs on it                                   |
+| I2S amplifier board                          | Takes the digital audio signal from the ESP32 and amplifies it enough to drive a speaker (MAX98357A or similar) |
+| Speaker                                      | Makes the sound                                                                                                 |
+| Battery with charging and protection circuit | Lets it run without a cable. Added in the very last stage                                                       |
+
+I am going with the **original ESP32**. The Bluetooth mode a phone uses to send music (A2DP over Classic Bluetooth) is supported only by the original ESP32, not by the later chips with names like S3 or C3. Even among original ESP32 boards, modules whose name ends in `U` (WROOM-32U) need a separate external antenna, so I pick an `E` or `D` model with the antenna on the board.
+
+## 2. Build order
+
+| Stage | What happens                                                                                                        | Result                                   |
+| ----- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 1     | Plug the ESP32, amplifier board and speaker into a breadboard and check that it plays sound                         | A working test circuit                   |
+| 2     | Move the same circuit to a perfboard and fix it in place with solder. **The first speaker is finished this way**    | The first finished build                 |
+| 3     | Design the schematic and board in KiCad and order it from a PCB factory. The wireless part stays a certified module | A second version soldered on a green PCB |
+| 4     | Design the case in a CAD you write in Python (CadQuery) and send it to a 3D printing service                        | The case                                 |
+| 5     | Add a lithium battery and protection circuit                                                                        | The portable version                     |
+
+There are two reasons for this order. Ordering a board before knowing the circuit works means paying for a wrong board. And handling the first ordered board with hands that have never soldered is an easy way to ruin it. So I check the circuit on a breadboard, learn soldering on a perfboard, and only then move to a factory PCB. A 3D printer costs quite a bit, so I am not buying one at first. The case goes to a printing service: mainly an online one where I upload the file and get the print shipped, and I also want to visit an offline print shop at least once. The offline candidate is Chungbuk Pro Maker Center (충북Pro메이커센터), which has 3D printers; I have not checked yet on what terms students can use them. I will buy a printer later. The battery can catch fire if handled wrong, so it goes on last, after the circuit is stable.
+
+Each project lives in its own repo, split into `firmware/` (firmware), `hardware/` (KiCad files), `enclosure/` (case) and `docs/`.
+
+## 3. New terms
+
+| Term                        | Meaning                                                                                                                                                                                                                |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Breadboard                  | A plastic board full of holes. Metal strips inside connect the holes row by row, so plugging in parts and jumper wires makes a circuit. No soldering, so it is easy to change, but things fall out when it gets bumped |
+| PCB (printed circuit board) | A board that holds parts and connects them with copper traces. Computer motherboards, phones and earbuds all have one inside                                                                                           |
+| Solder mask                 | The protective coating on a PCB. Green is just the common color; black, red and blue exist too. It keeps the copper from oxidizing and stops solder from spreading onto the wrong trace                                |
+| Perfboard                   | A PCB with holes at 2.54 mm spacing and no traces. You make the connections yourself with solder or wire                                                                                                               |
+| Footprint                   | The shape of the holes or pads a part needs on the board. If it is wrong, the part does not fit                                                                                                                        |
+| Gerber files                | The drawing files sent to a PCB factory                                                                                                                                                                                |
+| Firmware                    | A program that runs on a small chip inside a device, with no operating system (or a very small one)                                                                                                                    |
+| Embedded                    | A computer built into a device that runs only that device, or the field that works on such computers. Washing machines, wireless earbuds and car controllers all count                                                 |
+| I2S                         | A way for chips to exchange digital audio. The ESP32 uses it to pass sound to the amplifier board                                                                                                                      |
+| A2DP                        | The Bluetooth profile for sending music. Phones and Bluetooth speakers talk through it                                                                                                                                 |
+| Flux                        | A chemical that removes the oxide layer on metal so solder sticks                                                                                                                                                      |
+| Solder wick                 | Copper braid. Press it onto melted solder with the iron and it soaks the solder up. Used when two pins get bridged with solder                                                                                         |
+
+## 4. What to buy
+
+The first purchase is not parts but **tools and consumables**. The pin header on the amplifier board has to be soldered by hand, so a soldering iron is needed from stage 1.
+
+The prices below are what each product page showed on November 17, 2026, VAT included (prices in KRW, ₩). The shop is not final yet. I also looked on a price comparison site, but for small tools like these it only turned up bulk industrial packs (1 kg of solder wire, for example) or overseas resellers, so I listed prices from an electronics parts shop.
+
+### 4.1 Soldering
+
+| Item                        | Product                                | Price                                                                    | Why                                                                                              |
+| --------------------------- | -------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Temperature-controlled iron | Pinecil V2 (pen type, B2 tip included) | $25.99 at the official store, international shipping extra (not checked) | Melts solder to join part legs to the board. Powered over USB-C, small and portable              |
+| Iron stand                  | TNI-U TU-228                           | ₩12,100                                                                  | A place to set down the hot iron                                                                 |
+| Solder wire                 | SME solder wire 0.8 mm (leaded option) | ₩2,860                                                                   | Thin wire keeps solder from bridging to the next pin on tight headers like the amplifier board's |
+| Flux                        | SME flux pen HS02 (for leaded solder)  | ₩11,210                                                                  | For when solder just beads up and will not flow                                                  |
+| Solder wick                 | HAKKO FR551-2015 (2.0 mm × 1.5 m)      | ₩5,060                                                                   | For fixing mistakes                                                                              |
+| Desoldering pump            | EXSO DS-1010                           | ₩7,480                                                                   | For fixing mistakes. A spring pump that sucks up melted solder                                   |
+
+Two things came up while choosing the iron.
+
+- On the local price comparison site, the Pinecil was only sold by overseas resellers, at ₩159,600 to ₩163,100. That is more than four times the official price, so I will order directly from the official store.
+- The Pinecil needs a **USB-C PD charger of 45 W or more** to heat properly. Phone chargers are usually 15 to 25 W and heat it slowly. A laptop charger almost always works. I am using a charger I already have, so it is off the list.
+
+I am starting with **leaded solder** (tin mixed with lead). It melts at a lower temperature than lead-free solder and flows better, so it is easier to work with. Because it contains lead, I keep the room ventilated and wash my hands after working. Switching to lead-free solder also means switching to a flux made for lead-free solder.
+
+### 4.2 Measuring
+
+| Item       | Product      | Price                     | Why                                                                                                                                             |
+| ---------- | ------------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Multimeter | UNI-T UT33A+ | ₩35,000 + ₩3,000 shipping | The continuity test (beeps when two points are connected) checks solder joints, and voltage readings show whether 3.3 V and 5 V reach the board |
+
+When there is no sound, the multimeter is the first step in telling a power problem from a code problem. These functions are enough for a beginner. Another shop listed the same model for less (₩25,000), but it was out of stock that day.
+
+### 4.3 Assembly and practice
+
+| Item         | Product                                                          | Price      | Why                                                                                              |
+| ------------ | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------ |
+| Flush cutter | PLATO-170S                                                       | ₩8,800     | Cuts leftover part legs flush with the board after soldering                                     |
+| Breadboard   | 830-point MB-102 × 2                                             | ₩1,540 × 2 | An ESP32 dev board is wide and leaves almost no free holes on either side of a single breadboard |
+| Jumper wires | 40-pin socket jumper cables, M-M and M-F, 20 cm, one bundle each | ₩935 × 2   | M-M connects breadboard to breadboard, M-F plugs onto a board's pin header                       |
+| Tweezers     | Seeed ESD Safe straight tweezers                                 | ₩4,400     | For holding small parts                                                                          |
+| Perfboard    | 50 × 80 mm double-sided perfboard (FR-4, 2.54 mm pitch)          | ₩3,850     | For soldering practice, and the board the first speaker is finished on in stage 2                |
+
+A soldering practice kit (a half-built product you finish by placing and soldering the parts) was a candidate, but I decided not to buy one. I will practice on perfboard.
+
+### 4.4 Safety
+
+| Item           | Product                             | Price  | Why                                                         |
+| -------------- | ----------------------------------- | ------ | ----------------------------------------------------------- |
+| Safety glasses | 3M 1611 (fits over regular glasses) | ₩5,500 | Protects the eyes from solder spatter and clipped part legs |
+
+### 4.5 Total
+
+| Group                                    | Amount                          |
+| ---------------------------------------- | ------------------------------- |
+| 12 items from the electronics parts shop | ₩66,210                         |
+| Multimeter (with shipping)               | ₩38,000                         |
+| **Total (excluding Pinecil)**            | **₩104,210**                    |
+| Pinecil V2                               | $25.99 + international shipping |
+
+The electronics parts shop listed free shipping from ₩66,000. The total above clears that by ₩210. If the threshold is counted before VAT, a ₩2,700 shipping fee is added; I have not checked which it is.
+
+Some things are not chosen yet: a brass tip cleaner (you poke the iron tip into it to wipe off residue) and a heat-resistant mat.
+
+### 4.6 To buy later: a 3D printer
+
+At first the case goes to a printing service. A 3D printer costs quite a bit, so it is off the list; I will buy one once I have printed a few cases and know I will keep using it. I have not looked up prices yet.
+
+### 4.7 Speaker parts to buy next
+
+These come after the tools arrive and I have practiced soldering. The speaker driver itself is not chosen yet.
+
+| Part                      | Price checked (2026-11-17)                                                                                                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ESP32 dev board           | ₩9,350 at a local electronics parts shop (but that listing is the external-antenna WROOM-32U, so I will pick a model with an on-board antenna instead) |
+| MAX98357A amplifier board | ₩7,747 each from a local seller, $5.95 direct from an overseas maker                                                                                   |
+
+## 5. Tools to learn
+
+Knowing one CAD program is not enough. Each stage needs different tools.
+
+I am doing this with Claude Code (an AI coding tool that reads and edits files and runs commands in the terminal). So for each tool I also noted whether Claude Code can handle it directly. The rule is simple: tools that work through text files and the command line (CLI), Claude Code uses directly; anything that needs mouse work on screen or hands on hardware, I do.
+
+| Mark | Meaning                                                                                  |
+| ---- | ---------------------------------------------------------------------------------------- |
+| ●    | Claude Code does it directly (writing files, running commands, checking results)         |
+| ◐    | Claude Code does part of it (generating files, checks, exports); I do the on-screen work |
+| ○    | I do it (hands-on work, payment). Claude Code only helps with explanations and checks    |
+
+### 5.1 Stage 1: Breadboard
+
+| To learn       | What it is                                                                                                                                                       | Claude Code                                                                                     |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Circuit basics | How voltage, current and resistance relate (Ohm's law), and how to find pin numbers and voltage ranges in a datasheet. Without this I cannot draw a schematic    | ◐ Reads datasheets and makes connection tables. Understanding is on me                          |
+| PlatformIO     | The firmware development environment. Writing code, compiling for the ESP32, writing it to the board over USB (flashing) and the serial monitor all in one place | ● Builds with `pio run`, uploads with `pio run -t upload`, reads logs with `pio device monitor` |
+| Multimeter     | Continuity tests and voltage readings                                                                                                                            | ○ Claude Code tells me what to measure and where                                                |
+| Soldering      | Start by soldering resistor legs into a perfboard                                                                                                                | ○                                                                                               |
+
+I picked the firmware environment from three options.
+
+| Tool        | Notes                                                                                  | Choice     |
+| ----------- | -------------------------------------------------------------------------------------- | ---------- |
+| Arduino IDE | Install it and go with a few buttons. The easiest                                      |            |
+| PlatformIO  | Board type, library versions and upload settings all live in one `platformio.ini` file | **Chosen** |
+| ESP-IDF     | The chip maker's official tool. The most control, but a lot to set up                  |            |
+
+There are four reasons for PlatformIO. It runs inside the editor I already use (VS Code), so no new tool. With the settings file committed to the repo, it builds with the same versions on Windows and Mac. Build and upload are one command each, so Claude Code can change the code, flash the board and read the logs right away. For the same reason, it is easy to add a CI build check later.
+
+One thing is still open. The ESP32-A2DP library, which handles receiving music over Bluetooth, depends on the ESP32 Arduino core version. I have not checked which core version PlatformIO's official ESP32 platform supports. That is the first thing to check when I set up the environment after the board arrives.
+
+### 5.2 Stages 2 and 3: Perfboard and factory PCB
+
+| To learn                | What it is                                                                                                             | Claude Code                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Perfboard layout        | A drawing of which part goes in which hole and what connects to what                                                   | ● Makes the connection table and layout. Soldering is ○                            |
+| KiCad schematic         | Placing parts as symbols and connecting them with wires                                                                | ◐ KiCad files are text, so it can read and edit them. I do the on-screen polishing |
+| KiCad PCB layout        | Placing part footprints on the actual board and drawing the copper traces                                              | ◐ I place and route on screen. Claude Code helps with placement rules and review   |
+| DRC (design rule check) | Automatically finds traces that are too close or broken                                                                | ● Runs the check with `kicad-cli` and reads the results                            |
+| Order files             | Gerber files for the PCB factory, plus a BOM (bill of materials) and placement file when ordering with parts assembled | ● Exports them with `kicad-cli`                                                    |
+| PCB factory order       | Upload the files, choose options, pay                                                                                  | ○ I pay                                                                            |
+
+A PCB does not have to come from a factory. There are three ways to make one.
+
+| Method                       | Pros                                                            | Cons                                                                                 |
+| ---------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Hand-wiring on perfboard     | The most practical way to build a single unit without a factory | The wiring gets messy and the board gets big, which makes a portable case tight      |
+| Etching copper board at home | You can make it right away                                      | Needs chemical handling, ventilation and waste disposal, and is usually single-sided |
+| Factory order                | The board arrives with the green coating                        | Takes 1 to 2 weeks and costs shipping. A wrong circuit means ordering again          |
+
+The first speaker will be finished on perfboard, and a factory order is planned for the next version. I will check the factory cost when I order.
+
+### 5.3 Stage 4: Case
+
+| To learn               | What it is                                                                                                            | Claude Code                                          |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| CadQuery               | A CAD for drawing 3D shapes in Python                                                                                 | ● Writes and runs the Python code to build the model |
+| Fitting board and case | Export the board from KiCad as a 3D file (STEP), place it inside the case and line up the screw holes and USB opening | ● Board STEP export and dimension checks             |
+| Print files            | Export the STL file to send to the printing service                                                                   | ● Exports STL from CadQuery                          |
+| Printing service order | Online: upload the file, choose a material, pay. Also visit Chungbuk Pro Maker Center once                            | ○                                                    |
+
+I compared two CAD tools that work in code.
+
+| Tool     | Notes                                                             | Choice     |
+| -------- | ----------------------------------------------------------------- | ---------- |
+| OpenSCAD | Its own language. Easy to learn                                   |            |
+| CadQuery | A Python library. Easier for complex shapes such as rounded edges | **Chosen** |
+
+There are three reasons for CadQuery. It is a language I already use (Python), so no new syntax. Dimensions can be variables, and changes can be tracked in Git. And because it is code, Claude Code can write and change it directly. With a mouse-driven CAD, all of this part would have been on my hands.
+
+A slicer (the program that turns a model into printer instructions) is handled by the service, so I will learn it when I buy a printer.
+
+### 5.4 Stage 5: Battery
+
+No new tools. It is about understanding the lithium battery charging board and protection circuit (the circuit that prevents overcharge, over-discharge and short circuits). Wiring it wrong can start a fire, so I check the connections against the datasheets with Claude Code and do the hands-on work myself.
+
+### 5.5 Across all stages
+
+| Tool | What it is                                                | Claude Code |
+| ---- | --------------------------------------------------------- | ----------- |
+| Git  | Keeps the firmware, KiCad files and case code in one repo | ●           |
+
+In short, the work done in code (firmware, case, checks and file exports) Claude Code does directly, and the hands-on work (soldering, measuring, board routing) and payments are mine.
+
+## 6. Where things stand
+
+| Item                 | Status                                              |
+| -------------------- | --------------------------------------------------- |
+| Build order          | Decided                                             |
+| Tool shopping list   | Decided (shop and budget cap still open)            |
+| Firmware environment | PlatformIO, to be installed after the board arrives |
+| Case CAD             | CadQuery                                            |
+| Purchased            | Nothing yet                                         |
+
+The next post will cover receiving the tools and soldering on perfboard for the first time.

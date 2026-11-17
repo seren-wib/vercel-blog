@@ -1,0 +1,328 @@
+---
+title: 'HW6. KVM Lab and Live VM Migration'
+date: '2026-11-17'
+tags: ['Cloud Computing']
+draft: false
+summary: 'Installing KVM and libvirt on the Ubuntu host, text-mode install of Rocky Linux 10.2 aarch64 with virt-install (ttyAMA0, pci=nomsi, AAVMF without Secure Boot), virsh list·shutdown·start·reboot·destroy·console, cloning with virt-clone and undefine, building a live migration setup from two Rocky VMs on KVM (servera·serverb: /etc/hosts, SSH keys, storage pool), creating CirrOS with --virt-type qemu, and moving the running VM with virsh migrate --live --copy-storage-all while the test.sh Count keeps going'
+---
+
+This homework follows the KVM labs in chapters 11 and 12 of the textbook. The first half is the basic lab: install KVM, create a Rocky Linux VM, manage it with `virsh`, and clone it. The second half is live migration: build two Rocky VMs that act as KVM hosts, then move a CirrOS VM running inside one of them to the other without stopping it.
+
+# 0. Lab Environment
+
+I used the same Ubuntu host as since HW2 (Ubuntu 24.04 aarch64 on UTM on an Apple M3 Mac). Because the host is aarch64, I used the aarch64 builds of the Rocky Linux ISO and the CirrOS image, and I noted under each figure where commands differ from the slides.
+
+For live migration, instead of two VirtualBox VMs as in the slides, I created two Rocky VMs on the Ubuntu host's KVM. Each of them becomes a KVM host, and CirrOS is a VM nested one level further inside.
+
+```text
+Ubuntu host (KVM)
+├─ servera Rocky 10.2   192.168.56.101   ── CirrOS ──┐   virsh migrate --live
+└─ serverb Rocky 10.2   192.168.56.102   ◀───────────┘
+```
+
+# 1. KVM Lab
+
+## Installing KVM
+
+First I checked with `kvm-ok` from `cpu-checker` that `/dev/kvm` exists and KVM acceleration is available. Nested virtualization is enabled in UTM, so KVM works inside the Ubuntu host too.
+
+![kvm-ok](/static/images/cloud-computing-hw6-kvm-live-migration/01.webp)
+
+_kvm-ok after installing cpu-checker — /dev/kvm exists and KVM acceleration can be used_
+
+```bash
+sudo apt install -y qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients bridge-utils virt-manager virtinst
+sudo systemctl enable --now libvirtd
+systemctl status libvirtd --no-pager | head -5
+```
+
+![Installing KVM packages](/static/images/cloud-computing-hw6-kvm-live-migration/02.webp)
+
+_Installing the KVM packages, enabling libvirtd and checking its status_
+
+![Image directory and bridge](/static/images/cloud-computing-hw6-kvm-live-migration/03.webp)
+
+_Creating the image directory VM/instances, preparing the Rocky ISO, checking the virbr0 bridge with nmcli c_
+
+To let a regular user use the bridge network, I put `allow all` in `/etc/qemu/bridge.conf` and set the setuid bit on `qemu-bridge-helper`. The libvirt connection URI was set to the user session (`qemu:///session`).
+
+```bash
+sudo mkdir -p /etc/qemu; echo "allow all" | sudo tee /etc/qemu/bridge.conf
+sudo chmod u+s /usr/lib/qemu/qemu-bridge-helper
+export LIBVIRT_DEFAULT_URI=qemu:///session
+sudo systemctl restart libvirtd
+```
+
+![bridge.conf and qemu-bridge-helper](/static/images/cloud-computing-hw6-kvm-live-migration/04.webp)
+
+_/etc/qemu/bridge.conf, setuid on qemu-bridge-helper, LIBVIRT_DEFAULT_URI=qemu:///session, and restarting libvirtd_
+
+## Installing a Rocky VM on KVM
+
+```bash
+virt-install --name rocky10-1 --ram 3072 --disk path=VM/instances/rocky10-1.img,size=20 \
+  --vcpus 2 --cpu host-passthrough --network bridge=virbr0 --graphics none \
+  --console pty,target_type=serial --location Rocky-10.2-aarch64-minimal.iso \
+  --extra-args "inst.text console=ttyAMA0,115200 pci=nomsi" \
+  --boot loader=/usr/share/AAVMF/AAVMF_CODE.no-secboot.fd,\
+loader.readonly=yes,loader.type=pflash,loader.secure=no,\
+nvram.template=/usr/share/AAVMF/AAVMF_VARS.fd \
+  --osinfo detect=on,require=off
+```
+
+Compared with the command on slide 8, four things changed because of aarch64.
+
+- The ISO is the aarch64 build.
+- The serial console is `ttyAMA0` instead of `ttyS0`.
+- MSI interrupts are not delivered under nested virtualization, so I added `pci=nomsi`.
+- The default UEFI firmware (Secure Boot) won't run the installed GRUB, so I specified firmware without Secure Boot with `--boot`.
+
+The last two are settings I found in HW2 while fixing the [Rocky boot hang under nested virtualization](/en/blog/cloud-computing/cloud-computing-hw2-kvm-vm-cluster/#appendix-rocky-boot-hang-under-nested-virtualization). I split the `--boot` value over three lines with `\` so the paths don't break in the middle. The continuation lines are not indented, because the shell would otherwise split the option value at the spaces.
+
+![Installer start](/static/images/cloud-computing-hw6-kvm-live-migration/05.webp)
+
+_Installer start — choosing 2) Use text mode_
+
+![After Installation Destination](/static/images/cloud-computing-hw6-kvm-live-migration/06.webp)
+
+_Installation summary after setting 5) Installation Destination — automatic partitioning (Automatic partitioning selected), Root password·User creation still [!]_
+
+![User creation](/static/images/cloud-computing-hw6-kvm-live-migration/07.webp)
+
+_After confirming the password (weak password → yes), 9) User creation — administrator account test, group wheel_
+
+![Installation summary](/static/images/cloud-computing-hw6-kvm-live-migration/08.webp)
+
+_Installation summary with every item at [x], starting the install with b_
+
+![Installation complete](/static/images/cloud-computing-hw6-kvm-live-migration/09.webp)
+
+_Installation complete_
+
+![Login after reboot](/static/images/cloud-computing-hw6-kvm-live-migration/10.webp)
+
+_Rocky Linux 10.2 login (test) after reboot, leaving the console with Ctrl+]_
+
+![Host ip -br addr](/static/images/cloud-computing-hw6-kvm-live-migration/11.webp)
+
+_ip -br addr on the host — the virtual bridge virbr0 is 192.168.122.1/24 (host IPv6 addresses masked)_
+
+## Common virsh Commands
+
+```bash
+virsh list --all
+virsh shutdown rocky10-1
+virsh start rocky10-1
+virsh reboot rocky10-1
+virsh destroy rocky10-1
+virsh console rocky10-1
+```
+
+`shutdown` asks the guest OS to shut down cleanly, while `destroy` cuts the power immediately. Despite its name, `destroy` does not delete the definition or the disk.
+
+![virsh shutdown, start](/static/images/cloud-computing-hw6-kvm-live-migration/12.webp)
+
+_virsh list --all, virsh shutdown (shut off confirmed), virsh start_
+
+![virsh reboot, destroy](/static/images/cloud-computing-hw6-kvm-live-migration/13.webp)
+
+_virsh reboot, virsh destroy (forced power off)_
+
+![virsh console](/static/images/cloud-computing-hw6-kvm-live-migration/14.webp)
+
+_Connecting with virsh console and logging in_
+
+## Cloning with KVM
+
+Cloning is done while the original is shut off. `virt-clone` copies the disk image and the UEFI variable file (`_VARS.fd`) and creates a new definition.
+
+```bash
+virsh shutdown rocky10-1
+virt-clone --original rocky10-1 --name rocky10-2 --file VM/instances/rocky10-2.img
+virsh undefine rocky10-2 --nvram
+```
+
+![virt-clone](/static/images/cloud-computing-hw6-kvm-live-migration/15.webp)
+
+_Shutting down rocky10-1 and creating rocky10-2 with virt-clone_
+
+![virsh undefine](/static/images/cloud-computing-hw6-kvm-live-migration/16.webp)
+
+_virsh undefine rocky10-2 — the definition is removed but the disk image rocky10-2.img remains_
+
+# 2. Live VM Migration
+
+I followed "Creating VMs and setting up the lab environment" (pages 11–38) in the Ch12 slides.
+
+## Installing Virtualization Packages and Cloning
+
+On the Rocky VM that serves as the original for servera and serverb (rocky-base), I installed the virtualization packages and turned on libvirtd. The two hosts must reach each other during migration, so in this lab environment I disabled firewalld and set SELinux to Permissive.
+
+```bash
+dnf install -y qemu-kvm libvirt python3-libvirt virt-install
+systemctl enable libvirtd; systemctl start libvirtd
+systemctl disable firewalld; systemctl stop firewalld
+setenforce 0; getenforce
+```
+
+![Virtualization packages](/static/images/cloud-computing-hw6-kvm-live-migration/17.webp)
+
+_Confirming qemu-kvm, libvirt, python3-libvirt, virt-install are installed on the original Rocky_
+
+![libvirtd](/static/images/cloud-computing-hw6-kvm-live-migration/18.webp)
+
+_libvirtd enable·start·status_
+
+![firewalld, SELinux](/static/images/cloud-computing-hw6-kvm-live-migration/19.webp)
+
+_Disabling and stopping firewalld, setenforce 0_
+
+With the original shut off, I created two clones with `virt-clone` on the Ubuntu host. This corresponds to the VirtualBox clone in the slides.
+
+```bash
+virt-clone --original rocky-base --name servera --auto-clone
+virt-clone --original rocky-base --name serverb --auto-clone
+```
+
+![Cloning servera and serverb](/static/images/cloud-computing-hw6-kvm-live-migration/20.webp)
+
+_Cloning the original into servera and serverb with virt-clone (the VirtualBox clone in the slides)_
+
+## Configuring the VMs
+
+On each VM I checked its address on the second network (the Ubuntu host's virbr2, 192.168.56.0/24), 192.168.56.101 and 192.168.56.102, added both names to `/etc/hosts`, and changed the hostname. The name from before cloning was still set, so the prompt shows `root@main` and `root@work1` until the rename.
+
+```bash
+printf "192.168.56.101 servera.cloud.org servera\n192.168.56.102 serverb.cloud.org serverb\n" >> /etc/hosts
+hostnamectl set-hostname servera   # serverb on serverb
+```
+
+![servera setup](/static/images/cloud-computing-hw6-kvm-live-migration/21.webp)
+
+_servera — checking IP 192.168.56.101, /etc/hosts, hostname servera_
+
+![serverb setup](/static/images/cloud-computing-hw6-kvm-live-migration/22.webp)
+
+_serverb — IP 192.168.56.102, /etc/hosts, hostname serverb_
+
+`virsh migrate` connects from servera to serverb's libvirt over SSH (`qemu+ssh://`), so servera's root must be able to log in to serverb as root without a password. I generated a key on servera and copied it to serverb.
+
+```bash
+ssh-keygen -t ed25519 -f /root/.ssh/cloudkey -N "" -q
+ssh-copy-id -i ~/.ssh/cloudkey yoosung@serverb
+```
+
+![Generating and copying the key](/static/images/cloud-computing-hw6-kvm-live-migration/23.webp)
+
+_Generating the key cloudkey as root on servera and copying it to serverb with ssh-copy-id_
+
+`ssh-copy-id` puts the key into the regular user's account, so on serverb I moved that key into root's `authorized_keys`. The user's file also holds the key the Ubuntu host uses to log in, so instead of moving the whole file I appended only servera's key line.
+
+```bash
+grep root@servera /home/yoosung/.ssh/authorized_keys >> /root/.ssh/authorized_keys
+chown root:root .ssh/authorized_keys; chmod 600 .ssh/authorized_keys
+```
+
+![authorized_keys](/static/images/cloud-computing-hw6-kvm-live-migration/24.webp)
+
+_serverb — registering servera's key in root's authorized_keys, owner root, mode 600_
+
+```text:~/.ssh/config
+Host serverb
+    HostName serverb.cloud.org
+    User     root
+    Port     22
+    IdentityFile ~/.ssh/cloudkey
+```
+
+![ssh serverb](/static/images/cloud-computing-hw6-kvm-live-migration/25.webp)
+
+_ssh serverb after writing ~/.ssh/config on servera — logged in to serverb as root without a password_
+
+## Creating a KVM VM and Live Migration
+
+This migration copies the disk as well, without shared storage, so the receiving side (serverb) also needs a storage pool at the same path.
+
+```bash
+virsh pool-define-as --name default --type dir --target /var/lib/libvirt/images/
+virsh pool-autostart default; virsh pool-build default; virsh pool-start default
+```
+
+![Storage pool](/static/images/cloud-computing-hw6-kvm-live-migration/26.webp)
+
+_Creating the image storage pool default on serverb_
+
+```bash
+wget -q --show-progress https://download.cirros-cloud.net/0.5.2/cirros-0.5.2-aarch64-disk.img
+mv cirros-0.5.2-aarch64-disk.img /var/lib/libvirt/images/
+```
+
+![CirrOS image](/static/images/cloud-computing-hw6-kvm-live-migration/27.webp)
+
+_Downloading the CirrOS 0.5.2 image (aarch64 build) on servera and moving it to /var/lib/libvirt/images/_
+
+There is no `/dev/kvm` inside the Rocky VMs, so as on slide 32 I used `--virt-type qemu` (software emulation). Unlike the slides, I added `--osinfo linux2022` so the disk attaches as virtio, and `--cpu cortex-a57` for emulation speed.
+
+```bash
+virt-install --name cirros --ram 512 \
+  --disk path=/var/lib/libvirt/images/cirros-0.5.2-aarch64-disk.img,format=qcow2 \
+  --osinfo linux2022 --virt-type qemu --cpu cortex-a57 --tpm none \
+  --nographics --import --noautoconsole
+```
+
+![Creating CirrOS](/static/images/cloud-computing-hw6-kvm-live-migration/28.webp)
+
+_Creating the CirrOS VM — --virt-type qemu, --osinfo linux2022 (virtio disk), --cpu cortex-a57_
+
+![CirrOS login](/static/images/cloud-computing-hw6-kvm-live-migration/29.webp)
+
+_virsh console cirros — logging in as cirros after boot_
+
+To see whether a process survives the migration, I wrote a script inside CirrOS that increments and prints a Count every second.
+
+```sh:test.sh
+#!/bin/sh
+count=0
+while :
+do
+        count=$((count+1))
+        echo "Testing Live Migration.. Press Ctrl+C to stop..."
+        echo "Count =" $count
+        date
+        sleep 1
+done
+```
+
+![Writing test.sh](/static/images/cloud-computing-hw6-kvm-live-migration/30.webp)
+
+_Writing the job file test.sh inside CirrOS (Count goes up every second) and making it executable_
+
+With `./test.sh` running, I left only the console with `Ctrl+]`. The VM and the script keep running.
+
+![Running test.sh](/static/images/cloud-computing-hw6-kvm-live-migration/31.webp)
+
+_Leaving only the console with Ctrl+] while ./test.sh runs (Count 1–6, 02:46:27–02:46:33 UTC) — cirros running on servera_
+
+```bash
+virsh migrate --verbose --copy-storage-all --persistent --live cirros qemu+ssh://root@serverb/system
+```
+
+- `--live`: moves the VM without shutting it down, copying memory while it runs.
+- `--copy-storage-all`: there is no shared storage, so the disk image is copied too.
+- `--persistent`: keeps the definition permanently on serverb.
+
+![virsh migrate](/static/images/cloud-computing-hw6-kvm-live-migration/32.webp)
+
+_virsh migrate — Migration 100%; the VM no longer runs on servera (only the definition remains, shut off)_
+
+![Count continuing on serverb](/static/images/cloud-computing-hw6-kvm-live-migration/33.webp)
+
+_cirros running on serverb; on the console the same test.sh keeps printing from Count 238 — the process was not terminated and moved to serverb_
+
+The test.sh started on servera before migration was not terminated, and its Count continued on serverb. Since the Count did not reset to 1, the VM was moved to another host while keeping its running state (live migration). With `--copy-storage-all`, the disk image was copied along without shared storage.
+
+Finally I removed the leftover definition on servera and powered off cirros on serverb.
+
+![Cleanup](/static/images/cloud-computing-hw6-kvm-live-migration/34.webp)
+
+_Cleanup — virsh undefine cirros on servera, virsh destroy cirros on serverb_

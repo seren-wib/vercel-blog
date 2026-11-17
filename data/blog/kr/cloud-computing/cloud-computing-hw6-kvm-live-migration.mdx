@@ -1,0 +1,328 @@
+---
+title: 'HW6. KVM 실습과 가상머신 라이브 마이그레이션'
+date: '2026-11-17'
+tags: ['Cloud Computing']
+draft: false
+summary: 'Ubuntu 호스트에 KVM·libvirt 설치, virt-install로 Rocky Linux 10.2 aarch64 텍스트 모드 설치(ttyAMA0, pci=nomsi, 시큐어 부트 없는 AAVMF), virsh list·shutdown·start·reboot·destroy·console, virt-clone 복제와 undefine, KVM 위 Rocky 두 대(servera·serverb)로 라이브 마이그레이션 환경 구성(/etc/hosts, SSH 키, 저장소 풀), --virt-type qemu로 CirrOS 생성, virsh migrate --live --copy-storage-all로 실행 중인 VM을 옮기고 test.sh Count가 이어지는 것 확인'
+---
+
+교재 11·12장의 KVM 실습을 따라 했다. 앞부분은 KVM을 설치하고 Rocky Linux 가상머신을 만들어 `virsh`로 다루고 복제하는 기본 실습이고, 뒷부분은 KVM 호스트 역할을 하는 Rocky 가상머신 두 대를 만들어 그 안에서 돌아가는 CirrOS 가상머신을 한쪽에서 다른 쪽으로 실행 중인 채로 옮기는 라이브 마이그레이션이다.
+
+# 0. 실습 환경
+
+HW2부터 쓰던 Ubuntu 호스트(Apple M3 맥의 UTM 위 Ubuntu 24.04 aarch64)에서 했다. 호스트가 aarch64라서 Rocky Linux ISO와 CirrOS 이미지는 aarch64판을 썼고, 슬라이드와 명령이 달라진 곳은 해당 그림 아래에 적었다.
+
+라이브 마이그레이션은 슬라이드처럼 VirtualBox 가상머신 두 대 대신, Ubuntu 호스트의 KVM 위에 Rocky 두 대를 만들어 진행했다. 그 두 대가 각각 KVM 호스트가 되고, CirrOS는 그 안에서 한 번 더 중첩된 가상머신이다.
+
+```text
+Ubuntu 호스트 (KVM)
+├─ servera Rocky 10.2   192.168.56.101   ── CirrOS ──┐   virsh migrate --live
+└─ serverb Rocky 10.2   192.168.56.102   ◀───────────┘
+```
+
+# 1. KVM 실습
+
+## KVM 설치
+
+`cpu-checker`의 `kvm-ok`로 `/dev/kvm`이 있고 KVM 가속을 쓸 수 있는지 먼저 확인했다. UTM에서 중첩 가상화를 켜 둬서 Ubuntu 호스트 안에서도 KVM이 된다.
+
+![kvm-ok](/static/images/cloud-computing-hw6-kvm-live-migration/01.webp)
+
+_cpu-checker 설치 후 kvm-ok — /dev/kvm이 있고 KVM 가속을 쓸 수 있음_
+
+```bash
+sudo apt install -y qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients bridge-utils virt-manager virtinst
+sudo systemctl enable --now libvirtd
+systemctl status libvirtd --no-pager | head -5
+```
+
+![KVM 패키지 설치](/static/images/cloud-computing-hw6-kvm-live-migration/02.webp)
+
+_KVM 패키지 설치와 libvirtd 활성화·상태 확인_
+
+![이미지 디렉터리와 브리지](/static/images/cloud-computing-hw6-kvm-live-migration/03.webp)
+
+_이미지 디렉터리 VM/instances 생성, Rocky ISO 준비, nmcli c로 virbr0 브리지 확인_
+
+일반 사용자로 브리지 네트워크를 쓰도록 `/etc/qemu/bridge.conf`에 `allow all`을 넣고 `qemu-bridge-helper`에 setuid를 줬다. libvirt 접속 주소는 사용자 세션(`qemu:///session`)으로 맞췄다.
+
+```bash
+sudo mkdir -p /etc/qemu; echo "allow all" | sudo tee /etc/qemu/bridge.conf
+sudo chmod u+s /usr/lib/qemu/qemu-bridge-helper
+export LIBVIRT_DEFAULT_URI=qemu:///session
+sudo systemctl restart libvirtd
+```
+
+![bridge.conf와 qemu-bridge-helper](/static/images/cloud-computing-hw6-kvm-live-migration/04.webp)
+
+_/etc/qemu/bridge.conf, qemu-bridge-helper setuid, LIBVIRT_DEFAULT_URI=qemu:///session 설정과 libvirtd 재시작_
+
+## KVM에 Rocky 가상머신 설치
+
+```bash
+virt-install --name rocky10-1 --ram 3072 --disk path=VM/instances/rocky10-1.img,size=20 \
+  --vcpus 2 --cpu host-passthrough --network bridge=virbr0 --graphics none \
+  --console pty,target_type=serial --location Rocky-10.2-aarch64-minimal.iso \
+  --extra-args "inst.text console=ttyAMA0,115200 pci=nomsi" \
+  --boot loader=/usr/share/AAVMF/AAVMF_CODE.no-secboot.fd,\
+loader.readonly=yes,loader.type=pflash,loader.secure=no,\
+nvram.template=/usr/share/AAVMF/AAVMF_VARS.fd \
+  --osinfo detect=on,require=off
+```
+
+슬라이드 8쪽 명령에서 aarch64 때문에 바꾼 곳은 네 군데다.
+
+- ISO는 aarch64판을 썼다.
+- 시리얼 콘솔은 `ttyS0` 대신 `ttyAMA0`이다.
+- 중첩 가상화에서 MSI 인터럽트가 전달되지 않아 `pci=nomsi`를 붙였다.
+- 기본 UEFI 펌웨어(시큐어 부트)에서는 설치된 GRUB이 실행되지 않아 시큐어 부트가 없는 펌웨어를 `--boot`로 지정했다.
+
+뒤의 두 가지는 HW2에서 [중첩 가상화에서 Rocky 부팅이 멈춘 문제](/kr/blog/cloud-computing/cloud-computing-hw2-kvm-vm-cluster/#부록-중첩-가상화에서-rocky-부팅이-멈춘-문제)를 풀면서 찾은 설정이다. `--boot` 값은 경로가 중간에 끊기지 않게 `\`로 세 줄에 나눴다. 이어지는 줄을 들여쓰면 셸이 공백에서 옵션 값을 쪼개므로 들여쓰지 않았다.
+
+![설치 프로그램 시작](/static/images/cloud-computing-hw6-kvm-live-migration/05.webp)
+
+_설치 프로그램 시작 — 2) Use text mode 선택_
+
+![Installation Destination 설정 후](/static/images/cloud-computing-hw6-kvm-live-migration/06.webp)
+
+_5) Installation Destination 설정 후 설치 요약 — 자동 파티션(Automatic partitioning selected), Root password·User creation은 아직 [!]_
+
+![User creation](/static/images/cloud-computing-hw6-kvm-live-migration/07.webp)
+
+_비밀번호 확인(weak password → yes) 후 9) User creation — 관리자 계정 test, 그룹 wheel_
+
+![설치 요약](/static/images/cloud-computing-hw6-kvm-live-migration/08.webp)
+
+_모든 항목이 [x]가 된 설치 요약 화면, b로 설치 시작_
+
+![설치 완료](/static/images/cloud-computing-hw6-kvm-live-migration/09.webp)
+
+_설치 완료(Installation complete)_
+
+![재부팅 후 로그인](/static/images/cloud-computing-hw6-kvm-live-migration/10.webp)
+
+_재부팅 후 Rocky Linux 10.2 로그인(test), Ctrl+]로 콘솔에서 나옴_
+
+![호스트 ip -br addr](/static/images/cloud-computing-hw6-kvm-live-migration/11.webp)
+
+_호스트의 ip -br addr — 가상 브리지 virbr0는 192.168.122.1/24 (호스트 IPv6 주소는 가림)_
+
+## 많이 사용하는 virsh 명령어
+
+```bash
+virsh list --all
+virsh shutdown rocky10-1
+virsh start rocky10-1
+virsh reboot rocky10-1
+virsh destroy rocky10-1
+virsh console rocky10-1
+```
+
+`shutdown`은 게스트 OS에 종료 요청을 보내 정상 종료시키고, `destroy`는 전원을 뽑듯이 바로 끈다. `destroy`라는 이름과 달리 정의나 디스크는 지우지 않는다.
+
+![virsh shutdown, start](/static/images/cloud-computing-hw6-kvm-live-migration/12.webp)
+
+_virsh list --all, virsh shutdown(shut off 확인), virsh start_
+
+![virsh reboot, destroy](/static/images/cloud-computing-hw6-kvm-live-migration/13.webp)
+
+_virsh reboot, virsh destroy(강제 종료)_
+
+![virsh console](/static/images/cloud-computing-hw6-kvm-live-migration/14.webp)
+
+_virsh console로 접속해 로그인_
+
+## KVM 복제
+
+복제는 원본이 꺼진 상태에서 한다. `virt-clone`이 디스크 이미지와 UEFI 변수 파일(`_VARS.fd`)을 같이 복사하고 새 정의를 만든다.
+
+```bash
+virsh shutdown rocky10-1
+virt-clone --original rocky10-1 --name rocky10-2 --file VM/instances/rocky10-2.img
+virsh undefine rocky10-2 --nvram
+```
+
+![virt-clone](/static/images/cloud-computing-hw6-kvm-live-migration/15.webp)
+
+_rocky10-1 종료 후 virt-clone으로 rocky10-2 생성_
+
+![virsh undefine](/static/images/cloud-computing-hw6-kvm-live-migration/16.webp)
+
+_virsh undefine rocky10-2 — 정의는 지워지고 디스크 이미지 rocky10-2.img는 남음_
+
+# 2. 가상머신 라이브 마이그레이션
+
+Ch12 슬라이드의 "가상머신 생성 및 실습 환경 구성"(11~38쪽)대로 진행했다.
+
+## 가상화 패키지 설치와 복제
+
+servera·serverb의 원본이 될 Rocky 가상머신(rocky-base)에 가상화 패키지를 설치하고 libvirtd를 켰다. 마이그레이션 때 두 호스트가 서로 접속해야 하므로 실습 환경에서는 firewalld를 끄고 SELinux를 Permissive로 바꿨다.
+
+```bash
+dnf install -y qemu-kvm libvirt python3-libvirt virt-install
+systemctl enable libvirtd; systemctl start libvirtd
+systemctl disable firewalld; systemctl stop firewalld
+setenforce 0; getenforce
+```
+
+![가상화 패키지](/static/images/cloud-computing-hw6-kvm-live-migration/17.webp)
+
+_원본 Rocky에 qemu-kvm, libvirt, python3-libvirt, virt-install 설치 확인_
+
+![libvirtd](/static/images/cloud-computing-hw6-kvm-live-migration/18.webp)
+
+_libvirtd enable·start·status_
+
+![firewalld, SELinux](/static/images/cloud-computing-hw6-kvm-live-migration/19.webp)
+
+_firewalld 비활성화·정지, setenforce 0_
+
+원본을 끄고 Ubuntu 호스트에서 `virt-clone`으로 두 대를 만들었다. 슬라이드의 VirtualBox 복제에 해당한다.
+
+```bash
+virt-clone --original rocky-base --name servera --auto-clone
+virt-clone --original rocky-base --name serverb --auto-clone
+```
+
+![servera, serverb 복제](/static/images/cloud-computing-hw6-kvm-live-migration/20.webp)
+
+_원본을 virt-clone으로 servera, serverb 두 대로 복제(슬라이드의 VirtualBox 복제에 해당)_
+
+## 가상머신 환경설정
+
+두 대의 두 번째 네트워크(Ubuntu 호스트의 virbr2, 192.168.56.0/24) 주소 192.168.56.101·102를 확인하고, `/etc/hosts`에 서로의 이름을 넣은 뒤 호스트 이름을 바꿨다. 복제 전 원본에서 쓰던 이름이 남아 있어서 프롬프트가 바꾸기 전엔 `root@main`, `root@work1`로 보인다.
+
+```bash
+printf "192.168.56.101 servera.cloud.org servera\n192.168.56.102 serverb.cloud.org serverb\n" >> /etc/hosts
+hostnamectl set-hostname servera   # serverb에서는 serverb
+```
+
+![servera 설정](/static/images/cloud-computing-hw6-kvm-live-migration/21.webp)
+
+_servera — IP 192.168.56.101 확인, /etc/hosts, 호스트 이름 servera_
+
+![serverb 설정](/static/images/cloud-computing-hw6-kvm-live-migration/22.webp)
+
+_serverb — IP 192.168.56.102, /etc/hosts, 호스트 이름 serverb_
+
+`virsh migrate`는 servera에서 serverb의 libvirt에 SSH(`qemu+ssh://`)로 접속하므로, servera root가 비밀번호 없이 serverb root로 들어갈 수 있어야 한다. servera에서 키를 만들어 serverb에 복사했다.
+
+```bash
+ssh-keygen -t ed25519 -f /root/.ssh/cloudkey -N "" -q
+ssh-copy-id -i ~/.ssh/cloudkey yoosung@serverb
+```
+
+![키 생성과 복사](/static/images/cloud-computing-hw6-kvm-live-migration/23.webp)
+
+_servera root에서 키 cloudkey 생성, ssh-copy-id로 serverb에 복사_
+
+`ssh-copy-id`는 일반 사용자 계정에 키를 넣으므로 serverb에서 그 키를 root의 `authorized_keys`로 옮겼다. 사용자 쪽 파일에는 Ubuntu 호스트의 접속 키도 들어 있어서, 파일을 통째로 옮기지 않고 servera 키 줄만 추가했다.
+
+```bash
+grep root@servera /home/yoosung/.ssh/authorized_keys >> /root/.ssh/authorized_keys
+chown root:root .ssh/authorized_keys; chmod 600 .ssh/authorized_keys
+```
+
+![authorized_keys](/static/images/cloud-computing-hw6-kvm-live-migration/24.webp)
+
+_serverb — servera의 키를 root의 authorized_keys에 등록, 소유자 root·권한 600_
+
+```text:~/.ssh/config
+Host serverb
+    HostName serverb.cloud.org
+    User     root
+    Port     22
+    IdentityFile ~/.ssh/cloudkey
+```
+
+![ssh serverb](/static/images/cloud-computing-hw6-kvm-live-migration/25.webp)
+
+_servera ~/.ssh/config 작성 후 ssh serverb — 비밀번호 없이 serverb root로 접속_
+
+## KVM 가상머신 생성 및 라이브 마이그레이션
+
+공유 저장소 없이 디스크까지 복사하는 마이그레이션이라 받는 쪽(serverb)에도 같은 경로의 저장소 풀이 있어야 한다.
+
+```bash
+virsh pool-define-as --name default --type dir --target /var/lib/libvirt/images/
+virsh pool-autostart default; virsh pool-build default; virsh pool-start default
+```
+
+![저장소 풀](/static/images/cloud-computing-hw6-kvm-live-migration/26.webp)
+
+_serverb에 이미지 저장소 풀 default 생성_
+
+```bash
+wget -q --show-progress https://download.cirros-cloud.net/0.5.2/cirros-0.5.2-aarch64-disk.img
+mv cirros-0.5.2-aarch64-disk.img /var/lib/libvirt/images/
+```
+
+![CirrOS 이미지](/static/images/cloud-computing-hw6-kvm-live-migration/27.webp)
+
+_servera에서 CirrOS 0.5.2 이미지(aarch64판) 내려받아 /var/lib/libvirt/images/로 이동_
+
+Rocky 가상머신 안에는 `/dev/kvm`이 없어서 슬라이드 32쪽대로 `--virt-type qemu`(소프트웨어 에뮬레이션)를 썼다. 슬라이드와 다르게 디스크가 virtio로 붙도록 `--osinfo linux2022`를, 에뮬레이션 속도를 위해 `--cpu cortex-a57`을 지정했다.
+
+```bash
+virt-install --name cirros --ram 512 \
+  --disk path=/var/lib/libvirt/images/cirros-0.5.2-aarch64-disk.img,format=qcow2 \
+  --osinfo linux2022 --virt-type qemu --cpu cortex-a57 --tpm none \
+  --nographics --import --noautoconsole
+```
+
+![CirrOS 생성](/static/images/cloud-computing-hw6-kvm-live-migration/28.webp)
+
+_CirrOS 가상머신 생성 — --virt-type qemu, --osinfo linux2022(virtio 디스크), --cpu cortex-a57_
+
+![CirrOS 로그인](/static/images/cloud-computing-hw6-kvm-live-migration/29.webp)
+
+_virsh console cirros — 부팅 후 cirros 계정으로 로그인_
+
+마이그레이션 중에도 프로세스가 살아 있는지 보려고, CirrOS 안에 1초마다 Count를 올리며 찍는 스크립트를 만들었다.
+
+```sh:test.sh
+#!/bin/sh
+count=0
+while :
+do
+        count=$((count+1))
+        echo "Testing Live Migration.. Press Ctrl+C to stop..."
+        echo "Count =" $count
+        date
+        sleep 1
+done
+```
+
+![test.sh 작성](/static/images/cloud-computing-hw6-kvm-live-migration/30.webp)
+
+_CirrOS 안에 작업 파일 test.sh(1초마다 Count 증가) 작성, 실행 권한 부여_
+
+`./test.sh`를 실행해 둔 채로 `Ctrl+]`로 콘솔만 빠져나왔다. 가상머신과 스크립트는 계속 돈다.
+
+![test.sh 실행](/static/images/cloud-computing-hw6-kvm-live-migration/31.webp)
+
+_./test.sh 실행(Count 1~6, 02:46:27~02:46:33 UTC) 중에 Ctrl+]로 콘솔만 빠져나옴 — servera에서 cirros running_
+
+```bash
+virsh migrate --verbose --copy-storage-all --persistent --live cirros qemu+ssh://root@serverb/system
+```
+
+- `--live`: 가상머신을 끄지 않고 메모리를 복사하면서 옮긴다.
+- `--copy-storage-all`: 공유 저장소가 없으니 디스크 이미지까지 함께 복사한다.
+- `--persistent`: serverb에 정의를 영구로 남긴다.
+
+![virsh migrate](/static/images/cloud-computing-hw6-kvm-live-migration/32.webp)
+
+_virsh migrate — Migration 100%, servera에서는 더 이상 실행되지 않음(정의만 shut off로 남음)_
+
+![serverb에서 이어진 Count](/static/images/cloud-computing-hw6-kvm-live-migration/33.webp)
+
+_serverb에서 cirros running, 콘솔에 접속하면 같은 test.sh가 Count 238부터 계속 출력 — 프로세스가 종료되지 않고 serverb로 옮겨짐_
+
+마이그레이션 전 servera에서 시작한 test.sh가 종료되지 않고 serverb에서 Count가 이어졌다. Count가 1로 초기화되지 않았으니 가상머신이 실행 상태를 유지한 채 다른 호스트로 옮겨진 것이다(라이브 마이그레이션). `--copy-storage-all`로 공유 저장소 없이 디스크 이미지까지 함께 복사했다.
+
+마지막으로 servera에 남은 정의를 지우고 serverb의 cirros를 껐다.
+
+![정리](/static/images/cloud-computing-hw6-kvm-live-migration/34.webp)
+
+_정리 — servera에서 virsh undefine cirros, serverb에서 virsh destroy cirros_

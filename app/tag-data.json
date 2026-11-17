@@ -1,11 +1,11 @@
 {
   "ai": 10,
   "auth": 2,
-  "cloudflare": 2,
   "cloud-computing": 12,
-  "data-structures": 2,
+  "cloudflare": 2,
   "computer-systems": 8,
   "database-systems": 10,
+  "data-structures": 2,
   "devblog": 6,
   "devops": 2,
   "git": 4,
@@ -14,10 +14,11 @@
   "information-retrieval": 16,
   "os": 20,
   "payments": 2,
+  "side-projects": 2,
   "software-engineering": 12,
   "sql": 2,
-  "stairno": 12,
   "web": 2,
   "woowangthon": 32,
-  "unity": 4
+  "unity": 4,
+  "stairno": 12
 }

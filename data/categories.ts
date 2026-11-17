@@ -6,6 +6,7 @@
 const categories: Record<string, string> = {
   stairno: 'Stairno',
   devblog: 'DevBlog',
+  'side-projects': 'Side Projects',
   woowangthon: 'Woowangthon',
   hardware: 'Hardware',
   'computer-systems': 'Computer Systems',

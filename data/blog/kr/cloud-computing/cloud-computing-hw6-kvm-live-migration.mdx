@@ -3,7 +3,7 @@ title: 'HW6. KVM 실습과 가상머신 라이브 마이그레이션'
 date: '2026-11-17'
 tags: ['Cloud Computing']
 draft: false
-summary: 'Ubuntu 호스트에 KVM·libvirt 설치, virt-install로 Rocky Linux 10.2 aarch64 텍스트 모드 설치(ttyAMA0, pci=nomsi, 시큐어 부트 없는 AAVMF), virsh list·shutdown·start·reboot·destroy·console, virt-clone 복제와 undefine, KVM 위 Rocky 두 대(servera·serverb)로 라이브 마이그레이션 환경 구성(/etc/hosts, SSH 키, 저장소 풀), --virt-type qemu로 CirrOS 생성, virsh migrate --live --copy-storage-all로 실행 중인 VM을 옮기고 test.sh Count가 이어지는 것 확인'
+summary: 'Ubuntu 호스트에 KVM·libvirt 설치, virt-install로 Rocky Linux 10.2 aarch64 텍스트 모드 설치(ttyAMA0, pci=nomsi, 시큐어 부트 없는 AAVMF), virsh list·shutdown·start·reboot·destroy·console, virt-clone 복제와 undefine, KVM 위 Rocky 두 대(servera·serverb)로 라이브 마이그레이션 환경 구성(/etc/hosts, SSH 키, 저장소 풀), --virt-type qemu로 CirrOS 생성, virsh migrate --live --copy-storage-all로 실행 중인 VM을 옮기고 test.sh Count가 이어지는 것 확인, 연습문제(hellocloud.c와 pmap으로 본 가상 메모리 레이아웃, Memory Ballooning)'
 ---
 
 교재 11·12장의 KVM 실습을 따라 했다. 앞부분은 KVM을 설치하고 Rocky Linux 가상머신을 만들어 `virsh`로 다루고 복제하는 기본 실습이고, 뒷부분은 KVM 호스트 역할을 하는 Rocky 가상머신 두 대를 만들어 그 안에서 돌아가는 CirrOS 가상머신을 한쪽에서 다른 쪽으로 실행 중인 채로 옮기는 라이브 마이그레이션이다.
@@ -326,3 +326,80 @@ _serverb에서 cirros running, 콘솔에 접속하면 같은 test.sh가 Count 23
 ![정리](/static/images/cloud-computing-hw6-kvm-live-migration/34.webp)
 
 _정리 — servera에서 virsh undefine cirros, serverb에서 virsh destroy cirros_
+
+# 3. 연습문제
+
+## Ch11-5. hellocloud.c와 가상 메모리 레이아웃
+
+> hellocloud.c를 작성하여 수행하고, pmap 등을 이용하여 가상메모리의 레이아웃을 도식화하라.
+
+각 메모리 영역에 하나씩 놓이도록 전역 변수(초기화한 것, 안 한 것), 문자열 상수, 지역 변수, malloc 영역을 만들고 그 주소를 출력한 뒤, 프로그램이 Enter를 기다리는 동안 다른 터미널에서 `pmap`과 `/proc/<pid>/maps`로 레이아웃을 확인했다.
+
+```c:hellocloud.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int g_init = 2026;          /* .data : 초기화된 전역 변수 */
+int g_uninit;               /* .bss  : 초기화 안 된 전역 변수 */
+const char *msg = "Hello, Cloud!";   /* 문자열 리터럴은 .rodata */
+
+int main(void)
+{
+    int local = 1;                          /* stack */
+    char *heap = malloc(4096);              /* heap (4 KiB, brk 영역) */
+
+    printf("%s  pid=%d\n", msg, getpid());
+    printf("text   (main)     : %p\n", (void *)main);
+    printf("rodata (msg)      : %p\n", (void *)msg);
+    printf("data   (g_init)   : %p\n", (void *)&g_init);
+    printf("bss    (g_uninit) : %p\n", (void *)&g_uninit);
+    printf("heap   (malloc)   : %p\n", (void *)heap);
+    printf("libc   (printf)   : %p\n", (void *)printf);
+    printf("stack  (local)    : %p\n", (void *)&local);
+    printf("press Enter to exit...\n");
+    getchar();
+    free(heap);
+    return 0;
+}
+```
+
+![hellocloud 실행](/static/images/cloud-computing-hw6-kvm-live-migration/35.webp)
+
+_gcc -o hellocloud hellocloud.c 후 실행 — 영역별 주소 출력(pid 13757)_
+
+![pmap](/static/images/cloud-computing-hw6-kvm-live-migration/36.webp)
+
+_pmap — 매핑마다 시작 주소, 크기, 권한, 대상 파일_
+
+![/proc/pid/maps](/static/images/cloud-computing-hw6-kvm-live-migration/37.webp)
+
+_/proc/13757/maps — pmap이 [ anon ]으로 보여 주는 영역 중 [heap], [vvar], [vdso], [stack] 이름 확인_
+
+![가상 메모리 레이아웃](/static/images/cloud-computing-hw6-kvm-live-migration/38.webp)
+
+_hellocloud 가상 메모리 레이아웃(위가 높은 주소)_
+
+- `main`(0x…909d8)과 문자열 `msg`(0x…90b38)는 실행 파일의 첫 매핑(r-x)에 있다. 코드와 읽기 전용 데이터가 같은 페이지에 들어갔다.
+- `g_init`(.data)과 `g_uninit`(.bss)은 실행 파일의 쓰기 가능 매핑(rw-) 한 페이지 안에 붙어 있다. 그 아래 r-- 페이지는 재배치가 끝난 뒤 읽기 전용으로 바뀌는 영역(RELRO)이다.
+- `malloc(4096)`은 실행 파일 바로 위의 [heap](132K)에서 나왔다. 힙은 brk로 높은 주소 쪽으로 늘어난다. 128 KiB 이상을 요청하면 힙 대신 mmap 영역에 따로 매핑된다.
+- `printf`는 mmap 영역의 libc.so.6 코드에 있고, 동적 링커 ld-linux-aarch64.so.1와 커널이 넣어 주는 [vvar]·[vdso]도 이 영역에 있다.
+- 지역 변수 `local`은 사용자 주소 공간 맨 위의 [stack](132K)에 있고, 스택은 낮은 주소 쪽으로 자란다.
+- ASLR 때문에 실행할 때마다 주소는 바뀌지만 영역의 순서와 권한은 같다.
+
+## Ch11-9. Memory Ballooning
+
+> Memory Ballooning 기법에 대해 조사하고 설명하라.
+
+메모리 벌루닝은 하이퍼바이저가 실행 중인 가상머신의 메모리를 회수하거나 되돌려 주는 기법이다. 게스트 OS 안에 벌룬 드라이버(KVM에서는 `virtio_balloon`)를 두고, 하이퍼바이저가 이 드라이버에 목표 크기를 알려 주면 드라이버가 게스트 메모리를 풍선처럼 부풀리거나 줄인다.
+
+- **필요한 이유**: 하이퍼바이저는 게스트가 자기 메모리 중 어떤 페이지를 실제로 쓰는지 알지 못한다(의미적 차이). 호스트 메모리가 부족할 때 하이퍼바이저가 직접 게스트 페이지를 골라 스왑하면, 게스트 커널이 자주 쓰는 페이지를 내보내 성능이 크게 떨어질 수 있다. 벌루닝은 어떤 페이지를 내놓을지를 게스트 OS가 고르게 한다.
+- **회수(inflate)**: 하이퍼바이저가 목표 크기를 줄이면 벌룬 드라이버가 게스트 커널에 페이지를 할당받아 붙잡고, 그 물리 페이지 번호를 하이퍼바이저에 알린다. 게스트 입장에서는 드라이버가 메모리를 쓰고 있는 것이므로 다른 프로세스가 그 페이지를 쓰지 않는다. 하이퍼바이저는 그 페이지를 다른 가상머신에 넘길 수 있다. 게스트에 여유 메모리가 없으면 게스트 OS가 스스로 캐시를 비우거나 자기 스왑으로 페이지를 내보낸다.
+- **반환(deflate)**: 목표 크기를 다시 늘리면 드라이버가 붙잡고 있던 페이지를 게스트 커널에 돌려주고, 게스트는 그 메모리를 다시 쓴다.
+- **효과**: 가상머신을 멈추지 않고 메모리 크기를 바꿀 수 있어 메모리 오버커밋(가상머신들에 준 메모리 합이 실제 메모리보다 큼)을 안전하게 운영할 수 있다. KVM에서는 설정한 최대 메모리(`memory`) 안에서 `virsh setmem <vm> <크기>`로 현재 메모리(`currentMemory`)를 바꾸면 벌룬 드라이버가 동작한다.
+- **한계**: 게스트에 벌룬 드라이버가 설치되어 있고 게스트 OS가 협조해야 한다. 회수가 게스트의 페이지 회수 속도에 묶여 즉각적이지 않고, 너무 많이 부풀리면 게스트 안에서 스왑이나 OOM이 생길 수 있다. 최대 메모리보다 크게 늘릴 수는 없다. 그래서 실제 시스템에서는 벌루닝을 KSM(같은 내용의 페이지 공유), 하이퍼바이저 스와핑과 함께 쓴다.
+
+참고
+
+- C. A. Waldspurger, "Memory Resource Management in VMware ESX Server," Proc. 5th Symposium on Operating Systems Design and Implementation (OSDI '02), USENIX, 2002.
+- libvirt, "Domain XML format — Memory balloon device," https://libvirt.org/formatdomain.html#memory-balloon-device

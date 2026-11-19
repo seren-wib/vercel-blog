@@ -3,7 +3,7 @@ title: 'HW6. KVM Lab and Live VM Migration'
 date: '2026-11-17'
 tags: ['Cloud Computing']
 draft: false
-summary: 'Installing KVM and libvirt on the Ubuntu host, text-mode install of Rocky Linux 10.2 aarch64 with virt-install (ttyAMA0, pci=nomsi, AAVMF without Secure Boot), virsh list·shutdown·start·reboot·destroy·console, cloning with virt-clone and undefine, building a live migration setup from two Rocky VMs on KVM (servera·serverb: /etc/hosts, SSH keys, storage pool), creating CirrOS with --virt-type qemu, and moving the running VM with virsh migrate --live --copy-storage-all while the test.sh Count keeps going'
+summary: 'Installing KVM and libvirt on the Ubuntu host, text-mode install of Rocky Linux 10.2 aarch64 with virt-install (ttyAMA0, pci=nomsi, AAVMF without Secure Boot), virsh list·shutdown·start·reboot·destroy·console, cloning with virt-clone and undefine, building a live migration setup from two Rocky VMs on KVM (servera·serverb: /etc/hosts, SSH keys, storage pool), creating CirrOS with --virt-type qemu, and moving the running VM with virsh migrate --live --copy-storage-all while the test.sh Count keeps going, exercises (virtual memory layout of hellocloud.c seen with pmap, memory ballooning)'
 ---
 
 This homework follows the KVM labs in chapters 11 and 12 of the textbook. The first half is the basic lab: install KVM, create a Rocky Linux VM, manage it with `virsh`, and clone it. The second half is live migration: build two Rocky VMs that act as KVM hosts, then move a CirrOS VM running inside one of them to the other without stopping it.
@@ -326,3 +326,80 @@ Finally I removed the leftover definition on servera and powered off cirros on s
 ![Cleanup](/static/images/cloud-computing-hw6-kvm-live-migration/34.webp)
 
 _Cleanup — virsh undefine cirros on servera, virsh destroy cirros on serverb_
+
+# 3. Exercises
+
+## Ch11-5. hellocloud.c and the Virtual Memory Layout
+
+> Write and run hellocloud.c, and use pmap and similar tools to draw the layout of its virtual memory.
+
+I made one variable for each memory region: an initialized global, an uninitialized global, a string constant, a local variable and a malloc block. The program prints their addresses and waits for Enter, and while it waits I checked the layout from another terminal with `pmap` and `/proc/<pid>/maps`.
+
+```c:hellocloud.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int g_init = 2026;          /* .data : initialized global */
+int g_uninit;               /* .bss  : uninitialized global */
+const char *msg = "Hello, Cloud!";   /* string literal goes in .rodata */
+
+int main(void)
+{
+    int local = 1;                          /* stack */
+    char *heap = malloc(4096);              /* heap (4 KiB, brk area) */
+
+    printf("%s  pid=%d\n", msg, getpid());
+    printf("text   (main)     : %p\n", (void *)main);
+    printf("rodata (msg)      : %p\n", (void *)msg);
+    printf("data   (g_init)   : %p\n", (void *)&g_init);
+    printf("bss    (g_uninit) : %p\n", (void *)&g_uninit);
+    printf("heap   (malloc)   : %p\n", (void *)heap);
+    printf("libc   (printf)   : %p\n", (void *)printf);
+    printf("stack  (local)    : %p\n", (void *)&local);
+    printf("press Enter to exit...\n");
+    getchar();
+    free(heap);
+    return 0;
+}
+```
+
+![Running hellocloud](/static/images/cloud-computing-hw6-kvm-live-migration/35.webp)
+
+_Built with gcc -o hellocloud hellocloud.c and run — the address of each region (pid 13757)_
+
+![pmap](/static/images/cloud-computing-hw6-kvm-live-migration/36.webp)
+
+_pmap — start address, size, permissions and backing file of each mapping_
+
+![/proc/pid/maps](/static/images/cloud-computing-hw6-kvm-live-migration/37.webp)
+
+_/proc/13757/maps — names for the regions pmap shows as [ anon ]: [heap], [vvar], [vdso], [stack]_
+
+![Virtual memory layout](/static/images/cloud-computing-hw6-kvm-live-migration/38.webp)
+
+_Virtual memory layout of hellocloud (higher addresses at the top)_
+
+- `main` (0x…909d8) and the string `msg` (0x…90b38) sit in the executable's first mapping (r-x). Code and read-only data landed on the same page.
+- `g_init` (.data) and `g_uninit` (.bss) sit next to each other on one page of the executable's writable mapping (rw-). The r-- page below it is the region made read-only after relocation (RELRO).
+- `malloc(4096)` came from the [heap] (132K) right above the executable. The heap grows toward higher addresses with brk. A request of 128 KiB or more gets its own mapping in the mmap area instead of the heap.
+- `printf` is in the libc.so.6 code in the mmap area, and the dynamic linker ld-linux-aarch64.so.1 and the kernel-provided [vvar]·[vdso] are in this area too.
+- The local variable `local` is in the [stack] (132K) at the top of the user address space, and the stack grows toward lower addresses.
+- ASLR changes the addresses on every run, but the order and permissions of the regions stay the same.
+
+## Ch11-9. Memory Ballooning
+
+> Research the memory ballooning technique and explain it.
+
+Memory ballooning is a technique that lets the hypervisor reclaim memory from a running virtual machine or give it back. A balloon driver lives inside the guest OS (`virtio_balloon` on KVM). The hypervisor tells the driver a target size, and the driver inflates or deflates a balloon inside the guest's memory.
+
+- **Why it is needed**: the hypervisor cannot tell which of the guest's pages are actually in use (the semantic gap). If the hypervisor picks guest pages and swaps them out itself when host memory runs low, it may evict pages the guest kernel uses often, and performance can drop sharply. Ballooning lets the guest OS choose which pages to give up.
+- **Reclaim (inflate)**: when the hypervisor lowers the target size, the balloon driver allocates pages from the guest kernel, holds on to them and reports their physical page numbers to the hypervisor. From the guest's point of view the driver is using that memory, so no other process touches those pages. The hypervisor can then hand the pages to another virtual machine. If the guest has no free memory, the guest OS drops caches or pages out to its own swap by itself.
+- **Return (deflate)**: when the target size goes back up, the driver releases the pages it held back to the guest kernel, and the guest uses that memory again.
+- **Effect**: memory size can change without stopping the virtual machine, so memory overcommit (the memory given to all virtual machines adds up to more than the physical memory) can be run safely. On KVM, changing the current memory (`currentMemory`) with `virsh setmem <vm> <size>` within the configured maximum (`memory`) drives the balloon driver.
+- **Limits**: the guest needs the balloon driver installed and the guest OS has to cooperate. Reclaim is tied to the guest's page reclaim speed, so it is not instant, and inflating too far can cause swapping or OOM inside the guest. Memory cannot grow past the maximum. That is why real systems use ballooning together with KSM (sharing pages with identical content) and hypervisor swapping.
+
+References
+
+- C. A. Waldspurger, "Memory Resource Management in VMware ESX Server," Proc. 5th Symposium on Operating Systems Design and Implementation (OSDI '02), USENIX, 2002.
+- libvirt, "Domain XML format — Memory balloon device," https://libvirt.org/formatdomain.html#memory-balloon-device

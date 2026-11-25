@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="500" viewBox="0 0 960 500" font-family="Pretendard, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif" font-size="13">
+<rect width="960" height="500" fill="#ffffff" rx="8"/>
+<text x="20" y="32" font-size="17" font-weight="bold" fill="#1e293b">Encapsulation down the sender, decapsulation up the receiver</text>
+<text x="20" y="52" font-size="12" fill="#64748b">TCP/IP with the link and physical layers drawn apart. OSI 7 layers on the left. Red dot = the data you sent.</text>
+
+<!-- OSI column -->
+<text x="85" y="72" text-anchor="middle" font-size="11" font-weight="bold" fill="#64748b">OSI 7 layers</text>
+<rect x="20" y="80" width="130" height="24" rx="4" fill="#f8fafc" stroke="#94a3b8"/><text x="85" y="96" text-anchor="middle" font-size="11" fill="#334155">7 Application</text>
+<rect x="20" y="108" width="130" height="24" rx="4" fill="#f8fafc" stroke="#94a3b8"/><text x="85" y="124" text-anchor="middle" font-size="11" fill="#334155">6 Presentation</text>
+<rect x="20" y="136" width="130" height="24" rx="4" fill="#f8fafc" stroke="#94a3b8"/><text x="85" y="152" text-anchor="middle" font-size="11" fill="#334155">5 Session</text>
+<rect x="20" y="170" width="130" height="50" rx="4" fill="#f8fafc" stroke="#94a3b8"/><text x="85" y="199" text-anchor="middle" font-size="11" fill="#334155">4 Transport</text>
+<rect x="20" y="230" width="130" height="50" rx="4" fill="#f8fafc" stroke="#94a3b8"/><text x="85" y="259" text-anchor="middle" font-size="11" fill="#334155">3 Network</text>
+<rect x="20" y="290" width="130" height="50" rx="4" fill="#f8fafc" stroke="#94a3b8"/><text x="85" y="319" text-anchor="middle" font-size="11" fill="#334155">2 Data link</text>
+<rect x="20" y="350" width="130" height="50" rx="4" fill="#f8fafc" stroke="#94a3b8"/><text x="85" y="379" text-anchor="middle" font-size="11" fill="#334155">1 Physical</text>
+
+<!-- TCP/IP column -->
+<text x="230" y="72" text-anchor="middle" font-size="11" font-weight="bold" fill="#64748b">TCP/IP layer · unit · address</text>
+<rect x="160" y="80" width="140" height="80" rx="6" fill="#dbeafe" stroke="#3b82f6"/><text x="230" y="112" text-anchor="middle" font-weight="bold" fill="#1e293b">Application</text><text x="230" y="130" text-anchor="middle" font-size="10.5" fill="#475569">message · domain name</text>
+<rect x="160" y="170" width="140" height="50" rx="6" fill="#dcfce7" stroke="#22c55e"/><text x="230" y="192" text-anchor="middle" font-weight="bold" fill="#1e293b">Transport</text><text x="230" y="209" text-anchor="middle" font-size="10.5" fill="#475569">segment / datagram · port</text>
+<rect x="160" y="230" width="140" height="50" rx="6" fill="#fef9c3" stroke="#eab308"/><text x="230" y="252" text-anchor="middle" font-weight="bold" fill="#1e293b">Network</text><text x="230" y="269" text-anchor="middle" font-size="10.5" fill="#475569">packet · IP address</text>
+<rect x="160" y="290" width="140" height="50" rx="6" fill="#ede9fe" stroke="#8b5cf6"/><text x="230" y="312" text-anchor="middle" font-weight="bold" fill="#1e293b">Link</text><text x="230" y="329" text-anchor="middle" font-size="10.5" fill="#475569">frame · MAC address</text>
+<rect x="160" y="350" width="140" height="50" rx="6" fill="#f1f5f9" stroke="#64748b"/><text x="230" y="372" text-anchor="middle" font-weight="bold" fill="#1e293b">Physical</text><text x="230" y="389" text-anchor="middle" font-size="10.5" fill="#475569">bits / signal · none</text>
+
+<text x="500" y="72" text-anchor="middle" font-size="11" font-weight="bold" fill="#64748b">Sender: each layer wraps what came from above</text>
+<text x="820" y="72" text-anchor="middle" font-size="11" font-weight="bold" fill="#64748b">Receiver: each layer checks and strips</text>
+
+<!-- sender units -->
+<g><animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete" values="1;0" keyTimes="0;0.97"/>
+<rect x="540" y="105" width="90" height="30" rx="3" fill="#dbeafe" stroke="#3b82f6"/><text x="585" y="124" text-anchor="middle" font-size="11" fill="#1e293b">chat msg "Hi"</text>
+<text x="335" y="124" font-size="10.5" fill="#64748b">HTTP / WebSocket over TLS</text>
+</g>
+<g opacity="0"><animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete" values="0;1;0" keyTimes="0;0.098;0.97"/>
+<rect x="470" y="180" width="70" height="30" rx="3" fill="#dcfce7" stroke="#22c55e"/><text x="505" y="199" text-anchor="middle" font-size="10.5" fill="#1e293b">TCP 20 B</text>
+<rect x="540" y="180" width="90" height="30" rx="3" fill="#dbeafe" stroke="#3b82f6"/><text x="585" y="199" text-anchor="middle" font-size="10.5" fill="#1e293b">data</text>
+<text x="335" y="199" font-size="10.5" fill="#64748b">ports, seq, ack</text>
+</g>
+<g opacity="0"><animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete" values="0;1;0" keyTimes="0;0.177;0.97"/>
+<rect x="400" y="240" width="70" height="30" rx="3" fill="#fef9c3" stroke="#eab308"/><text x="435" y="259" text-anchor="middle" font-size="10.5" fill="#1e293b">IP 20 B</text>
+<rect x="470" y="240" width="70" height="30" rx="3" fill="#dcfce7" stroke="#22c55e"/><text x="505" y="259" text-anchor="middle" font-size="10.5" fill="#1e293b">TCP</text>
+<rect x="540" y="240" width="90" height="30" rx="3" fill="#dbeafe" stroke="#3b82f6"/><text x="585" y="259" text-anchor="middle" font-size="10.5" fill="#1e293b">data</text>
+<text x="335" y="259" font-size="10.5" fill="#64748b">IPs, TTL</text>
+</g>
+<g opacity="0"><animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete" values="0;1;0" keyTimes="0;0.255;0.97"/>
+<rect x="330" y="300" width="70" height="30" rx="3" fill="#ede9fe" stroke="#8b5cf6"/><text x="365" y="319" text-anchor="middle" font-size="10.5" fill="#1e293b">Eth 14 B</text>
+<rect x="400" y="300" width="70" height="30" rx="3" fill="#fef9c3" stroke="#eab308"/><text x="435" y="319" text-anchor="middle" font-size="10.5" fill="#1e293b">IP</text>
+<rect x="470" y="300" width="70" height="30" rx="3" fill="#dcfce7" stroke="#22c55e"/><text x="505" y="319" text-anchor="middle" font-size="10.5" fill="#1e293b">TCP</text>
+<rect x="540" y="300" width="90" height="30" rx="3" fill="#dbeafe" stroke="#3b82f6"/><text x="585" y="319" text-anchor="middle" font-size="10.5" fill="#1e293b">data</text>
+<rect x="630" y="300" width="40" height="30" rx="3" fill="#ede9fe" stroke="#8b5cf6"/><text x="650" y="319" text-anchor="middle" font-size="10" fill="#1e293b">FCS</text>
+</g>
+<g opacity="0"><animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete" values="0;1;0" keyTimes="0;0.333;0.97"/>
+<rect x="330" y="360" width="340" height="30" rx="3" fill="#f1f5f9" stroke="#64748b"/><text x="500" y="380" text-anchor="middle" font-size="12" font-family="Menlo, Consolas, monospace" fill="#334155">10110010 01101001 11100001 ...</text>
+</g>
+
+<!-- receiver checks -->
+<g opacity="0"><animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete" values="0;1;0" keyTimes="0;0.5;0.97"/>
+<rect x="700" y="360" width="240" height="30" rx="3" fill="#f1f5f9" stroke="#64748b"/><text x="820" y="380" text-anchor="middle" font-size="11" fill="#1e293b">signal → bits, find frame start</text>
+</g>
+<g opacity="0"><animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete" values="0;1;0" keyTimes="0;0.578;0.97"/>
+<rect x="700" y="300" width="240" height="30" rx="3" fill="#ede9fe" stroke="#8b5cf6"/><text x="820" y="319" text-anchor="middle" font-size="11" fill="#1e293b">dst MAC = me? FCS ok? strip</text>
+</g>
+<g opacity="0"><animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete" values="0;1;0" keyTimes="0;0.657;0.97"/>
+<rect x="700" y="240" width="240" height="30" rx="3" fill="#fef9c3" stroke="#eab308"/><text x="820" y="259" text-anchor="middle" font-size="11" fill="#1e293b">dst IP = me? protocol 6 → TCP</text>
+</g>
+<g opacity="0"><animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete" values="0;1;0" keyTimes="0;0.735;0.97"/>
+<rect x="700" y="180" width="240" height="30" rx="3" fill="#dcfce7" stroke="#22c55e"/><text x="820" y="199" text-anchor="middle" font-size="11" fill="#1e293b">port 443 → socket, reorder, ACK</text>
+</g>
+<g opacity="0"><animate attributeName="opacity" dur="12s" repeatCount="indefinite" calcMode="discrete" values="0;1;0" keyTimes="0;0.833;0.97"/>
+<rect x="700" y="105" width="240" height="30" rx="3" fill="#dbeafe" stroke="#3b82f6"/><text x="820" y="124" text-anchor="middle" font-size="11" fill="#1e293b">decrypt TLS, read "Hi"</text>
+</g>
+
+<!-- medium -->
+<line x1="310" y1="425" x2="690" y2="425" stroke="#cbd5e1" stroke-width="4"/>
+<text x="500" y="447" text-anchor="middle" font-size="11" fill="#64748b">medium: copper (voltage) · fiber (light) · radio (waves), through many hops</text>
+<line x1="310" y1="120" x2="310" y2="425" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="4 4"/>
+<line x1="690" y1="120" x2="690" y2="425" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="4 4"/>
+
+<circle r="7" fill="#ef4444">
+<animate attributeName="cx" dur="12s" repeatCount="indefinite" values="310;310;310;690;690;690;690" keyTimes="0;0.333;0.375;0.458;0.5;0.833;1"/>
+<animate attributeName="cy" dur="12s" repeatCount="indefinite" values="120;375;425;425;375;120;120" keyTimes="0;0.333;0.375;0.458;0.5;0.833;1"/>
+</circle>
+
+<text x="20" y="478" font-size="11" fill="#64748b">Header sizes without options: TCP 20 B, IPv4 20 B, Ethernet 14 B + FCS 4 B. One Ethernet frame carries at most 1500 B of IP packet (MTU).</text>
+</svg>

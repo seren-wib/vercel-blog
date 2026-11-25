@@ -6,7 +6,7 @@ draft: false
 summary: 'Wi-Fi association, DHCP (DORA), default gateway, URL parsing, recursive DNS lookup (root, TLD and authoritative servers), subnet check and ARP, TCP 3-way handshake, TLS 1.3 handshake, encapsulation with MTU and MSS, CSMA/CA, home router NAT (NAPT), router hops and longest prefix match, TTL, routing vs forwarding, decapsulation, load balancer, flow control and congestion control, adaptive streaming, TCP teardown and TIME_WAIT, VPN tunnels (full and split tunnel, DNS leak), SSH connection steps with host key and public key authentication, port forwarding, SSH tunnels'
 ---
 
-> This post follows one packet from a laptop on home Wi-Fi opening `https://www.example.com/video` all the way to the web server and back, in steps 0 to 13. At the end it adds what changes when a VPN is on and when you connect over SSH. It started as a note I wrote while studying lecture 5 (networking) of Introduction to Computer Systems (컴퓨터시스템개론), covering more than the slides did.
+> This post follows one packet from a laptop on home Wi-Fi opening `https://www.example.com/video` all the way to the web server and back, in steps 0 to 13. At the end it adds what changes when a VPN is on and when you connect over SSH. It started as a note I wrote while studying lecture 5 (networking) of Introduction to Computer Systems (컴퓨터시스템개론), covering more than the slides did. The same material grouped by layer (application, transport, network, link, physical) is in [Networking by Layer](/en/blog/network/network-tcp-ip-layers/). The same material grouped by layer (application, transport, network, link, physical) is in [Networking by Layer](/en/blog/network/network-tcp-ip-layers/).
 
 # The whole picture
 

@@ -1,17 +1,17 @@
 {
   "ai": 10,
-  "auth": 2,
   "cloud-computing": 14,
-  "cloudflare": 2,
+  "auth": 2,
   "computer-systems": 8,
+  "cloudflare": 2,
   "data-structures": 2,
   "database-systems": 10,
-  "devblog": 6,
-  "devops": 2,
-  "git": 4,
+  "devblog": 8,
   "hardware": 2,
-  "information-retrieval": 16,
+  "git": 4,
+  "devops": 2,
   "network": 18,
+  "information-retrieval": 16,
   "os": 20,
   "payments": 2,
   "side-projects": 2,
@@ -19,6 +19,6 @@
   "sql": 2,
   "stairno": 12,
   "unity": 4,
-  "web": 2,
-  "woowangthon": 32
+  "woowangthon": 32,
+  "web": 2
 }

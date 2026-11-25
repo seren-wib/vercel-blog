@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="440" viewBox="0 0 940 440" font-family="Pretendard, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif" font-size="13">
+<rect width="940" height="440" fill="#ffffff" rx="8"/>
+<text x="20" y="32" font-size="17" font-weight="bold" fill="#1e293b">Routing builds the table, forwarding uses it</text>
+<text x="20" y="52" font-size="12" fill="#64748b">OSPF finds paths inside one AS, BGP picks paths between ASes. Each router then forwards by longest prefix match.</text>
+
+<!-- AS boxes -->
+<rect x="20" y="75" width="250" height="250" rx="16" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6 4"/>
+<text x="145" y="96" text-anchor="middle" font-weight="bold" fill="#1e293b">AS 64496 · Korean ISP</text>
+<rect x="320" y="75" width="150" height="250" rx="16" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6 4"/>
+<text x="395" y="96" text-anchor="middle" font-weight="bold" fill="#1e293b">AS 64497 · Tier 1</text>
+<rect x="500" y="75" width="90" height="250" rx="16" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6 4"/>
+<text x="545" y="96" text-anchor="middle" font-weight="bold" font-size="11.5" fill="#1e293b">AS 64498</text>
+<text x="545" y="111" text-anchor="middle" font-size="10.5" fill="#64748b">US cloud (server)</text>
+
+<!-- OSPF links -->
+<g stroke="#eab308" stroke-width="2.5">
+<line x1="70" y1="150" x2="200" y2="150"/><line x1="70" y1="150" x2="135" y2="260"/><line x1="200" y1="150" x2="135" y2="260"/><line x1="200" y1="150" x2="240" y2="210"/><line x1="135" y1="260" x2="240" y2="210"/>
+</g>
+<g font-size="10.5" fill="#854d0e">
+<text x="135" y="143" text-anchor="middle">cost 10</text><text x="86" y="212">cost 5</text><text x="174" y="212">cost 10</text><text x="228" y="176">cost 1</text><text x="196" y="250">cost 20</text>
+</g>
+<!-- BGP sessions -->
+<g stroke="#2563eb" stroke-width="3" stroke-dasharray="8 4">
+<line x1="240" y1="210" x2="350" y2="210"/>
+<line x1="440" y1="210" x2="530" y2="210"/>
+</g>
+<text x="295" y="200" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#1d4ed8">eBGP</text>
+<text x="485" y="200" text-anchor="middle" font-size="10.5" font-weight="bold" fill="#1d4ed8">eBGP</text>
+<line x1="350" y1="210" x2="440" y2="210" stroke="#eab308" stroke-width="2.5"/>
+
+<!-- routers -->
+<g font-size="11" font-weight="bold" text-anchor="middle" fill="#1e293b">
+<circle cx="70" cy="150" r="17" fill="#fef9c3" stroke="#eab308" stroke-width="2"/><text x="70" y="154">R1</text>
+<circle cx="200" cy="150" r="17" fill="#fef9c3" stroke="#eab308" stroke-width="2"/><text x="200" y="154">R2</text>
+<circle cx="135" cy="260" r="17" fill="#fef9c3" stroke="#eab308" stroke-width="2"/><text x="135" y="264">R3</text>
+<circle cx="240" cy="210" r="17" fill="#fef9c3" stroke="#2563eb" stroke-width="2.5"/><text x="240" y="214">B1</text>
+<circle cx="350" cy="210" r="17" fill="#fef9c3" stroke="#2563eb" stroke-width="2.5"/><text x="350" y="214">B2</text>
+<circle cx="440" cy="210" r="17" fill="#fef9c3" stroke="#2563eb" stroke-width="2.5"/><text x="440" y="214">B3</text>
+<circle cx="545" cy="210" r="17" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="545" y="214">DC</text>
+</g>
+<text x="545" y="250" text-anchor="middle" font-size="10.5" fill="#475569">announces</text>
+<text x="545" y="264" text-anchor="middle" font-size="10.5" font-family="Menlo, Consolas, monospace" fill="#475569">198.51.100.0/24</text>
+<text x="145" y="300" text-anchor="middle" font-size="11" fill="#854d0e">OSPF: every router floods link costs,</text>
+<text x="145" y="315" text-anchor="middle" font-size="11" fill="#854d0e">runs Dijkstra, picks the cheapest path</text>
+<text x="395" y="300" text-anchor="middle" font-size="11" fill="#1d4ed8">BGP: "reach /24 via</text>
+<text x="395" y="315" text-anchor="middle" font-size="11" fill="#1d4ed8">AS 64497 → 64498"</text>
+
+<!-- packet along best path R1 -> R3 -> B1? cheapest R1->B1: R1-R2-B1 = 11, R1-R3-B1 = 25 -->
+<path id="best" d="M70 150 L200 150 L240 210 L350 210 L440 210 L545 210" fill="none" stroke="#ef4444" stroke-width="5" stroke-opacity="0.25"/>
+<circle r="7" fill="#ef4444"><animateMotion dur="6s" repeatCount="indefinite" path="M70 150 L200 150 L240 210 L350 210 L440 210 L545 210" keyPoints="0;1;1" keyTimes="0;0.8;1" calcMode="linear"/></circle>
+<text x="20" y="350" font-size="11.5" fill="#334155">Red = path chosen for dst 198.51.100.10: R1 → R2 → B1 costs 10 + 1 = 11, cheaper than R1 → R3 → B1 (5 + 20 = 25).</text>
+
+<!-- forwarding table -->
+<text x="615" y="96" font-weight="bold" fill="#1e293b">R1 forwarding table</text>
+<text x="615" y="113" font-size="11" fill="#64748b">dst 198.51.100.10 matches 3 rows</text>
+<rect x="615" y="124" width="305" height="26" fill="#f1f5f9"/>
+<g font-size="11.5" fill="#1e293b">
+<text x="625" y="141" font-weight="bold">prefix</text><text x="770" y="141" font-weight="bold">next hop</text><text x="850" y="141" font-weight="bold">learned by</text>
+<text x="625" y="170" font-family="Menlo, Consolas, monospace" font-size="11">0.0.0.0/0</text><text x="770" y="170">R3</text><text x="850" y="170">static</text>
+<text x="625" y="198" font-family="Menlo, Consolas, monospace" font-size="11">198.51.100.0/22</text><text x="770" y="198">R3</text><text x="850" y="198">BGP + OSPF</text>
+<rect x="615" y="208" width="305" height="26" rx="3" fill="#fee2e2" stroke="#ef4444"><animate attributeName="opacity" dur="6s" repeatCount="indefinite" values="0.2;1;1;0.2" keyTimes="0;0.15;0.85;1"/></rect>
+<text x="625" y="226" font-family="Menlo, Consolas, monospace" font-size="11">198.51.100.0/24</text><text x="770" y="226">R2</text><text x="850" y="226">BGP + OSPF</text>
+<text x="625" y="254" font-family="Menlo, Consolas, monospace" font-size="11">10.20.0.0/16</text><text x="770" y="254">R3</text><text x="850" y="254">OSPF</text>
+</g>
+<text x="615" y="284" font-size="11.5" fill="#334155">/0, /22 and /24 all contain the address.</text>
+<text x="615" y="301" font-size="11.5" fill="#334155">The longest prefix (/24) is the most specific,</text>
+<text x="615" y="318" font-size="11.5" fill="#334155">so R1 sends the packet to R2.</text>
+
+<text x="20" y="390" font-size="11.5" fill="#334155">Routing (control plane): protocols exchange reachability and costs, slowly, in the background.</text>
+<text x="20" y="408" font-size="11.5" fill="#334155">Forwarding (data plane): for every packet, read dst IP → longest prefix match → next hop → TTL − 1 → new frame. Done in hardware at line rate.</text>
+<text x="20" y="426" font-size="11" fill="#64748b">AS numbers and public prefixes are from ranges reserved for documentation; 10.20.0.0/16 is a private range.</text>
+</svg>

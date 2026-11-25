@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="480" viewBox="0 0 960 480" font-family="Pretendard, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif" font-size="13">
+<rect width="960" height="480" fill="#ffffff" rx="8"/>
+<text x="20" y="32" font-size="17" font-weight="bold" fill="#1e293b">From send() to the wire and back up to recv()</text>
+<text x="20" y="52" font-size="12" fill="#64748b">The app only talks to a socket. The OS kernel runs TCP/IP, the driver feeds the NIC, the NIC turns frames into signals.</text>
+
+<text x="240" y="76" text-anchor="middle" font-weight="bold" fill="#1e293b">Sending host</text>
+<text x="720" y="76" text-anchor="middle" font-weight="bold" fill="#1e293b">Receiving host</text>
+
+<!-- boundaries -->
+<line x1="20" y1="140" x2="940" y2="140" stroke="#94a3b8" stroke-dasharray="6 4"/>
+<text x="936" y="134" text-anchor="end" font-size="10.5" fill="#64748b">user space</text>
+<text x="936" y="153" text-anchor="end" font-size="10.5" fill="#64748b">kernel space (system call boundary)</text>
+<line x1="20" y1="338" x2="940" y2="338" stroke="#94a3b8" stroke-dasharray="6 4"/>
+<text x="936" y="332" text-anchor="end" font-size="10.5" fill="#64748b">software</text>
+<text x="936" y="351" text-anchor="end" font-size="10.5" fill="#64748b">hardware (DMA, interrupt)</text>
+
+<!-- send column -->
+<rect x="60" y="86" width="360" height="40" rx="6" fill="#dbeafe" stroke="#3b82f6"/><text x="240" y="104" text-anchor="middle" font-weight="bold" fill="#1e293b">Chat app (process)</text><text x="240" y="119" text-anchor="middle" font-size="10.5" font-family="Menlo, Consolas, monospace" fill="#475569">send(sock, "Hi")</text>
+<rect x="60" y="160" width="360" height="34" rx="6" fill="#f1f5f9" stroke="#64748b"/><text x="240" y="182" text-anchor="middle" font-size="12" fill="#1e293b">Socket: copy bytes into the send buffer</text>
+<rect x="60" y="200" width="360" height="34" rx="6" fill="#dcfce7" stroke="#22c55e"/><text x="240" y="222" text-anchor="middle" font-size="12" fill="#1e293b">TCP: cut into segments, keep a copy until ACKed</text>
+<rect x="60" y="240" width="360" height="34" rx="6" fill="#fef9c3" stroke="#eab308"/><text x="240" y="262" text-anchor="middle" font-size="12" fill="#1e293b">IP: route lookup → interface + next hop, TTL</text>
+<rect x="60" y="280" width="360" height="40" rx="6" fill="#ede9fe" stroke="#8b5cf6"/><text x="240" y="297" text-anchor="middle" font-size="12" fill="#1e293b">ARP cache → frame header; driver puts it</text><text x="240" y="313" text-anchor="middle" font-size="12" fill="#1e293b">in the TX ring buffer and rings the NIC</text>
+<rect x="60" y="360" width="360" height="40" rx="6" fill="#fee2e2" stroke="#ef4444"/><text x="240" y="377" text-anchor="middle" font-size="12" fill="#1e293b">NIC: DMA reads the frame from RAM,</text><text x="240" y="393" text-anchor="middle" font-size="12" fill="#1e293b">adds FCS, PHY sends bits as a signal</text>
+
+<!-- receive column -->
+<rect x="540" y="86" width="360" height="40" rx="6" fill="#dbeafe" stroke="#3b82f6"/><text x="720" y="104" text-anchor="middle" font-weight="bold" fill="#1e293b">Server program (process)</text><text x="720" y="119" text-anchor="middle" font-size="10.5" font-family="Menlo, Consolas, monospace" fill="#475569">recv(sock) → "Hi"</text>
+<rect x="540" y="160" width="360" height="34" rx="6" fill="#f1f5f9" stroke="#64748b"/><text x="720" y="182" text-anchor="middle" font-size="12" fill="#1e293b">Socket: bytes wait in the receive buffer</text>
+<rect x="540" y="200" width="360" height="34" rx="6" fill="#dcfce7" stroke="#22c55e"/><text x="720" y="222" text-anchor="middle" font-size="12" fill="#1e293b">TCP: 4-tuple → socket, reorder, send ACK</text>
+<rect x="540" y="240" width="360" height="34" rx="6" fill="#fef9c3" stroke="#eab308"/><text x="720" y="262" text-anchor="middle" font-size="12" fill="#1e293b">IP: dst IP = me? protocol 6 → TCP</text>
+<rect x="540" y="280" width="360" height="40" rx="6" fill="#ede9fe" stroke="#8b5cf6"/><text x="720" y="297" text-anchor="middle" font-size="12" fill="#1e293b">Driver: interrupt handler takes frames</text><text x="720" y="313" text-anchor="middle" font-size="12" fill="#1e293b">from the RX ring, strips the link header</text>
+<rect x="540" y="360" width="360" height="40" rx="6" fill="#fee2e2" stroke="#ef4444"/><text x="720" y="377" text-anchor="middle" font-size="12" fill="#1e293b">NIC: signal → bits, dst MAC + FCS check,</text><text x="720" y="393" text-anchor="middle" font-size="12" fill="#1e293b">DMA into RAM, raise an interrupt</text>
+
+<!-- wire -->
+<line x1="40" y1="430" x2="920" y2="430" stroke="#cbd5e1" stroke-width="4"/>
+<text x="480" y="452" text-anchor="middle" font-size="11" fill="#64748b">cable or radio (in reality many routers sit between the two hosts)</text>
+<line x1="40" y1="106" x2="40" y2="430" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="4 4"/>
+<line x1="920" y1="106" x2="920" y2="430" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="4 4"/>
+
+<circle r="7" fill="#ef4444">
+<animate attributeName="cx" dur="10s" repeatCount="indefinite" values="40;40;40;920;920;920;920" keyTimes="0;0.37;0.42;0.55;0.6;0.95;1"/>
+<animate attributeName="cy" dur="10s" repeatCount="indefinite" values="106;380;430;430;380;106;106" keyTimes="0;0.37;0.42;0.55;0.6;0.95;1"/>
+</circle>
+<text x="20" y="472" font-size="11" fill="#64748b">The app never touches the NIC. Frames cross the software/hardware line by DMA, not copied by the CPU byte by byte.</text>
+</svg>

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="520" viewBox="0 0 980 520" font-family='Pretendard, "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif' font-size="13">
+<rect width="980" height="520" fill="#ffffff" rx="8"/>
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L10 5L0 9z" fill="#475569"/></marker>
+<marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L10 5L0 9z" fill="#ef4444"/></marker>
+</defs>
+<text x="20" y="32" font-size="17" font-weight="bold" fill="#1e293b">Remote Control is off: turning it back on from the phone over SSH</text>
+<text x="20" y="52" font-size="12" fill="#64748b">Top: what dies with the SSH session. Bottom: the path that survives. Small grey words are the analogy.</text>
+
+<rect x="20" y="80" width="150" height="400" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+<text x="95" y="260" text-anchor="middle" font-weight="bold" fill="#1e3a8a">phone</text>
+<text x="95" y="280" text-anchor="middle" font-size="12" fill="#1e3a8a">Termius (SSH client)</text>
+<text x="95" y="298" text-anchor="middle" font-size="12" fill="#1e3a8a">Claude app, Code tab</text>
+<text x="95" y="322" text-anchor="middle" font-size="11" fill="#94a3b8">you, away from home</text>
+
+<rect x="200" y="80" width="760" height="400" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+<text x="220" y="104" font-weight="bold" fill="#334155">desktop (Windows, OpenSSH Server)</text>
+
+<g>
+<rect x="220" y="120" width="720" height="130" rx="8" fill="#fef2f2" stroke="#ef4444"/>
+<text x="240" y="146" font-weight="bold" fill="#7f1d1d">SSH session (sshd child processes)</text>
+<text x="240" y="170" font-size="12" fill="#991b1b">claude remote-control started here is a child of the SSH session</text>
+<text x="240" y="190" font-size="12" fill="#991b1b">iOS suspends Termius in the background → SSH drops → the child process dies with it</text>
+<text x="240" y="210" font-size="12" fill="#991b1b">a GUI app started here lands in session 0 → nobody can see it</text>
+<text x="240" y="234" font-size="11" fill="#94a3b8">analogy: reaching in yourself over the phone — hang up and your hand is gone too</text>
+<circle cx="910" cy="150" r="14" fill="#ef4444"/><text x="910" y="155" text-anchor="middle" font-weight="bold" fill="#ffffff">✕</text>
+</g>
+
+<g>
+<rect x="220" y="270" width="720" height="190" rx="8" fill="#f0fdf4" stroke="#22c55e"/>
+<text x="240" y="296" font-weight="bold" fill="#14532d">logon session (Task Scheduler)</text>
+<rect x="240" y="312" width="200" height="74" rx="6" fill="#ffffff" stroke="#86efac"/>
+<text x="340" y="336" text-anchor="middle" font-size="12" font-weight="bold" fill="#166534">schtasks /Run</text>
+<text x="340" y="354" text-anchor="middle" font-size="12" fill="#166534">/TN ClaudeRemoteControl</text>
+<text x="340" y="374" text-anchor="middle" font-size="11" fill="#94a3b8">ask someone at home</text>
+<rect x="480" y="312" width="200" height="74" rx="6" fill="#ffffff" stroke="#86efac"/>
+<text x="580" y="336" text-anchor="middle" font-size="12" font-weight="bold" fill="#166534">script</text>
+<text x="580" y="354" text-anchor="middle" font-size="12" fill="#166534">stop old remote-control</text>
+<text x="580" y="372" text-anchor="middle" font-size="12" fill="#166534">MultipleInstances StopExisting</text>
+<rect x="720" y="312" width="200" height="74" rx="6" fill="#ffffff" stroke="#86efac"/>
+<text x="820" y="336" text-anchor="middle" font-size="12" font-weight="bold" fill="#166534">claude remote-control</text>
+<text x="820" y="354" text-anchor="middle" font-size="12" fill="#166534">new session "desktop-rc"</text>
+<text x="820" y="372" text-anchor="middle" font-size="11" fill="#94a3b8">the one at home flips the switch</text>
+<line x1="440" y1="349" x2="476" y2="349" stroke="#475569" stroke-width="2" marker-end="url(#ah)"/>
+<line x1="680" y1="349" x2="716" y2="349" stroke="#475569" stroke-width="2" marker-end="url(#ah)"/>
+<text x="240" y="412" font-size="12" fill="#166534">the task runs in the logged-in desktop session, so it keeps running after SSH is gone</text>
+<text x="240" y="432" font-size="12" fill="#166534">at logon: auto sign-in → Claude app (ClaudeAppStart) → ClaudeRemoteControl 1 min later (not tested with a reboot)</text>
+<circle cx="910" cy="300" r="14" fill="#22c55e"/><text x="910" y="305" text-anchor="middle" font-weight="bold" fill="#ffffff">✓</text>
+</g>
+
+<path d="M170 190 L218 190" stroke="#ef4444" stroke-width="2" marker-end="url(#ahr)"/>
+<path d="M170 349 L236 349" stroke="#475569" stroke-width="2" marker-end="url(#ah)"/>
+<text x="176" y="340" font-size="11" fill="#475569">ssh</text>
+<text x="580" y="504" text-anchor="middle" font-size="12" fill="#166534">result: "desktop-rc" shows up in the phone's Claude app, Code tab → Remote Control is back</text>
+</svg>

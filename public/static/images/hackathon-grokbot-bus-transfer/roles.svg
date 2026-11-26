@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="400" viewBox="0 0 980 400" font-family='Pretendard, "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif' font-size="13">
+<rect width="980" height="400" fill="#ffffff" rx="8"/>
+<defs>
+<marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L10 5L0 9z" fill="#7c5cff"/></marker>
+<marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L10 5L0 9z" fill="#16a34a"/></marker>
+</defs>
+<text x="20" y="32" font-size="17" font-weight="bold" fill="#1e293b">Who did what: design directives vs code</text>
+<text x="20" y="52" font-size="12" fill="#64748b">Purple: requirements and directives with reasons. Green: what came back to be verified.</text>
+<rect x="20" y="80" width="300" height="250" rx="10" fill="#f5f3ff" stroke="#c4b5fd"/>
+<text x="40" y="108" font-weight="bold" fill="#3b0764">me (seren-wib)</text>
+<text x="300" y="108" text-anchor="end" font-size="12" fill="#7c3aed">architect</text>
+<text x="40" y="138" fill="#1e293b">• problem definition</text>
+<text x="40" y="162" fill="#1e293b">• requirements.md (R1–R9, N1–N5)</text>
+<text x="40" y="186" fill="#1e293b">• bot contract: tasks / results JSON</text>
+<text x="40" y="210" fill="#1e293b">• rule changes after the rehearsal</text>
+<text x="40" y="234" fill="#1e293b">• "split off what code can do"</text>
+<text x="40" y="258" fill="#1e293b">• verification against map apps</text>
+<text x="40" y="282" fill="#1e293b">• deck and the 3-minute pitch</text>
+<rect x="380" y="80" width="280" height="250" rx="10" fill="#f8fafc" stroke="#94a3b8"/>
+<text x="400" y="108" font-weight="bold" fill="#1e293b">Jubi (Grok Bot agent)</text>
+<text x="640" y="108" text-anchor="end" font-size="12" fill="#64748b">builder</text>
+<text x="400" y="138" fill="#334155">• naver.py (Naver Map JSON API)</text>
+<text x="400" y="162" fill="#334155">• search_bot.py (worker)</text>
+<text x="400" y="186" fill="#334155">• make_tasks.py, summarize_results.py</text>
+<text x="400" y="210" fill="#334155">• gmaps.py, tests/test_filters.py</text>
+<text x="400" y="234" fill="#334155">• runs on its own cloud box</text>
+<text x="400" y="258" fill="#334155">• commits as "Cursor Agent"</text>
+<rect x="720" y="130" width="240" height="150" rx="10" fill="#f0fdf4" stroke="#86efac"/>
+<text x="840" y="160" text-anchor="middle" font-weight="bold" fill="#14532d">public repo</text>
+<text x="840" y="182" text-anchor="middle" fill="#166534">bus-transfer-bot</text>
+<text x="840" y="212" text-anchor="middle" font-size="12" fill="#166534">docs/progress.md</text>
+<text x="840" y="232" text-anchor="middle" font-size="12" fill="#166534">results/*.json, test_log.txt</text>
+<text x="840" y="252" text-anchor="middle" font-size="12" fill="#166534">+ chat log (not in repo)</text>
+<line x1="322" y1="150" x2="376" y2="150" stroke="#7c5cff" stroke-width="2" marker-end="url(#ap)"/>
+<text x="349" y="140" text-anchor="middle" font-size="11" fill="#7c3aed">what + why</text>
+<line x1="662" y1="205" x2="716" y2="205" stroke="#64748b" stroke-width="2" marker-end="url(#ag)"/>
+<text x="689" y="195" text-anchor="middle" font-size="11" fill="#64748b">commit</text>
+<path d="M840 282 C840 370 170 370 170 334" fill="none" stroke="#16a34a" stroke-width="2" marker-end="url(#ag)"/>
+<text x="505" y="362" text-anchor="middle" font-size="12" fill="#15803d">results and logs come back → checked against Naver / Kakao / Google before they go on a slide</text>
+</svg>

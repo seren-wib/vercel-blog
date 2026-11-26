@@ -347,7 +347,7 @@ A walkthrough of steps 4 to 8 from the server and client files' point of view is
 
 ## Reaching a PC behind NAT
 
-To ssh from outside into a PC behind the home router, the router needs **port forwarding** (public IP:22 → 192.168.1.20:22). For connections going out from inside, the NAT translation table creates entries on its own, but packets coming in first from outside have no entry in the table and are dropped.
+To ssh from outside into a PC behind the home router, the router needs **port forwarding** (public IP:22 → 192.168.1.20:22). For connections going out from inside, the NAT translation table creates entries on its own, but packets coming in first from outside have no entry in the table and are dropped. Another way is to skip opening ports and run SSH over an [overlay network](/en/blog/network/network-ssh-overlay/#3-what-each-layer-needs) such as Tailscale.
 
 ## SSH tunnel
 

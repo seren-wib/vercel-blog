@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="560" viewBox="0 0 980 560" font-family='Pretendard, "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif' font-size="13">
+<rect width="980" height="560" fill="#ffffff" rx="8"/>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L10 5L0 9z" fill="#475569"/></marker></defs>
+<text x="20" y="32" font-size="17" font-weight="bold" fill="#1e293b">laptop → desktop :22, checked one layer at a time</text>
+<text x="20" y="52" font-size="12" fill="#64748b">Top to bottom is the order a TCP SYN meets each checkpoint. Small grey words are the analogy.</text>
+<rect x="20" y="80" width="140" height="400" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+<text x="90" y="270" text-anchor="middle" font-weight="bold" fill="#1e3a8a">laptop</text>
+<text x="90" y="290" text-anchor="middle" font-size="12" fill="#1e3a8a">ssh client</text>
+<rect x="820" y="80" width="140" height="400" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+<text x="890" y="270" text-anchor="middle" font-weight="bold" fill="#1e3a8a">desktop</text>
+<text x="890" y="290" text-anchor="middle" font-size="12" fill="#1e3a8a">Windows</text>
+<g>
+<rect x="190" y="86" width="600" height="84" rx="8" fill="#f0fdf4" stroke="#22c55e"/>
+<text x="210" y="112" font-weight="bold" fill="#14532d">① L3 reachability: overlay route (WireGuard tunnel)</text>
+<text x="210" y="134" font-size="12" fill="#166534">tailscale ping → 24 ms, via direct (no relay)</text>
+<text x="210" y="156" font-size="11" fill="#94a3b8">analogy: is there a road to the building?</text>
+<circle cx="760" cy="128" r="14" fill="#22c55e"/><text x="760" y="133" text-anchor="middle" font-weight="bold" fill="#ffffff">✓</text>
+</g>
+<g>
+<rect x="190" y="184" width="600" height="84" rx="8" fill="#f0fdf4" stroke="#22c55e"/>
+<text x="210" y="210" font-weight="bold" fill="#14532d">② L4 Tailscale ACL → packet filter in tailscaled</text>
+<text x="210" y="232" font-size="12" fill="#166534">tailscale debug netmap → desktop ↔ laptop, ports 0-65535 allowed</text>
+<text x="210" y="254" font-size="11" fill="#94a3b8">analogy: am I on the front desk's guest list?</text>
+<circle cx="760" cy="226" r="14" fill="#22c55e"/><text x="760" y="231" text-anchor="middle" font-weight="bold" fill="#ffffff">✓</text>
+</g>
+<g>
+<rect x="190" y="282" width="600" height="84" rx="8" fill="#fef2f2" stroke="#ef4444"/>
+<text x="210" y="308" font-weight="bold" fill="#7f1d1d">③ L4 OS firewall: Windows Defender Firewall</text>
+<text x="210" y="330" font-size="12" fill="#991b1b">inbound 22 and 3389 dropped silently → "Operation timed out"</text>
+<text x="210" y="352" font-size="11" fill="#94a3b8">analogy: is the office door unlocked?</text>
+<circle cx="760" cy="324" r="14" fill="#ef4444"/><text x="760" y="329" text-anchor="middle" font-weight="bold" fill="#ffffff">✕</text>
+</g>
+<g>
+<rect x="190" y="380" width="600" height="84" rx="8" fill="#fef2f2" stroke="#ef4444"/>
+<text x="210" y="406" font-weight="bold" fill="#7f1d1d">④ L7 sshd listening on :22</text>
+<text x="210" y="428" font-size="12" fill="#991b1b">OpenSSH Server not installed: nothing to answer (would send RST)</text>
+<text x="210" y="450" font-size="11" fill="#94a3b8">analogy: is anyone inside to open it?</text>
+<circle cx="760" cy="422" r="14" fill="#ef4444"/><text x="760" y="427" text-anchor="middle" font-weight="bold" fill="#ffffff">✕</text>
+</g>
+<line x1="160" y1="128" x2="186" y2="128" stroke="#475569" marker-end="url(#ah)"/>
+<line x1="175" y1="128" x2="175" y2="422" stroke="#475569"/>
+<line x1="175" y1="226" x2="186" y2="226" stroke="#475569" marker-end="url(#ah)"/>
+<line x1="175" y1="324" x2="186" y2="324" stroke="#475569" marker-end="url(#ah)"/>
+<line x1="175" y1="422" x2="186" y2="422" stroke="#475569" marker-end="url(#ah)"/>
+<path d="M790 128 H816" stroke="#22c55e" stroke-width="2" marker-end="url(#ah)"/>
+<text x="20" y="508" font-size="12" fill="#475569">tailscale ping is answered by tailscaled itself, so it proves ① only; it never reaches ③ or ④.</text>
+<text x="20" y="530" font-size="12" fill="#475569">Drop (no reply) → client retries SYN, then "timed out". No listener behind an open firewall → RST → "Connection refused".</text>
+</svg>

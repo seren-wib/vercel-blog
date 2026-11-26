@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="600" viewBox="0 0 980 600" font-family='Pretendard, "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif' font-size="13">
+<rect width="980" height="600" fill="#ffffff" rx="8"/>
+<text x="20" y="32" font-size="17" font-weight="bold" fill="#1e293b">Who does the work at each layer: self-hosted vs managed</text>
+<text x="20" y="52" font-size="12" fill="#64748b">Red: work I take on. Green: handled by the managed service. Blue: mine either way. Small grey words are the apartment analogy.</text>
+<text x="390" y="86" text-anchor="middle" font-weight="bold" fill="#7f1d1d">Self-hosted WireGuard (I run it)</text>
+<text x="780" y="86" text-anchor="middle" font-weight="bold" fill="#14532d">Managed (Tailscale)</text>
+<rect x="20" y="100" width="170" height="100" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+<text x="105" y="140" text-anchor="middle" font-weight="bold" fill="#1e293b">L7 SSH</text>
+<text x="105" y="162" text-anchor="middle" font-size="11" fill="#94a3b8">room key</text>
+<rect x="200" y="100" width="760" height="100" rx="8" fill="#eff6ff" stroke="#60a5fa"/>
+<text x="580" y="140" text-anchor="middle" font-weight="bold" fill="#1e3a8a">Same on both sides: install sshd, register public keys, turn off password login</text>
+<text x="580" y="162" text-anchor="middle" font-size="12" fill="#1e40af">the overlay underneath does not change this row</text>
+<rect x="20" y="215" width="170" height="110" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+<text x="105" y="258" text-anchor="middle" font-weight="bold" fill="#1e293b">Control plane</text>
+<text x="105" y="278" text-anchor="middle" font-size="12" fill="#334155">device keys</text>
+<text x="105" y="298" text-anchor="middle" font-size="11" fill="#94a3b8">access cards</text>
+<rect x="200" y="215" width="380" height="110" rx="8" fill="#fef2f2" stroke="#ef4444"/>
+<text x="215" y="242" font-size="12" fill="#7f1d1d">• generate a key pair per device</text>
+<text x="215" y="264" font-size="12" fill="#7f1d1d">• write every peer's key + endpoint into configs</text>
+<text x="215" y="286" font-size="12" fill="#7f1d1d">• 4 devices, full mesh: 6 pairs, 12 entries</text>
+<text x="215" y="308" font-size="12" fill="#7f1d1d">• lost device: delete its key from every config</text>
+<rect x="590" y="215" width="370" height="110" rx="8" fill="#f0fdf4" stroke="#22c55e"/>
+<text x="605" y="250" font-size="12" fill="#14532d">• add a device: one login</text>
+<text x="605" y="274" font-size="12" fill="#14532d">• remove it in the admin console</text>
+<text x="605" y="298" font-size="12" fill="#14532d">• coordination server distributes the keys</text>
+<rect x="20" y="340" width="170" height="100" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+<text x="105" y="380" text-anchor="middle" font-weight="bold" fill="#1e293b">L4</text>
+<text x="105" y="400" text-anchor="middle" font-size="12" fill="#334155">ports, firewall</text>
+<text x="105" y="420" text-anchor="middle" font-size="11" fill="#94a3b8">front gate</text>
+<rect x="200" y="340" width="380" height="100" rx="8" fill="#fef2f2" stroke="#ef4444"/>
+<text x="215" y="370" font-size="12" fill="#7f1d1d">• router port forwarding (UDP 51820)</text>
+<text x="215" y="392" font-size="12" fill="#7f1d1d">• router + OS firewall rules</text>
+<text x="215" y="414" font-size="12" fill="#7f1d1d">• keep track of open ports</text>
+<rect x="590" y="340" width="370" height="100" rx="8" fill="#f0fdf4" stroke="#22c55e"/>
+<text x="605" y="370" font-size="12" fill="#14532d">• inbound ports on the router: 0</text>
+<text x="605" y="392" font-size="12" fill="#14532d">• who reaches what: one ACL policy file</text>
+<text x="605" y="414" font-size="12" fill="#1e40af">• OS firewall on each device: still mine</text>
+<rect x="20" y="455" width="170" height="110" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+<text x="105" y="498" text-anchor="middle" font-weight="bold" fill="#1e293b">L3</text>
+<text x="105" y="518" text-anchor="middle" font-size="12" fill="#334155">reachability</text>
+<text x="105" y="538" text-anchor="middle" font-size="11" fill="#94a3b8">road to the building</text>
+<rect x="200" y="455" width="380" height="110" rx="8" fill="#fef2f2" stroke="#ef4444"/>
+<text x="215" y="482" font-size="12" fill="#7f1d1d">• get a public IP (or rent a VPS), DDNS</text>
+<text x="215" y="504" font-size="12" fill="#7f1d1d">• set up NAT traversal myself</text>
+<text x="215" y="526" font-size="12" fill="#7f1d1d">• run a relay for paths that fail</text>
+<text x="215" y="548" font-size="12" fill="#7f1d1d">• assign and record a tunnel IP per device</text>
+<rect x="590" y="455" width="370" height="110" rx="8" fill="#f0fdf4" stroke="#22c55e"/>
+<text x="605" y="488" font-size="12" fill="#14532d">• fixed 100.x IP per device, automatic</text>
+<text x="605" y="512" font-size="12" fill="#14532d">• NAT traversal automatic</text>
+<text x="605" y="536" font-size="12" fill="#14532d">• DERP relay when direct fails</text>
+<text x="20" y="588" font-size="12" fill="#475569">Handed off = L3 + control plane only. The data plane is standard WireGuard, so leaving means swapping those two rows (Headscale or self-hosted).</text>
+</svg>

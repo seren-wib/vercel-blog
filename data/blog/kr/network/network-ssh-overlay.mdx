@@ -3,7 +3,7 @@ title: 'SSH를 직접 열지 않고 overlay network(Tailscale) 위에서 하는 
 date: '2026-11-26'
 tags: ['Network']
 draft: false
-summary: '기기 네 대를 밖에서 SSH로 오가려다 막힌 일, tailscale ping과 Operation timed out, drop과 RST, Tailscale ACL과 packet filter(tailscale debug netmap), sshd와 Windows Defender Firewall, L3 reachability(NAT·공인 IP·port forwarding·DDNS·CGNAT)·L4 포트·방화벽·ACL·L7 SSH 인증, WireGuard·NAT traversal·DERP relay, port forwarding·self-hosted WireGuard·Headscale·Tailscale 비교, defense in depth(기기 키와 사용자 키), macOS sshd_config.d와 PAM, Windows OpenSSH Server와 방화벽 규칙·administrators_authorized_keys, autogroup:self ACL, orphan 노드와 hostname -1'
+summary: '기기 네 대를 밖에서 SSH로 오가려다 막힌 일, tailscale ping과 Operation timed out, drop과 RST, Tailscale ACL과 packet filter(tailscale debug netmap), sshd와 Windows Defender Firewall, L3 reachability(NAT·공인 IP·port forwarding·DDNS·CGNAT)·L4 포트·방화벽·ACL·L7 SSH 인증, WireGuard·NAT traversal·DERP relay, 계층별 self-hosted와 managed 비교(control plane·data plane·종속의 대가와 출구), port forwarding·self-hosted WireGuard·Headscale·Tailscale 비교, defense in depth(기기 키와 사용자 키), macOS sshd_config.d와 PAM, Windows OpenSSH Server와 방화벽 규칙·administrators_authorized_keys, autogroup:self ACL, orphan 노드와 hostname -1'
 ---
 
 > 폰·맥·패드·데스크탑 네 대를 밖에서도 SSH로 오가려다 막힌 일을 원인부터 설정까지 정리했다. 패킷이 계층마다 어떤 일을 겪는지는 [계층으로 본 네트워크](/kr/blog/network/network-tcp-ip-layers/)에, SSH 연결 단계는 [웹 요청 하나가 서버까지 가는 전체 과정의 SSH 접속](/kr/blog/network/network-web-request-journey/#15-ssh-접속)에 있다. 이 글은 그 두 글의 NAT·포트·SSH 절을 실제 문제에 대 본 것이다.
@@ -12,12 +12,13 @@ summary: '기기 네 대를 밖에서 SSH로 오가려다 막힌 일, tailscale 
 
 결론부터 쓰면, **망은 처음부터 있었고 SSH server가 없었다.** 데스크탑은 이미 Tailscale로 맥과 이어져 있었는데, 데스크탑에는 접속을 받을 sshd가 없었고 Windows 방화벽이 들어오는 패킷을 버리고 있었다.
 
-| 질문                                         | 답                                                                                                    |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| 왜 직접 SSH(공유기 port forwarding)가 아닌가 | 학교 Wi-Fi의 맥은 학교 NAT 뒤라 밖에서 들어갈 길이 없고, 집 공유기에 22를 열면 인터넷 전체에 노출된다 |
-| Tailscale이 푸는 것                          | L3 reachability. NAT 뒤 기기끼리 WireGuard 터널을 잇는다. 공유기에 여는 포트는 0개다                  |
-| Tailscale이 안 푸는 것                       | L4의 OS 방화벽, L7의 SSH server와 사용자 인증. 이건 기기마다 따로 해야 한다                           |
-| 이번에 막힌 곳                               | 데스크탑: sshd 없음 + Windows Defender Firewall drop. 맥: 원격 로그인 꺼짐(sshd 없음)                 |
+| 질문                                         | 답                                                                                                                                                                                                           |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 왜 직접 SSH(공유기 port forwarding)가 아닌가 | 학교 Wi-Fi의 맥은 학교 NAT 뒤라 밖에서 들어갈 길이 없고, 집 공유기에 22를 열면 인터넷 전체에 노출된다                                                                                                        |
+| Tailscale이 푸는 것                          | L3 reachability. NAT 뒤 기기끼리 WireGuard 터널을 잇는다. 공유기에 여는 포트는 0개다                                                                                                                         |
+| Tailscale이 안 푸는 것                       | L4의 OS 방화벽, L7의 SSH server와 사용자 인증. 이건 기기마다 따로 해야 한다                                                                                                                                  |
+| 왜 직접 굴리지 않고 맡기나                   | L3와 control plane(기기 키 배포)을 회사가 대신 운영한다. 대가는 외부 회사·계정 하나에 기대는 것이고, 밑단이 WireGuard라 [그 두 칸만 갈아끼우면 떠날 수 있다](#4-맡기는-게-더-간편한-이유-계층마다-떠안는-일) |
+| 이번에 막힌 곳                               | 데스크탑: sshd 없음 + Windows Defender Firewall drop. 맥: 원격 로그인 꺼짐(sshd 없음)                                                                                                                        |
 
 # 1. 상황
 
@@ -130,7 +131,42 @@ _위: 공유기 port forwarding으로 22를 연 경우. 아래: Tailscale. 빨�
 - **DERP relay**: hole punching이 안 되는 NAT(대칭형 NAT, UDP 차단)에서는 Tailscale의 relay 서버를 거친다. HTTPS(TCP 443) 위로 가서 웬만한 방화벽은 통과하고, 대신 relay를 돌아가니 지연이 늘어난다. 내용은 WireGuard로 암호화된 채라 relay도 못 읽는다.
 - 모든 연결을 기기가 **밖으로** 연다. 그래서 공유기에 여는 **들어오는 포트는 0개**다.
 
-# 4. 다른 방법과 비교
+# 4. 맡기는 게 더 간편한 이유: 계층마다 떠안는 일
+
+"사설망(overlay) 위에 SSH가 얹힌다"까지만 알면 Tailscale은 SSH 밑에 깔린 망 하나로 보인다. 그런데 그 망을 내가 직접 굴리면 계층마다 할 일이 따로 생긴다.
+
+아파트로 치면 건물 관리를 직접 하느냐, 관리사무소에 맡기느냐의 차이다. 직접 하면 단지 앞 도로, 정문 경비, 출입카드 발급과 회수를 다 내가 한다. 맡기면 그건 관리사무소가 하고, 내 방 열쇠만 내가 챙긴다. 도로는 L3 reachability, 정문은 L4 포트·방화벽, 출입카드는 기기 키를 나눠 주는 **control plane**, 방 열쇠는 L7 SSH다.
+
+![계층마다 self-hosted면 내가 하는 일과 managed면 사라지는 일. L7 SSH는 양쪽 다 내 몫](/static/images/network-ssh-overlay/self-hosted-vs-managed.svg)
+
+_왼쪽은 self-hosted WireGuard로 할 때 내가 떠안는 일, 오른쪽은 Tailscale 같은 managed 서비스에 맡겼을 때 남는 일이다. 맨 위 L7 줄은 양쪽이 같다._
+
+| 칸                     | self-hosted로 하면 내가 떠안는 일                                                                                                         | managed(Tailscale)에 맡기면                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| L3 reachability        | 공인 IP 확보(집에 없으면 VPS), IP가 바뀌면 DDNS, NAT traversal 직접 구성, 안 되는 구간을 위한 relay 서버 운영, 기기마다 터널 IP 배정·기록 | 기기마다 고정 100.x IP 자동 배정, NAT traversal 자동, 직접 연결이 안 되면 DERP relay 제공 |
+| L4 포트·방화벽         | 공유기 port forwarding(UDP 51820), 공유기와 OS 방화벽 규칙, 열어 둔 포트 관리                                                             | 공유기에 여는 포트 0개, 기기 사이 허용 범위는 ACL 정책 파일 하나                          |
+| control plane(기기 키) | 기기마다 키 쌍 생성, 상대 피어의 공개키·endpoint를 설정 파일에 적어 배포, 기기를 잃어버리면 모든 피어 설정에서 그 키를 지워 폐기          | 로그인 한 번으로 기기 추가, 관리 콘솔에서 지우면 모든 기기에서 빠짐                       |
+| L7 SSH                 | sshd 설치, 공개키 등록, 비밀번호 로그인 끄기                                                                                              | **똑같이 내 몫**                                                                          |
+
+- **L3**: self-hosted는 결국 "밖에서 닿을 수 있는 점" 하나가 필요하다. 집 공유기의 공인 IP든 VPS든, 그 점을 확보하고 주소가 바뀌면 따라가는 것까지 내가 한다. 학교 NAT 뒤 맥처럼 그 점을 못 만드는 기기는 서버를 거쳐서만 붙는다. managed는 그 점(coordination server, DERP)을 회사가 운영한다.
+- **L4**: self-hosted WireGuard는 서버 역할 기기의 UDP 포트 하나는 열어야 한다. managed는 모든 기기가 밖으로만 연결을 열어서 열린 포트가 없고, 누가 어디까지 닿는지는 ACL 파일 하나로 정한다. 단, 각 기기의 OS 방화벽은 어느 쪽이든 내가 설정한다(7절의 Windows 규칙).
+- **control plane**: WireGuard는 피어끼리 서로의 공개키를 알아야 한다. 네 대를 서로 다 이으면(full mesh) 피어 쌍이 4×3÷2 = 6개, 각 설정 파일에 다른 세 대씩 적으니 항목이 12개다(계산값). 기기 하나를 추가하거나 잃어버릴 때마다 나머지 설정을 다 고친다. 서버 하나를 가운데 두면(hub-and-spoke) 항목은 줄지만 모든 트래픽이 그 서버를 거친다. managed는 이 키 교환·배포·폐기를 coordination server가 대신한다.
+- **L7**: SSH는 overlay가 무엇이든 똑같다. 맡겨도 sshd, 키, 비밀번호 끄기는 내가 한다(Tailscale SSH를 쓰면 이것도 맡길 수 있지만 Windows 서버는 지원하지 않는다).
+
+## 종속의 대가와 출구
+
+맡긴 만큼 기대는 곳이 생긴다.
+
+- **외부 회사**: coordination server와 DERP를 회사가 운영한다. 회사의 정책·무료 요금제 조건이 바뀌면 따라가야 하고, 회사 쪽 장애 때는 새 기기 등록이나 키 갱신이 멈출 수 있다. 기기 목록과 접속 메타데이터도 회사가 본다(트래픽 내용은 WireGuard로 암호화돼서 못 본다).
+- **계정 하나**: tailnet 전체가 로그인 계정 하나(신원 제공자)에 묶인다. 그 계정이 잠기면 새 기기를 못 붙인다.
+
+대신 출구가 있다. 회사에 맡긴 건 **L3와 control plane**뿐이고, 실제로 패킷을 나르는 data plane은 표준 WireGuard다. 그래서 떠날 때는 그 두 칸만 갈아끼우면 된다.
+
+- **Headscale**: Tailscale 클라이언트는 그대로 두고 control plane만 내 서버로 바꾼다.
+- **self-hosted WireGuard**: L3와 control plane을 전부 내가 맡는다(위 표 왼쪽).
+- 어느 쪽이든 L7 SSH 설정(sshd_config, `authorized_keys`, SSH 키)은 그대로 쓴다. L4 OS 방화벽 규칙도 그대로인데, 새 터널 대역이 100.64.0.0/10이 아니면 `-RemoteAddress` 값만 바꾼다.
+
+# 5. 다른 방법과 비교
 
 선택지는 넷이었다. 단점은 전부 적는다.
 
@@ -145,10 +181,10 @@ _위: 공유기 port forwarding으로 22를 연 경우. 아래: Tailscale. 빨�
 
 - **확장성**: 기기 하나를 추가하면 로그인 한 번으로 tailnet에 붙는다. 공유기 규칙이나 키 배포를 손댈 일이 없다. NAT 종류와 상관없이(학교, CGNAT) 붙는다.
 - **유지보수성**: 공유기에 열린 포트가 0개라 지킬 공격면이 SSH server 자체로 줄어든다. 공인 IP 변경, DDNS, 서버 패치를 내가 하지 않는다.
-- **종속성**: 외부 회사에 기대는 게 단점이지만, 밑단이 표준 WireGuard라 L3만 갈아끼우면 된다. Headscale이나 self-hosted WireGuard로 옮겨도 L4 방화벽 규칙과 L7 SSH 설정(키, sshd_config)은 그대로 쓴다.
+- **종속성**: 외부 회사에 기대는 게 단점이지만, 밑단이 표준 WireGuard라 [L3만 갈아끼우면 된다](#종속의-대가와-출구). Headscale이나 self-hosted WireGuard로 옮겨도 L4 방화벽 규칙과 L7 SSH 설정(키, sshd_config)은 그대로 쓴다.
 - **테스트 용이성**: `tailscale ping`(L3), `tailscale debug netmap`(ACL), `ssh -v`(L7)로 계층을 하나씩 떼어 확인할 수 있다. 이번 원인도 이 순서로 찾았다.
 
-# 5. 검문 두 개: defense in depth
+# 6. 검문 두 개: defense in depth
 
 건물에 들어갈 때 출입증(건물)과 방 열쇠(방)를 따로 보는 것과 같다. 출입증을 잃어버려도 방은 안 열리고, 열쇠를 잃어버려도 건물에 못 들어온다. 출입증은 **WireGuard 키**, 방 열쇠는 **SSH 키**다.
 
@@ -159,7 +195,7 @@ _위: 공유기 port forwarding으로 22를 연 경우. 아래: Tailscale. 빨�
 
 두 검문은 서로 독립이다. tailnet 기기 하나가 털려도 그 기기에 내 SSH 개인키가 없으면 다른 기기에 로그인하지 못하고, SSH 개인키가 새도 tailnet 밖에서는 22번까지 닿지 못한다. 이렇게 서로 다른 층의 방어를 겹치는 걸 **defense in depth**라고 한다. 그래서 Tailscale 안이라도 SSH 비밀번호 로그인은 끄고 공개키만 쓴다.
 
-# 6. 실제 설정
+# 7. 실제 설정
 
 ## 맥: 원격 로그인 + 공개키만
 
@@ -229,7 +265,7 @@ icacls.exe "C:\ProgramData\ssh\administrators_authorized_keys" /inheritance:r /g
 - 데스크탑: 위 Windows 단계 전체(할 예정)
 - 폰·패드: SSH 키를 만들어 맥·데스크탑 `authorized_keys`에 등록(할 예정)
 
-# 7. 부록: orphan 노드와 `-1`
+# 8. 부록: orphan 노드와 `-1`
 
 tailnet 기기 목록을 보다가 해커톤 때 붙인 k3s 노드 세 대가 그대로 남아 있는 걸 발견했다. 실제 서버는 이미 없는데 tailnet에는 등록이 살아 있는 **orphan** 노드다.
 
@@ -238,7 +274,7 @@ tailnet 기기 목록을 보다가 해커톤 때 붙인 k3s 노드 세 대가 �
 - orphan은 관리 콘솔의 기기 목록에서 지운다.
 - 기기를 다시 붙였다면 orphan을 지운 뒤 새 기기 이름에서 `-1`을 떼고, 그 이름을 쓰는 설정이 맞는 기기를 가리키는지 다시 본다.
 
-# 8. 숫자 표
+# 9. 숫자 표
 
 2026-11-26 기준. 잰 것만 적었다.
 
@@ -250,25 +286,28 @@ tailnet 기기 목록을 보다가 해커톤 때 붙인 k3s 노드 세 대가 �
 | 공유기에 연 들어오는 포트         | 0개                                   | Tailscale 구성(port forwarding 없음) |
 | tailnet에 남아 있던 orphan 노드   | 3대 (해커톤 k3s)                      | Tailscale 기기 목록                  |
 
-# 9. 용어 정리
+# 10. 용어 정리
 
-| 용어                                                                                     | 뜻                                                                        |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| overlay network                                                                          | 기존 네트워크 위에 가상 주소와 터널로 한 겹 더 얹은 네트워크              |
-| tailnet                                                                                  | Tailscale로 묶인 한 계정(조직)의 기기 네트워크                            |
-| WireGuard                                                                                | 공개키로 기기를 식별하고 UDP로 터널을 만드는 VPN 프로토콜                 |
-| coordination server                                                                      | 기기들의 공개키와 바깥 주소를 모아 나눠 주는 서버. 데이터는 안 지나감     |
-| NAT traversal / UDP hole punching                                                        | 양쪽이 동시에 밖으로 보내 NAT 변환표에 항목을 만들어 직접 잇는 기법       |
-| DERP relay                                                                               | 직접 연결이 안 될 때 HTTPS 위로 암호화된 패킷을 중계하는 Tailscale 서버   |
-| [NAT](/kr/blog/network/network-tcp-ip-layers/#사설-ip-공인-ip-nat) / CGNAT               | 사설 IP를 공인 IP로 바꾸는 것 / 통신사가 한 번 더 하는 NAT(100.64.0.0/10) |
-| [port forwarding](/kr/blog/network/network-web-request-journey/#nat-뒤의-pc에-접속할-때) | 공유기 공인 IP:포트로 들어온 연결을 안쪽 기기로 넘기는 설정               |
-| DDNS                                                                                     | 바뀌는 공인 IP를 고정된 도메인 이름에 계속 맞춰 주는 서비스               |
-| reachability                                                                             | 패킷이 상대 기기까지 닿을 경로가 있는지                                   |
-| drop / RST                                                                               | 패킷을 조용히 버림(timed out) / 받을 프로그램 없다고 거절(refused)        |
-| ACL / packet filter                                                                      | Tailscale 관리 콘솔의 접근 정책 / 그 정책이 기기에 내려간 실제 필터 규칙  |
-| [SSH](/kr/blog/network/network-web-request-journey/#15-ssh-접속) / sshd                  | 암호화된 원격 접속 프로토콜 / 그 접속을 받는 서버 프로그램                |
-| PAM / keyboard-interactive                                                               | OS의 인증 모듈 체계 / PAM을 거쳐 비밀번호를 묻는 SSH 인증 방식            |
-| lockout                                                                                  | 인증 설정을 잘못 바꿔 원격으로 다시 못 들어가게 되는 것                   |
-| defense in depth                                                                         | 서로 독립인 방어를 여러 층으로 겹치는 것                                  |
-| autogroup:self                                                                           | ACL에서 "규칙을 적용받는 사용자 본인 소유 기기"를 뜻하는 그룹             |
-| orphan 노드                                                                              | 실제 기기는 없는데 tailnet에 등록만 남은 노드                             |
+| 용어                                                                                     | 뜻                                                                                 |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| overlay network                                                                          | 기존 네트워크 위에 가상 주소와 터널로 한 겹 더 얹은 네트워크                       |
+| tailnet                                                                                  | Tailscale로 묶인 한 계정(조직)의 기기 네트워크                                     |
+| WireGuard                                                                                | 공개키로 기기를 식별하고 UDP로 터널을 만드는 VPN 프로토콜                          |
+| coordination server                                                                      | 기기들의 공개키와 바깥 주소를 모아 나눠 주는 서버. 데이터는 안 지나감              |
+| NAT traversal / UDP hole punching                                                        | 양쪽이 동시에 밖으로 보내 NAT 변환표에 항목을 만들어 직접 잇는 기법                |
+| DERP relay                                                                               | 직접 연결이 안 될 때 HTTPS 위로 암호화된 패킷을 중계하는 Tailscale 서버            |
+| [NAT](/kr/blog/network/network-tcp-ip-layers/#사설-ip-공인-ip-nat) / CGNAT               | 사설 IP를 공인 IP로 바꾸는 것 / 통신사가 한 번 더 하는 NAT(100.64.0.0/10)          |
+| [port forwarding](/kr/blog/network/network-web-request-journey/#nat-뒤의-pc에-접속할-때) | 공유기 공인 IP:포트로 들어온 연결을 안쪽 기기로 넘기는 설정                        |
+| DDNS                                                                                     | 바뀌는 공인 IP를 고정된 도메인 이름에 계속 맞춰 주는 서비스                        |
+| reachability                                                                             | 패킷이 상대 기기까지 닿을 경로가 있는지                                            |
+| drop / RST                                                                               | 패킷을 조용히 버림(timed out) / 받을 프로그램 없다고 거절(refused)                 |
+| ACL / packet filter                                                                      | Tailscale 관리 콘솔의 접근 정책 / 그 정책이 기기에 내려간 실제 필터 규칙           |
+| [SSH](/kr/blog/network/network-web-request-journey/#15-ssh-접속) / sshd                  | 암호화된 원격 접속 프로토콜 / 그 접속을 받는 서버 프로그램                         |
+| PAM / keyboard-interactive                                                               | OS의 인증 모듈 체계 / PAM을 거쳐 비밀번호를 묻는 SSH 인증 방식                     |
+| lockout                                                                                  | 인증 설정을 잘못 바꿔 원격으로 다시 못 들어가게 되는 것                            |
+| defense in depth                                                                         | 서로 독립인 방어를 여러 층으로 겹치는 것                                           |
+| autogroup:self                                                                           | ACL에서 "규칙을 적용받는 사용자 본인 소유 기기"를 뜻하는 그룹                      |
+| orphan 노드                                                                              | 실제 기기는 없는데 tailnet에 등록만 남은 노드                                      |
+| control plane / data plane                                                               | 기기 키·주소를 나눠 주고 관리하는 부분 / 실제 패킷을 나르는 부분(여기선 WireGuard) |
+| self-hosted / managed                                                                    | 서버를 내가 직접 운영 / 회사가 운영하는 서비스에 맡김                              |
+| full mesh / hub-and-spoke                                                                | 모든 기기를 서로 직접 이음 / 가운데 서버 하나를 거쳐 이음                          |

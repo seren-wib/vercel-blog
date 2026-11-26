@@ -3,7 +3,7 @@ title: 'Why I run SSH over an overlay network (Tailscale) instead of exposing it
 date: '2026-11-26'
 tags: ['Network']
 draft: false
-summary: 'Getting stuck trying to SSH between four devices from anywhere, tailscale ping vs Operation timed out, drop vs RST, Tailscale ACL and packet filter (tailscale debug netmap), sshd and Windows Defender Firewall, L3 reachability (NAT, public IP, port forwarding, DDNS, CGNAT), L4 ports, firewalls and ACLs, L7 SSH authentication, WireGuard, NAT traversal and DERP relay, comparing port forwarding, self-hosted WireGuard, Headscale and Tailscale, defense in depth (device keys and user keys), macOS sshd_config.d and PAM, Windows OpenSSH Server with firewall rules and administrators_authorized_keys, autogroup:self ACL, orphan nodes and the hostname -1 suffix'
+summary: 'Getting stuck trying to SSH between four devices from anywhere, tailscale ping vs Operation timed out, drop vs RST, Tailscale ACL and packet filter (tailscale debug netmap), sshd and Windows Defender Firewall, L3 reachability (NAT, public IP, port forwarding, DDNS, CGNAT), L4 ports, firewalls and ACLs, L7 SSH authentication, WireGuard, NAT traversal and DERP relay, self-hosted vs managed per layer (control plane, data plane, the cost of dependency and the exit), comparing port forwarding, self-hosted WireGuard, Headscale and Tailscale, defense in depth (device keys and user keys), macOS sshd_config.d and PAM, Windows OpenSSH Server with firewall rules and administrators_authorized_keys, autogroup:self ACL, orphan nodes and the hostname -1 suffix'
 ---
 
 > I wanted to SSH between my phone, Mac, tablet and desktop from anywhere, and got stuck. This post goes from the cause to the setup. What a packet goes through at each layer is in [Networking by layer](/en/blog/network/network-tcp-ip-layers/), and the SSH connection steps are in [the SSH section of the web request journey](/en/blog/network/network-web-request-journey/#15-connecting-over-ssh). This post applies the NAT, port and SSH sections of those two posts to a real problem.
@@ -12,12 +12,13 @@ summary: 'Getting stuck trying to SSH between four devices from anywhere, tailsc
 
 The conclusion first: **the network was there from the start; the SSH server was not.** The desktop was already connected to the Mac through Tailscale, but it had no sshd to accept the connection, and Windows Firewall was dropping incoming packets.
 
-| Question                                    | Answer                                                                                                                                                     |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Why not plain SSH (router port forwarding)? | The Mac on campus Wi-Fi sits behind the campus NAT, so there is no way in from outside, and opening 22 on the home router exposes it to the whole internet |
-| What Tailscale solves                       | L3 reachability. It connects devices behind NAT with WireGuard tunnels. Ports opened on the router: 0                                                      |
-| What Tailscale does not solve               | The OS firewall at L4, and the SSH server and user authentication at L7. Each device needs these on its own                                                |
-| Where it was blocked this time              | Desktop: no sshd + Windows Defender Firewall drop. Mac: Remote Login off (no sshd)                                                                         |
+| Question                                     | Answer                                                                                                                                                                                                                                                                                           |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Why not plain SSH (router port forwarding)?  | The Mac on campus Wi-Fi sits behind the campus NAT, so there is no way in from outside, and opening 22 on the home router exposes it to the whole internet                                                                                                                                       |
+| What Tailscale solves                        | L3 reachability. It connects devices behind NAT with WireGuard tunnels. Ports opened on the router: 0                                                                                                                                                                                            |
+| What Tailscale does not solve                | The OS firewall at L4, and the SSH server and user authentication at L7. Each device needs these on its own                                                                                                                                                                                      |
+| Why hand it off instead of running it myself | The company runs L3 and the control plane (device key distribution) for me. The cost is depending on an outside company and one account; since the layer underneath is WireGuard, [swapping just those two slots is the way out](#4-why-handing-it-off-is-simpler-what-each-layer-leaves-to-you) |
+| Where it was blocked this time               | Desktop: no sshd + Windows Defender Firewall drop. Mac: Remote Login off (no sshd)                                                                                                                                                                                                               |
 
 # 1. The situation
 
@@ -130,7 +131,42 @@ _Top: port 22 opened with router port forwarding. Bottom: Tailscale. Red lines a
 - **DERP relay**: behind NATs where hole punching fails (symmetric NAT, blocked UDP), traffic goes through Tailscale's relay servers. It rides on HTTPS (TCP 443) so it gets through most firewalls, but the detour adds latency. The content stays encrypted by WireGuard, so the relay can't read it either.
 - Every connection is opened **outward** by the device. So the number of **inbound ports opened on the router is 0**.
 
-# 4. Comparing the alternatives
+# 4. Why handing it off is simpler: what each layer leaves to you
+
+If all you know is "SSH sits on top of a private network (overlay)", Tailscale looks like just one network laid under SSH. But if I run that network myself, each layer brings its own work.
+
+In apartment terms, it is the difference between managing the building yourself and handing it to a management office. Do it yourself and the road in front, the guard at the front gate, and issuing and revoking access cards are all yours. Hand it off and the office does that; you only keep track of your own room key. The road is L3 reachability, the gate is L4 ports and firewalls, the access cards are the **control plane** that hands out device keys, and the room key is L7 SSH.
+
+![For each layer, what I do when self-hosted and what goes away when managed. L7 SSH is mine either way](/static/images/network-ssh-overlay/self-hosted-vs-managed.svg)
+
+_Left: the work I take on with self-hosted WireGuard. Right: what is left when a managed service like Tailscale takes it. The top L7 row is the same on both sides._
+
+| Slot                        | What I take on when self-hosted                                                                                                                                                                    | Handed to managed (Tailscale)                                                                                              |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| L3 reachability             | Getting a public IP (a VPS if home has none), DDNS when the IP changes, setting up NAT traversal myself, running relay servers for paths that fail, assigning and recording a tunnel IP per device | A fixed 100.x IP assigned to each device automatically, automatic NAT traversal, DERP relay when a direct connection fails |
+| L4 ports and firewall       | Router port forwarding (UDP 51820), router and OS firewall rules, keeping track of open ports                                                                                                      | 0 ports opened on the router; what each device may reach is one ACL policy file                                            |
+| Control plane (device keys) | Generating a key pair per device, writing each peer's public key and endpoint into config files and distributing them, revoking a lost device's key by deleting it from every peer's config        | Add a device with one login; delete it in the admin console and it drops off every device                                  |
+| L7 SSH                      | Installing sshd, registering public keys, turning off password login                                                                                                                               | **Still mine, exactly the same**                                                                                           |
+
+- **L3**: self-hosted ultimately needs one "point reachable from outside". Whether it is the home router's public IP or a VPS, securing that point and following it when the address changes is my job. Devices that can't be such a point, like the Mac behind the campus NAT, only join through the server. With managed, the company runs that point (coordination server, DERP).
+- **L4**: self-hosted WireGuard needs one UDP port open on the device acting as the server. With managed, every device only opens connections outward, so nothing is open, and who can reach what is set in one ACL file. Each device's OS firewall is still mine to set up either way (the Windows rules in section 7).
+- **Control plane**: WireGuard peers have to know each other's public keys. Connecting four devices to each other (full mesh) gives 4×3÷2 = 6 peer pairs, and each config lists the other three, so 12 entries (calculated). Every time a device is added or lost, all the other configs change. Putting one server in the middle (hub-and-spoke) cuts the entries, but then all traffic goes through that server. With managed, the coordination server does this key exchange, distribution and revocation.
+- **L7**: SSH is the same whatever the overlay is. Even when handing off, sshd, keys and turning off passwords are mine (Tailscale SSH can take this too, but it does not support Windows as a server).
+
+## The cost of dependency, and the exit
+
+What you hand off becomes something you depend on.
+
+- **An outside company**: the company runs the coordination server and DERP. If its policy or free-plan terms change, I have to follow, and during an outage on its side, registering new devices or renewing keys can stop. The company also sees the device list and connection metadata (not traffic content, which is encrypted by WireGuard).
+- **One account**: the whole tailnet is tied to one login account (identity provider). If that account is locked, I can't add new devices.
+
+But there is an exit. What I handed to the company is only **L3 and the control plane**; the data plane that actually carries packets is standard WireGuard. So leaving means swapping just those two slots.
+
+- **Headscale**: keep the Tailscale clients and move only the control plane to my own server.
+- **Self-hosted WireGuard**: take on L3 and the control plane entirely (the left column of the table above).
+- Either way, the L7 SSH setup (sshd_config, `authorized_keys`, SSH keys) stays as it is. The L4 OS firewall rules stay too; if the new tunnel range isn't 100.64.0.0/10, only the `-RemoteAddress` value changes.
+
+# 5. Comparing the alternatives
 
 There were four options. Every drawback is listed.
 
@@ -145,10 +181,10 @@ I picked ④.
 
 - **Scalability**: adding a device is one login to join the tailnet. No router rules or key distribution to touch. It joins regardless of the NAT type (campus, CGNAT).
 - **Maintainability**: with 0 ports open on the router, the attack surface to guard shrinks to the SSH server itself. I don't handle public IP changes, DDNS or server patching.
-- **Dependency**: relying on an outside company is a drawback, but the layer underneath is standard WireGuard, so only L3 needs swapping. Moving to Headscale or self-hosted WireGuard keeps the L4 firewall rules and L7 SSH setup (keys, sshd_config) as they are.
+- **Dependency**: relying on an outside company is a drawback, but the layer underneath is standard WireGuard, so [only L3 needs swapping](#the-cost-of-dependency-and-the-exit). Moving to Headscale or self-hosted WireGuard keeps the L4 firewall rules and L7 SSH setup (keys, sshd_config) as they are.
 - **Testability**: `tailscale ping` (L3), `tailscale debug netmap` (ACL) and `ssh -v` (L7) let me check one layer at a time. That is the order in which I found this cause.
 
-# 5. Two checkpoints: defense in depth
+# 6. Two checkpoints: defense in depth
 
 It is like checking a building pass (the building) and a room key (the room) separately. Lose the pass and the room still won't open; lose the key and you still can't get into the building. The pass is the **WireGuard key**, and the room key is the **SSH key**.
 
@@ -159,7 +195,7 @@ It is like checking a building pass (the building) and a room key (the room) sep
 
 The two checkpoints are independent. If one tailnet device is compromised but my SSH private key isn't on it, it can't log in to my other devices; if my SSH private key leaks, it still can't reach port 22 from outside the tailnet. Layering independent defenses like this is called **defense in depth**. That's why, even inside Tailscale, I turn off SSH password login and use public keys only.
 
-# 6. The actual setup
+# 7. The actual setup
 
 ## Mac: Remote Login + public keys only
 
@@ -229,7 +265,7 @@ icacls.exe "C:\ProgramData\ssh\administrators_authorized_keys" /inheritance:r /g
 - Desktop: all of the Windows steps above (planned)
 - Phone and tablet: create SSH keys and register them in `authorized_keys` on the Mac and desktop (planned)
 
-# 7. Appendix: orphan nodes and `-1`
+# 8. Appendix: orphan nodes and `-1`
 
 While looking at the tailnet device list, I found the three k3s nodes I had added for a hackathon still there. The servers themselves are long gone, but their registrations are still alive on the tailnet: **orphan** nodes.
 
@@ -238,7 +274,7 @@ This can cause trouble. When device names collide, Tailscale adds `-1` to the na
 - Remove orphans from the device list in the admin console.
 - If you rejoined a device, remove the orphan, then drop the `-1` from the new device's name and recheck that settings using that name point to the right device.
 
-# 8. Numbers
+# 9. Numbers
 
 As of 2026-11-26. Only measured values.
 
@@ -250,25 +286,28 @@ As of 2026-11-26. Only measured values.
 | Inbound ports opened on the router                  | 0                                     | Tailscale setup (no port forwarding) |
 | Orphan nodes left on the tailnet                    | 3 (hackathon k3s)                     | Tailscale device list                |
 
-# 9. Glossary
+# 10. Glossary
 
-| Term                                                                                      | Meaning                                                                                                    |
-| ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| overlay network                                                                           | A network laid on top of an existing one with virtual addresses and tunnels                                |
-| tailnet                                                                                   | The network of devices of one Tailscale account (organization)                                             |
-| WireGuard                                                                                 | A VPN protocol that identifies devices by public key and builds tunnels over UDP                           |
-| coordination server                                                                       | A server that collects and hands out devices' public keys and outside addresses. No data passes through it |
-| NAT traversal / UDP hole punching                                                         | Both sides send outward at once to create NAT table entries and connect directly                           |
-| DERP relay                                                                                | Tailscale servers that relay encrypted packets over HTTPS when a direct connection fails                   |
-| [NAT](/en/blog/network/network-tcp-ip-layers/#private-ip-public-ip-nat) / CGNAT           | Rewriting private IPs to a public IP / NAT done once more by the carrier (100.64.0.0/10)                   |
-| [port forwarding](/en/blog/network/network-web-request-journey/#reaching-a-pc-behind-nat) | A router setting that passes connections arriving at public IP:port to a device inside                     |
-| DDNS                                                                                      | A service that keeps a fixed domain name pointed at a changing public IP                                   |
-| reachability                                                                              | Whether there is a path for packets to reach the other device                                              |
-| drop / RST                                                                                | Silently discarding a packet (timed out) / refusing because nothing is listening (refused)                 |
-| ACL / packet filter                                                                       | The access policy in the Tailscale admin console / the actual filter rules pushed to devices from it       |
-| [SSH](/en/blog/network/network-web-request-journey/#15-connecting-over-ssh) / sshd        | An encrypted remote login protocol / the server program that accepts it                                    |
-| PAM / keyboard-interactive                                                                | The OS's pluggable authentication modules / an SSH auth method that asks for a password through PAM        |
-| lockout                                                                                   | Changing auth settings wrongly so you can no longer get back in remotely                                   |
-| defense in depth                                                                          | Layering independent defenses on top of each other                                                         |
-| autogroup:self                                                                            | In an ACL, the group meaning "devices owned by the user the rule applies to"                               |
-| orphan node                                                                               | A node whose device is gone but whose registration remains on the tailnet                                  |
+| Term                                                                                      | Meaning                                                                                                        |
+| ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| overlay network                                                                           | A network laid on top of an existing one with virtual addresses and tunnels                                    |
+| tailnet                                                                                   | The network of devices of one Tailscale account (organization)                                                 |
+| WireGuard                                                                                 | A VPN protocol that identifies devices by public key and builds tunnels over UDP                               |
+| coordination server                                                                       | A server that collects and hands out devices' public keys and outside addresses. No data passes through it     |
+| NAT traversal / UDP hole punching                                                         | Both sides send outward at once to create NAT table entries and connect directly                               |
+| DERP relay                                                                                | Tailscale servers that relay encrypted packets over HTTPS when a direct connection fails                       |
+| [NAT](/en/blog/network/network-tcp-ip-layers/#private-ip-public-ip-nat) / CGNAT           | Rewriting private IPs to a public IP / NAT done once more by the carrier (100.64.0.0/10)                       |
+| [port forwarding](/en/blog/network/network-web-request-journey/#reaching-a-pc-behind-nat) | A router setting that passes connections arriving at public IP:port to a device inside                         |
+| DDNS                                                                                      | A service that keeps a fixed domain name pointed at a changing public IP                                       |
+| reachability                                                                              | Whether there is a path for packets to reach the other device                                                  |
+| drop / RST                                                                                | Silently discarding a packet (timed out) / refusing because nothing is listening (refused)                     |
+| ACL / packet filter                                                                       | The access policy in the Tailscale admin console / the actual filter rules pushed to devices from it           |
+| [SSH](/en/blog/network/network-web-request-journey/#15-connecting-over-ssh) / sshd        | An encrypted remote login protocol / the server program that accepts it                                        |
+| PAM / keyboard-interactive                                                                | The OS's pluggable authentication modules / an SSH auth method that asks for a password through PAM            |
+| lockout                                                                                   | Changing auth settings wrongly so you can no longer get back in remotely                                       |
+| defense in depth                                                                          | Layering independent defenses on top of each other                                                             |
+| autogroup:self                                                                            | In an ACL, the group meaning "devices owned by the user the rule applies to"                                   |
+| orphan node                                                                               | A node whose device is gone but whose registration remains on the tailnet                                      |
+| control plane / data plane                                                                | The part that hands out and manages device keys and addresses / the part that carries packets (WireGuard here) |
+| self-hosted / managed                                                                     | Running the servers myself / handing them to a service a company runs                                          |
+| full mesh / hub-and-spoke                                                                 | Every device connected to every other directly / connected through one server in the middle                    |

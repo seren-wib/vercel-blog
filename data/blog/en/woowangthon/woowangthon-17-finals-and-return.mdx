@@ -1,0 +1,159 @@
+---
+title: 'Woowangthon 17. Overwriting the Disks on Award Day'
+date: '2026-11-26'
+tags: ['Woowangthon']
+draft: false
+summary: "The last post in the series. Submission on November 15 and the finals on November 21, the Excellence Award (School of Electrical Engineering Head's Award) for team 18, a summary of the cluster work I did across parts 1–16, and the return: backing up the leader's metrics before the overwrite, cleaning up Cloudflare, SSM, GoCD, ACM and Tailscale shares, restoring the three PCs with Clonezilla restoredisk, putting the BIOS power setting back, and removing the devices from the admin console"
+---
+
+> Part 17 and the last post of the series. This is the story of the contest result and returning the school PCs. The regression test on submission day is in [part 16](/en/blog/woowangthon/woowangthon-16-regression-test/), the disk images taken at the start for this very return are in [part 3](/en/blog/woowangthon/woowangthon-03-disk-images/), and the big picture is in [Woowangthon 0](/en/blog/woowangthon/woowangthon-00-overview/).
+
+## In one line
+
+We submitted with the 18:00 commit on November 15, and at the finals on November 21 team 18 won the Excellence Award (School of Electrical Engineering Head's Award). I took part of the Q&A at the finals. That evening I overwrote the three school PCs with the images taken in [part 3](/en/blog/woowangthon/woowangthon-03-disk-images/). Before that, I moved the leader's metrics data to an external disk and deleted the tunnels, keys and certificates left in the cloud. Removing the three PCs from the admin console on November 26 finished the return on the school side.
+
+## 1. Submission
+
+| Date               | What                                                                               |
+| ------------------ | ---------------------------------------------------------------------------------- |
+| November 15 18:00  | Submission deadline. Judged on the `main` commit at this time                      |
+| November 16~20     | Preliminary judging, 10 teams picked for the finals                                |
+| November 21 13:00~ | Finals. Each team gets a 10-minute talk (demo video included) and 5 minutes of Q&A |
+
+On the morning of submission day I ran the demo path again from start to finish on the new `main`, and that afternoon I fixed two failures and passed them on a rerun. That story is [part 16](/en/blog/woowangthon/woowangthon-16-regression-test/#6-what-i-fixed-before-submission). Judging used the 18:00 commit after that.
+
+## 2. Finals
+
+The finals started at 13:00 on Saturday, November 21. In the Q&A after the talk, I answered part of the cluster questions. Since the design runs student services on three school PCs, I expected questions like what happens if the leader goes down, or how many students it can take. So I took the infrastructure questions from the team's list of expected questions and put them in one document I could read on my phone right before the talk. A Claude Code session put the document together, and I decided which questions stayed or went and which answers to rewrite shorter. 14 questions were left.
+
+## 3. Excellence Award
+
+![Team 18 on the finals stage holding the Excellence Award plaque](/static/images/woowangthon-17-finals-and-return/award.webp)
+
+_AI WOOWANG THON Final Round, November 21. I am in the middle. The teammates' faces and name tags on either side and the bottom line of the plaque are masked_
+
+Out of the 10 teams in the finals, team 18 (3 people) won the **Excellence Award (School of Electrical Engineering Head's Award)**. The hosts were the CBNU AI Bootcamp program (충북대학교 AI부트캠프사업단) and LIKELION CBNU (충북대학교 멋쟁이사자처럼).
+
+## 4. My part of the cluster
+
+Parts 2 through 16 of this series are the story of the school PC cluster I was in charge of. I built the cluster from start to finish. Grouped by stage:
+
+| Stage                    | What I did                                                                                                                                                  | Post                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design                   | A network design that flipped four times: classroom PCs to dedicated PCs, Wi-Fi to the wall port                                                            | [Part 2](/en/blog/woowangthon/woowangthon-02-network-design/#6-what-the-wall-port-changed)                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 1 Image backup           | Imaging all three disks with Clonezilla before changing anything, with verification                                                                         | [Part 3](/en/blog/woowangthon/woowangthon-03-disk-images/#5-taking-the-images)                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 2 Remote access          | A way in from home over Tailscale, an SSH key per device, booting back up after a power loss                                                                | [Part 4](/en/blog/woowangthon/woowangthon-04-remote-access/#4-the-path-tailscale)                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 3 Node prep              | Config changes that roll themselves back if the link drops, node addresses, firewall                                                                        | [Part 5](/en/blog/woowangthon/woowangthon-05-node-prep/#3-put-the-undo-in-place-before-it-breaks)                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 4 Cluster                | k3s install with flannel host-gw, reboot test, vLLM on the leader GPU, the leader image cache                                                               | [Part 6](/en/blog/woowangthon/woowangthon-06-k3s-install/#2-flannel-grabbed-the-school-address), [Part 7](/en/blog/woowangthon/woowangthon-07-leader-vllm/#4-16k-didnt-fit-in-10-gb), [Part 8](/en/blog/woowangthon/woowangthon-08-image-cache/#4-one-second-for-the-second-worker)                                                                                                                                                                                                                |
+| 5 Student spaces         | The space template, resource limits, proving the blocks with a control space                                                                                | [Part 9](/en/blog/woowangthon/woowangthon-09-student-space/#5-how-do-you-know-its-blocked)                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 6 Connect to the outside | The Cloudflare tunnel and visitor addresses, the platform server account, the deploy executor on the leader, the EC2 joining the tailnet, GoCD registration | [Part 10](/en/blog/woowangthon/woowangthon-10-public-entry/#6-turning-off-a-worker-all-not-half), [Part 11](/en/blog/woowangthon/woowangthon-11-server-link/#3-write-only-was-not-write-only), [Part 12](/en/blog/woowangthon/woowangthon-12-deploy-executor/#1-why-the-executor-sits-on-the-leader), [Part 14](/en/blog/woowangthon/woowangthon-14-ec2-joins/#2-joining-the-tailnet-with-no-key), [Part 15](/en/blog/woowangthon/woowangthon-15-gocd-registration/#4-running-but-not-on-the-list) |
+| 7 Monitoring             | Prometheus and Grafana, the platform server's path to query metrics                                                                                         | [Part 13](/en/blog/woowangthon/woowangthon-13-metrics/#3-the-rights-say-yes-and-still-422)                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Pre-submission check     | Demo-path regression test on the new `main`, fixing two bugs that only showed when runs overlapped                                                          | [Part 16](/en/blog/woowangthon/woowangthon-16-regression-test/)                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| End: return              | This post                                                                                                                                                   | Sections 5–9                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+
+## 5. The return order
+
+It works like moving out of a rented place. You take out what you want to keep, cancel the contracts in your name, put the place back the way it looked in the photos from move-in day, and hand back the keys last. Here, the belongings are the leader's metrics data, the contracts are the tunnels, keys and certificates in the cloud, the move-in photos are the disk images and BIOS photos from [part 3](/en/blog/woowangthon/woowangthon-03-disk-images/), and the keys are the device entries in the Tailscale admin console.
+
+![Return order. On November 21: back up the leader data, clean up the cloud, Clonezilla restoredisk on three PCs, put the BIOS back. On November 26: remove the three PCs from the admin console](/static/images/woowangthon-17-finals-and-return/return-order.svg)
+
+This is where the reason for choosing a disk image over "deleting things one by one" in part 3 pays off. I don't have to delete, item by item, the k3s, student data, public keys, sudo settings and Tailscale installed on the three PCs over three weeks. One restoredisk brings a disk back to the state imaged on November 4, which is the state we received.
+
+There are things an image can't erase, though. They set the order.
+
+| Order | What                      | Why it has to come first                                                        |
+| ----- | ------------------------- | ------------------------------------------------------------------------------- |
+| 1     | Back up leader data       | restoredisk erases the leader disk. Anything worth keeping has to leave first   |
+| 2     | Cloud cleanup             | Tunnels, keys and certificates live outside the disk. They survive an overwrite |
+| 3     | restoredisk ×3            | Back to the disk as received                                                    |
+| 4     | Put the BIOS back         | BIOS settings live on the motherboard, not on the disk                          |
+| 5     | Remove from admin console | Delete only after seeing that the three will never come back                    |
+
+## 6. What I kept before the overwrite
+
+The leader held about 10 days of cluster metrics that Prometheus had collected since the night of November 11. An overwrite would erase them, so they came out first.
+
+| File                  | Size    | Content                                                           |
+| --------------------- | ------- | ----------------------------------------------------------------- |
+| `prometheus-tsdb.tar` | 4.76 GB | Prometheus data. 17 blocks, November 11 22:54 ~ November 21 18:39 |
+| `grafana-data.tar`    | 58.6 MB | Grafana dashboards and settings                                   |
+| `cluster-state.txt`   |         | Cluster state right before the overwrite                          |
+| `prometheus-cr.yaml`  |         | Prometheus configuration                                          |
+
+I stopped Prometheus and Grafana before copying. Archiving a data folder while it is being written can capture a half-written block. The copy took 16 seconds, and I remounted the external disk and compared SHA256 values. All three files matched. This backup currently lives on that one external disk only.
+
+## 7. Cloud cleanup
+
+These are the things left outside the disks. I handed this job to a Claude Code session, and I checked the list of what to delete and decided how to proceed.
+
+| Where          | What was deleted                                                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Cloudflare     | 4 DNS records (wildcard, `api.`, `app.`, certificate validation), 2 tunnels (the leader's visitor entrance, the EC2's `api.` tunnel)       |
+| AWS SSM        | 8 parameters. Tunnel token, vLLM API key, GoCD auto-register key, admin password and notify token, the server account's connection details |
+| GoCD           | Scaled the leader executor to replicas 0, then disabled and deleted the leader Agent on the server                                         |
+| AWS ACM        | Detached the `app.` address and certificate from CloudFront, and deleted the certificate once nothing used it (18:47)                      |
+| Tailscale      | 1 EC2 device, 6 shares on the three nodes (one teammate plus one share link per node)                                                      |
+| AWS Elastic IP | Confirmed none was ever created                                                                                                            |
+
+The ACM certificate didn't delete right away. Deletion is refused while a CloudFront distribution still uses the certificate. So I detached it from CloudFront first, and deleted it after that change had deployed and the certificate's users (`InUseBy`) dropped to 0.
+
+The student service images (GHCR) and the registry write token belong to the bot account, so that account's owner cleans them up. The Grafana view-only password went away with the leader disk.
+
+## 8. Overwriting the three PCs
+
+On site, I booted each PC from the Clonezilla USB and ran `restoredisk`. The source is the image taken in part 3, and the target is the internal NVMe.
+
+| PC       | Image                        | Target           | Check                                                  |
+| -------- | ---------------------------- | ---------------- | ------------------------------------------------------ |
+| Worker 1 | `k3s-w1-orig-2026-11-04`     | `nvme0n1` 931.5G | Image check 3 min 44 s (9.00 GB/min), Cloning finished |
+| Worker 2 | `k3s-w2-orig-2026-11-04`     | `nvme0n1` 931.5G | Target confirmed with `lsblk` before the restore       |
+| Leader   | `k3s-leader-orig-2026-11-04` | `nvme0n1` 931.5G | Target confirmed with `lsblk` before the restore       |
+
+The same trap as imaging sits here, pointing the other way. In [part 3](/en/blog/woowangthon/woowangthon-03-disk-images/#5-taking-the-images) the device names differed from PC to PC. Picking the wrong target this time would overwrite the external disk that holds the images. So before each restore I checked size and model with `lsblk` and picked only the 931.5G internal NVMe as the target.
+
+For worker 1 I recorded the check time and the completion screen. For worker 2 and the leader I only confirmed that the restore and boot finished, and didn't keep a record of the target disk screen or the check time.
+
+## 9. BIOS and the admin console
+
+I had changed one thing in the BIOS. In [part 4](/en/blog/woowangthon/woowangthon-04-remote-access/#7-power-coming-back-on-after-an-outage) I set "Restore after AC Power Loss" to `Power On` so the PCs would come back after an outage. On all three I set it back to `Power Off` as in the part 3 photos, saved, booted normally, and saw the same screen as when we received them.
+
+With Tailscale wiped by the overwrite, the three PCs sat offline in the admin console from November 21. On November 26 I removed them under Machines in the console. The `k3s-*` entries in the access rules (ACL) made for the nodes and the teammate share rule went out the same day, when I rewrote the ACL. The return stage's done criterion, "all three exactly as in the first images, BIOS matching the photos", closed here.
+
+## 10. The contest and the return in numbers
+
+As of 2026-11-26.
+
+| Item                         | Value                                                                                     |
+| ---------------------------- | ----------------------------------------------------------------------------------------- |
+| Imaging day → overwrite day  | November 4 → November 21, 17 days                                                         |
+| Leader Prometheus data       | 4.76 GB, 17 blocks, about 10 days                                                         |
+| Backup copy and check        | 16 s, SHA256 3/3 match                                                                    |
+| Cloud cleanup                | DNS 4, tunnels 2, SSM 8, GoCD Agent 1, Tailscale device 1 and shares 6, ACM certificate 1 |
+| Worker 1 image check         | 3 min 44 s, 9.00 GB/min                                                                   |
+| Devices in the admin console | 6 → 3                                                                                     |
+
+## 11. Takeaways
+
+| What happened                                                    | What I learned                                                                                    |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Three weeks of changes had to be undone at once                  | One image taken at the start stands in for most of the return list. Prepare the return on day one |
+| An image overwrite also erases the leader's metrics              | Take out what to keep before overwriting. Stop, copy, and check with hashes                       |
+| Tunnels, keys and certificates live outside the disk             | Carry a separate list of what the image can't erase                                               |
+| A certificate won't delete while something uses it               | The deletion order is the order of detaching dependents first                                     |
+| Picking the wrong restore target erases the disk with the images | Pick by size and model in `lsblk`, not by name                                                    |
+| The BIOS isn't in the image                                      | Photos taken before changing it are the reference for putting it back                             |
+
+## 12. Glossary
+
+| Term                                                                                               | Meaning                                                                                                        |
+| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| [Clonezilla](/en/blog/woowangthon/woowangthon-03-disk-images/#2-what-i-brought)                    | A free tool that saves a whole disk as an image or writes it back                                              |
+| restoredisk                                                                                        | The Clonezilla mode that overwrites a whole disk from a saved image. Saving is savedisk                        |
+| [Prometheus](/en/blog/woowangthon/woowangthon-13-metrics/#1-postponed-then-installed-the-same-day) | A monitoring tool that collects and stores metrics over time                                                   |
+| TSDB block                                                                                         | The directory unit in which Prometheus stores metrics, split by time range                                     |
+| SHA256                                                                                             | A fixed-length value computed from a file's content. Same value before and after a copy means same content     |
+| AWS SSM parameter                                                                                  | A named setting or secret stored in AWS Parameter Store                                                        |
+| ACM                                                                                                | AWS Certificate Manager. Issues HTTPS certificates and attaches them to things like CloudFront                 |
+| [Tailscale](/en/blog/woowangthon/woowangthon-04-remote-access/#4-the-path-tailscale)               | A service that ties devices into one private network. Devices and access rules (ACL) live in its admin console |
+| BIOS                                                                                               | Firmware settings stored on the motherboard. Not part of a disk image                                          |
+| [GoCD Agent](/en/blog/woowangthon/woowangthon-15-gocd-registration/#4-running-but-not-on-the-list) | The executor registered with the GoCD server that actually runs deploy jobs                                    |

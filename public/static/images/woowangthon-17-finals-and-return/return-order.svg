@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="380" viewBox="0 0 900 380" role="img" aria-label="Return order: back up leader data, clean up cloud resources, restoredisk on three nodes, BIOS back to the photos, remove the devices from the Tailscale admin console">
+  <rect width="900" height="380" rx="12" fill="#0d1117"/>
+  <text x="450" y="34" text-anchor="middle" fill="#8b949e" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14">Return order · back to the state we received</text>
+  <g font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <!-- step boxes -->
+    <g>
+      <rect x="20" y="70" width="160" height="150" rx="10" fill="#161b22" stroke="#30363d"/>
+      <text x="100" y="98" text-anchor="middle" fill="#79c0ff" font-size="13">11-21 · 1</text>
+      <text x="100" y="126" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">Back up</text>
+      <text x="100" y="146" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">leader data</text>
+      <text x="100" y="174" text-anchor="middle" fill="#8b949e" font-size="12">Prometheus TSDB</text>
+      <text x="100" y="192" text-anchor="middle" fill="#8b949e" font-size="12">Grafana data</text>
+      <text x="100" y="210" text-anchor="middle" fill="#8b949e" font-size="12">SHA256 3/3</text>
+    </g>
+    <g>
+      <rect x="197" y="70" width="160" height="150" rx="10" fill="#161b22" stroke="#30363d"/>
+      <text x="277" y="98" text-anchor="middle" fill="#79c0ff" font-size="13">11-21 · 2</text>
+      <text x="277" y="126" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">Cloud</text>
+      <text x="277" y="146" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">cleanup</text>
+      <text x="277" y="174" text-anchor="middle" fill="#8b949e" font-size="12">DNS · Tunnel · SSM</text>
+      <text x="277" y="192" text-anchor="middle" fill="#8b949e" font-size="12">GoCD Agent · ACM</text>
+      <text x="277" y="210" text-anchor="middle" fill="#8b949e" font-size="12">Tailscale shares</text>
+    </g>
+    <g>
+      <rect x="374" y="70" width="160" height="150" rx="10" fill="#161b22" stroke="#30363d"/>
+      <text x="454" y="98" text-anchor="middle" fill="#79c0ff" font-size="13">11-21 · 3</text>
+      <text x="454" y="126" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">Clonezilla</text>
+      <text x="454" y="146" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">restoredisk ×3</text>
+      <text x="454" y="174" text-anchor="middle" fill="#8b949e" font-size="12">*-orig-2026-11-04</text>
+      <text x="454" y="192" text-anchor="middle" fill="#8b949e" font-size="12">→ nvme0n1</text>
+      <text x="454" y="210" text-anchor="middle" fill="#8b949e" font-size="12">lsblk first</text>
+    </g>
+    <g>
+      <rect x="551" y="70" width="160" height="150" rx="10" fill="#161b22" stroke="#30363d"/>
+      <text x="631" y="98" text-anchor="middle" fill="#79c0ff" font-size="13">11-21 · 4</text>
+      <text x="631" y="126" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">BIOS</text>
+      <text x="631" y="146" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">back to photos</text>
+      <text x="631" y="174" text-anchor="middle" fill="#8b949e" font-size="12">AC Power Loss</text>
+      <text x="631" y="192" text-anchor="middle" fill="#8b949e" font-size="12">Power On → Off</text>
+      <text x="631" y="210" text-anchor="middle" fill="#8b949e" font-size="12">normal boot</text>
+    </g>
+    <g>
+      <rect x="728" y="70" width="152" height="150" rx="10" fill="#161b22" stroke="#30363d"/>
+      <text x="804" y="98" text-anchor="middle" fill="#79c0ff" font-size="13">11-26 · 5</text>
+      <text x="804" y="126" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">Admin console</text>
+      <text x="804" y="146" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">remove 3 nodes</text>
+      <text x="804" y="174" text-anchor="middle" fill="#8b949e" font-size="12">offline since 11-21</text>
+      <text x="804" y="192" text-anchor="middle" fill="#8b949e" font-size="12">Machines 6 → 3</text>
+      <text x="804" y="210" text-anchor="middle" fill="#8b949e" font-size="12">ACL rules gone</text>
+    </g>
+    <!-- arrows -->
+    <g fill="#8b949e">
+      <path d="M182 145 l13 0 l-5 -5 m5 5 l-5 5" stroke="#8b949e" stroke-width="2" fill="none"/>
+      <path d="M359 145 l13 0 l-5 -5 m5 5 l-5 5" stroke="#8b949e" stroke-width="2" fill="none"/>
+      <path d="M536 145 l13 0 l-5 -5 m5 5 l-5 5" stroke="#8b949e" stroke-width="2" fill="none"/>
+      <path d="M713 145 l13 0 l-5 -5 m5 5 l-5 5" stroke="#8b949e" stroke-width="2" fill="none"/>
+    </g>
+    <!-- why the order -->
+    <rect x="20" y="248" width="860" height="112" rx="10" fill="#161b22" stroke="#30363d"/>
+    <text x="40" y="276" fill="#e6edf3" font-size="13.5">1 before 3: the restore erases the leader disk, so the metrics have to leave first</text>
+    <text x="40" y="300" fill="#e6edf3" font-size="13.5">2 before 3: keys and tunnels live outside the disk; a restore cannot revoke them</text>
+    <text x="40" y="324" fill="#e6edf3" font-size="13.5">4 after 3: BIOS lives on the motherboard, not on the disk (part 3)</text>
+    <text x="40" y="348" fill="#e6edf3" font-size="13.5">5 last: the nodes stay in the console until they are offline for good</text>
+  </g>
+</svg>

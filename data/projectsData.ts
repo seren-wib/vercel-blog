@@ -21,37 +21,35 @@ export interface Project {
 
 const projectsData: Project[] = [
   {
-    title: 'kibotos.dev',
-    status: 'building',
+    title: 'AI Woowangthon Team 18',
+    status: 'shipped',
     size: 'standard',
     period: {
-      kr: '2026.05 –',
-      en: 'May 2026 –',
+      kr: '2026.10 – 2026.11',
+      en: 'Oct – Nov 2026',
     },
     role: {
-      kr: '개인 프로젝트 · 이 블로그',
-      en: 'Personal · this blog',
+      kr: '팀 출품작 · 2026 AI 우왕톤 (충북대 AI부트캠프사업단 × 멋쟁이사자처럼 충북대)',
+      en: 'Team entry · CBNU 2026 AI Woowangthon (AI Bootcamp × LIKELION CBNU)',
     },
     summary: {
-      kr: '컴퓨터공학 수업 노트와 프로젝트 기록을 올리는 한국어·영어 블로그. Tailwind Next.js 스타터에서 시작해 구조 대부분을 다시 짰습니다.',
-      en: 'A Korean/English blog for CS course notes and project write-ups. Started from the Tailwind Next.js starter and reworked most of its structure.',
+      kr: '학교 실습실에서 놀고 있는 PC를 묶어 학생 프로젝트를 대신 실행해 주는 서비스. LLM이 실행 방식을 분류하고, 서버가 필요한 프로젝트는 켜져 있는 실습실 PC에 k3s로 배치합니다.',
+      en: 'A service that pools idle school lab PCs to run student projects. An LLM sorts each project by how it runs, and server-side projects are placed on whichever lab PCs are on via k3s.',
     },
     highlights: {
       kr: [
-        '`/kr`·`/en` 두 언어 라우팅: 같은 파일명으로 번역 글을 짝짓는 언어 토글, hreflang, 언어별 RSS·검색 인덱스, 브라우저 언어로 첫 화면 결정',
-        '강의 노트(iCloud 마크다운) → MDX 발행 파이프라인을 문서로 정의해 AI 에이전트가 이미지 복사, MDX 이스케이프, 영어 번역까지 같은 규칙으로 처리',
-        '과목별 카테고리 폴더, 파일명 자연 정렬로 장 순서, 고정 목차 사이드바. URL을 바꿀 때마다 308 리다이렉트로 옛 주소 유지',
-        '모든 변경은 PR로 올리고 CI(lint, 타입 검사, 빌드)를 통과해야 머지 → Vercel 자동 배포',
+        'draw.io로 인프라 아키텍처 구성도 작성: 클라우드 VM, Vercel, 외부 서비스, Tailscale 사설망으로 연결한 실습실 PC',
+        '팀용 아키텍처 문서, 정해야 할 사항 목록, 용어 정리 작성',
+        '10월 25일 킥오프, 11월 15일 제출, 11월 21일 본선',
       ],
       en: [
-        'Two-locale routing under `/kr` and `/en`: a language toggle that pairs translations by file name, hreflang, per-locale RSS and search indexes, and a landing redirect by browser language',
-        'A documented lecture-notes (iCloud Markdown) → MDX pipeline, so an AI agent copies images, escapes MDX and writes the English translation by the same rules every time',
-        'Per-course category folders, chapter order from natural file-name sorting, and a sticky table of contents. Every URL change keeps the old address alive with a 308 redirect',
-        'Every change goes through a PR and must pass CI (lint, type check, build) before merge, then deploys to Vercel',
+        'Drew the infrastructure architecture diagram in draw.io: cloud VM, Vercel, external services and the lab PCs joined through a Tailscale private network',
+        'Wrote the architecture overview, the list of open decisions and a glossary for the team',
+        'Kickoff Oct 25, submission Nov 15, finals Nov 21',
       ],
     },
-    stack: ['Next.js 15', 'TypeScript', 'Tailwind CSS', 'Contentlayer', 'Vercel', 'GitHub Actions'],
-    href: 'https://github.com/seren-wib/vercel-blog',
+    stack: ['React', 'FastAPI', 'Docker', 'k3s', 'Tailscale', 'PostgreSQL'],
+    href: 'https://github.com/woowangthon/WOOWANGTHON_TEAM_18',
   },
   {
     title: 'Stairno Account',
@@ -116,175 +114,6 @@ const projectsData: Project[] = [
       'GitHub Actions',
     ],
     href: 'https://github.com/seren-wib/account.stairno.com',
-  },
-  {
-    title: 'Stairno',
-    status: 'shipped',
-    size: 'standard',
-    period: {
-      kr: '2026.10',
-      en: 'Oct 2026',
-    },
-    role: {
-      kr: '개인 브랜드 · 허브 사이트',
-      en: 'Personal brand · hub site',
-    },
-    summary: {
-      kr: '제가 만드는 게임과 도구를 묶는 브랜드 Stairno의 허브 사이트. 소개와 Works·Games·Labs 세 프로젝트로 가는 링크만 두고, 판매나 접수는 각 프로젝트 사이트에 맡겼습니다.',
-      en: 'The hub site for Stairno, the brand my games and tools ship under. It only introduces the brand and links to the three projects (Works, Games, Labs); sales and intake live on their own sites.',
-    },
-    highlights: {
-      kr: [
-        '히어로 전체를 하프톤 점 캔버스로 그림. 첫 접속 때 워드마크가 감긴 지구가 돌다가 점이 흩어지며 계단과 글자로 다시 조립되고, 클릭하면 점이 물결처럼 퍼짐',
-        '섹션 단위 풀페이지 스크롤, 섹션 제목도 점 글자, 헤더는 현재 섹션을 따라가는 스크롤스파이',
-        '한국어·영어, 다크·라이트 모드. 외부 스크립트와 추적 도구, 쿠키 없이 정적 페이지로만 구성',
-        'TDD로 작업해 단위·컴포넌트·통합 테스트 123개. GitHub Actions에서 통과한 빌드만 Cloudflare Pages에 올라감',
-      ],
-      en: [
-        'The whole hero is a halftone-dot canvas. On first visit a globe wrapped in the wordmark spins, then its dots scatter and reassemble into stairs and letters; clicks send a ripple through the dots',
-        'Section-by-section full-page scrolling, dot-lettered section headings and a header scrollspy that follows the current section',
-        'Korean and English, dark and light modes. Static pages only: no third-party scripts, trackers or cookies',
-        'Built test-first: 123 unit, component and integration tests. Only builds that pass GitHub Actions reach Cloudflare Pages',
-      ],
-    },
-    stack: ['Astro', 'TypeScript', 'Canvas', 'Vitest', 'Cloudflare Pages'],
-    href: 'https://stairno.com',
-  },
-  {
-    title: 'my-status',
-    status: 'shipped',
-    size: 'featured',
-    period: {
-      kr: '2026.08 – 2026.09',
-      en: 'Aug – Sep 2026',
-    },
-    role: {
-      kr: '개인 프로젝트 · 커밋 136개',
-      en: 'Personal · 136 commits',
-    },
-    summary: {
-      kr: '배우고 싶은 모든 것을 로드맵으로 쪼개고, 학습 기록을 쌓으면 RPG 상태창처럼 능력치가 다시 계산되는 개인 상태창. 2주 동안 데이터 모델, 도구, 프론트까지 혼자 만들었습니다.',
-      en: 'An RPG-style status board for myself: everything I want to learn is broken into roadmaps, and logging what I study regenerates my stats. Built solo in two weeks, from data model to tooling to front-end.',
-    },
-    highlights: {
-      kr: [
-        '9개 분야 로드맵 348개. 소프트웨어 분야만 로드맵 181개, 항목 18,623개',
-        '파이썬 표준 라이브러리만 쓰는 도구 7종: md → json 파서, 스탯 빌더, 항목·고아 로드맵·배치 정합성 검사기',
-        '스탯 모델 설계: 항목마다 수준 `lv` 1–4와 진행중 플래그 `doing`을 따로 두고, 숙련도는 가중치 0.05 / 0.2 / 0.6 / 1.0의 볼록한 곡선으로 계산해 "이름만 앎"이 쌓여도 실전 실증이 목표로 남게 함',
-        '로그(JSONL)가 유일한 원본이고 진행도와 스탯은 매번 로그에서 재생성. 바닐라 JS 프론트에서 카드를 누르면 로컬 서버(`POST /api/log`)가 같은 로그에 기록하고 스탯을 다시 빌드',
-        '로드맵 261개는 AI로 작성하고 `AI 생성` 태그로 표시. 설명 문구 배치 작업은 배치당 비용을 실측해 기록하고 검사기로 드리프트를 잡음',
-        '공개용 사본은 개인 기록과, 라이선스상 재배포가 안 되는 roadmap.sh 유래 로드맵 87개를 걷어내고 구조와 도구만 공개',
-      ],
-      en: [
-        '348 roadmaps across 9 domains; software alone has 181 roadmaps and 18,623 items',
-        'Seven tools on the Python standard library only: an md → json parser, a stat builder, and consistency checkers for items, orphan roadmaps and batches',
-        'Stat model: each item carries a level `lv` 1–4 and a separate `doing` flag; proficiency uses convex weights 0.05 / 0.2 / 0.6 / 1.0 so knowing names never outweighs demonstrated practice',
-        'The JSONL log is the only source of truth; progress and stats are rebuilt from it every time. Clicking a card in the vanilla JS front-end writes to the same log through a local server (`POST /api/log`) and rebuilds the stats',
-        '261 roadmaps were written with AI and tagged as such. Description batches were run with measured per-batch cost, and checkers caught drift',
-        'The public snapshot drops personal logs and the 87 roadmap.sh-derived roadmaps whose license forbids redistribution, keeping the structure and tools',
-      ],
-    },
-    stack: ['Python', 'JavaScript', 'HTML/CSS', 'JSONL', 'Claude Code'],
-    href: 'https://github.com/seren-wib/my-status-public',
-  },
-  {
-    title: 'agent-commonplace',
-    status: 'shipped',
-    size: 'standard',
-    period: {
-      kr: '2026.10',
-      en: 'Oct 2026',
-    },
-    role: {
-      kr: '개인 오픈소스 · MIT',
-      en: 'Personal open source · MIT',
-    },
-    summary: {
-      kr: 'Claude Code, Codex, Antigravity가 여러 컴퓨터에서 같은 지시문과 메모리를 쓰게 하는 CLI. 에이전트 훅과 비공개 git 레포 하나로 동기화합니다. 제 dotfiles에서 쓰던 동기화 훅을 누구나 설치할 수 있게 다시 짰습니다.',
-      en: 'A CLI that gives Claude Code, Codex and Antigravity the same instructions and memory on every machine, synced through agent hooks and one private git repo. A rewrite of the sync hook from my dotfiles that anyone can install.',
-    },
-    highlights: {
-      kr: [
-        '세션 시작 때 pull, 응답마다 commit·push. 세 에이전트의 서로 다른 훅 형식(Claude·Codex의 SessionStart/Stop, Antigravity의 PreInvocation)을 명령 하나로 등록',
-        '프로젝트 메모리는 git remote로 짝지어 컴퓨터마다 경로가 달라도 같은 폴더를 공유. 심볼릭 링크 권한이 없는 Windows에선 junction으로 대체하고, 내용이 다른 파일은 `.from-<host>`로 남김',
-        '동시에 뜬 훅끼리 FETCH_HEAD를 두고 경합하던 문제를 공유 락으로 해결',
-        '의존성 0개, Node 22+. 두 컴퓨터 e2e를 포함한 테스트 24개가 Ubuntu·macOS·Windows × Node 22/24 CI에서 통과',
-      ],
-      en: [
-        "Pulls when a session starts, commits and pushes after each reply. One command registers the three agents' different hook formats (SessionStart/Stop for Claude and Codex, PreInvocation for Antigravity)",
-        'Project memory is matched by git remote, so the same folder is shared even when paths differ per machine. Falls back to junctions on Windows without symlink rights and keeps differing files as `.from-<host>`',
-        'A shared lock stops hooks that start together from racing on FETCH_HEAD',
-        'Zero dependencies, Node 22+. 24 tests, including a two-machine e2e, pass in CI on Ubuntu, macOS and Windows × Node 22/24',
-      ],
-    },
-    stack: ['Node.js', 'Git', 'Claude Code', 'Codex', 'GitHub Actions'],
-    href: 'https://github.com/seren-wib/agent-commonplace',
-  },
-  {
-    title: 'SCPC 2026 AI Agent Harness',
-    status: 'shipped',
-    size: 'standard',
-    period: {
-      kr: '2026.07',
-      en: 'Jul 2026',
-    },
-    role: {
-      kr: '개인 · SCPC 2026 예선 (DACON)',
-      en: 'Solo · SCPC 2026 qualifier (DACON)',
-    },
-    summary: {
-      kr: '개인 기기 에이전트가 요청을 받았을 때 대상, 진행 여부, 계획, 공개 범위, 위험 플래그를 판단하는 규칙 기반 하네스. 답안 생성에 외부 LLM을 쓸 수 없는 대회였습니다.',
-      en: 'A rule-based harness that decides, for an on-device agent request, the referent, whether to proceed, the plan, disclosure scope and risk flags. External LLMs were not allowed for answers.',
-    },
-    highlights: {
-      kr: [
-        '공개 점수 **0.8408** (baseline 0.5206). 상위 100 커트라인 0.8788에는 못 미쳐 예선 탈락. 로컬 dev 정확도 0.9416',
-        '정답 공개된 연습 과제 120개와 하루 3회 서버 점수만으로 채점 구조를 역추론. 축별 정확도를 역산하는 프로브 생성기를 따로 만듦',
-        '파이썬 표준 라이브러리만 쓰는 단일 파일 984행, 연속 실행 md5가 같은 결정론적 출력',
-        '입력이 완전히 같은데 정답이 다른 과제를 찾아 정확도 상한이 1.0이 아님을 문서로 남김',
-      ],
-      en: [
-        'Public score **0.8408** (baseline 0.5206); missed the top-100 cutoff of 0.8788. Local dev accuracy 0.9416',
-        'Reverse-engineered the grader from 120 solved practice tasks and three server submissions a day, with a probe generator to back out per-axis accuracy',
-        'One 984-line file on the Python standard library, deterministic down to identical md5 across runs',
-        'Documented tasks with identical inputs but different answers, showing the accuracy ceiling is below 1.0',
-      ],
-    },
-    stack: ['Python 3.12'],
-    href: 'https://github.com/seren-wib/scpc-2026-agent-harness',
-  },
-  {
-    title: 'Online Code Editor',
-    status: 'shipped',
-    size: 'standard',
-    period: {
-      kr: '2026.03 – 2026.06',
-      en: 'Mar – Jun 2026',
-    },
-    role: {
-      kr: '팀장 · 문서 · 프론트엔드 · 인증 · CI · 오픈소스 웹 수업 팀 프로젝트 (4인, 커밋 168개 중 94개)',
-      en: 'Team lead · Docs · Front-end · Auth · CI · Open-source web course team project (team of 4, 94 of 168 commits)',
-    },
-    summary: {
-      kr: '브라우저에서 코드를 작성하고 실행하고 저장하는 온라인 코드 에디터.',
-      en: 'A browser-based editor to write, run and save code.',
-    },
-    highlights: {
-      kr: [
-        '팀이 보고 일하는 문서를 전부 작성: 개발 환경·기술 스택 버전·폴더 구조를 담은 README, 기여 흐름 CONTRIBUTING, 그리고 API 명세, DB 스키마, 아키텍처, 페이지 정의, 컴포넌트 구조, export 함수명, AI 코딩 도구용 검증 절차·완료 조건까지 스펙 문서 9종',
-        'React 19 + Vite + Monaco Editor 프론트엔드 대부분: 라우팅과 인증 가드, 공용 컴포넌트, 라이트·다크 디자인 토큰',
-        'bcrypt + JWT 로그인·회원가입 API',
-        'GitHub Actions CI(클라이언트·서버 각각 lint, 테스트, 빌드)를 세우고 `main` 보호 규칙으로 CI 통과 시에만 머지. Jest·Supertest, Vitest·React Testing Library',
-      ],
-      en: [
-        'Wrote every document the team worked from: a README with the dev environment, pinned stack versions and folder layout, a CONTRIBUTING workflow, and nine spec docs covering the API, DB schema, architecture, pages, component structure, exported function names, plus a runbook and done conditions for AI coding tools',
-        'Most of the React 19 + Vite + Monaco Editor front-end: routing and auth guards, shared components, light/dark design tokens',
-        'Login and registration API with bcrypt + JWT',
-        'Set up GitHub Actions CI (lint, test, build for both client and server) and protected `main` so only green PRs merge. Jest, Supertest, Vitest, React Testing Library',
-      ],
-    },
-    stack: ['React', 'Vite', 'Monaco Editor', 'Express', 'MySQL', 'JWT', 'GitHub Actions'],
-    href: 'https://github.com/seren-wib/opensource-web-azas',
   },
 ]
 

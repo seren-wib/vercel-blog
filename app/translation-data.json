@@ -97,7 +97,8 @@
     "woowangthon/woowangthon-13-metrics",
     "woowangthon/woowangthon-14-ec2-joins",
     "woowangthon/woowangthon-15-gocd-registration",
-    "woowangthon/woowangthon-16-regression-test"
+    "woowangthon/woowangthon-16-regression-test",
+    "woowangthon/woowangthon-17-finals-and-return"
   ],
   "en": [
     "ai/ai-05-03-deep-learning",
@@ -197,6 +198,7 @@
     "woowangthon/woowangthon-13-metrics",
     "woowangthon/woowangthon-14-ec2-joins",
     "woowangthon/woowangthon-15-gocd-registration",
-    "woowangthon/woowangthon-16-regression-test"
+    "woowangthon/woowangthon-16-regression-test",
+    "woowangthon/woowangthon-17-finals-and-return"
   ]
 }

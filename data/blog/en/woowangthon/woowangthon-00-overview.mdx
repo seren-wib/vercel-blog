@@ -6,7 +6,7 @@ draft: false
 summary: 'First post in the series on team 18 at the 2026 AI Woowangthon. The contest theme and schedule, the problem we are solving, the flow and structure of a student deploy platform built on 3 school PCs, what AI does and what people decide, new terms, my role (the cluster), where we are now, and the series index'
 ---
 
-> This is the first post in a series about team 18, Wangganae Sikgudeul, at the 2026 AI Woowangthon. I wrote it so that someone seeing our project for the first time can get the "what, why and how" from this one post. The contest is still running (submissions close on November 15), so I update this post every time a stage ends. I last updated it on November 10.
+> This is the first post in a series about team 18, Wangganae Sikgudeul, at the 2026 AI Woowangthon. I wrote it so that someone seeing our project for the first time can get the "what, why and how" from this one post. The contest and the return are over, and part 17 closes the series. I last updated it on November 26.
 
 ## 1. What is Woowangthon
 
@@ -137,8 +137,10 @@ I ([seren-wib](https://github.com/seren-wib)) took the **school PC cluster**. Th
 | November 12    | The GoCD server is up on the EC2. A three-key Secret and the apply for the leader's executor, a first registration that took 6.5 minutes. The deploy pipeline hasn't run yet (part 15)                           |
 | November 13~14 | The team connected a deploy pressed on the platform all the way to a student space for the first time                                                                                                            |
 | November 15    | Demo-path regression test on the new `main` (T15–T43). Two bugs that only showed when runs overlapped were fixed and passed a rerun, one left as a known limit. The 18:00 judging commit (part 16)               |
+| November 21    | Finals. Team 18 won the Excellence Award (School of Electrical Engineering Head's Award). Leader metrics backup, cloud cleanup, the three disks overwritten and the BIOS put back (part 17)                      |
+| November 26    | The three nodes removed from the admin console. Return done (part 17)                                                                                                                                            |
 
-I split the cluster build into seven stages, and all seven are done. On November 13~14 the team connected a deploy from the platform to a student space for the first time, and on November 15 I ran the demo path again from start to finish on the new `main`. A deploy pressed on the platform came up at its public address in about 160 seconds, and alerts from the leader's Prometheus reached the operator page through the platform server. What's left is the contest and returning the PCs.
+I split the cluster build into seven stages, and all seven are done. On November 13~14 the team connected a deploy from the platform to a student space for the first time, and on November 15 I ran the demo path again from start to finish on the new `main`. A deploy pressed on the platform came up at its public address in about 160 seconds, and alerts from the leader's Prometheus reached the operator page through the platform server. At the finals on November 21 we won the Excellence Award, and the same day the three PCs were overwritten with the images taken before we touched them. Removing them from the admin console on November 26 finished the return.
 
 | Stage | Task                   | Done when                                                                                                              | Status  |
 | ----- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------- |
@@ -149,7 +151,7 @@ I split the cluster build into seven stages, and all seven are done. On November
 | 5     | Frame for student apps | A test app runs on a worker and can't reach the school network or other students' spaces                               | ✅ Done |
 | 6     | Connect to the outside | Deploys work from the platform server, and the visitor address opens                                                   | ✅ Done |
 | 7     | Monitoring             | Metrics are visible and can be queried from the platform server                                                        | ✅ Done |
-| End   | Return                 | Overwrite with the images and put the BIOS back the way it was                                                         |         |
+| End   | Return                 | Overwrite with the images and put the BIOS back the way it was                                                         | ✅ Done |
 
 ## 9. Series index
 
@@ -172,8 +174,9 @@ I split the cluster build into seven stages, and all seven are done. On November
 | [Woowangthon 14. The Day Connection Refused Was Good News](/en/blog/woowangthon/woowangthon-14-ec2-joins/)                  | The EC2 joins the private network, access rules read through refused and timed out, server-account checks from the EC2, the leader through the server code |
 | [Woowangthon 15. Not Broken, Just Slow](/en/blog/woowangthon/woowangthon-15-gocd-registration/)                             | GoCD server registration, Secret keys that were three not two, moving them without printing, a 6.5-minute first boot over a relay path                     |
 | [Woowangthon 16. Fine Alone, Broken in Pairs](/en/blog/woowangthon/woowangthon-16-regression-test/)                         | The demo-path regression test on submission day, an AI fix that failed only when overlapping, leftover failed slots, two fixed and one left alone          |
+| [Woowangthon 17. Overwriting the Disks on Award Day](/en/blog/woowangthon/woowangthon-17-finals-and-return/)                | Submission and finals, the Excellence Award, a summary of my part, the leader metrics backup, cloud cleanup, restoredisk and the BIOS                      |
 
-Part 16 closed the last build stages. The final post is the contest and returning the PCs. I'll write it after the finals, once the school PCs are back the way they were.
+Part 16 closed the build stages, and part 17 closed the contest and the return. The series ends here.
 
 ## 10. Links
 

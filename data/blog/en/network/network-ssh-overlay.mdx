@@ -1,12 +1,13 @@
 ---
 title: 'Why I run SSH over an overlay network (Tailscale) instead of exposing it'
 date: '2026-11-26'
+lastmod: '2026-11-27'
 tags: ['Network']
 draft: false
-summary: 'Getting stuck trying to SSH between four devices from anywhere, tailscale ping vs Operation timed out, drop vs RST, Tailscale ACL and packet filter (tailscale debug netmap), sshd and Windows Defender Firewall, L3 reachability (NAT, public IP, port forwarding, DDNS, CGNAT), L4 ports, firewalls and ACLs, L7 SSH authentication, WireGuard, NAT traversal and DERP relay, self-hosted vs managed per layer (control plane, data plane, the cost of dependency and the exit), comparing port forwarding, self-hosted WireGuard, Headscale and Tailscale, defense in depth (device keys and user keys), macOS sshd_config.d and PAM, Windows OpenSSH Server with firewall rules and administrators_authorized_keys, autogroup:self ACL, orphan nodes and the hostname -1 suffix'
+summary: 'Getting stuck trying to SSH between three devices (phone, Mac, desktop) from anywhere, tailscale ping vs Operation timed out, drop vs RST, Tailscale ACL and packet filter (tailscale debug netmap), sshd and Windows Defender Firewall, L3 reachability (NAT, public IP, port forwarding, DDNS, CGNAT), L4 ports, firewalls and ACLs, L7 SSH authentication, WireGuard, NAT traversal and DERP relay, self-hosted vs managed per layer (control plane, data plane, the cost of dependency and the exit), comparing port forwarding, self-hosted WireGuard, Headscale and Tailscale, defense in depth (device keys and user keys), macOS sshd_config.d and PAM, Windows OpenSSH Server with firewall rules and administrators_authorized_keys and its ACL, Termius Biometric Key (Secure Enclave) and Too many authentication failures, per-device SSH keys and SSH config Include, an emergency path for Claude Remote Control (schtasks scheduled tasks, SSH child processes and session 0, orphan processes), the cost of auto sign-in, autogroup:self ACL, orphan nodes and the hostname -1 suffix'
 ---
 
-> I wanted to SSH between my phone, Mac, tablet and desktop from anywhere, and got stuck. This post goes from the cause to the setup. What a packet goes through at each layer is in [Networking by layer](/en/blog/network/network-tcp-ip-layers/), and the SSH connection steps are in [the SSH section of the web request journey](/en/blog/network/network-web-request-journey/#15-connecting-over-ssh). This post applies the NAT, port and SSH sections of those two posts to a real problem.
+> I wanted to SSH between my phone, Mac and desktop from anywhere, and got stuck. This post goes from the cause to the setup and the emergency path I actually use. I rewrote it with the results after finishing the desktop setup on 2026-11-27. What a packet goes through at each layer is in [Networking by layer](/en/blog/network/network-tcp-ip-layers/), and the SSH connection steps are in [the SSH section of the web request journey](/en/blog/network/network-web-request-journey/#15-connecting-over-ssh). This post applies the NAT, port and SSH sections of those two posts to a real problem.
 
 # 0. At a glance
 
@@ -19,19 +20,25 @@ The conclusion first: **the network was there from the start; the SSH server was
 | What Tailscale does not solve                | The OS firewall at L4, and the SSH server and user authentication at L7. Each device needs these on its own                                                                                                                                                                                      |
 | Why hand it off instead of running it myself | The company runs L3 and the control plane (device key distribution) for me. The cost is depending on an outside company and one account; since the layer underneath is WireGuard, [swapping just those two slots is the way out](#4-why-handing-it-off-is-simpler-what-each-layer-leaves-to-you) |
 | Where it was blocked this time               | Desktop: no sshd + Windows Defender Firewall drop. Mac: Remote Login off (no sshd)                                                                                                                                                                                                               |
+| Result                                       | Done on 2026-11-27. The Mac and desktop are SSH servers; the phone is a client only. Connection tests in all four directions succeeded ([section 7](#connection-tests))                                                                                                                          |
+| Why build it                                 | To SSH into the desktop from the phone and turn Claude Code Remote Control back on when it's off ([section 8](#8-when-remote-control-is-off-turning-it-back-on-over-ssh))                                                                                                                        |
 
 # 1. The situation
 
-I have four devices. In this post I use the names below instead of the real ones.
+Three devices are on this network. In this post I use the names below instead of the real ones.
 
-| Name      | Device          | Usually at   |
-| --------- | --------------- | ------------ |
-| `phone`   | Phone           | With me      |
-| `tablet`  | Tablet          | With me      |
-| `laptop`  | Mac             | Campus Wi-Fi |
-| `desktop` | Windows desktop | Home         |
+| Name      | Device          | Usually at   | SSH role        |
+| --------- | --------------- | ------------ | --------------- |
+| `phone`   | Phone (iOS)     | With me      | Client only     |
+| `laptop`  | Mac             | Campus Wi-Fi | Server + client |
+| `desktop` | Windows desktop | Home         | Server + client |
 
-I wanted to move between these four over SSH from anywhere. The desktop was already on the tailnet (the network of my devices joined by Tailscale), and `tailscale ping` from the Mac got an answer right away.
+- On iOS an app can't run sshd to accept connections. So the phone only goes out (client), and the receiving side (server) is the Mac and the desktop.
+- I meant to add the tablet at first, but I rarely use it, so I left it out of this network.
+
+The goal is one thing. Remote Control lets me keep using Claude Code from my phone while I'm out, and if it goes off, the phone has no way to turn it back on. Then I SSH into the desktop from the phone and turn it on again (section 8).
+
+I wanted to move between these three over SSH from anywhere. The desktop was already on the tailnet (the network of my devices joined by Tailscale), and `tailscale ping` from the Mac got an answer right away.
 
 ```text
 $ tailscale ping desktop
@@ -150,7 +157,7 @@ _Left: the work I take on with self-hosted WireGuard. Right: what is left when a
 
 - **L3**: self-hosted ultimately needs one "point reachable from outside". Whether it is the home router's public IP or a VPS, securing that point and following it when the address changes is my job. Devices that can't be such a point, like the Mac behind the campus NAT, only join through the server. With managed, the company runs that point (coordination server, DERP).
 - **L4**: self-hosted WireGuard needs one UDP port open on the device acting as the server. With managed, every device only opens connections outward, so nothing is open, and who can reach what is set in one ACL file. Each device's OS firewall is still mine to set up either way (the Windows rules in section 7).
-- **Control plane**: WireGuard peers have to know each other's public keys. Connecting four devices to each other (full mesh) gives 4×3÷2 = 6 peer pairs, and each config lists the other three, so 12 entries (calculated). Every time a device is added or lost, all the other configs change. Putting one server in the middle (hub-and-spoke) cuts the entries, but then all traffic goes through that server. With managed, the coordination server does this key exchange, distribution and revocation.
+- **Control plane**: WireGuard peers have to know each other's public keys. Connecting three devices to each other (full mesh) gives 3×2÷2 = 3 peer pairs, and each config lists the other two, so 6 entries (calculated). With n devices it grows to n(n−1). Every time a device is added or lost, all the other configs change. Putting one server in the middle (hub-and-spoke) cuts the entries, but then all traffic goes through that server. With managed, the coordination server does this key exchange, distribution and revocation.
 - **L7**: SSH is the same whatever the overlay is. Even when handing off, sshd, keys and turning off passwords are mine (Tailscale SSH can take this too, but it does not support Windows as a server).
 
 ## The cost of dependency, and the exit
@@ -193,7 +200,7 @@ It is like checking a building pass (the building) and a room key (the room) sep
 | WireGuard  | Did this packet come from a **device** registered on the tailnet | A key tailscaled created on each device                             |
 | SSH        | Is this the right **user**                                       | The user's private key in `~/.ssh/`, the server's `authorized_keys` |
 
-The two checkpoints are independent. If one tailnet device is compromised but my SSH private key isn't on it, it can't log in to my other devices; if my SSH private key leaks, it still can't reach port 22 from outside the tailnet. Layering independent defenses like this is called **defense in depth**. That's why, even inside Tailscale, I turn off SSH password login and use public keys only.
+The two checkpoints are independent. If one tailnet device is compromised but my SSH private key isn't on it, it can't log in to my other devices; if my SSH private key leaks, it still can't reach port 22 from outside the tailnet. Layering independent defenses like this is called **defense in depth**. That's why, even inside Tailscale, I turn off SSH password login and use public keys only. SSH keys are per device too, so if one device is compromised I only delete that device's key (section 7).
 
 # 7. The actual setup
 
@@ -213,9 +220,9 @@ KbdInteractiveAuthentication no
 - The top of `sshd_config` is `Include /etc/ssh/sshd_config.d/*`, and sshd uses the **first value it reads** for each option. Putting the file in this folder instead of editing the main file keeps the setting even if a macOS update overwrites the main file.
 - Check the values in effect with `sudo sshd -T | grep -i authentication`.
 
-## Windows desktop (planned)
+## Windows desktop: OpenSSH Server + tailnet only + public keys only
 
-These steps are not done yet. Run them in an administrator PowerShell.
+Done on 2026-11-27. The desktop runs Windows 11, and the installed sshd is OpenSSH for Windows 9.5. Everything ran in an administrator PowerShell.
 
 ```powershell
 # Install OpenSSH Server, start it, start it at boot
@@ -224,7 +231,7 @@ Start-Service sshd
 Set-Service -Name sshd -StartupType Automatic
 
 # Allow port 22 only from the tailnet range
-New-NetFirewallRule -Name sshd-tailnet -DisplayName 'OpenSSH (tailnet only)' `
+New-NetFirewallRule -Name OpenSSH-Server-Tailnet -DisplayName 'OpenSSH Server (tailnet only)' `
   -Direction Inbound -Protocol TCP -LocalPort 22 `
   -RemoteAddress 100.64.0.0/10 -Action Allow
 
@@ -232,16 +239,88 @@ New-NetFirewallRule -Name sshd-tailnet -DisplayName 'OpenSSH (tailnet only)' `
 Disable-NetFirewallRule -Name OpenSSH-Server-In-TCP
 ```
 
-- Installing OpenSSH Server also creates the default rule `OpenSSH-Server-In-TCP`, which allows port 22 from **every address**. If you leave it on and add the rule above, the narrowing means nothing: Windows Firewall lets a packet through if any one allow rule matches.
-- `-RemoteAddress 100.64.0.0/10` is the tailnet address range. Carrier CGNAT uses the same range, so to narrow it further you can also limit it to the Tailscale interface (`-InterfaceAlias Tailscale`).
-- If the desktop account is in the **Administrators group**, sshd reads `C:\ProgramData\ssh\administrators_authorized_keys` instead of `~/.ssh/authorized_keys`. sshd only reads that file if only Administrators and SYSTEM can access it.
+- Before the install the `OpenSSH.Server` capability was `NotPresent`; after it, `Installed`, with sshd `Running` and `Automatic`.
+- Installing OpenSSH Server also creates the default rule `OpenSSH-Server-In-TCP`, which allows port 22 from **every address**. If you leave it on and add the rule above, the narrowing means nothing: Windows Firewall lets a packet through if any one allow rule matches. So I turned it off and kept only the rule whose remote address is 100.64.0.0/10 (the CGNAT range Tailscale uses).
+- Carrier CGNAT uses the same range, so to narrow it further you can also limit it to the Tailscale interface (`-InterfaceAlias Tailscale`). I didn't do that this time.
+
+### Trap: administrator accounts read a different file
+
+If the desktop account is in the **Administrators group**, sshd doesn't look at `~/.ssh/authorized_keys`. The default Windows `sshd_config` ends with this block:
+
+```text:C:\ProgramData\ssh\sshd_config
+Match Group administrators
+       AuthorizedKeysFile __PROGRAMDATA__/ssh/administrators_authorized_keys
+```
+
+So the public keys go in `C:\ProgramData\ssh\administrators_authorized_keys`. sshd only reads that file if its ACL is SYSTEM and Administrators only. If inherited permissions remain, the key is ignored even when it matches.
 
 ```powershell
 icacls.exe "C:\ProgramData\ssh\administrators_authorized_keys" /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"
 ```
 
-- Same as on the Mac: after confirming key login, set `PasswordAuthentication no` in `C:\ProgramData\ssh\sshd_config` and run `Restart-Service sshd`.
+Logging in over SSH as an administrator opens a session with an **administrator token** and no UAC prompt (the Termius tab title gets an `Administrator:` prefix). One SSH key equals administrator rights, which makes turning off password login matter even more.
+
+### Turning off password authentication
+
+After confirming key login, I put two lines at the **top** of `C:\ProgramData\ssh\sshd_config` and ran `Restart-Service sshd`.
+
+```text:C:\ProgramData\ssh\sshd_config
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+```
+
+- At the top for the same reason as on the Mac: sshd uses the first value it reads for an option, and inside a `Match` block lower in the file it would only apply to that condition.
+- Check: a password login attempt from the Mac was refused with `Permission denied (publickey)` (1/1). The list of methods the server accepts now has only `publickey`.
 - **Tailscale SSH** (a feature where Tailscale also takes the SSH server role) does not support Windows as a server. So the desktop uses OpenSSH Server directly.
+
+## Phone: Termius + Biometric Key
+
+The phone's SSH client is **Termius**. For the key I used Termius's **Biometric Key**: an ECDSA P-256 key created inside the phone's Secure Enclave, so the private key can't be exported as a file, and using it goes through biometric authentication. I copied only the public key into the Mac's `authorized_keys` (2026-11-26) and the desktop's `administrators_authorized_keys` (2026-11-27).
+
+### Trap: Too many authentication failures
+
+Phone → desktop failed the first three times. With the desktop sshd log raised to `LogLevel DEBUG3`, Termius sent `userauth` requests with `method none` seven times and `publickey` zero times. sshd cut it off for going over the allowed count: `Too many authentication failures`.
+
+The cause was the Termius config. When I attached an **Identity** (an entry bundling a username and key) to the host, it was saved without the key. No key, so no signature to send. Setting the Username and Key directly on the host fixed it right away.
+
+## Per-device keys and SSH config
+
+- Each device has its own key. The desktop holds two lines, the Mac key (ed25519) and the phone key (Biometric Key); the Mac holds the desktop key (with a passphrase) and the phone key. If I lose one device, I delete that one key line on the others.
+- The Mac and the desktop share the same dotfiles repo. It holds one SSH config fragment, and each device's `~/.ssh/config` pulls it in with `Include` on the first line.
+
+```text:~/.ssh/config
+Include dotfiles/tailnet.conf
+```
+
+```text:~/.ssh/dotfiles/tailnet.conf
+Host desktop
+  HostName desktop
+  User <desktop account>
+  IdentityFile ~/.ssh/<key for desktop>
+  IdentitiesOnly yes
+
+Host laptop
+  HostName laptop
+  User <Mac account>
+  IdentityFile ~/.ssh/<key for Mac>
+  IdentitiesOnly yes
+```
+
+- `HostName` is the Tailscale MagicDNS name. No IP (100.x) is written, so it keeps working if the address changes.
+- `IdentitiesOnly yes` offers only the named key. With several keys in the agent, the client tries them one by one and can get cut off with `Too many authentication failures`, like the trap above.
+- `~/.ssh/dotfiles` is a link to the repo folder: a symbolic link on the Mac, a **directory junction** on Windows. Creating a file symbolic link on Windows needs administrator rights (or Developer Mode); a directory junction doesn't.
+- Now `ssh desktop` and `ssh laptop` connect with one word.
+
+## Connection tests
+
+All connections used MagicDNS names.
+
+| Direction       | Result                                         | Date       |
+| --------------- | ---------------------------------------------- | ---------- |
+| Phone → Mac     | Success                                        | 2026-11-26 |
+| Mac → desktop   | Success 1/1                                    | 2026-11-27 |
+| Desktop → Mac   | Success 1/1                                    | 2026-11-27 |
+| Phone → desktop | First 3 failed (trap above), 1/1 after the fix | 2026-11-27 |
 
 ## Tailscale ACL
 
@@ -262,12 +341,60 @@ icacls.exe "C:\ProgramData\ssh\administrators_authorized_keys" /inheritance:r /g
 - The tailnet has one user right now (1 Owner, 0 pending invites).
 - I didn't narrow the ports to 22 because the L4 restriction is done in each device's OS firewall.
 
-## What's left
+# 8. When Remote Control is off: turning it back on over SSH
 
-- Desktop: all of the Windows steps above (planned)
-- Phone and tablet: create SSH keys and register them in `authorized_keys` on the Mac and desktop (planned)
+This section is why the network exists. I use Claude Code running on the desktop from the Claude app while I'm away (Remote Control). But if the Remote Control process on the desktop stops, the phone has no way to start it again. Then I SSH in from the phone and start it.
 
-# 8. Appendix: orphan nodes and `-1`
+It's like turning something on at home over the phone. If you reach in yourself through the phone, your hand disappears the moment you hang up. So you just ask someone at home to turn it on, and hang up. The call is the **SSH session**, your own hand is **a child process of the SSH session**, and the person at home is **a scheduled task running in the logon session** (Task Scheduler).
+
+![A process started straight from the SSH session dies with SSH; one started by a scheduled task stays in the logon session](/static/images/network-ssh-overlay/remote-control-recovery.svg)
+
+_Top: started directly inside the SSH session, it dies when SSH drops. Bottom: just run the scheduled task and leave, and it keeps running in the logon session._
+
+## It works inside the SSH session, but not for long
+
+- The `claude` CLI runs inside an SSH session. Even in a session logged in with a public key, `claude auth status` showed `loggedIn: true`, and `claude remote-control` got to `Connected`.
+- The problem is lifetime. A process started in an SSH session is that session's child, so **it dies when SSH drops**. iOS soon suspends Termius once it's in the background, and that drops SSH. To use Remote Control on the phone I have to switch to the Claude app, and if Termius gets suspended meanwhile, the Remote Control I just started dies with it.
+- A GUI app (the Claude desktop app) started over SSH lands in **session 0**. Session 0 is where services run and has no display, so it runs but nobody can see it.
+
+## Handing it to scheduled tasks
+
+So the actual launch is left to two **scheduled tasks** that run in the logged-in desktop session (the interactive session where the user is signed in).
+
+| Task                  | What it does                                                                 |
+| --------------------- | ---------------------------------------------------------------------------- |
+| `ClaudeRemoteControl` | Stops the old Remote Control process and starts a new one named `desktop-rc` |
+| `ClaudeAppStart`      | Starts the Claude desktop app                                                |
+
+From the phone I SSH in, type one line and leave.
+
+```powershell
+schtasks /Run /TN ClaudeRemoteControl
+```
+
+The scheduled task runs in the logon session, not the SSH session, so it survives SSH dropping. After this one line, I confirmed `desktop-rc` showing up in the Code tab of the Claude app on the phone.
+
+## Trap: /End doesn't kill the grandchild
+
+At first I used `schtasks /End` to stop the task and run it again. But `/End` only ends the `cmd` the task started; the `claude` that `cmd` started stays behind without its parent (an **orphan process**). With the old Remote Control still alive, the newly started one exited right away.
+
+- The script first finds and stops the old `remote-control` process itself.
+- The task's `MultipleInstances` setting is `StopExisting`, so if it's already running, that instance is stopped and a new one starts.
+- I ran `/Run` twice in a row and confirmed both times that it was replaced by a single process (2/2).
+
+## Preparing for a reboot, and the cost
+
+After a reboot there is no logon session, so the scheduled tasks can't run either. So I made sign-in itself automatic.
+
+1. **Auto sign-in**: turned on with Sysinternals Autologon. The password goes into an LSA secret, not into the registry in plain text. Auto sign-in doesn't work while the Windows Hello–only sign-in option is on, so I turned that option off.
+2. After sign-in, the Claude app starts as a startup program, and `ClaudeRemoteControl` runs automatically one minute after logon.
+3. Sleep and hibernate on AC power were already set to "Never".
+
+**I did not run a reboot test.** Whether this chain actually carries through a reboot is not measured. If it doesn't, I'll fix it then.
+
+There is a cost. With auto sign-in and BitLocker off, **anyone who sits down at the desktop is signed in right away.** It's a device inside my home, so I accepted that. The way in from outside still goes through the two checkpoints, tailnet + public key (section 6).
+
+# 9. Appendix: orphan nodes and `-1`
 
 While looking at the tailnet device list, I found the three k3s nodes I had added for a hackathon still there. The servers themselves are long gone, but their registrations are still alive on the tailnet: **orphan** nodes.
 
@@ -276,42 +403,64 @@ This can cause trouble. When device names collide, Tailscale adds `-1` to the na
 - Remove orphans from the device list in the admin console. I removed the three k3s nodes on 2026-11-26, and the tailnet went from 6 devices to 3 (checked with `tailscale status` on the Mac).
 - If you rejoined a device, remove the orphan, then drop the `-1` from the new device's name and recheck that settings using that name point to the right device.
 
-# 9. Numbers
+# 10. Numbers
 
-As of 2026-11-26. Only measured values.
+As of 2026-11-27 (values measured on November 26 are kept as they were). Only measured values; what was not measured is listed separately at the bottom.
 
-| Item                                                    | Value                                 | Source                               |
-| ------------------------------------------------------- | ------------------------------------- | ------------------------------------ |
-| Mac → desktop `tailscale ping`                          | 24 ms, direct                         | `tailscale ping` on the Mac          |
-| Mac → desktop TCP 22, 3389                              | `Operation timed out` (drop, not RST) | SSH and RDP attempts from the Mac    |
-| Allowed ports desktop ↔ Mac, as received by the Mac     | 0-65535                               | `tailscale debug netmap` on the Mac  |
-| Inbound ports opened on the router                      | 0                                     | Tailscale setup (no port forwarding) |
-| Orphan nodes left on the tailnet                        | 3 (hackathon k3s), removed 2026-11-26 | Tailscale device list                |
-| Tailnet devices before → after the orphan cleanup       | 6 → 3                                 | `tailscale status` on the Mac        |
-| Sources in the Mac's packet filter after the ACL change | 3 (phone, desktop, Mac)               | `tailscale debug netmap` on the Mac  |
+| Item                                                        | Value                                                     | Source                               |
+| ----------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------ |
+| Mac → desktop `tailscale ping`                              | 24 ms, direct                                             | `tailscale ping` on the Mac          |
+| Mac → desktop TCP 22, 3389                                  | `Operation timed out` (drop, not RST)                     | SSH and RDP attempts from the Mac    |
+| Allowed ports desktop ↔ Mac, as received by the Mac         | 0-65535                                                   | `tailscale debug netmap` on the Mac  |
+| Inbound ports opened on the router                          | 0                                                         | Tailscale setup (no port forwarding) |
+| Orphan nodes left on the tailnet                            | 3 (hackathon k3s), removed 2026-11-26                     | Tailscale device list                |
+| Tailnet devices before → after the orphan cleanup           | 6 → 3                                                     | `tailscale status` on the Mac        |
+| Sources in the Mac's packet filter after the ACL change     | 3 (phone, desktop, Mac)                                   | `tailscale debug netmap` on the Mac  |
+| Desktop sshd version                                        | OpenSSH for Windows 9.5                                   | Desktop                              |
+| Remote addresses allowed for 22/TCP on the desktop firewall | 100.64.0.0/10 only (default rule off)                     | Desktop firewall rules               |
+| Password login attempt on the desktop                       | Refused 1/1 (`Permission denied (publickey)`)             | Attempt from the Mac                 |
+| Auth methods the desktop sshd accepts                       | `publickey` only                                          | Server response on connect           |
+| Public keys registered on the desktop                       | 2 (Mac, phone)                                            | `administrators_authorized_keys`     |
+| First phone → desktop attempts                              | 3 failed; `method none` 7 times, `publickey` 0 times      | Desktop sshd DEBUG3 log              |
+| Connection tests                                            | Mac → desktop 1/1, desktop → Mac 1/1, phone → desktop 1/1 | `ssh` from each device               |
+| `schtasks /Run` twice in a row                              | 2/2, replaced by one Remote Control process each time     | Desktop process list                 |
+| Auto-start delay                                            | `ClaudeRemoteControl` 1 min after logon                   | Scheduled task trigger setting       |
 
-# 10. Glossary
+Not measured: whether auto sign-in → app → Remote Control actually carries through a reboot (no reboot test), and how long until iOS suspends Termius in the background.
 
-| Term                                                                                      | Meaning                                                                                                        |
-| ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| overlay network                                                                           | A network laid on top of an existing one with virtual addresses and tunnels                                    |
-| tailnet                                                                                   | The network of devices of one Tailscale account (organization)                                                 |
-| WireGuard                                                                                 | A VPN protocol that identifies devices by public key and builds tunnels over UDP                               |
-| coordination server                                                                       | A server that collects and hands out devices' public keys and outside addresses. No data passes through it     |
-| NAT traversal / UDP hole punching                                                         | Both sides send outward at once to create NAT table entries and connect directly                               |
-| DERP relay                                                                                | Tailscale servers that relay encrypted packets over HTTPS when a direct connection fails                       |
-| [NAT](/en/blog/network/network-tcp-ip-layers/#private-ip-public-ip-nat) / CGNAT           | Rewriting private IPs to a public IP / NAT done once more by the carrier (100.64.0.0/10)                       |
-| [port forwarding](/en/blog/network/network-web-request-journey/#reaching-a-pc-behind-nat) | A router setting that passes connections arriving at public IP:port to a device inside                         |
-| DDNS                                                                                      | A service that keeps a fixed domain name pointed at a changing public IP                                       |
-| reachability                                                                              | Whether there is a path for packets to reach the other device                                                  |
-| drop / RST                                                                                | Silently discarding a packet (timed out) / refusing because nothing is listening (refused)                     |
-| ACL / packet filter                                                                       | The access policy in the Tailscale admin console / the actual filter rules pushed to devices from it           |
-| [SSH](/en/blog/network/network-web-request-journey/#15-connecting-over-ssh) / sshd        | An encrypted remote login protocol / the server program that accepts it                                        |
-| PAM / keyboard-interactive                                                                | The OS's pluggable authentication modules / an SSH auth method that asks for a password through PAM            |
-| lockout                                                                                   | Changing auth settings wrongly so you can no longer get back in remotely                                       |
-| defense in depth                                                                          | Layering independent defenses on top of each other                                                             |
-| autogroup:self                                                                            | In an ACL, the group meaning "devices owned by the user the rule applies to"                                   |
-| orphan node                                                                               | A node whose device is gone but whose registration remains on the tailnet                                      |
-| control plane / data plane                                                                | The part that hands out and manages device keys and addresses / the part that carries packets (WireGuard here) |
-| self-hosted / managed                                                                     | Running the servers myself / handing them to a service a company runs                                          |
-| full mesh / hub-and-spoke                                                                 | Every device connected to every other directly / connected through one server in the middle                    |
+# 11. Glossary
+
+| Term                                                                                      | Meaning                                                                                                                                  |
+| ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| overlay network                                                                           | A network laid on top of an existing one with virtual addresses and tunnels                                                              |
+| tailnet                                                                                   | The network of devices of one Tailscale account (organization)                                                                           |
+| WireGuard                                                                                 | A VPN protocol that identifies devices by public key and builds tunnels over UDP                                                         |
+| coordination server                                                                       | A server that collects and hands out devices' public keys and outside addresses. No data passes through it                               |
+| NAT traversal / UDP hole punching                                                         | Both sides send outward at once to create NAT table entries and connect directly                                                         |
+| DERP relay                                                                                | Tailscale servers that relay encrypted packets over HTTPS when a direct connection fails                                                 |
+| [NAT](/en/blog/network/network-tcp-ip-layers/#private-ip-public-ip-nat) / CGNAT           | Rewriting private IPs to a public IP / NAT done once more by the carrier (100.64.0.0/10)                                                 |
+| [port forwarding](/en/blog/network/network-web-request-journey/#reaching-a-pc-behind-nat) | A router setting that passes connections arriving at public IP:port to a device inside                                                   |
+| DDNS                                                                                      | A service that keeps a fixed domain name pointed at a changing public IP                                                                 |
+| reachability                                                                              | Whether there is a path for packets to reach the other device                                                                            |
+| drop / RST                                                                                | Silently discarding a packet (timed out) / refusing because nothing is listening (refused)                                               |
+| ACL / packet filter                                                                       | The access policy in the Tailscale admin console / the actual filter rules pushed to devices from it                                     |
+| [SSH](/en/blog/network/network-web-request-journey/#15-connecting-over-ssh) / sshd        | An encrypted remote login protocol / the server program that accepts it                                                                  |
+| PAM / keyboard-interactive                                                                | The OS's pluggable authentication modules / an SSH auth method that asks for a password through PAM                                      |
+| lockout                                                                                   | Changing auth settings wrongly so you can no longer get back in remotely                                                                 |
+| defense in depth                                                                          | Layering independent defenses on top of each other                                                                                       |
+| autogroup:self                                                                            | In an ACL, the group meaning "devices owned by the user the rule applies to"                                                             |
+| orphan node                                                                               | A node whose device is gone but whose registration remains on the tailnet                                                                |
+| control plane / data plane                                                                | The part that hands out and manages device keys and addresses / the part that carries packets (WireGuard here)                           |
+| self-hosted / managed                                                                     | Running the servers myself / handing them to a service a company runs                                                                    |
+| full mesh / hub-and-spoke                                                                 | Every device connected to every other directly / connected through one server in the middle                                              |
+| administrators_authorized_keys                                                            | The file Windows sshd reads public keys from for Administrators group accounts. Read only when its ACL is SYSTEM and Administrators only |
+| Termius / Biometric Key                                                                   | iOS SSH client / an ECDSA P-256 key made in the Secure Enclave that can't be exported                                                    |
+| Too many authentication failures                                                          | The message when sshd drops a connection that didn't finish authentication within the allowed count                                      |
+| SSH config Include / IdentitiesOnly                                                       | A directive that pulls in another config file / an option that offers only the named key                                                 |
+| MagicDNS                                                                                  | Tailscale's DNS that resolves tailnet device names to 100.x addresses                                                                    |
+| junction                                                                                  | A folder-only link on Windows; can be created without administrator rights                                                               |
+| Remote Control                                                                            | Continuing a Claude Code session running on the desktop from the Claude app on another device                                            |
+| Scheduled task (Task Scheduler) / schtasks                                                | The Windows feature that runs programs on set conditions / the command for it                                                            |
+| session 0                                                                                 | The Windows session where services run, with no display; GUI started there can't be seen                                                 |
+| orphan process                                                                            | A child process left alone after its parent ended first                                                                                  |
+| Auto sign-in (Autologon)                                                                  | A setting that signs in to an account after boot without typing the password; the password is stored as an LSA secret                    |

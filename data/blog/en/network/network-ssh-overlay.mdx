@@ -78,7 +78,7 @@ So I looked at the rules the Mac actually received.
 tailscale debug netmap
 ```
 
-The packet filter part of the output had a rule **allowing ports 0-65535** between the desktop and the Mac. The ACL was not blocking port 22.
+The packet filter part of the output had a rule **allowing ports 0-65535** between the desktop and the Mac. The ACL was not blocking port 22. But the policy at the time had no rule allowing phone → Mac, so packets from the phone to the Mac were blocked by this packet filter. Section 7 fixes that by replacing the ACL.
 
 ## Check 3: the OS — blocked here
 
@@ -258,7 +258,9 @@ icacls.exe "C:\ProgramData\ssh\administrators_authorized_keys" /inheritance:r /g
 ```
 
 - `autogroup:member`: users of the tailnet. `autogroup:self`: devices **owned by that same user**. My devices can reach each other on every port, and if I invite someone to the tailnet later, they can't reach my devices.
-- The 0-65535 allow rule from section 2 comes from this policy. I didn't narrow the ports to 22 because the L4 restriction is done in each device's OS firewall.
+- I replaced the policy with the rule above on 2026-11-26. The desktop ↔ Mac allow rule from section 2 came from the old policy, which had no phone → Mac rule, so those packets were blocked by the packet filter. After saving, I checked that the sources in the Mac's packet filter now include all three devices: phone, desktop and Mac.
+- The tailnet has one user right now (1 Owner, 0 pending invites).
+- I didn't narrow the ports to 22 because the L4 restriction is done in each device's OS firewall.
 
 ## What's left
 
@@ -271,20 +273,22 @@ While looking at the tailnet device list, I found the three k3s nodes I had adde
 
 This can cause trouble. When device names collide, Tailscale adds `-1` to the name of the one that joined later. If you rejoin a device with the same hostname, the orphan keeps the original name and the new device gets something like `desktop-1`. ACLs or SSH settings that point to a device by name end up pointing at the powered-off orphan.
 
-- Remove orphans from the device list in the admin console.
+- Remove orphans from the device list in the admin console. I removed the three k3s nodes on 2026-11-26, and the tailnet went from 6 devices to 3 (checked with `tailscale status` on the Mac).
 - If you rejoined a device, remove the orphan, then drop the `-1` from the new device's name and recheck that settings using that name point to the right device.
 
 # 9. Numbers
 
 As of 2026-11-26. Only measured values.
 
-| Item                                                | Value                                 | Source                               |
-| --------------------------------------------------- | ------------------------------------- | ------------------------------------ |
-| Mac → desktop `tailscale ping`                      | 24 ms, direct                         | `tailscale ping` on the Mac          |
-| Mac → desktop TCP 22, 3389                          | `Operation timed out` (drop, not RST) | SSH and RDP attempts from the Mac    |
-| Allowed ports desktop ↔ Mac, as received by the Mac | 0-65535                               | `tailscale debug netmap` on the Mac  |
-| Inbound ports opened on the router                  | 0                                     | Tailscale setup (no port forwarding) |
-| Orphan nodes left on the tailnet                    | 3 (hackathon k3s)                     | Tailscale device list                |
+| Item                                                    | Value                                 | Source                               |
+| ------------------------------------------------------- | ------------------------------------- | ------------------------------------ |
+| Mac → desktop `tailscale ping`                          | 24 ms, direct                         | `tailscale ping` on the Mac          |
+| Mac → desktop TCP 22, 3389                              | `Operation timed out` (drop, not RST) | SSH and RDP attempts from the Mac    |
+| Allowed ports desktop ↔ Mac, as received by the Mac     | 0-65535                               | `tailscale debug netmap` on the Mac  |
+| Inbound ports opened on the router                      | 0                                     | Tailscale setup (no port forwarding) |
+| Orphan nodes left on the tailnet                        | 3 (hackathon k3s), removed 2026-11-26 | Tailscale device list                |
+| Tailnet devices before → after the orphan cleanup       | 6 → 3                                 | `tailscale status` on the Mac        |
+| Sources in the Mac's packet filter after the ACL change | 3 (phone, desktop, Mac)               | `tailscale debug netmap` on the Mac  |
 
 # 10. Glossary
 

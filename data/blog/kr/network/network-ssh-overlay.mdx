@@ -78,7 +78,7 @@ _맥에서 데스크탑 22번으로 가는 패킷이 지나는 검문 네 곳. �
 tailscale debug netmap
 ```
 
-출력의 packet filter 부분에 데스크탑 ↔ 맥 사이 포트 **0-65535 허용** 규칙이 있었다. ACL이 22번을 막고 있던 게 아니다.
+출력의 packet filter 부분에 데스크탑 ↔ 맥 사이 포트 **0-65535 허용** 규칙이 있었다. ACL이 22번을 막고 있던 게 아니다. 다만 그때 정책에는 폰 → 맥을 허용하는 규칙이 없어서, 폰에서 맥으로 가는 패킷은 이 packet filter에서 막혔다. 이건 7절에서 ACL을 바꿔 풀었다.
 
 ## 확인 3: OS — 여기서 막힘
 
@@ -258,7 +258,9 @@ icacls.exe "C:\ProgramData\ssh\administrators_authorized_keys" /inheritance:r /g
 ```
 
 - `autogroup:member`: tailnet의 사용자. `autogroup:self`: **그 사용자 본인 소유** 기기. 내 기기끼리는 모든 포트로 오갈 수 있고, 나중에 다른 사람을 tailnet에 초대해도 그 사람은 내 기기에 못 닿는다.
-- 2절에서 본 0-65535 허용 규칙이 이 정책에서 나온 것이다. 포트를 22로 좁히지 않은 건 L4 제한을 각 기기 OS 방화벽에서 하기 때문이다.
+- 2026-11-26에 정책을 위 한 줄로 교체했다. 2절에서 본 데스크탑 ↔ 맥 허용 규칙은 교체 전 정책에서 나온 것이고, 교체 전엔 폰 → 맥 규칙이 없어 packet filter에서 막혔다. 저장한 뒤 맥의 packet filter 출발지에 폰·데스크탑·맥 세 대가 다 들어온 걸 확인했다.
+- 지금 tailnet 사용자는 나 하나(Owner 1명, 초대 대기 0명)다.
+- 포트를 22로 좁히지 않은 건 L4 제한을 각 기기 OS 방화벽에서 하기 때문이다.
 
 ## 남은 것
 
@@ -271,20 +273,22 @@ tailnet 기기 목록을 보다가 해커톤 때 붙인 k3s 노드 세 대가 �
 
 이게 문제가 되는 경우가 있다. Tailscale은 기기 이름이 겹치면 새로 붙은 쪽 이름 뒤에 `-1`을 붙인다. 같은 hostname으로 기기를 다시 붙이면 원래 이름은 orphan이 쥐고 있고, 새 기기는 `desktop-1` 같은 이름을 받는다. 이름으로 기기를 가리키던 ACL이나 SSH 설정은 꺼져 있는 orphan을 가리키게 된다.
 
-- orphan은 관리 콘솔의 기기 목록에서 지운다.
+- orphan은 관리 콘솔의 기기 목록에서 지운다. k3s 노드 세 대는 2026-11-26에 Remove했고, tailnet 기기는 6대에서 3대가 됐다(맥에서 `tailscale status`로 확인).
 - 기기를 다시 붙였다면 orphan을 지운 뒤 새 기기 이름에서 `-1`을 떼고, 그 이름을 쓰는 설정이 맞는 기기를 가리키는지 다시 본다.
 
 # 9. 숫자 표
 
 2026-11-26 기준. 잰 것만 적었다.
 
-| 항목                              | 값                                    | 출처                                 |
-| --------------------------------- | ------------------------------------- | ------------------------------------ |
-| 맥 → 데스크탑 `tailscale ping`    | 24 ms, direct                         | 맥에서 `tailscale ping`              |
-| 맥 → 데스크탑 TCP 22, 3389        | `Operation timed out` (RST 아닌 drop) | 맥에서 SSH·RDP 접속 시도             |
-| 맥이 받은 데스크탑 ↔ 맥 허용 포트 | 0-65535                               | 맥에서 `tailscale debug netmap`      |
-| 공유기에 연 들어오는 포트         | 0개                                   | Tailscale 구성(port forwarding 없음) |
-| tailnet에 남아 있던 orphan 노드   | 3대 (해커톤 k3s)                      | Tailscale 기기 목록                  |
+| 항목                                | 값                                    | 출처                                 |
+| ----------------------------------- | ------------------------------------- | ------------------------------------ |
+| 맥 → 데스크탑 `tailscale ping`      | 24 ms, direct                         | 맥에서 `tailscale ping`              |
+| 맥 → 데스크탑 TCP 22, 3389          | `Operation timed out` (RST 아닌 drop) | 맥에서 SSH·RDP 접속 시도             |
+| 맥이 받은 데스크탑 ↔ 맥 허용 포트   | 0-65535                               | 맥에서 `tailscale debug netmap`      |
+| 공유기에 연 들어오는 포트           | 0개                                   | Tailscale 구성(port forwarding 없음) |
+| tailnet에 남아 있던 orphan 노드     | 3대 (해커톤 k3s), 2026-11-26 Remove   | Tailscale 기기 목록                  |
+| orphan 정리 전 → 후 tailnet 기기    | 6대 → 3대                             | 맥에서 `tailscale status`            |
+| ACL 교체 뒤 맥 packet filter 출발지 | 3대 (폰·데스크탑·맥)                  | 맥에서 `tailscale debug netmap`      |
 
 # 10. 용어 정리
 

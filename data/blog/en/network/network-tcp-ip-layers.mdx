@@ -387,7 +387,7 @@ _To a PC on the same LAN, traffic passes only through the AP and switch. To anot
 | Inbound   | Destination 203.0.113.5 : 40001 | Destination 192.168.0.20 : 51000 | Reversed by looking up the table                   |
 
 - NAT rewrites both the IP header and the TCP header (ports) and recomputes the checksums. It is the classic "layer violation", where a network layer device reaches into the transport layer.
-- A connection that starts from outside has no entry in the translation table, so it is dropped. To reach a home PC from outside, you have to set up **port forwarding**. This is also why P2P is hard.
+- A connection that starts from outside has no entry in the translation table, so it is dropped. To reach a home PC from outside, you have to set up **port forwarding**. This is also why P2P is hard. The way to connect devices behind NAT without port forwarding is an [overlay network](/en/blog/network/network-ssh-overlay/#what-tailscale-does-at-l3).
 - Because public IPv4 addresses are scarce, carriers give private addresses to subscribers too and do NAT once more on carrier equipment. This is **CGNAT** (Carrier-Grade NAT), and it uses the dedicated range 100.64.0.0/10. The friend's phone in this example is one of these.
 - Everything that happens in the home router is in [Router: firewall + routing + NAT](/en/blog/network/network-web-request-journey/#8-router-firewall--routing--nat).
 

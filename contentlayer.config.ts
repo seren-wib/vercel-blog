@@ -220,7 +220,8 @@ export default makeSource({
     cwd: process.cwd(),
     remarkPlugins: [
       remarkExtractFrontmatter,
-      remarkGfm,
+      // singleTilde: false keeps ranges like "11~12" from becoming strikethrough; ~~x~~ still works
+      [remarkGfm, { singleTilde: false }],
       remarkCodeTitles,
       remarkMath,
       remarkImgToJsx,

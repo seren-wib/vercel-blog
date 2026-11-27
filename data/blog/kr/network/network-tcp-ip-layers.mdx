@@ -287,7 +287,7 @@ _B가 중간 라우터 큐에서 버려졌다. 서버는 C·D·E를 받아도 �
 - **바이트 스트림**: 앱이 "HELLO", "WORLD"를 두 번 보내도 받는 쪽은 "HELLOWORLD"로 한 번에 읽을 수 있다. TCP는 순서는 지키지만 **메시지 경계는 안 지킨다**. 그래서 채팅 앱은 길이 필드나 WebSocket 프레임 같은 자기 경계 표시를 쓴다.
 - **체크섬**: TCP 헤더 + 데이터 + IP 주소 일부(pseudo-header)로 계산한다. 깨진 세그먼트는 버리고, 버린 건 재전송이 메운다. 계산법은 [The Internet Checksum](/kr/blog/network/network-ch6-error-correction/#3-2-the-internet-checksum)에 있다.
 
-이 방식은 데이터 링크 수업에서 본 [ARQ](/kr/blog/network/network-ch7-data-link/#4-arqautomatic-repeat-request)와 같은 생각이다. 차이는 범위다. 링크 계층 ARQ는 옆 장비 한 구간을, TCP는 서울 노트북부터 미국 서버까지 끝에서 끝을 책임진다.
+이 방식은 컴퓨터네트워크 수업에서 본 [ARQ](/kr/blog/network/network-ch7-data-link/#4-arqautomatic-repeat-request)와 같은 생각이다. 차이는 범위다. 링크 계층 ARQ는 옆 장비 한 구간을, TCP는 서울 노트북부터 미국 서버까지 끝에서 끝을 책임진다.
 
 ## 흐름 제어와 혼잡 제어
 

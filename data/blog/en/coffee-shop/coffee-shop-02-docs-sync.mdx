@@ -1,0 +1,93 @@
+---
+title: 'Coffee Shop 2. Syncing Documents to Google Docs'
+date: '2026-11-28'
+tags: ['Coffee Shop']
+draft: false
+aiGenerated: true
+summary: 'The docs-sync workflow that overwrites the same Google Doc from the repository Markdown on every merge to main, and the image size and Korean font fixes'
+---
+
+> Post 2 of the series. The whole project is in [Coffee Shop 0](/en/blog/coffee-shop/coffee-shop-00-overview/). This post covers four pull requests merged on November 17 (#64, #65, #66, #69).
+
+## In one paragraph
+
+The source of the documents is Markdown in the repository, but teammates and the professor read Google Docs. Keeping the two in step by hand guarantees they drift. So every time documents are merged to `main`, GitHub Actions turns the Markdown into HTML and **overwrites the same Google Doc**. The link never changes, so a link shared once keeps showing the latest version.
+
+## 1. Why the repository is the source
+
+[Post 1](/en/blog/coffee-shop/coffee-shop-01-requirements-design/) moved the documents into `docs/specs/` for ID tracing. For tests and pull requests to point at the documents, the documents must live in the same repository and the same commit history as the code. But raw Markdown files are awkward for teammates to read, and assignments are submitted as Google Docs.
+
+In broadcast terms, the repository is the editing room that keeps the master tapes, and Google Docs is the channel viewers watch. If a tape edited in the room goes on air automatically, nobody needs to edit on the channel.
+
+![docs-sync flow diagram. When Markdown under docs/specs is merged to main, the GitHub Actions job docs-sync turns Mermaid blocks and SVGs into PNG, joins the six document folders in README order into six HTML files, exchanges the GitHub OIDC token for a service account token through Google Workload Identity Federation, and overwrites the same Doc IDs with the Drive API](/static/images/coffee-shop-02-docs-sync/docs-sync-flow.svg)
+
+The editing room is `docs/specs/`, going on air is `.github/workflows/docs-sync.yml`, and the channel is the six Docs in the Drive folder `projects-docs/coffee-shop`. The analogy stops here.
+
+## 2. What the workflow does
+
+#64 brought in the structure.
+
+| Step           | What it does                                                                                                                                    |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Trigger        | A push to `main` that changes `docs/specs/**`, `docs/images/**` or `.github/google-docs.json`, or a manual run                                  |
+| Mermaid render | `mmdc` (mermaid-cli 11.4.2) turns Mermaid blocks in the Markdown into PNG                                                                       |
+| SVG render     | Google Docs cannot show SVG. The SVG at that commit is fetched as PNG through `images.weserv.nl` (possible because the repository is public)    |
+| Build          | `build-docs.mjs` joins each document folder's files in its README table order, stamps the commit SHA at the top and inlines images as data URIs |
+| Auth           | GitHub OIDC → Google Workload Identity Federation → service account `docs-sync`. Zero repository secrets                                        |
+| Upload         | Sends the HTML to Drive API `PATCH /upload/drive/v3/files/<id>` and overwrites the existing Doc                                                 |
+
+The last step is the point. Creating a new file each time would change the link every time. `.github/google-docs.json` pins one Doc ID per document and only the content of that file changes, so shared links stay. Drive converts a body uploaded as `text/html` into Google Docs format.
+
+Having no key file for auth was also a choice. A service account key (JSON) in a repository secret means that the moment the key leaks, Drive write access leaks with it. With OIDC, GitHub issues a short-lived token for each run, and Google checks that it came from a workflow in this repository before exchanging it for a service account token. The trust is limited to repositories owned by `seren-wib`.
+
+## 3. Three fixes after the first upload
+
+Opening the Doc after the first run showed that the images were the problem. Three pull requests on the same day fixed them.
+
+![Image fitting diagram. The Google Docs page body is 624 px wide and 864 px tall. Before #65, a 1600 px wide PNG overflowed the body. #65 capped only the width at 624 px, and tall images still ran past the page. #69 fits both directions with scale = min(624/w, 864/h, 1)](/static/images/coffee-shop-02-docs-sync/image-fit.svg)
+
+| PR  | Symptom                                                                           | Fix                                                                                                         |
+| --- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| #65 | 1600 px wide PNGs overflowed the body                                             | Read the real size from the PNG header (IHDR) and write `width=min(w, 624)` and the matching `height` in px |
+| #66 | In run 44027929044 the Korean in all 15 Mermaid PNGs of the SDD came out as boxes | Install `fonts-noto-cjk` before the Mermaid render. The 15 draw.io SVGs were fine all along                 |
+| #69 | The tall `create_order` flow came out at 468×1168 pt on a 648 pt body             | Cap the height at 864 px too: `scale = min(624/w, 864/h, 1)`                                                |
+
+There was a reason #65 did not use `%` widths. When Google Docs imports HTML it ignores `%` widths and `max-width`; only px works. So every image's real pixel size was needed, and it was read from the IHDR chunk, which sits in the first 24 bytes of a PNG file.
+
+The size math in #69 was checked with three script tests: 1248×400 becomes 624×200, 600×2000 becomes 259×864, and 300×100 stays 300×100. The script's original lives in the project-docs skill in dotfiles so other projects can use it, and the repository holds a copy. The bodies of #65, #66 and #69 name the dotfiles commit each copy came from.
+
+### The workflow file is outside the path filter
+
+#66 changed the workflow file itself, but `docs-sync.yml` is not in the trigger paths (`paths`). The same goes for `.github/scripts/build-docs.mjs`, which #69 changed. So neither merge ran the workflow again, and each was followed right away by a manual run (`workflow_dispatch`). Those are the two manual runs in the table below.
+
+## 4. Numbers
+
+As of 2026-11-28, counted from `gh run list --workflow docs-sync.yml`.
+
+| Item                     | Value                                            |
+| ------------------------ | ------------------------------------------------ |
+| All runs                 | 33 (2026-11-17 ~ 2026-11-28)                     |
+| Runs started by push     | 31: 21 succeeded, 10 cancelled                   |
+| Manual runs              | 2, both succeeded                                |
+| Synced Docs              | 6 (SPMP, SRS, SDD, STP, SIP, SMP)                |
+| Local build result (#64) | 6 documents, 15 SDD images (PNG), 2.0 MB of HTML |
+
+The 10 cancellations are not failures. The workflow sets `concurrency: docs-sync` with `cancel-in-progress: true`, so when document pull requests merge one after another, the earlier run is cut and only the last commit is uploaded. Since every run overwrites, there is no reason to keep the intermediate ones.
+
+## 5. What this setup cannot do
+
+The assignment submissions were built separately from the synced Docs. A submission needs a cover, page breaks and titles kept on the same page as their figures, and page-break CSS is ignored in an HTML upload. So the final submissions (SRS 86 pages, design description 129 pages) were built separately from the same Markdown, with page breaks added through the Docs API. The synced Docs stay as the view of "what `main` says right now".
+
+## Glossary
+
+| Term                                               | Meaning                                                                                                              |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| GitHub Actions                                     | GitHub's CI service that runs jobs on repository events (push, pull request)                                         |
+| Workflow                                           | One YAML file in `.github/workflows/` saying when to run which jobs                                                  |
+| [OIDC](/en/blog/auth/auth-00-basics/#oidc)         | A standard for proving identity with a token. Here GitHub issues one for each workflow run                           |
+| Workload Identity Federation                       | A Google Cloud feature that exchanges an external OIDC token for a Google service account token                      |
+| Service account                                    | A Google account used by a program, not a person                                                                     |
+| [Secret](/en/blog/devops/devops-00-basics/#secret) | A private value stored in the repository for workflows to read. This workflow uses none                              |
+| Mermaid                                            | A text syntax for diagrams. `mmdc` renders it to an image                                                            |
+| IHDR                                               | The first chunk of a PNG file. It holds the width and height in pixels                                               |
+| `concurrency`                                      | A workflow setting that lets only one run of a group go at a time; with `cancel-in-progress` it cuts the earlier run |

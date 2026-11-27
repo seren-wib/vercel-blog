@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="420" viewBox="0 0 980 420" font-family='Pretendard, "Apple SD Gothic Neo", -apple-system, Helvetica, Arial, sans-serif' font-size="13">
+<rect width="980" height="420" fill="#ffffff" rx="8"/><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L10 5L0 9z" fill="#475569"/></marker></defs>
+<text x="20" y="32" font-size="17" font-weight="bold" fill="#1e293b">From per-role folders to stage documents with IDs</text>
+<text x="20" y="52" font-size="12" fill="#64748b">2026-11-17: the SRS defines each ID once; design, tests and PR bodies cite it.</text>
+<rect x="20" y="80" width="270" height="300" rx="10" fill="#f8fafc" stroke="#94a3b8"/>
+<text x="40" y="106" font-weight="bold" fill="#1e293b">before: HW1, HW2</text>
+<text x="275" y="106" text-anchor="end" font-size="11" fill="#64748b">books on each desk</text>
+<text x="40" y="140" font-size="12" fill="#334155">docs/backend/</text>
+<text x="56" y="160" text-anchor="start" font-size="11" fill="#64748b">requirements, schema, classes, algorithms</text>
+<text x="40" y="192" font-size="12" fill="#334155">docs/frontend/</text>
+<text x="56" y="212" text-anchor="start" font-size="11" fill="#64748b">use case, wireframes, sequences, flow</text>
+<text x="40" y="244" font-size="12" fill="#334155">docs/architecture.md</text>
+<text x="40" y="290" font-size="12" fill="#b91c1c">no IDs, same fact in several files</text>
+<text x="40" y="310" font-size="12" fill="#b91c1c">"runs on a local PC only"</text>
+<path d="M296 230H344" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<text x="320" y="252" text-anchor="middle" font-size="11" fill="#64748b">#59 #60</text>
+<text x="320" y="266" text-anchor="middle" font-size="11" fill="#64748b">#62 #68</text>
+<rect x="350" y="80" width="610" height="300" rx="10" fill="#f8fafc" stroke="#64748b"/>
+<text x="370" y="106" font-weight="bold" fill="#1e293b">after: docs/specs/</text>
+<text x="940" y="106" text-anchor="end" font-size="11" fill="#64748b">one shelf, catalog numbers</text>
+<rect x="370" y="125" width="170" height="84" rx="8" fill="#eff6ff" stroke="#93c5fd"/><text x="455" y="154" text-anchor="middle" font-weight="bold" fill="#1e3a8a">srs/</text><text x="455" y="172" text-anchor="middle" font-size="12" fill="#1d4ed8">DR, FR, NFR, UC</text><text x="455" y="189" text-anchor="middle" font-size="11" fill="#64748b">defines IDs</text>
+<rect x="600" y="125" width="110" height="36" rx="8" fill="#ffffff" stroke="#94a3b8"/><text x="655" y="148" text-anchor="middle" font-weight="bold" fill="#1e293b">sdd/</text>
+<rect x="720" y="125" width="110" height="36" rx="8" fill="#ffffff" stroke="#94a3b8"/><text x="775" y="148" text-anchor="middle" font-weight="bold" fill="#1e293b">stp/</text>
+<rect x="840" y="125" width="100" height="36" rx="8" fill="#ffffff" stroke="#94a3b8"/><text x="890" y="148" text-anchor="middle" font-weight="bold" fill="#1e293b">spmp/</text>
+<rect x="600" y="171" width="110" height="36" rx="8" fill="#ffffff" stroke="#94a3b8"/><text x="655" y="194" text-anchor="middle" font-weight="bold" fill="#1e293b">sip/</text>
+<rect x="720" y="171" width="110" height="36" rx="8" fill="#ffffff" stroke="#94a3b8"/><text x="775" y="194" text-anchor="middle" font-weight="bold" fill="#1e293b">smp/</text>
+<path d="M540 165H596" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<text x="568" y="156" text-anchor="middle" font-size="11" fill="#64748b">cites</text>
+<rect x="370" y="250" width="280" height="104" rx="8" fill="#fffbeb" stroke="#fcd34d"/>
+<text x="390" y="275" font-weight="bold" fill="#78350f">test names</text>
+<text x="390" y="298" font-size="12" fill="#92400e">test_nfr15_last_stock_concurrent_orders</text>
+<text x="390" y="318" font-size="12" fill="#92400e">test_nfr9_every_private_route_needs_token</text>
+<text x="390" y="338" font-size="12" fill="#92400e">test_dr19_disallowed_transitions_...</text>
+<rect x="670" y="250" width="270" height="104" rx="8" fill="#ecfdf5" stroke="#6ee7b7"/>
+<text x="690" y="275" font-weight="bold" fill="#064e3b">PR bodies</text>
+<text x="690" y="298" font-size="12" fill="#065f46">requires privacy_agreed (FR-58)</text>
+<text x="690" y="318" font-size="12" fill="#065f46">1,800 s and 604,800 s (NFR-8)</text>
+<path d="M455 209V246" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<path d="M530 209L760 246" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="380" viewBox="0 0 980 380" font-family='Pretendard, "Apple SD Gothic Neo", -apple-system, Helvetica, Arial, sans-serif' font-size="13">
+<rect width="980" height="380" fill="#ffffff" rx="8"/><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L10 5L0 9z" fill="#475569"/></marker></defs>
+<text x="20" y="32" font-size="17" font-weight="bold" fill="#1e293b">Continuous deployment: ci passes, deploy runs deploy.sh through SSM</text>
+<text x="20" y="52" font-size="12" fill="#64748b">.github/workflows/deploy.yml. Off until repository variable DEPLOY_ENABLED is true.</text>
+<rect x="20" y="90" width="140" height="60" rx="8" fill="#f8fafc" stroke="#94a3b8"/><text x="90" y="125" text-anchor="middle" font-weight="bold" fill="#1e293b">merge to main</text>
+<rect x="190" y="90" width="140" height="60" rx="8" fill="#eff6ff" stroke="#93c5fd"/><text x="260" y="116" text-anchor="middle" font-weight="bold" fill="#1e3a8a">ci</text><text x="260" y="134" text-anchor="middle" font-size="12" fill="#1d4ed8">backend, frontend</text>
+<rect x="360" y="80" width="260" height="140" rx="8" fill="#f5f3ff" stroke="#c4b5fd"/><text x="490" y="119" text-anchor="middle" font-weight="bold" fill="#3b0764">deploy (workflow_run)</text><text x="490" y="137" text-anchor="middle" font-size="12" fill="#6d28d9">skip: not main tip, already tagged,</text><text x="490" y="155" text-anchor="middle" font-size="12" fill="#6d28d9">docs-only change</text><text x="490" y="173" text-anchor="middle" font-size="12" fill="#6d28d9">pick next release tag</text><text x="490" y="191" text-anchor="middle" font-size="12" fill="#6d28d9">OIDC → IAM role, then push tag</text>
+<rect x="660" y="80" width="300" height="80" rx="8" fill="#fff7ed" stroke="#fdba74"/><text x="810" y="116" text-anchor="middle" font-weight="bold" fill="#7c2d12">SSM Run Command</text><text x="810" y="134" text-anchor="middle" font-size="12" fill="#9a3412">AWS-RunShellScript: deploy.sh &lt;tag&gt;</text>
+<rect x="660" y="190" width="300" height="60" rx="8" fill="#ecfdf5" stroke="#6ee7b7"/><text x="810" y="216" text-anchor="middle" font-weight="bold" fill="#064e3b">EC2 SSM agent</text><text x="810" y="234" text-anchor="middle" font-size="12" fill="#065f46">outbound 443, port 22 not opened</text>
+<rect x="360" y="260" width="260" height="60" rx="8" fill="#ffffff" stroke="#94a3b8"/><text x="490" y="286" text-anchor="middle" font-weight="bold" fill="#1e293b">read version.txt via Cloudflare</text><text x="490" y="304" text-anchor="middle" font-size="12" fill="#334155">must equal the commit</text>
+<path d="M160 120H186" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<path d="M330 120H356" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<path d="M620 120H656" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<path d="M810 160V186" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<path d="M660 240L624 272" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<text x="20" y="350" font-size="12" fill="#334155">concurrency: deploy-production, cancel-in-progress: false. As of 2026-11-28: 3 runs, all skipped.</text>
+</svg>

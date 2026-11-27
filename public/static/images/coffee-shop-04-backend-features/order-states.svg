@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="430" viewBox="0 0 980 430" font-family='Pretendard, "Apple SD Gothic Neo", -apple-system, Helvetica, Arial, sans-serif' font-size="13">
+<rect width="980" height="430" fill="#ffffff" rx="8"/><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L10 5L0 9z" fill="#475569"/></marker></defs>
+<text x="20" y="32" font-size="17" font-weight="bold" fill="#1e293b">Order states and who moves them</text>
+<text x="20" y="52" font-size="12" fill="#64748b">Every arrow is one conditional UPDATE. Any pair not drawn here returns 409 INVALID_STATE (DR-19).</text>
+<rect x="30" y="180" width="130" height="56" rx="8" fill="#fffbeb" stroke="#fcd34d"/><text x="95" y="204" text-anchor="middle" font-weight="bold" fill="#78350f">PENDING</text><text x="95" y="221" text-anchor="middle" font-size="11" fill="#64748b">unpaid</text>
+<rect x="250" y="180" width="130" height="56" rx="8" fill="#eff6ff" stroke="#93c5fd"/><text x="315" y="213" text-anchor="middle" font-weight="bold" fill="#1e3a8a">PAID</text>
+<rect x="470" y="180" width="140" height="56" rx="8" fill="#eff6ff" stroke="#93c5fd"/><text x="540" y="213" text-anchor="middle" font-weight="bold" fill="#1e3a8a">PREPARING</text>
+<rect x="700" y="180" width="120" height="56" rx="8" fill="#eff6ff" stroke="#93c5fd"/><text x="760" y="213" text-anchor="middle" font-weight="bold" fill="#1e3a8a">SHIPPED</text>
+<rect x="850" y="180" width="110" height="56" rx="8" fill="#ecfdf5" stroke="#6ee7b7"/><text x="905" y="204" text-anchor="middle" font-weight="bold" fill="#064e3b">DELIVERED</text><text x="905" y="221" text-anchor="middle" font-size="11" fill="#64748b">final</text>
+<rect x="30" y="330" width="130" height="56" rx="8" fill="#fef2f2" stroke="#fca5a5"/><text x="95" y="354" text-anchor="middle" font-weight="bold" fill="#7f1d1d">CANCELLED</text><text x="95" y="371" text-anchor="middle" font-size="11" fill="#64748b">final</text>
+<rect x="330" y="330" width="220" height="56" rx="8" fill="#f5f3ff" stroke="#c4b5fd"/><text x="440" y="354" text-anchor="middle" font-weight="bold" fill="#3b0764">CANCEL_REQUESTED</text><text x="440" y="372" text-anchor="middle" font-size="12" fill="#6d28d9">saves status_before_cancel</text>
+<path d="M160 208H246" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<text x="203" y="198" text-anchor="middle" font-size="11" fill="#64748b">payment DONE</text>
+<text x="203" y="252" text-anchor="middle" font-size="11" fill="#64748b">system</text>
+<path d="M380 208H466" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<text x="423" y="198" text-anchor="middle" font-size="11" fill="#64748b">prepare</text>
+<text x="423" y="252" text-anchor="middle" font-size="11" fill="#64748b">admin</text>
+<path d="M610 208H696" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<text x="653" y="198" text-anchor="middle" font-size="11" fill="#64748b">ship + tracking no.</text>
+<text x="653" y="252" text-anchor="middle" font-size="11" fill="#64748b">admin</text>
+<path d="M820 208H846" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<path d="M95 236V326" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<text x="100" y="290" text-anchor="start" font-size="11" fill="#64748b">member cancel</text>
+<path d="M300 236L400 326" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<path d="M530 236L470 326" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<text x="330" y="290" text-anchor="end" font-size="11" fill="#64748b">cancel request</text>
+<text x="560" y="290" text-anchor="start" font-size="11" fill="#64748b">member</text>
+<path d="M330 365H164" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<text x="247" y="355" text-anchor="middle" font-size="11" fill="#64748b">approve: PG cancel first</text>
+<text x="247" y="402" text-anchor="middle" font-size="11" fill="#64748b">admin</text>
+<path d="M550 350C700 330 720 260 540 238" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)" stroke-dasharray="5 4"/>
+<text x="705" y="320" text-anchor="start" font-size="11" fill="#64748b">reject: back to</text>
+<text x="705" y="336" text-anchor="start" font-size="11" fill="#64748b">status_before_cancel</text>
+<text x="895" y="110" text-anchor="middle" font-size="11" fill="#64748b">train ticket</text>
+<text x="895" y="126" text-anchor="middle" font-size="11" fill="#64748b">clerk refuses out-of-order</text>
+</svg>

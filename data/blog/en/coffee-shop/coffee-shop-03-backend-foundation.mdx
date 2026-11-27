@@ -1,0 +1,119 @@
+---
+title: 'Coffee Shop 3. Backend Foundation: Spike, CI, Models, Auth'
+date: '2026-11-28'
+tags: ['Coffee Shop']
+draft: false
+aiGenerated: true
+summary: 'A SQLite concurrent-order spike chose the transaction mode, CI and branch protection came first, then models, auth, stock and addresses'
+---
+
+> Post 3 of the series. The whole project is in [Coffee Shop 0](/en/blog/coffee-shop/coffee-shop-00-overview/). This post covers the six backend foundation pull requests of November 19 (#73, #77, #80, #83, #85, #87).
+
+## In one paragraph
+
+The first implementation code was an experiment, not a feature. It measured first whether SQLite could take concurrent orders; the answer was "yes, with a different transaction mode", and that value went into the settings. Then CI and branch protection went on, and on top of them came models → auth → stock → addresses, in that order.
+
+## 1. Spike: can SQLite take concurrent orders?
+
+The biggest risk at the design stage was the database. The plan was one SQLite file on one server, and SQLite has a single write lock for the whole file. Writing the order code without knowing what happens when ten orders hit the last bag of a bean at once was not an option.
+
+Think of a house with one bathroom. DEFERRED walks in first and tries to lock the door, and gets thrown out if someone else locked it first. IMMEDIATE queues at the door before going in.
+
+![SQLite transaction mode diagram. DEFERRED starts reading after BEGIN, and when it tries to upgrade to the write lock after another connection has committed, it gets SQLITE_BUSY at once with no wait and the request becomes a 500. IMMEDIATE asks for the write lock at BEGIN, waits within timeout 20 s until it is free, then checks stock with a conditional UPDATE; the losers get 409](/static/images/coffee-shop-03-backend-foundation/sqlite-modes.svg)
+
+Getting thrown out is `SQLITE_BUSY` (`database is locked`), and queueing is waiting for the write lock under `BEGIN IMMEDIATE`. The analogy stops here.
+
+The spike code is committed in `spikes/sqlite-concurrent-order/` (#73). It reuses the design document's `create_order` as is, and ten threads send `POST /api/orders/` at once to three gunicorn sync workers. Each condition ran 10 requests for 30 rounds, with fresh data every round.
+
+| Condition               | 201 | 409 | 500                     | Rounds with wrong stock | p95 (local)  |
+| ----------------------- | --- | --- | ----------------------- | ----------------------- | ------------ |
+| IMMEDIATE, 300 requests | 30  | 270 | 0                       | 0                       | 41.96 ms     |
+| DEFERRED (default), 300 | -   | -   | 68 (in 29 of 30 rounds) | 0                       | not compared |
+
+It ran on WSL2 Ubuntu (16 logical CPUs), Python 3.14.4, Django 6.1.1, gunicorn 27.0.1 and SQLite 3.46.1. It was not measured on the production instance (t3.micro), so the response times are local only.
+
+Two things came out of the results.
+
+- **Stock was right in both modes.** What protects stock is not the transaction mode but the `WHERE stock_quantity >= n` conditional UPDATE and the rollback. That design stays.
+- **`timeout` cannot stop DEFERRED's 500s.** The lock errors came at once, without waiting 20 seconds (at most 16.86 ms of server time). When a transaction that started by reading tries to become a writer after another connection has committed in between, SQLite decides waiting cannot help and returns `SQLITE_BUSY` immediately. So `transaction_mode="IMMEDIATE"` became a required setting.
+
+## 2. CI and branch protection first
+
+CI went in before there was any feature code (#77). Even with zero tests, format and migration checks matter from the first model pull request.
+
+| Job        | Steps                                                                                                  |
+| ---------- | ------------------------------------------------------------------------------------------------------ |
+| `backend`  | `black --check`, `makemigrations --check`, tests on in-memory SQLite, concurrency tests on file SQLite |
+| `frontend` | `prettier --check`, `oxlint`, `vitest`, `vite build`                                                   |
+
+The concurrency tests run separately because connections to an in-memory SQLite cannot see the same database. So `test_settings_file.py` holds settings that use a file database. Building it hit one snag: the test runner imports every `test*.py` module while discovering, and this settings file changed the shared `DATABASES` dict in place, which broke the in-memory run with `KeyError: 'MIRROR'`. `deepcopy` fixed it.
+
+CI has no repository secrets. Tests run on the fake values in `config/test_settings.py`. Branch protection on `main` went on the same day (recorded in #109).
+
+| Setting                       | Value                     |
+| ----------------------------- | ------------------------- |
+| Required checks               | `backend`, `frontend`     |
+| Pull request, approvals       | Required, 0               |
+| enforce admins                | On (admins cannot bypass) |
+| Force push, deletion          | Blocked                   |
+| strict (up to date with main) | Off                       |
+
+Zero approvals because one person merges alone. In exchange, nothing gets in without CI passing.
+
+## 3. Settings and models (#80)
+
+The models dropped HW1's `backend/schema.sql` and were written fresh from SDD section 5 (+1,623 / -590 lines). With a SQL file and Django models side by side, one of the two ends up lying. Every constraint moved into the models' `Meta.constraints`, so migrations generate them.
+
+| Setting             | Value                                                     |
+| ------------------- | --------------------------------------------------------- |
+| DB                  | SQLite, `transaction_mode="IMMEDIATE"`, WAL, `timeout=20` |
+| Default permission  | `IsAuthenticated` (public APIs open explicitly)           |
+| Response format     | JSON renderer only                                        |
+| Throttling          | Login 10/min, sign-up 20/hour                             |
+| JWT                 | Access 30 min, refresh 7 days                             |
+| Time zone, language | `Asia/Seoul`, `ko-kr`                                     |
+| Django admin site   | Mounted only when `DEBUG`                                 |
+
+A few constraint names already show the rules: `uq_user_addresses_one_default` (one default address), `uq_payments_order_success` (one successful payment per order), `ck_orders_shipped_fields` (shipped orders need tracking fields). On this pull request's branch, 34 tests passed in 0.87 s.
+
+## 4. Members and auth (#83)
+
+Login uses [JWT](/en/blog/auth/auth-00-basics/#jwt). The access token claims are only `user_id` and `role`. Those two are enough for the screens to decide whether to show the admin menu, and anything inside a token can be decoded by anyone.
+
+- **One response for every login failure.** An unknown email and a wrong password both get the same 401 `INVALID_CREDENTIALS` body (NFR-7). Different responses would reveal which emails are registered.
+- **Sign-up needs privacy consent.** Without `privacy_agreed` the request is refused, and the time of consent goes into `privacy_agreed_at` (FR-58).
+- **The throttle test trap.** Changing the rates with `override_settings` did nothing, because DRF reads `THROTTLE_RATES` at import time. The test patches `ScopedRateThrottle.THROTTLE_RATES` directly.
+- **The operator command `create_admin`.** The sign-up API cannot create an admin. Only `manage.py create_admin --email ...` on the server can.
+
+## 5. Stock and addresses (#85, #87)
+
+The stock service is five functions: `decrease_stock`, `increase_stock`, `set_stock`, `stop_sales`, `resume_sales`. Each is a single conditional UPDATE, and zero changed rows raises `DomainError`. A bean with stopped sales (`STOPPED`) never goes back on sale by itself when its stock changes.
+
+The address service keeps "a member with addresses has exactly one default". Two guards hold it. The service clears the old default before setting the new one, and if two still appear, a partial unique index (only over rows where `is_default` is true) blocks it. If the first guard slips, the database catches it.
+
+## 6. Numbers
+
+Local run values written in the pull request bodies (Windows, Python 3.12.10). The branches split from `main` at different points, so test counts do not grow in merge order.
+
+| PR  | Lines changed | Tests on that branch     | Time      |
+| --- | ------------- | ------------------------ | --------- |
+| #73 | +945 / -9     | Spike (separate scripts) | -         |
+| #77 | +599 / -156   | Backend 0, vitest 1      | -         |
+| #80 | +1,623 / -590 | 34                       | 0.87 s    |
+| #83 | +640 / -4     | 60                       | 2.53 s    |
+| #85 | +303 / -1     | 52 (34 + 18)             | not given |
+| #87 | +307 / -4     | 73                       | 1.50 s    |
+
+## Glossary
+
+| Term                                                         | Meaning                                                                                         |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| [Transaction](/en/blog/devops/devops-00-basics/#transaction) | A unit that makes several DB operations all happen or none happen                               |
+| WAL                                                          | SQLite's write-ahead log mode. Readers and writers block each other less                        |
+| `BEGIN IMMEDIATE`                                            | A SQLite mode that takes the write lock as soon as the transaction starts                       |
+| `SQLITE_BUSY`                                                | SQLite's "could not get the lock" error. `database is locked` in Django                         |
+| Conditional UPDATE                                           | An UPDATE with a condition in `WHERE`; the count of changed rows tells whether it worked        |
+| Branch protection                                            | A GitHub setting that only lets a branch take merges that pass the chosen checks                |
+| [Rate limiting](/en/blog/auth/auth-00-basics/#rate-limiting) | Capping how many requests one user can send per time window. Throttling in DRF                  |
+| Partial unique index                                         | An index that keeps values unique only among rows matching a condition                          |
+| Migration                                                    | A file that carries a model change into a DB schema change. Django generates it from the models |

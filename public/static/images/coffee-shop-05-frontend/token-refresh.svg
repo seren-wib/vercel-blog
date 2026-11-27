@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="380" viewBox="0 0 980 380" font-family='Pretendard, "Apple SD Gothic Neo", -apple-system, Helvetica, Arial, sans-serif' font-size="13">
+<rect width="980" height="380" fill="#ffffff" rx="8"/><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L10 5L0 9z" fill="#475569"/></marker></defs>
+<text x="20" y="32" font-size="17" font-weight="bold" fill="#1e293b">One refresh in flight, shared by every 401</text>
+<text x="20" y="52" font-size="12" fill="#64748b">frontend/src/api/client.js response interceptor</text>
+<rect x="20" y="90" width="150" height="44" rx="8" fill="#ffffff" stroke="#94a3b8"/><text x="95" y="117" text-anchor="middle" font-weight="bold" fill="#1e293b">request A</text>
+<rect x="20" y="150" width="150" height="44" rx="8" fill="#ffffff" stroke="#94a3b8"/><text x="95" y="177" text-anchor="middle" font-weight="bold" fill="#1e293b">request B</text>
+<rect x="20" y="210" width="150" height="44" rx="8" fill="#ffffff" stroke="#94a3b8"/><text x="95" y="237" text-anchor="middle" font-weight="bold" fill="#1e293b">request C</text>
+<text x="95" y="274" text-anchor="middle" font-size="11" fill="#64748b">customers with expired tickets</text>
+<path d="M170 112H286" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<path d="M170 172H286" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<path d="M170 232H286" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<text x="228" y="104" text-anchor="middle" font-size="11" fill="#64748b">401</text>
+<text x="228" y="164" text-anchor="middle" font-size="11" fill="#64748b">401</text>
+<text x="228" y="224" text-anchor="middle" font-size="11" fill="#64748b">401</text>
+<rect x="290" y="120" width="230" height="100" rx="8" fill="#fffbeb" stroke="#fcd34d"/><text x="405" y="148" text-anchor="middle" font-weight="bold" fill="#78350f">refreshAccess()</text><text x="405" y="166" text-anchor="middle" font-size="12" fill="#92400e">refreshing ?? new Promise</text><text x="405" y="184" text-anchor="middle" font-size="12" fill="#92400e">cleared in finally</text><text x="405" y="201" text-anchor="middle" font-size="11" fill="#64748b">one goes to the counter</text>
+<path d="M520 170H616" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<text x="568" y="162" text-anchor="middle" font-size="11" fill="#64748b">POST</text>
+<rect x="620" y="120" width="160" height="100" rx="8" fill="#f5f3ff" stroke="#c4b5fd"/><text x="700" y="166" text-anchor="middle" font-weight="bold" fill="#3b0764">/auth/token/refresh/</text><text x="700" y="184" text-anchor="middle" font-size="12" fill="#6d28d9">returns new access</text>
+<path d="M700 220V272" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<rect x="560" y="276" width="400" height="60" rx="8" fill="#ecfdf5" stroke="#6ee7b7"/><text x="760" y="302" text-anchor="middle" font-weight="bold" fill="#064e3b">retry A, B, C once each</text><text x="760" y="320" text-anchor="middle" font-size="12" fill="#065f46">_retried = true stops a loop</text>
+<rect x="820" y="120" width="140" height="100" rx="8" fill="#fef2f2" stroke="#fca5a5"/><text x="890" y="157" text-anchor="middle" font-weight="bold" fill="#7f1d1d">refresh fails</text><text x="890" y="175" text-anchor="middle" font-size="12" fill="#b91c1c">clear tokens</text><text x="890" y="193" text-anchor="middle" font-size="12" fill="#b91c1c">/login?next=…</text>
+<path d="M780 150H816" stroke="#475569" stroke-width="1.5" fill="none" marker-end="url(#a)" stroke-dasharray="5 4"/>
+<text x="20" y="320" font-size="12" fill="#334155">Not retried: requests already _retried,</text>
+<text x="20" y="338" font-size="12" fill="#334155">and the login and refresh calls themselves.</text>
+</svg>

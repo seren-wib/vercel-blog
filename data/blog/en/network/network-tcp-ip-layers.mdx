@@ -287,7 +287,7 @@ _B was dropped in a router queue on the way. Even after receiving C, D and E, th
 - **Byte stream**: even if the app sends "HELLO" and "WORLD" separately, the receiver may read "HELLOWORLD" in one go. TCP keeps order but **does not keep message boundaries**. That is why chat apps use their own boundary markers, such as a length field or WebSocket frames.
 - **Checksum**: computed over the TCP header + data + part of the IP addresses (pseudo-header). Corrupted segments are dropped, and retransmission fills the gap. The calculation is in [The Internet Checksum](/en/blog/network/network-ch6-error-correction/#3-2-the-internet-checksum).
 
-This is the same idea as the [ARQ](/en/blog/network/network-ch7-data-link/#4-arqautomatic-repeat-request) from the data link lecture. The difference is scope. Link layer ARQ covers one hop to the next device, while TCP covers end to end, from the laptop in Seoul to the server in the US.
+This is the same idea as the [ARQ](/en/blog/network/network-ch7-data-link/#4-arqautomatic-repeat-request) from the computer networks course. The difference is scope. Link layer ARQ covers one hop to the next device, while TCP covers end to end, from the laptop in Seoul to the server in the US.
 
 ## Flow control and congestion control
 

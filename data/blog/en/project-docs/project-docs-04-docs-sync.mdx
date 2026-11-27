@@ -61,7 +61,7 @@ As an analogy, when you fix the original and drop it in the submission box, the 
 
 _From the repo to Google Docs, one way: push, GitHub Actions, OIDC and WIF, Google Doc_
 
-In technical terms, this is the **GitHub Actions** workflow `docs-sync.yml`. It runs on a push to `main` when any of `docs/specs/`, `docs/images/` or `.github/google-docs.json` changed.
+In technical terms, this is the **GitHub Actions** workflow `docs-sync.yml`. How it runs on coffee-shop is in the coffee-shop series under [what the workflow does](/en/blog/coffee-shop/coffee-shop-02-docs-sync/#2-what-the-workflow-does). It runs on a push to `main` when any of `docs/specs/`, `docs/images/` or `.github/google-docs.json` changed.
 
 1. Render Mermaid code blocks to PNG. Install `fonts-noto-cjk` first so Korean text doesn't break.
 2. For each document folder, concatenate the section files in the order listed in its `README.md` into one HTML file. Only the file list table is dropped; other tables stay.

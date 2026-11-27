@@ -76,7 +76,7 @@ As an analogy, it is the order you follow when moving house: put everything in b
 
 _Migrating via docs/old: #59 move old docs and lay the frame, #60·#62 fill in SRS and SDD, #64 sync, #68 delete old docs_
 
-In formal terms, it is a migration that isolates the existing documents as **source material** and rewrites them into the new template. I moved coffee-shop in this order over one day, 2026-11-17.
+In formal terms, it is a migration that isolates the existing documents as **source material** and rewrites them into the new template. I moved coffee-shop in this order over one day, 2026-11-17. How the requirements and design were rewritten is in the coffee-shop series under [rewriting as stage documents](/en/blog/coffee-shop/coffee-shop-01-requirements-design/#3-november-17-rewriting-as-stage-documents).
 
 | PR                                                      | What it did                                                                | Size                   |
 | ------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------- |
@@ -94,7 +94,7 @@ The description of #68, which deleted the old documents, gave the reason in one 
 
 As an analogy, settling on a notebook format was not the end; every time the teacher points out a blank, a new column appears.
 
-In technical terms, this is a revision of the template. Early on 2026-11-28, the SDD template gained one section and one rule. The trigger was two pieces of feedback from the professor on the coffee-shop SDD: the parts in the wireframes had no numbers, and the class and method specs were mixed in with the component design.
+In technical terms, this is a revision of the template. Early on 2026-11-28, the SDD template gained one section and one rule. The trigger was two pieces of [feedback from the professor](/en/blog/coffee-shop/coffee-shop-01-requirements-design/#professor-feedback-part-ids-and-class-specification) on the coffee-shop SDD: the parts in the wireframes had no numbers, and the class and method specs were mixed in with the component design.
 
 - **Screen part IDs**: every UI part in the screen design gets an ID like `SCR-01-01`, and the wireframes show the same ID. Section numbers can shift, but IDs don't.
 - **Class and module spec section**: following the code structure, one file per module records each public function's signature, return values and exceptions, and requirement IDs. Once written, it is checked by script against the list of `def` and `class` in the code.

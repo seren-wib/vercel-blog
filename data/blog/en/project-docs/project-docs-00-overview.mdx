@@ -1,0 +1,136 @@
+---
+title: 'Project Docs 0. Six Documents for Every Project'
+date: '2026-11-28'
+tags: ['Project Docs']
+draft: false
+aiGenerated: true
+summary: 'What my project document template is, why it ended up this shape, and how I use it.'
+---
+
+> Part 0 of the series. It covers what the template is, why I made it, and how I use it in one place. The history behind each decision is in parts 1–4.
+
+## 0. Introduction
+
+When I start a new project, I write six documents in the same format: a project plan, a requirements specification, a design specification, a test plan, an installation plan, and a maintenance plan. It was not always like this. Half a year ago, when I built this blog, I only had a DB schema, an API spec, and a page structure document, and I thought that was enough.
+
+This series traces what happened in between. The evidence is records, not memory: git commits of the rule files, the worklog kept for each project, the memory change log, and the session logs from the days decisions were made. Decisions whose reasons are written down nowhere are marked "not recorded".
+
+The posts read in two layers. Each section starts with a sentence or two of analogy and a diagram, then moves on to the formal terms, real paths, and numbers. Numbers that change are collected with their dates in the "By the numbers" table.
+
+## 1. What the template is
+
+As an analogy, it is like having one form for each step of building a house: a plan for what to build, a list of what the owner wants, the blueprints, an inspection plan, a move-in procedure, and repair rules.
+
+![Six stage documents and two locations: the source in the repo's docs/specs/, the copy in Google Docs](/static/images/project-docs-00-overview/six-documents.svg)
+
+_Six stage documents and two locations: the source in the repo's docs/specs/, the copy in Google Docs_
+
+In formal terms, these are **stage documents**, one produced at each stage of the software development life cycle (SDLC).
+
+| Stage          | Document                         | What it does                                                            | Standard             |
+| -------------- | -------------------------------- | ----------------------------------------------------------------------- | -------------------- |
+| 0 Planning     | Project plan (SPMP)              | Scope, schedule, cost, risks, decided and open items                    | IEEE 16326           |
+| 1 Requirements | Requirements specification (SRS) | Requirements numbered `DR`·`FR`·`NFR`                                   | ISO/IEC/IEEE 29148   |
+| 2 Design       | Design specification (SDD)       | Architecture, components, data, screens, design rationale               | IEEE 1016            |
+| 2 Design       | Test plan (STP)                  | Unit, integration, UI, and end-to-end tests, CI, acceptance criteria    | ISO/IEC/IEEE 29119-3 |
+| 4 Deployment   | Installation plan (SIP)          | Environments, deployment procedure, installation tests                  | MIL-STD-498 SIP      |
+| 5 Maintenance  | Maintenance plan (SMP)           | Routine tasks, change requests, operating procedures, incident response | IEEE 14764           |
+
+The blank forms are in the Google Drive [\_templates folder](https://drive.google.com/drive/folders/1IGzofOw3S0r05xmIvWutLiGDJcKNEoIG), one per document. Anyone with the link can view them.
+
+| Form                                                                                                                                | Sections |
+| ----------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| [Template 0 Project Plan (SPMP)](https://docs.google.com/document/d/1krgejhmgwRLsYXfd2TJgXEqMhvJKZprKGatUZQd99pw/edit)              | 8        |
+| [Template 1 Requirements Specification (SRS)](https://docs.google.com/document/d/1VXckKbYnksH5i7iGqAfJvSB0SY8HjJrn4AUtCvz_F-w/edit) | 7        |
+| [Template 2 Design Specification (SDD)](https://docs.google.com/document/d/1i0GtYeLmQEyF2oFfup8smcznT1Yp7ychenOuXHrB7u0/edit)       | 12       |
+| [Template 3 Test Plan (STP)](https://docs.google.com/document/d/1P4U_6GMcxbsLcNDlg327qif_lh50wCl4LLWbfAIAMB8/edit)                  | 9        |
+| [Template 4 Installation Plan (SIP)](https://docs.google.com/document/d/1N2hN0rvu53D0B-ykT9gZRpB21ePDK8LVi5GDoScCQ_Y/edit)          | 5        |
+| [Template 5 Maintenance Plan (SMP)](https://docs.google.com/document/d/1h269PVHiCWLTNp5dTdgtYddYSOoo_QgVcPOMbVCQZt0/edit)           | 4        |
+
+The Docs themselves are titled and written in Korean.
+
+The source of the forms is the `project-docs` skill in my personal settings repo (private). A skill is an instruction file an AI coding agent opens only for a specific task; [how skills are loaded](/en/blog/devblog/devblog-04-agent-environment/#3-pulling-out-what-is-needed) is covered in DevBlog part 4. The `TEMPLATES.md` inside the skill is the file-level form, and the six Docs in Drive are that form moved into Google Docs.
+
+## 2. Why I made it
+
+As an analogy, I used to keep a different kind of notebook for each subject, and as the notebooks piled up I could no longer find where I had written what, so I settled on one format.
+
+In formal terms, there were four problems, and each became one part of the current template.
+
+| Problem                                                                  | Answer in the current template                                                           | Part                                                              |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| The documents needed kept growing as development went on                 | One document per stage; a new project starts by copying the template                     | [Part 1](/en/blog/project-docs/project-docs-01-growing-docs/)     |
+| What was decided and why, and what was rejected, was scattered           | Dated decision records inside the SDD, SPMP, and SRS                                     | [Part 2](/en/blog/project-docs/project-docs-02-decision-records/) |
+| Section layout and names could differ every time I wrote a document      | Section layout from IEEE/ISO standards, a template of 54 files                           | [Part 3](/en/blog/project-docs/project-docs-03-standards/)        |
+| Two computers, people and agents, the repo and Google Docs drifted apart | The repo is the source of truth; Google Docs is a one-way copy overwritten on every push | [Part 4](/en/blog/project-docs/project-docs-04-docs-sync/)        |
+
+## 3. How I use it
+
+As an analogy, it is a factory where each step needs an inspection stamp before work moves to the next step.
+
+The formal term is **stage gate**. The next stage starts only after each stage document is finalized, and code is written only after the SRS and SDD are finalized. Implementation follows TDD.
+
+1. A new project starts by picking which documents to write. For a small tool or a static site, the plan and SRS are merged into one document and the API and DB sections say "not applicable". If there is login, payment, or a DB, all six are written.
+2. Requirements come from an interview. Even in a personal project, I play the client and the agent asks the questions.
+3. After copying the template, I write the first word. Section names, numbers, and table columns stay the same across projects.
+
+The files sit in the repo like this.
+
+```text
+docs/specs/
+├── README.md            # full file list and ID ranges
+├── spmp/                # 1-identification.md … 8-decisions.md
+├── srs/                 # 3-functional/ has one file per area
+├── sdd/                 # 4-components/, 5-modules/ have one file per component and module
+├── stp/
+├── sip/
+└── smp/
+```
+
+Requirements get numbers (`FR-12`). Test names, PR descriptions, and the SDD's feature subsections point to each other by these numbers. To find one requirement, I don't read the whole document; I open just that line with `grep -rn "FR-12" docs/specs`.
+
+## 4. Where it is used now
+
+This template is used for projects started or migrated on or after 2026-11-16. Projects started before that keep their original structure. The numbers are in the table at the bottom.
+
+- **coffee-shop**: a Software Engineering team assignment ([coffee-shop series](/en/blog/coffee-shop/coffee-shop-00-overview/)). The first project whose 41 flat-structure documents were moved into this template. The story is in [Part 1](/en/blog/project-docs/project-docs-01-growing-docs/).
+- **design-system**, **open-calls**: personal projects (private repos) using the same template since 2026-11-19.
+- **account.stairno.com**: the project the template was modeled on. But what served as the model were four documents written before this template, so it still has the old structure.
+
+## 5. Series contents
+
+| Post                                                                                                               | Content                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| Project Docs 0. Six Documents for Every Project (this post)                                                        | What, why, and how                                                                        |
+| [Project Docs 1. I Thought a Schema and an API Spec Would Do](/en/blog/project-docs/project-docs-01-growing-docs/) | From 12 blog documents to six stage documents, migration via docs/old                     |
+| [Project Docs 2. Why I Didn't Split Out ADRs](/en/blog/project-docs/project-docs-02-decision-records/)             | Woowangthon ADRs, SDD design rationale, decision entry format                             |
+| [Project Docs 3. A Template Built on Conventions and Standards](/en/blog/project-docs/project-docs-03-standards/)  | Conventions and standards, IEEE/ISO mapping, renamed items, the template decided up front |
+| [Project Docs 4. Source in the Repo, Copy in Google Docs](/en/blog/project-docs/project-docs-04-docs-sync/)        | One file per section, one-way sync, keyless authentication                                |
+
+## By the numbers
+
+As of 2026-11-28. Sources are `git ls-tree` and `grep -c` in each repo, and `wc` on the skill files.
+
+| Item                                                | Value                                            |
+| --------------------------------------------------- | ------------------------------------------------ |
+| Stage documents                                     | 6 (4 in the 2026-11-15 night draft)              |
+| `TEMPLATES.md`                                      | 941 lines (862 in the first commit)              |
+| Skill `SKILL.md`                                    | 157 lines (240 in the first commit)              |
+| Commits that changed the skill folder               | 13 (2026-11-16 to 11-28)                         |
+| coffee-shop `docs/specs/` files                     | 73 (41 in `docs/` before the migration)          |
+| coffee-shop decision entries                        | 32 in SDD design rationale, 13 in SPMP section 8 |
+| design-system `docs/specs/` files, design rationale | 14, 8 entries                                    |
+| open-calls `docs/specs/` files, design rationale    | 39, 47 entries                                   |
+| Repos using Google Docs sync                        | 3                                                |
+
+## Glossary
+
+| Term                                                                                                                                                               | Meaning                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| SDLC                                                                                                                                                               | All stages of software development, from planning to maintenance                        |
+| Stage document                                                                                                                                                     | A document produced at each SDLC stage. Here, SPMP·SRS·SDD·STP·SIP·SMP                  |
+| [SRS](/en/blog/software-engineering/software-engineering-ch4-requirements-analysis/#433-step-3-requirements-specification-software-requirements-specification-srs) | Requirements specification. What the system must do                                     |
+| SDD                                                                                                                                                                | Design specification. How the requirements are implemented                              |
+| Stage gate                                                                                                                                                         | The rule that the next stage starts only after the previous stage's output is finalized |
+| Requirement ID                                                                                                                                                     | `DR-n`, `FR-n`, `NFR-n`. The key tests and PRs use to point to requirements             |
+| Skill                                                                                                                                                              | An instruction file an AI agent opens only for a specific task                          |

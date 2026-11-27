@@ -1,0 +1,546 @@
+---
+title: 'HW8. 도커 컨테이너 리소스 제한과 도커 컴포즈'
+date: '2026-11-27'
+tags: ['Cloud Computing']
+draft: false
+summary: 'Docker 29.10.1로 컨테이너 리소스 제한(--memory·--memory-swap과 docker update, --cpus 1, --cpuset-cpus 0,2, --cpu-shares 512:1024를 docker stats·inspect·htop으로 확인), Flask+Redis 서비스를 compose.yaml로 정의해 config·build·up·logs·exec·down -v, 볼륨으로 유지되는 방문 횟수, HW7 Kolla가 남긴 udev 규칙으로 /dev/kvm 권한이 막힌 문제, 연습문제(이미지 레이어 구조, 컨테이너 라이프사이클과 종료 코드 137)'
+---
+
+교재 16장 실습이다. 앞부분은 컨테이너 하나에 메모리와 CPU를 얼마나 쓰게 할지 옵션으로 제한하고 그 결과를 `docker stats`, `docker inspect`, `htop`으로 확인하는 실습(슬라이드 38~61쪽)이고, 뒷부분은 Flask 웹 서비스와 Redis 두 컨테이너를 `compose.yaml` 하나로 정의해 띄우는 실습(85~104쪽)이다. 실습 전 정리 단계에서 [HW7](/kr/blog/cloud-computing/cloud-computing-hw7-openstack-linux-container/)의 오픈스택 잔재 때문에 가상머신이 켜지지 않은 일이 있었는데, [3장](#3-실습-중-생긴-문제)에 따로 적었다.
+
+# 0. 실습 환경
+
+HW2부터 쓰던 Ubuntu 호스트(Apple M3 맥의 UTM 위 Ubuntu 24.04 aarch64) 안에 KVM으로 Rocky Linux 10 가상머신 `docker`를 만들어 했다. 기존 Rocky 가상머신을 `virt-clone`으로 복제(30초)하고, 사양은 슬라이드와 같은 4 vCPU, 메모리 2048MB로 맞췄다.
+
+```text
+M3 맥 → UTM → Ubuntu 호스트 (aarch64)
+└─ KVM ─ docker (Rocky 10, 4 vCPU, 2048MB, 192.168.56.120)
+   ├─ Docker 29.10.1 / Compose v5.8.0 / containerd v2.4.2
+   ├─ (a) rocky-mem, cpu-no-limit, cpu-limit, cpu-cpuset, cpu-share1·2
+   └─ (b) compose-web (Flask) ── compose-redis (Redis) ── 볼륨 redis-data
+```
+
+| 슬라이드                                       | 이 환경                                                   |
+| ---------------------------------------------- | --------------------------------------------------------- |
+| VirtualBox 설정창으로 CPU·메모리 확인(39·44쪽) | KVM 가상머신 `docker`, 컨테이너 안 `/proc` 값으로 확인    |
+| x86_64                                         | aarch64 (EPEL·Docker 저장소도 aarch64판)                  |
+| `docker stats` 스트리밍(60쪽)                  | `docker stats --no-stream`으로 한 번 출력                 |
+| 파일을 vim으로 작성(87~94쪽)                   | 슬라이드와 같은 내용의 파일을 복사, flask-basic 단계 생략 |
+| Terminal 2는 cloud 계정(98쪽)                  | root 터미널 하나 더                                       |
+| `docker compose logs` 전체(101쪽)              | `--tail`로 마지막 몇 줄                                   |
+
+Docker 설치(16~24쪽)와 rocky 컨테이너 생성(34쪽)은 과제 범위 밖이라 캡처 없이 미리 해 뒀다.
+
+# 1. 컨테이너 리소스 제한
+
+결과를 먼저 표로 모았다. 2026-11-27 15:46~15:50에 잰 값이다.
+
+| 옵션                                   | docker stats CPU %    | htop                   | inspect                        |
+| -------------------------------------- | --------------------- | ---------------------- | ------------------------------ |
+| 제한 없음 (무한 루프 4개)              | 389.07%               | 0~3번 코어 모두 100%   | CPU 관련 값 모두 0 또는 빈 값  |
+| `--cpus 1`                             | 95.86%                | 코어 4개가 각 27~32%   | `NanoCpus` 1000000000          |
+| `--cpuset-cpus 0,2`                    | 200.78%               | 0·2번만 100%, 1·3번 0% | `CpusetCpus` "0,2"             |
+| `--cpu-shares` 512 : 1024 (2번 코어)   | 38.80% : 66.93%       | 37.2% : 62.5%          | `CpuShares` 512, 1024          |
+| `--memory 500M` → `docker update 300M` | LIMIT 500MiB → 300MiB |                        | `Memory` 524288000 → 314572800 |
+
+## 메모리 제한
+
+먼저 제한 없는 rocky 컨테이너 안에서 메모리를 보면 가상머신 전체 메모리가 그대로 보인다.
+
+```bash
+docker start rocky
+docker attach rocky
+cat /proc/meminfo | grep Mem
+exit
+grep -c processor /proc/cpuinfo
+```
+
+![제한 없는 컨테이너의 메모리](/static/images/cloud-computing-hw8-docker-resource-limits-compose/01.webp)
+
+_제한 없는 rocky 컨테이너 안의 MemTotal 1736448 kB(가상머신 전체 메모리)와 가상머신 CPU 수 4. 슬라이드 39~40쪽_
+
+`--memory`는 컨테이너가 쓸 수 있는 메모리 상한이고, `--memory-swap`은 메모리와 스왑을 합친 상한이다. 둘을 같은 값으로 주면 스왑을 쓰지 못한다.
+
+```bash
+docker run -it -d --name rocky-mem --memory 500M --memory-swap 500M rockylinux/rockylinux:10.2 bash
+docker ps
+docker inspect rocky-mem | grep -i Memory
+docker stats rocky-mem --no-stream
+```
+
+![--memory 500M](/static/images/cloud-computing-hw8-docker-resource-limits-compose/02.webp)
+
+_inspect의 Memory·MemorySwap이 524288000(500MiB), stats의 LIMIT이 500MiB_
+
+실행 중인 컨테이너의 상한은 `docker update`로 바꾼다.
+
+```bash
+docker update --memory 300M --memory-swap 300M rocky-mem
+docker inspect rocky-mem | grep -i Memory
+docker stats rocky-mem --no-stream
+docker rm -f rocky-mem
+docker ps
+```
+
+![docker update 300M](/static/images/cloud-computing-hw8-docker-resource-limits-compose/03.webp)
+
+_Memory·MemorySwap 314572800, stats LIMIT 300MiB로 바뀐 것을 확인하고 삭제. 슬라이드 41~43쪽_
+
+## CPU 부하 모니터링 도구 설치
+
+코어별 사용률을 보려고 EPEL 저장소에서 htop을 설치하고, 부하용으로 busybox 이미지를 받았다.
+
+```bash
+dnf -y install epel-release
+dnf clean all
+dnf makecache
+dnf -y install htop
+htop --version
+docker pull busybox
+docker images
+```
+
+![EPEL](/static/images/cloud-computing-hw8-docker-resource-limits-compose/04.webp)
+
+_EPEL 저장소 설치와 메타데이터 캐시 생성. 가상머신이 aarch64라 저장소도 aarch64로 표시됨_
+
+![htop과 busybox](/static/images/cloud-computing-hw8-docker-resource-limits-compose/05.webp)
+
+_htop 3.3.0 설치 확인과 busybox 이미지 다운로드. 슬라이드 45~47쪽_
+
+![부하 없는 htop](/static/images/cloud-computing-hw8-docker-resource-limits-compose/06.webp)
+
+_부하가 없을 때의 htop. 0~3번 CPU 4개가 모두 거의 0%_
+
+## CPU 제한 없는 컨테이너
+
+busybox 셸로 무한 반복 프로세스 4개를 띄운다. 이후 CPU 실습은 모두 같은 부하를 쓴다.
+
+```bash
+docker run -d --name cpu-no-limit busybox sh -c 'for i in 1 2 3 4; do while true; do :; done & done; wait'
+docker ps
+docker stats cpu-no-limit --no-stream
+htop
+docker inspect cpu-no-limit | grep -i Cpu
+docker rm -f cpu-no-limit
+```
+
+![cpu-no-limit](/static/images/cloud-computing-hw8-docker-resource-limits-compose/07.webp)
+
+_CPU 389.07%. 코어 4개를 거의 다 씀_
+
+![cpu-no-limit htop](/static/images/cloud-computing-hw8-docker-resource-limits-compose/08.webp)
+
+_htop에서 0~3번 CPU가 모두 100%_
+
+![cpu-no-limit inspect](/static/images/cloud-computing-hw8-docker-resource-limits-compose/09.webp)
+
+_CPU 관련 설정값이 모두 0 또는 빈 값(제한 없음). 확인 후 삭제. 슬라이드 48~50쪽_
+
+## CPU 처리량 제한 --cpus
+
+`--cpus 1`은 컨테이너 전체가 쓸 수 있는 CPU 시간을 코어 1개 분량으로 묶는다. 어느 코어에서 도는지는 제한하지 않는다.
+
+```bash
+docker run -d --name cpu-limit --cpus 1 busybox sh -c 'for i in 1 2 3 4; do while true; do :; done & done; wait'
+docker stats cpu-limit --no-stream
+htop
+docker inspect cpu-limit | grep -i Cpu
+docker rm -f cpu-limit
+```
+
+![--cpus 1](/static/images/cloud-computing-hw8-docker-resource-limits-compose/10.webp)
+
+_같은 부하를 --cpus 1로 실행. CPU 95.86%로 CPU 1개 분량에 묶임_
+
+![--cpus 1 htop](/static/images/cloud-computing-hw8-docker-resource-limits-compose/11.webp)
+
+_프로세스 4개가 각 21~25%, 코어 4개가 각 27~32%. 4개 코어에 나뉘어 돌지만 합이 CPU 1개 분량_
+
+![--cpus 1 inspect](/static/images/cloud-computing-hw8-docker-resource-limits-compose/12.webp)
+
+_NanoCpus 1000000000(CPU 1개, 10억분의 1 단위) 확인 후 삭제. 슬라이드 51~53쪽_
+
+## 특정 CPU 코어에 할당 --cpuset-cpus
+
+`--cpuset-cpus`는 양이 아니라 위치를 정한다. 컨테이너의 프로세스는 지정한 코어에서만 돈다(pinning).
+
+```bash
+docker run -d --name cpu-cpuset --cpuset-cpus 0,2 busybox sh -c 'for i in 1 2 3 4; do while true; do :; done & done; wait'
+docker stats cpu-cpuset --no-stream
+htop
+docker inspect cpu-cpuset | grep -i Cpu
+docker rm -f cpu-cpuset
+```
+
+![--cpuset-cpus 0,2](/static/images/cloud-computing-hw8-docker-resource-limits-compose/13.webp)
+
+_CPU 200.78%로 코어 2개 분량_
+
+![--cpuset-cpus htop](/static/images/cloud-computing-hw8-docker-resource-limits-compose/14.webp)
+
+_0번과 2번 코어만 100%, 1번과 3번은 0%_
+
+![--cpuset-cpus inspect](/static/images/cloud-computing-hw8-docker-resource-limits-compose/15.webp)
+
+_CpusetCpus "0,2" 확인 후 삭제. 슬라이드 54~56쪽_
+
+## 컨테이너 간 CPU 공유 비율 --cpu-shares
+
+`--cpu-shares`는 상한이 아니라 가중치다. CPU가 남으면 아무 효과가 없고, 같은 코어를 두고 다툴 때만 비율대로 나뉜다. 그래서 두 컨테이너를 `--cpuset-cpus 2`로 같은 코어에 묶어 경합시켰다.
+
+```bash
+docker run -d --name cpu-share1 --cpuset-cpus 2 --cpu-shares 512 busybox sh -c 'while true; do :; done'
+docker run -d --name cpu-share2 --cpuset-cpus 2 --cpu-shares 1024 busybox sh -c 'while true; do :; done'
+docker ps
+docker inspect cpu-share1 | grep -i Cpu
+docker inspect cpu-share2 | grep -i Cpu
+docker stats cpu-share1 cpu-share2 --no-stream
+htop
+docker rm -f cpu-share1 cpu-share2
+```
+
+![cpu-shares 실행](/static/images/cloud-computing-hw8-docker-resource-limits-compose/16.webp)
+
+_두 컨테이너를 2번 코어에 두고 가중치 512(cpu-share1)와 1024(cpu-share2)로 실행_
+
+![cpu-shares inspect](/static/images/cloud-computing-hw8-docker-resource-limits-compose/17.webp)
+
+_CpuShares 512·1024, CpusetCpus "2"_
+
+![cpu-shares stats](/static/images/cloud-computing-hw8-docker-resource-limits-compose/18.webp)
+
+_cpu-share1 38.80%, cpu-share2 66.93%_
+
+![cpu-shares htop](/static/images/cloud-computing-hw8-docker-resource-limits-compose/19.webp)
+
+_2번 코어만 100%, 두 프로세스가 62.5%와 37.2%로 나눠 씀_
+
+![cpu-shares 삭제](/static/images/cloud-computing-hw8-docker-resource-limits-compose/20.webp)
+
+_두 컨테이너 삭제. 슬라이드 57~61쪽_
+
+이론값은 512/1536 = 33.3%, 1024/1536 = 66.7%다. stats로 38.80% : 66.93%, htop으로 37.2% : 62.5%였으니 약 1:2로 나뉘었다. stats의 두 값을 더하면 100%를 조금 넘는데, `--no-stream` 한 번의 표본이라 측정 구간이 컨테이너마다 조금씩 어긋나서 생기는 차이로 보인다(따로 확인하지는 않았다).
+
+# 2. 도커 컴포즈로 서비스 구축
+
+Flask 웹 서비스(web)와 Redis(redis) 두 컨테이너를 `compose.yaml` 하나로 정의해 실행했다. 웹 페이지를 열 때마다 Redis의 `counter` 키를 1씩 올려 방문 횟수로 보여 주는 서비스다.
+
+## 실습 파일
+
+파일 내용은 슬라이드 87~94쪽과 같다. 슬라이드는 flask-basic 디렉터리를 먼저 만들고 복사하는데, 여기서는 compose-basic을 바로 만들었다.
+
+```text:requirements.txt
+flask
+redis
+```
+
+```python:app.py
+from flask import Flask
+import os
+import socket
+import redis
+from redis.exceptions import RedisError
+
+app = Flask(__name__)
+
+redis_host = os.getenv("REDIS_HOST", "redis")
+redis_client = redis.Redis(
+    host=redis_host,
+    port=6379,
+    decode_responses=True
+)
+
+@app.route("/")
+def hello():
+    name = os.getenv("NAME", "World")
+    hostname = socket.gethostname()
+    try:
+        visits = redis_client.incr("counter")
+    except RedisError:
+        visits = "<i>cannot connect to Redis</i>"
+    html = (
+        "<html>"
+        "<body>"
+        "<h3>Hello, {name}!</h3>"
+        "<p>Hostname: <b>{hostname}</b></p>"
+        "<p>Visits: <b>{visits}</b></p>"
+        "</body>"
+        "</html>"
+    )
+    return html.format(name=name, hostname=hostname, visits=visits)
+
+@app.route("/health")
+def health():
+    try:
+        redis_client.ping()
+        return "OK\n"
+    except RedisError as error:
+        return f"Redis error: {error}\n", 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=80)
+```
+
+```dockerfile:Dockerfile
+FROM python:3.13-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app.py .
+EXPOSE 80
+ENV NAME=World
+CMD ["python", "app.py"]
+```
+
+```yaml:compose.yaml
+services:
+  web:
+    build: .
+    image: compose-basic:1.0
+    container_name: compose-web
+    ports:
+      - "${WEB_PORT:-8000}:80"
+    environment:
+      REDIS_HOST: ${REDIS_HOST:-redis}
+    depends_on:
+      - redis
+  redis:
+    image: redis:7-alpine
+    container_name: compose-redis
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:
+```
+
+`.env`에는 `WEB_PORT=8000`, `REDIS_HOST=redis` 두 줄이 있다. web 컨테이너가 Redis를 IP가 아니라 서비스 이름 `redis`로 찾는 게 핵심인데, Compose가 만든 기본 네트워크의 DNS가 서비스 이름을 컨테이너 주소로 풀어 준다.
+
+![디렉터리와 requirements.txt](/static/images/cloud-computing-hw8-docker-resource-limits-compose/21.webp)
+
+_실습 디렉터리 ~/mydocker/compose-basic와 requirements.txt_
+
+![app.py 1~24행](/static/images/cloud-computing-hw8-docker-resource-limits-compose/22.webp)
+
+_app.py 1~24행: Redis 클라이언트 생성, / 요청마다 counter 증가_
+
+![app.py 25~44행](/static/images/cloud-computing-hw8-docker-resource-limits-compose/23.webp)
+
+_app.py 25~44행: 응답 HTML, /health에서 Redis ping, 80번 포트로 실행_
+
+![Dockerfile과 .env](/static/images/cloud-computing-hw8-docker-resource-limits-compose/24.webp)
+
+_Dockerfile(python:3.13-slim 기반)과 .env_
+
+![compose.yaml](/static/images/cloud-computing-hw8-docker-resource-limits-compose/25.webp)
+
+_compose.yaml: web(build, 포트 8000:80, REDIS_HOST, depends_on redis)과 redis(redis:7-alpine, 볼륨 redis-data)_
+
+## 설정 검증과 이미지 빌드
+
+`docker compose config`는 `.env` 값을 채워 넣은 최종 설정을 보여 준다. 변수가 제대로 들어갔는지 실행 전에 확인하는 용도다.
+
+```bash
+docker compose config
+docker compose build
+docker images
+```
+
+![config 앞부분](/static/images/cloud-computing-hw8-docker-resource-limits-compose/26.webp)
+
+_.env 값이 들어간 최종 설정(REDIS_HOST: redis)_
+
+![config 뒷부분](/static/images/cloud-computing-hw8-docker-resource-limits-compose/27.webp)
+
+_포트 8000→80, 기본 네트워크 compose-basic_default, 볼륨 compose-basic_redis-data_
+
+![build](/static/images/cloud-computing-hw8-docker-resource-limits-compose/28.webp)
+
+_compose-basic:1.0 빌드(출력 마지막 12줄)와 이미지 목록. compose-basic:1.0은 228MB. 슬라이드 95~96쪽_
+
+## 서비스 실행과 동작 확인
+
+Terminal 1에서 포그라운드로 띄우고, Terminal 2에서 요청을 보냈다.
+
+```bash
+# Terminal 1
+docker compose up
+```
+
+```bash
+# Terminal 2
+curl http://localhost:8000
+curl http://localhost:8000
+curl http://localhost:8000/health
+```
+
+![up 포그라운드](/static/images/cloud-computing-hw8-docker-resource-limits-compose/29.webp)
+
+_Terminal 1: redis와 web 로그가 한 터미널에 섞여 나오고 Flask가 80번 포트에서 대기_
+
+![curl](/static/images/cloud-computing-hw8-docker-resource-limits-compose/30.webp)
+
+_Terminal 2: 요청마다 Visits가 1, 2로 증가, /health는 OK_
+
+![Ctrl+C](/static/images/cloud-computing-hw8-docker-resource-limits-compose/31.webp)
+
+_Terminal 1: 요청 로그 3건 뒤 Ctrl+C로 종료. redis는 데이터를 디스크에 저장(DB saved on disk)하고 code 0, web은 code 137로 끝남. 슬라이드 97~99쪽_
+
+종료 코드가 둘이 다른 이유는 [연습문제 13](#ch16-13-컨테이너-라이프사이클)에서 다뤘다.
+
+## 다시 띄워도 남는 방문 횟수
+
+이번에는 빌드까지 한 번에 하고 백그라운드(`-d`)로 띄웠다.
+
+```bash
+docker compose up -d --build
+docker ps
+```
+
+![up -d --build](/static/images/cloud-computing-hw8-docker-resource-limits-compose/32.webp)
+
+_다시 빌드해 백그라운드 실행. 바뀐 게 없어 레이어는 모두 CACHED, docker ps에 두 컨테이너_
+
+![재시작 후 curl](/static/images/cloud-computing-hw8-docker-resource-limits-compose/33.webp)
+
+_Visits가 3, 4로 이어짐_
+
+Ctrl+C로 컨테이너를 내렸는데 방문 횟수가 1부터 다시 시작하지 않고 3으로 이어졌다. Redis의 데이터 디렉터리 `/data`가 컨테이너 레이어가 아니라 명명된 볼륨 `redis-data`에 있어서, 컨테이너가 다시 만들어져도 볼륨은 그대로 남기 때문이다.
+
+## 로그, 컨테이너 내부 확인, 종료
+
+```bash
+docker compose logs --tail 4
+docker compose logs web --tail 4
+docker compose logs redis --tail 3
+```
+
+![logs](/static/images/cloud-computing-hw8-docker-resource-limits-compose/34.webp)
+
+_전체·web·redis 서비스 로그. redis가 재시작할 때 저장된 키 1개를 읽어 옴(keys loaded: 1)_
+
+`docker compose exec`는 서비스 이름으로 실행 중인 컨테이너에 들어간다.
+
+```bash
+docker compose exec web sh
+ls
+printenv REDIS_HOST
+python -c "import redis; r=redis.Redis(host='redis', port=6379); print(r.ping())"
+exit
+docker compose exec redis sh
+redis-cli ping
+redis-cli get counter
+exit
+```
+
+![exec web](/static/images/cloud-computing-hw8-docker-resource-limits-compose/35.webp)
+
+_web 컨테이너 안: 파일 목록, REDIS_HOST=redis, 서비스 이름 redis로 ping → True_
+
+![exec redis](/static/images/cloud-computing-hw8-docker-resource-limits-compose/36.webp)
+
+_redis 컨테이너 안: PONG, counter 값 "4"(웹에서 올린 방문 횟수)_
+
+마지막으로 `-v`를 붙여 볼륨까지 지웠다. `-v`가 없으면 컨테이너와 네트워크만 지워지고 `redis-data`는 남는다.
+
+```bash
+docker compose down -v
+docker ps
+```
+
+![down -v](/static/images/cloud-computing-hw8-docker-resource-limits-compose/37.webp)
+
+_컨테이너 2개, 볼륨, 네트워크 삭제. 슬라이드 101~104쪽_
+
+# 3. 실습 중 생긴 문제
+
+## Kolla가 남긴 udev 규칙으로 /dev/kvm 권한이 막힘
+
+HW8 전에 디스크를 비우려고 [HW7](/kr/blog/cloud-computing/cloud-computing-hw7-openstack-linux-container/#2-오픈스택-배포)에서 Ubuntu 호스트에 깔았던 Kolla 오픈스택을 지웠다. `kolla-ansible destroy --include-images`가 4분 2초 만에 failed=0으로 끝났고, 컨테이너 34개와 이미지 9.7GB, 볼륨 3.4GB가 사라져 호스트 디스크 사용량이 44G에서 32G로 줄었다.
+
+그 뒤 호스트 libvirt를 다시 켜고 `virsh start`로 가상머신을 띄우자 이렇게 실패했다.
+
+```text
+Could not access KVM kernel module: Permission denied
+```
+
+`/dev/kvm`의 그룹이 `kvm`이 아니라 숫자 42427이었다. Kolla는 컨테이너 안의 libvirt가 `/dev/kvm`을 쓰게 하려고 `/etc/udev/rules.d/99-kolla-kvm.rules`를 만들어 장치 그룹을 자기 컨테이너용 GID(42427)로 바꿔 두는데, `destroy`는 컨테이너와 이미지만 지우고 이 규칙은 남겨 뒀다. 호스트의 libvirt(QEMU)는 `kvm` 그룹 권한으로 장치를 열기 때문에 거부당했다.
+
+규칙 파일을 지우고 장치 그룹을 되돌리니 가상머신이 떴다.
+
+```bash
+rm /etc/udev/rules.d/99-kolla-kvm.rules
+chgrp kvm /dev/kvm
+```
+
+`chgrp`만 하면 재부팅이나 udev 이벤트 때 규칙이 다시 그룹을 바꾸니, 규칙 파일을 같이 지워야 한다.
+
+# 4. 연습문제
+
+## Ch16-7. 도커 이미지의 내부 구조
+
+도커 이미지는 읽기 전용 레이어를 차례로 쌓은 것과, 그 레이어 목록·환경변수·실행 명령 같은 설정을 담은 메타데이터로 이루어진다.
+
+- **레이어**: Dockerfile에서 파일시스템을 바꾸는 명령(RUN, COPY, ADD, WORKDIR) 하나가 레이어 하나가 된다. 레이어에는 바로 아래 레이어와의 차이(diff), 즉 그 명령으로 생기거나 바뀐 파일만 들어 있다.
+- **메타데이터(config)**: ENV, CMD, EXPOSE처럼 파일을 바꾸지 않는 명령은 레이어를 만들지 않고 이미지 설정에만 기록된다. 그래서 `docker history`에서 크기가 0B로 나온다.
+- **레이어 ID**: 레이어 내용의 SHA256 해시를 ID로 쓴다. 내용이 같으면 ID가 같으므로, 같은 베이스 이미지를 쓰는 이미지끼리는 레이어를 한 번만 저장하고 공유한다. 빌드할 때도 바뀌지 않은 레이어는 캐시를 재사용한다(위 `up -d --build`의 CACHED).
+- **저장 위치**: 레이어 내용은 diff 디렉터리에 저장되고, 디렉터리 이름은 무작위로 만든 cache ID다. 도커 엔진이 레이어 ID와 cache ID의 연결을 관리한다(슬라이드 13쪽). 이번 Docker 29는 이미지를 containerd로 관리해서 저장 드라이버가 overlayfs(containerd snapshotter)로 나온다.
+- **실행할 때**: UnionFS(overlay)가 읽기 전용 레이어들을 겹쳐 하나의 루트 파일시스템으로 보여 주고, 그 위에 컨테이너마다 쓰기 가능한 컨테이너 레이어가 하나 더 붙는다. 아래 레이어의 파일을 고치면 그 파일을 컨테이너 레이어로 복사한 뒤 고친다(copy-on-write). 그래서 이미지는 바뀌지 않고, 컨테이너를 지우면 변경 내용도 사라진다. 데이터를 남기려면 2장의 `redis-data`처럼 볼륨을 쓴다.
+
+2장에서 만든 `compose-basic:1.0`으로 확인했다.
+
+```bash
+docker history compose-basic:1.0 --format 'table {{.Size}}\t{{.CreatedBy}}' | cut -c1-100
+docker image inspect compose-basic:1.0 --format '{{range .RootFS.Layers}}{{println .}}{{end}}'
+docker info --format '{{.Driver}} {{json .DriverStatus}}'
+```
+
+이미지 기록은 17개 명령인데 RootFS 레이어는 8개다. 베이스 이미지 python:3.13-slim의 레이어 4개(debian 108MB, apt 4.39MB, 파이썬 설치 42.9MB, 링크 생성)에 Dockerfile의 WORKDIR, COPY requirements.txt, RUN pip install(22.5MB), COPY app.py가 하나씩 더해진 것이다. ENV·CMD·EXPOSE 줄은 0B이고 레이어 목록에 없다.
+
+![docker history](/static/images/cloud-computing-hw8-docker-resource-limits-compose/38.webp)
+
+_docker history: 위에서부터 최근 명령. 크기가 있는 줄과 WORKDIR·RUN이 레이어, ENV·CMD·EXPOSE는 0B_
+
+![RootFS 레이어](/static/images/cloud-computing-hw8-docker-resource-limits-compose/39.webp)
+
+_RootFS 레이어 8개(SHA256 ID)와 저장 드라이버 overlayfs_
+
+## Ch16-13. 컨테이너 라이프사이클
+
+컨테이너는 이미지에서 만들어져 생성(Created) → 실행(Running) ⇄ 일시정지(Paused) → 종료(Exited) → 삭제의 상태를 거친다. 상태는 docker 명령으로 바뀌고, 실제 프로세스 관리는 도커 데몬이 containerd와 runc를 통해 한다.
+
+| 명령                       | 상태 변화                  | 동작                                                                                                    |
+| -------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `docker create`            | (없음) → Created           | 이미지 위에 쓰기 가능한 컨테이너 레이어와 설정을 만든다. 프로세스는 아직 실행하지 않는다.               |
+| `docker start`             | Created·Exited → Running   | 네임스페이스로 격리하고 cgroup으로 자원을 제한한 환경에서 이미지의 CMD 프로세스를 실행한다.             |
+| `docker run`               | (없음) → Running           | 이미지가 없으면 받아 오고(pull), create와 start를 한 번에 한다.                                         |
+| `docker pause` / `unpause` | Running ⇄ Paused           | cgroup freezer로 프로세스를 얼린다. 메모리 상태는 그대로 두고 CPU 실행만 멈췄다가 이어서 실행한다.      |
+| `docker stop`              | Running → Exited           | 주 프로세스(PID 1)에 SIGTERM을 보내 정상 종료할 시간을 준다. 기본 10초 안에 안 끝나면 SIGKILL로 끝낸다. |
+| `docker kill`              | Running → Exited           | 바로 SIGKILL을 보낸다.                                                                                  |
+| `docker restart`           | Running → Exited → Running | stop 후 start.                                                                                          |
+| `docker rm`                | Created·Exited → 삭제      | 컨테이너와 컨테이너 레이어를 지운다. 실행 중이면 `-f`가 필요하다. 이미지는 남는다.                      |
+
+busybox `sleep` 컨테이너로 차례대로 확인했다.
+
+```bash
+F="docker ps -a --filter name=life --format '{{.Names}}  {{.Status}}'"
+docker create --name life busybox sleep 3600; eval $F
+docker start life; eval $F
+docker pause life; eval $F
+docker unpause life; eval $F
+docker stop -t 1 life; eval $F
+docker start life; eval $F
+docker kill life; eval $F
+docker rm life; eval $F
+```
+
+![create → pause](/static/images/cloud-computing-hw8-docker-resource-limits-compose/40.webp)
+
+_create → Created, start → Up, pause → Up (Paused), unpause → Up_
+
+![stop → rm](/static/images/cloud-computing-hw8-docker-resource-limits-compose/41.webp)
+
+_stop → Exited (137), 다시 start → Up, kill → Exited (137), rm → 목록에서 사라짐_
+
+종료 코드 137은 128+9, 즉 SIGKILL로 끝났다는 뜻이다. `sleep`은 PID 1로 실행되면 SIGTERM에 기본 동작이 없어서 무시하므로, `stop -t 1`은 1초 기다린 뒤 SIGKILL로 끝냈고 137이 나왔다. 2장의 Ctrl+C도 같다. Flask(web)는 10초 뒤 137로 강제 종료됐고, SIGTERM을 처리하는 Redis는 데이터를 저장한 뒤 0으로 정상 종료됐다.

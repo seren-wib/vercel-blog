@@ -1,0 +1,139 @@
+---
+title: 'Project Docs 1. I Thought a Schema and an API Spec Would Do'
+date: '2026-11-28'
+tags: ['Project Docs']
+draft: false
+aiGenerated: true
+summary: 'From twelve blog documents to six stage documents: the order in which the documents I needed kept growing.'
+---
+
+> Part 1 of the series. The full picture of the template is in [Project Docs 0](/en/blog/project-docs/project-docs-00-overview/).
+
+## In one line
+
+When I built this blog in May 2026, the documents were roughly a DB schema, an API spec, and a page structure. I thought that would be enough for development. But as assignments and projects piled up, I kept needing a place for requirements, decision reasons, tests, and deployment procedures, and by mid-November it had become a template of six documents. The first project moved into that template finished its migration in one day with five PRs.
+
+## 1. The first twelve documents
+
+As an analogy, I set out at first with only a few maps. There was no sheet saying where I was going or why I chose that road.
+
+![Order in which the documents grew: 2026-05 blog docs, 10-17 course SDLC, 10-18 four model documents, 11-16 six stage documents](/static/images/project-docs-01-growing-docs/growth.svg)
+
+_Order in which the documents grew: 2026-05 blog docs, 10-17 course SDLC, 10-18 four model documents, 11-16 six stage documents_
+
+In formal terms, those maps were part of the **design artifacts**. The first docs commit in this repo on 2026-05-08 (`a156d2a`) added 12 files, 724 lines.
+
+| File                                   | Lines | Content                                                             |
+| -------------------------------------- | ----- | ------------------------------------------------------------------- |
+| `docs/shared/pages.md`                 | 56    | Page definitions                                                    |
+| `docs/backend/db_schema.md`            | 67    | DB schema. The first line is "a static site with no DB"             |
+| `docs/backend/api_spec.md`             | 45    | API spec                                                            |
+| `docs/frontend/component_structure.md` | 193   | Component structure                                                 |
+| `docs/frontend/design.html`            | 16    | Design                                                              |
+| `docs/shared/architecture.md`          | 87    | Architecture                                                        |
+| `docs/shared/export_functions.md`      | 79    | Export function names                                               |
+| `docs/agent/runbook.md` and others     |       | Verification procedure for agents, done conditions, CLAUDE.md, etc. |
+
+All of them are about "what to build and how". There was nothing on what the system must do (requirements), why it was built that way (decision reasons), or how to check it (test plan). The document location table in this repo's `CLAUDE.md` is still exactly this list. For one static blog, this was enough.
+
+## 2. Documents added per assignment
+
+As an analogy, it was like buying a new notebook every time homework came out. Each notebook had different columns, and the same content ended up split across several.
+
+In formal terms, the documents piled up in a **flat structure**. coffee-shop is a Software Engineering team assignment started on 2026-09-15. Reading the commit titles by date, documents were added one assignment at a time.
+
+| Date  | Documents added                                                                                                                                   |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 09-22 | Use cases, class diagram                                                                                                                          |
+| 09-28 | Requirements definition                                                                                                                           |
+| 10-06 | Screen list, wireframes, sequence diagrams                                                                                                        |
+| 10-10 | External interfaces, [domain requirements](/en/blog/software-engineering/software-engineering-ch4-requirements-analysis/#412-domain-requirements) |
+| 11-08 | System architecture, non-functional design                                                                                                        |
+
+Right before the migration, `docs/` held 41 files: 5 directly under `docs/`, 8 in `backend/`, 5 in `frontend/`, 9 sequence diagrams, and 14 wireframes. Which file was requirements and which was design had to be guessed from the names.
+
+## 3. Course order as my procedure
+
+As an analogy, I pinned the process chart from class next to my own workbench.
+
+In formal terms, I turned the **SDLC stages** into personal working rules. On 2026-10-17, a "project procedure" file appeared in the agent memory. The file says it was set up when starting the stairno.com hub documents, and that its basis was chapters 3–6 of Software Engineering. The stages were planning, requirements, design, implementation, deployment, and maintenance, with one output attached to each stage. The plan came from [chapter 3 project planning](/en/blog/software-engineering/software-engineering-ch3-project-planning/), and the SRS from [chapter 4 requirements specification](/en/blog/software-engineering/software-engineering-ch4-requirements-analysis/#433-step-3-requirements-specification-software-requirements-specification-srs).
+
+The next day, 10-18, I wrote four documents for account.stairno.com following this procedure: `plan.md` at 179 lines, `srs.md` at 382, `sdd.md` at 534, and `test-deploy.md` at 507, for 1,602 lines in total. These four later became the model for the template. At this point Google Docs was the source, but that same day the repo's Markdown became the source of truth. How that happened is in [Part 4](/en/blog/project-docs/project-docs-04-docs-sync/).
+
+## 4. From four to six
+
+As an analogy, the exam plan and the moving plan that had shared one notebook each got a notebook of their own.
+
+In technical terms, the rule of one document per SDLC stage was carried through to testing, deployment and maintenance. In the early hours of 2026-11-16, when I turned this procedure into an agent skill, the documents went from four to six. The plan got the name SPMP, and `test-deploy.md`, where testing and deployment had been mixed together, was split into three: a test plan (STP), an installation plan (SIP), and a maintenance plan (SMP).
+
+The reason for the split was that I decided to follow convention. A convention probably has its reasons, and I figured I would only learn what is good about it by writing one the conventional way. That decision and the standard each document follows are covered separately in [Part 3](/en/blog/project-docs/project-docs-03-standards/).
+
+## 5. Migrating via docs/old
+
+As an analogy, it is the order you follow when moving house: put everything in boxes first, move items one by one into the drawers of the new house, then throw away the empty boxes.
+
+![Migrating via docs/old: #59 move old docs and lay the frame, #60·#62 fill in SRS and SDD, #64 sync, #68 delete old docs](/static/images/project-docs-01-growing-docs/migration.svg)
+
+_Migrating via docs/old: #59 move old docs and lay the frame, #60·#62 fill in SRS and SDD, #64 sync, #68 delete old docs_
+
+In formal terms, it is a migration that isolates the existing documents as **source material** and rewrites them into the new template. I moved coffee-shop in this order over one day, 2026-11-17.
+
+| PR                                                      | What it did                                                                | Size                   |
+| ------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------- |
+| [#59](https://github.com/seren-wib/coffee-shop/pull/59) | Moved the existing `docs/` to `docs/old/` and laid the `docs/specs/` frame | +557 / −10, 94 files   |
+| [#60](https://github.com/seren-wib/coffee-shop/pull/60) | Rewrote the SRS                                                            | +554 / −35             |
+| [#62](https://github.com/seren-wib/coffee-shop/pull/62) | Rewrote the SDD                                                            | +2,292 / −51           |
+| [#64](https://github.com/seren-wib/coffee-shop/pull/64) | Google Docs sync CI                                                        | +173 / −7              |
+| [#68](https://github.com/seren-wib/coffee-shop/pull/68) | Deleted `docs/old/`                                                        | +49 / −2,345, 66 files |
+
+Writing the SRS first is a rule, because the requirement numbers are the keys that connect the other documents. The rewritten SRS contained 24 domain requirements, 57 functional requirements, 35 non-functional requirements, and 14 use cases. The SDD was written with these numbers attached.
+
+The description of #68, which deleted the old documents, gave the reason in one line: the stage documents replace the old files, and git history keeps the old files. So the new documents have no lines like "see draft no. N", and nothing points to `docs/old/`. That way, deleting the old folder breaks no links. The same day, this order became the skill's migration rule: move the old documents to `docs/old/`, copy the template, fill in the SRS first, and delete `docs/old/`.
+
+## 6. Still growing
+
+As an analogy, settling on a notebook format was not the end; every time the teacher points out a blank, a new column appears.
+
+In technical terms, this is a revision of the template. Early on 2026-11-28, the SDD template gained one section and one rule. The trigger was two pieces of feedback from the professor on the coffee-shop SDD: the parts in the wireframes had no numbers, and the class and method specs were mixed in with the component design.
+
+- **Screen part IDs**: every UI part in the screen design gets an ID like `SCR-01-01`, and the wireframes show the same ID. Section numbers can shift, but IDs don't.
+- **Class and module spec section**: following the code structure, one file per module records each public function's signature, return values and exceptions, and requirement IDs. Once written, it is checked by script against the list of `def` and `class` in the code.
+
+These went into coffee-shop through [#129](https://github.com/seren-wib/coffee-shop/pull/129) (+1,059 / −50) and [#130](https://github.com/seren-wib/coffee-shop/pull/130). Repos that already had an SDD did not renumber their sections and appended the new section at the end. So in coffee-shop the class spec is section 12, and design rationale stays in section 11.
+
+## 7. Wrap-up
+
+| When          | Documents                                         | Trigger                                                   |
+| ------------- | ------------------------------------------------- | --------------------------------------------------------- |
+| 2026-05-08    | 12, including schema, API spec, page structure    | Building the blog                                         |
+| 2026-09 ~ 11  | One bundle per assignment, 41 in a flat structure | Software Engineering assignments                          |
+| 2026-10-17~18 | Four: plan, SRS, SDD, test and deployment         | Course SDLC turned into a personal procedure              |
+| 2026-11-16    | Six stage documents                               | Deciding to follow convention and turning it into a skill |
+| 2026-11-17    | coffee-shop moved to six documents                | Five migration PRs                                        |
+| 2026-11-28    | SDD class and module spec, screen part IDs        | Professor's feedback                                      |
+
+The first idea was not wrong. For one static blog, a schema and an API spec were enough. But once more people joined, decisions piled up, and deployment and operations came along, documents that only said "what to build" could not answer "why was it built this way" or "how do we check it".
+
+## By the numbers
+
+As of 2026-11-28. Sources are `git show --stat`, `git ls-tree`, and `gh pr view` in each repo.
+
+| Item                                 | Value                       |
+| ------------------------------------ | --------------------------- |
+| First blog docs commit               | 12 files, +724 lines        |
+| account.stairno.com four documents   | 1,602 lines                 |
+| coffee-shop `docs/` before migration | 41 files                    |
+| coffee-shop `docs/specs/` now        | 73 files                    |
+| coffee-shop SRS (#60)                | DR 24, FR 57, NFR 35, UC 14 |
+| PRs used for the migration           | 5 (in one day, 2026-11-17)  |
+
+## Glossary
+
+| Term                                                                                                                        | Meaning                                                                        |
+| --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Design artifact                                                                                                             | A document on "how to build it", such as a schema, API spec, or page structure |
+| Flat structure                                                                                                              | Documents stacked side by side under one folder with no split by type or stage |
+| SDLC stages                                                                                                                 | Planning, requirements, design, implementation, deployment, maintenance        |
+| [Domain requirement](/en/blog/software-engineering/software-engineering-ch4-requirements-analysis/#412-domain-requirements) | A business rule that applies across the whole system (`DR-n`)                  |
+| Source material                                                                                                             | Old documents that are only read when filling in new ones                      |
+| Screen part ID                                                                                                              | A number that doesn't shift, given to a UI part on a screen, like `SCR-01-01`  |

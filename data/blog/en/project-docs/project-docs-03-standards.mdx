@@ -1,0 +1,132 @@
+---
+title: 'Project Docs 3. A Template Built on Conventions and Standards'
+date: '2026-11-28'
+tags: ['Project Docs']
+draft: false
+aiGenerated: true
+summary: 'Why I aligned document names and section layouts with IEEE/ISO standards and fixed the templates in advance.'
+---
+
+> Part 3 of the series. The full picture of the template is in [Project Docs 0](/en/blog/project-docs/project-docs-00-overview/).
+
+## In one line
+
+On the night of 2026-11-15, while moving my personal documentation process into a skill, I decided to draw on both my model documents and the IEEE standards. A few hours later, early on 11-16, I decided to align document names and the way documents are split with convention as well. So I attached each of the six documents to one of six standards, and to keep the format from drifting between projects, I built a 54-file set of templates in advance.
+
+## 1. Convention and standard
+
+As an analogy, a convention is "everyone walks this path," and a standard is that path officially drawn onto the map.
+
+![Convention and standard: convention is a widely used practice, a standard is a document an organization published under a number](/static/images/project-docs-03-standards/convention-vs-standard.svg)
+
+_Convention and standard: convention is a widely used practice, a standard is a document an organization published under a number_
+
+In technical terms, the two are different.
+
+- **convention**: a practice widely used in the industry even though no one officially set it. Numbering requirements with `FR` and `NFR`, keeping one ADR per file, and writing file names in kebab-case all fall here. A convention that practically everyone follows is also called a **de facto standard**.
+- **standard**: a document published under a number by an organization such as IEEE or ISO. The section layout, the terms, and the items that must be included are fixed. IEEE 1016 and ISO/IEC/IEEE 29148 are examples.
+
+My records only ever say 관례 (convention). Document names, the place for decision records, requirement numbers: the idea was to do all of them by convention. The section layout of each document, on the other hand, drew on the standards from the start. So this series keeps the two apart. Names and notation are convention; the section layout of a document comes from the standard.
+
+## 2. The day I chose convention
+
+As an analogy, I had been using a form I made myself, and switched to a form others had refined for a long time.
+
+Until then, my document names were ones I had made up. The plan was `plan/`, experiment code was `experiments/`, and testing and deployment were a single file, `test-deploy.md`. When I started writing the skill on the night of 2026-11-15, I drew on the four model documents and the IEEE standards together, so the first draft was the four documents with standard numbers attached. A few hours later, early on 11-16, I checked whether names like these also had established forms like `FR` and `NFR`, and I decided to switch everything to conventional notation.
+
+There were two reasons. One was that a convention probably exists for a reason. The other was that I would only find out what is good about it by actually writing by convention once. In other words, this was an experiment, not a conviction. So I set a scope too. Only documents started from now on follow convention; projects I had already worked on stay as they are. The skill keeps this as the line "Projects started before 2026-11-16 keep their original structure and names."
+
+| Before           | After                         |
+| ---------------- | ----------------------------- |
+| `plan/`          | `spmp/`                       |
+| `experiments/`   | `spikes/`                     |
+| `test-deploy.md` | three: `stp/`, `sip/`, `smp/` |
+
+There is no record of weighing the concrete benefits of the standards, such as what gets better for submission or collaboration (not recorded). The only reasons left are the two above.
+
+## 3. A standard for each document
+
+As an analogy, I looked up an officially recognized form number for each paper and attached it.
+
+![A standard for each document: SPMP is IEEE 16326, SRS is 29148, SDD is 1016, STP is 29119-3, SIP is MIL-STD-498, SMP is 14764](/static/images/project-docs-03-standards/standards-map.svg)
+
+_A standard for each document: SPMP is IEEE 16326, SRS is 29148, SDD is 1016, STP is 29119-3, SIP is MIL-STD-498, SMP is 14764_
+
+In technical terms, I picked one **reference standard** for each stage document.
+
+| Document | Standard             | Former number | Taken from the standard                                                                   |
+| -------- | -------------------- | ------------- | ----------------------------------------------------------------------------------------- |
+| SPMP     | IEEE 16326           | IEEE 1058     | Project identification, scope, schedule, cost, organization and risk                      |
+| SRS      | ISO/IEC/IEEE 29148   | IEEE 830      | Stakeholders, 1.4 assumptions, constraints and dependencies, one function per requirement |
+| SDD      | IEEE 1016            |               | Viewpoint label per section (context, composition, interface …), design rationale         |
+| STP      | ISO/IEC/IEEE 29119-3 | IEEE 829      | Test strategy, tests per level, acceptance criteria                                       |
+| SIP      | MIL-STD-498 SIP      |               | Environment, installation procedure, installation tests                                   |
+| SMP      | IEEE 14764           |               | Routine tasks, change requests, operating procedures                                      |
+
+Some sections are actually new because of the standards. The SRS of account.stairno.com, my model, had no "assumptions, constraints, dependencies" section, but 29148 does. So I added it as SRS section 1.4. It is where you write what has to be true for the requirements to hold (runtime, external services, legal limits).
+
+On 2026-11-17 I turned the **singular** principle of 29148 into a rule. One functional requirement holds only one function. Viewing and editing, adding and deleting, starting and stopping are each separate FRs. A non-functional requirement likewise holds one measurement condition. That way the verification column of the SRS checks only one function.
+
+Why I picked MIL-STD-498 for the SIP is not in the records. When the skill was built, I accepted the option presented in a table as it was.
+
+## 4. Why I fixed the templates in advance
+
+As an analogy, instead of drawing the same form from scratch every time, I printed a stack of blank forms ahead of time.
+
+In technical terms, this is a **template**. A standard fixes the section layout, but it does not fix the table columns inside a section or the file names. If the agent made those up anew for every document, the shape could differ from project to project. So on the day I built the skill I decided to fix the templates in advance, and `TEMPLATES.md` got templates worth 54 files.
+
+The templates fix even the file names: English kebab-case with the section number in front.
+
+```text
+docs/specs/srs/
+├── README.md
+├── 1-overview.md
+├── 2-domain.md
+├── 3-functional/
+│   ├── README.md
+│   └── 1-<area>.md
+├── 4-nonfunctional.md
+├── 5-use-cases.md
+├── 6-interfaces.md
+└── 7-decisions.md
+```
+
+Every new file must start from a template. That is why, in all three repos (coffee-shop, design-system, open-calls), the design rationale lives in a file with the same name, `sdd/11-rationale.md`. A section was added to the template on 2026-11-28, so it is section 12 in the current template, but existing SDDs are not renumbered; the new section is appended at the end. Open another project's documents and the same thing is in the same place.
+
+The six Docs in the Drive [\_templates folder](https://drive.google.com/drive/folders/1IGzofOw3S0r05xmIvWutLiGDJcKNEoIG) are these templates moved into Google Docs. Under each section, an italic "안내:" ("Guide:") line says what goes in that section, and the SDD template has the IEEE 1016 viewpoints attached in square brackets.
+
+## 5. Wrap-up
+
+| Question                              | Answer                                                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Why convention                        | A convention probably has a reason, and you only know it is good by using it. New docs only                   |
+| How do convention and standard differ | Convention is a widely used practice, a standard is a published document. Section layout comes from standards |
+| What actually came from the standards | SRS 1.4 assumptions, constraints, dependencies; singular requirements; SDD viewpoint labels                   |
+| Why build the templates in advance    | So table columns and file names don't differ from project to project                                          |
+| What is not in the records            | The concrete benefits of the standards, why MIL-STD-498 was picked for the SIP                                |
+
+## By the numbers
+
+As of 2026-11-28. Sources: `wc -l` on the skill files, `git log`, and the worklog of the skill's first commit.
+
+| Item                                | Value                           |
+| ----------------------------------- | ------------------------------- |
+| Documents with a standard           | 6                               |
+| Files in the first template set     | 54                              |
+| `TEMPLATES.md`                      | 941 lines (862 at first commit) |
+| Commits that changed `TEMPLATES.md` | 6                               |
+
+## Glossary
+
+| Term                 | Meaning                                                                                      |
+| -------------------- | -------------------------------------------------------------------------------------------- |
+| convention           | A practice widely followed even though no one officially set it                              |
+| de facto standard    | A convention with no document behind it that practically everyone follows                    |
+| standard             | A specification document an organization published under a number                            |
+| IEEE 16326           | Standard for the project management plan (SPMP). Formerly IEEE 1058                          |
+| ISO/IEC/IEEE 29148   | Requirements engineering standard. Formerly IEEE 830                                         |
+| ISO/IEC/IEEE 29119-3 | Test documentation standard. Formerly IEEE 829                                               |
+| MIL-STD-498          | US Department of Defense software development documentation standard. Has a SIP form         |
+| IEEE 14764           | Software maintenance standard                                                                |
+| viewpoint            | In IEEE 1016, a perspective for looking at the design. context, composition, interface, etc. |
+| singular             | 29148 quality criterion that one requirement holds only one function or condition            |

@@ -1,0 +1,126 @@
+---
+title: "Project Docs 2. Why I Didn't Split Out ADRs"
+date: '2026-11-28'
+tags: ['Project Docs']
+draft: false
+aiGenerated: true
+summary: 'How I tried ADRs at Woowangthon and then chose to keep decision records inside the SDD in my own projects.'
+---
+
+> Part 2 of the series. The full picture of the template is in [Project Docs 0](/en/blog/project-docs/project-docs-00-overview/).
+
+## In one line
+
+In the team repo of a hackathon in October 2026 (Woowangthon), I wrote ADRs for the first time. Looking back, it was good that each decision kept its reasons and the rejected options. But in my own projects I chose not to keep a separate ADR folder and to put decisions as a dated list in "design rationale" at the end of the SDD. Project decisions such as scope or schedule go in the SPMP, and requirement policies go in the SRS, in the same format.
+
+## 1. First ADRs at Woowangthon
+
+As an analogy, every time something is decided in a meeting, you write "this is what we decided, and this is why" on a slip of paper and drop it in a box.
+
+The formal term is **ADR (Architecture Decision Record)**. It is a format Michael Nygard proposed in 2011 that keeps one decision as one short file. In the Woowangthon team repo, the `docs/adr/` folder was created on 2026-10-26 by teammate TaeTaeJin's first PR ([#1](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/1)). The rules were in `docs/adr/README.md`.
+
+- Only decisions that are expensive to reverse become ADRs.
+- One decision per page.
+- There are three statuses: `유효` (valid), `유효 (일부 대체 …)` (valid, partly superseded …), `대체됨 (→ NNN)` (superseded).
+- There is no separate index table. The directory listing is the index.
+
+That same day I wrote my first ADR, filling in the "reason" column of the tech stack ADR. On 11-03 I posted a rule that merged ADRs are not edited and partial supersession is marked with a status line ([#20](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/20)), plus four cluster ADRs ([#21](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/21)). Reading just the status line tells you right away which decisions are still valid. These rules are described in detail in [the ADR rules in Woowangthon part 1](/en/blog/woowangthon/woowangthon-01-docs-and-prs/#4-adr-rules).
+
+Looking back now, the experience was good. Not only what was chosen, but also what was rejected and why, stays on record. As of 2026-11-28 the repo has 18 ADRs, and each time a decision changed, a new ADR superseded the old one.
+
+## 2. Still, not splitting them out
+
+As an analogy, instead of a box of slips, you keep a decision log page at the back of the design notebook. What you write is the same; only the place differs.
+
+![Two conventions for recording decisions: ADRs with one file per decision, and a dated design rationale list inside the SDD](/static/images/project-docs-02-decision-records/adr-vs-rationale.svg)
+
+_Two conventions for recording decisions: ADRs with one file per decision, and a dated design rationale list inside the SDD_
+
+The formal term is **design rationale**. IEEE 1016 (the software design description standard) records design decisions and their reasons together inside the SDD.
+
+On 2026-10-27 at noon, the line "no ADR folder or page" went into my rules first. Decisions and rejected alternatives are written as a dated list in "decision records" at the end of the SDD, with the account.stairno.com SDD as the model. In the same commit, I moved the ADR 001 and 002 pages I had made in a personal Notion page for Woowangthon to the trash and moved their content into the decision record list. No sentence I wrote that day explaining why I decided this survives (not recorded). The only reason left in the records is that the model SDD was already in that format.
+
+Three weeks later, early on 2026-11-16, when moving this rule into a skill, I checked whether putting decision records in the SDD fits convention. It turned out there are two conventions.
+
+| Convention                    | Where                      | Unit                   |
+| ----------------------------- | -------------------------- | ---------------------- |
+| ADR (Nygard 2011, MADR, etc.) | `docs/adr/NNNN-<title>.md` | One file per decision  |
+| IEEE 1016 design rationale    | A section inside the SDD   | One entry per decision |
+
+I chose the IEEE side, for one reason. In my repos, documents are split into one file per section anyway ([Part 4](/en/blog/project-docs/project-docs-04-docs-sync/)). Then design rationale is also a single file, `sdd/11-rationale.md` (a section was added to the template on 2026-11-28, so the current template has `sdd/12-rationale.md`, but SDDs made before that are not renumbered), and finding a decision means opening just one file. The skill's first commit had this reason in one line, but it was dropped on 11-20 when I trimmed the skill and removed the history sentences. Now only the rule remains.
+
+There is no record naming the Woowangthon experience as a reason for dropping the ADR-file approach. In the skill conversation that ran from the night of 2026-11-15 into 11-16, Woowangthon and ADR appear together in the same sentence 0 times. Still, the rule that a changed decision is not edited but written anew is the same idea as the rule in the Woowangthon ADR README.
+
+## 3. Three places for decisions
+
+As an analogy, the minutes are split into operations meetings, rules meetings, and design meetings, each attached to the back of its own notebook.
+
+![Three places decisions go: SPMP 8 project decisions, SRS 7 requirement policies, SDD design rationale](/static/images/project-docs-02-decision-records/decision-homes.svg)
+
+_Three places decisions go: SPMP 8 project decisions, SRS 7 requirement policies, SDD design rationale_
+
+In formal terms, the place depends on the decision's **scope**. ADR is by name about "architecture" decisions, so project decisions such as scope, schedule, and cost are not what ADRs were meant to cover. So those decisions went to the SPMP.
+
+| Place                         | Decisions it holds                                       | coffee-shop entries |
+| ----------------------------- | -------------------------------------------------------- | ------------------- |
+| SPMP 8 Decided and open items | Scope, schedule, cost, product, business, way of working | 13                  |
+| SRS 7 Decided and open        | Requirement-level policies, limits, dropped features     | Not counted         |
+| SDD design rationale          | Technology choices                                       | 32                  |
+
+## 4. The shape of one entry
+
+As an analogy, each line of the decision log has fixed slots for the date, what was chosen, what was rejected, the reason, and who decided, with none left out.
+
+In formal terms, every entry uses the same **schema**.
+
+```text
+- YYYY-MM-DD: <what was decided>. Rejected: <option> (<why it lost>), <option> (<why it lost>). Reason: <scalability, maintainability, dependencies, testability, cost>. (<who decided>)
+```
+
+Here is a real entry from the coffee-shop SDD design rationale.
+
+```text
+- 2026-11-17: Keep SQLite as the production DB. Turn on WAL mode and make a backup file once a day with `sqlite3 .backup`, keeping 7 (NFR-25). Rejected: RDS (more cost and setup, and concurrent write load is small at demo scale). Reason: cost, dependencies. Revisit if the NFR-15 concurrent order test hits a lock error. (decided by the coffee-shop lead session, delegated by the team leader)
+```
+
+There are five rules.
+
+1. Every option seriously considered goes under "Rejected" with its reason. If options were compared in chat, that comparison ends in this entry.
+2. When a decision changes, the old entry is not edited. A new dated entry is added, stating what it supersedes. It is the same idea as "merged ADRs are not edited" in the Woowangthon ADRs.
+3. Open items record what is open, why it is not decided now, and when to look again. Like "revisit if it hits a lock error" in the entry above, write the signal that reopens it.
+4. Reasons are written in terms like scalability, maintainability, dependencies, testability, and cost. "Because I'm used to it" is not a reason.
+5. Write it in the turn the decision is made. Don't batch them up later.
+
+## 5. Wrap-up
+
+| Woowangthon ADR                    | My projects                                             |
+| ---------------------------------- | ------------------------------------------------------- |
+| `docs/adr/` folder, 18 of them     | One SDD design rationale file                           |
+| One file per decision              | One dated entry per decision                            |
+| Supersession marked by status line | A new entry states that it supersedes the old one       |
+| Architecture decisions only        | Project decisions also in the SPMP, policies in the SRS |
+
+What was good about ADRs, that rejected options and their reasons stay on record, still holds in the same format. What I changed is the place. Since the documents were already split into one file per section, there was no reason to pull out just the decisions into another folder.
+
+## By the numbers
+
+As of 2026-11-28. Sources are `grep -c '^- 20'` and `git ls-tree` in each repo.
+
+| Item                                      | Value                   |
+| ----------------------------------------- | ----------------------- |
+| Woowangthon ADRs                          | 18 (001–018)            |
+| account.stairno.com SDD decision records  | 25 entries              |
+| coffee-shop SDD design rationale / SPMP 8 | 32 entries / 13 entries |
+| design-system SDD design rationale        | 8 entries               |
+| open-calls SDD design rationale           | 47 entries              |
+
+## Glossary
+
+| Term                                                                 | Meaning                                                                      |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [ADR](/en/blog/woowangthon/woowangthon-01-docs-and-prs/#4-adr-rules) | A format that keeps one decision with its reasons as one short file          |
+| MADR                                                                 | One of the ADR templates written in Markdown                                 |
+| design rationale                                                     | Design decisions and their reasons. IEEE 1016 records them inside the SDD    |
+| IEEE 1016                                                            | The software design description (SDD) standard                               |
+| Supersede                                                            | A new decision replaces an old one without deleting the old record           |
+| Open item                                                            | Something not yet decided. Recorded with the signal or date for reopening it |

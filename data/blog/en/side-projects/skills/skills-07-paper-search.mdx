@@ -1,0 +1,195 @@
+---
+title: 'CH7. paper-search: finding papers through public APIs'
+date: '2026-11-28'
+tags: ['Skills']
+draft: false
+aiGenerated: true
+summary: 'A skill that finds papers through public APIs, grades venues from a lookup table, and opens full text only through legal routes'
+---
+
+> Part 7 of the skills series. What a skill is and why these live outside the instruction files is in [CH0. Skills overview](/en/blog/side-projects/skills/skills-00-overview/).
+
+## In one line
+
+`paper-search` is a skill that opens only when a question like "is there a paper on this?" comes up. It queries public APIs such as OpenAlex, Semantic Scholar and arXiv at once through Node scripts, merges copies of the same paper into one, and attaches a venue grade from a table built in advance. Full text is opened only through legal routes, starting with open access. I built it in three commits on 2026-11-27; its current size is in the [By the numbers](#by-the-numbers) table.
+
+## 1. Why it is a skill
+
+Think of it as a library user guide. You don't carry it every day; you take it out when you go to the library.
+
+The term is [skill](/en/blog/side-projects/devblog/devblog-04-agent-environment/#3-pulling-out-what-is-needed). Instruction files go into the context whole in every session, but for a skill only the one-paragraph `description` is always visible, and the body is opened when a trigger matches. Paper search is not a daily task, so it belongs in a skill.
+
+It started on 2026-11-27. I decided to first find out what public APIs cannot do, and a work session built two Google Sheets. One ranks venues by authority (107 CS rows, 5 multidisciplinary rows); the other holds raw per-venue data (h5-index, OA status, DOI coverage, search APIs). The skill turns that research into a procedure.
+
+| Commit     | Time (KST)       | Change                                                                       |
+| ---------- | ---------------- | ---------------------------------------------------------------------------- |
+| `b70fc7f0` | 2026-11-27 04:49 | Skill added: SKILL.md 73 lines, venues.tsv 113 lines, 3 scripts 390 lines    |
+| `edcbf735` | 2026-11-27 04:51 | Deep-mode save location decided, alias added for OpenAlex's spelling of ACL  |
+| `8e50a32b` | 2026-11-27 15:36 | Save format changed from Google Doc to docx (documents follow the docx rule) |
+
+The `description` lists phrases like "papers", "prior work", "related work", "what was the original paper behind that news" and "how good is this conference". The point is that it opens even when I never say "paper search".
+
+## 2. Two modes
+
+Quick mode is answering from the back covers of books; deep mode is pulling every candidate off the shelf and then reading closely only the ones I pick.
+
+![Quick mode runs WebSearch, search.mjs, abstract selection, then a chat answer. Deep mode runs query expansion, every source, stops at the pick table, then reads the picked papers and saves a docx](/static/images/skills-07-paper-search/modes.svg)
+
+_Quick stops at abstracts; deep goes into the full text of the papers I pick_
+
+The back cover is the **abstract**; close reading is the **full text**. Quick is the default. Deep runs only when I ask for depth ("go deep", "literature review", "I need to write related work") or when abstracts cannot answer the question.
+
+| Item         | quick mode                                    | deep mode                                                  |
+| ------------ | --------------------------------------------- | ---------------------------------------------------------- |
+| Target time  | under 5 minutes                               | not set                                                    |
+| Sources      | OpenAlex, S2, arXiv (default)                 | all five, `--limit 25 --json`, `--ko` when needed          |
+| What is read | abstracts only                                | full text of the papers I pick                             |
+| Output       | a few lines in chat + one table               | a docx with per-paper summaries, an overall map, open gaps |
+| Stops at     | nowhere (answers, offers deep mode in a line) | the pick table, until I choose numbers                     |
+
+Deep mode stops halfway for a reason. Having the agent read 200-plus search results costs a lot of time and tokens, and deciding what matters is my call. So the pick table shows only number, title, a one-line intro of about 60 characters, year, and venue with grade; raw details such as DOIs and citation counts stay in the agent's notes.
+
+Every result carries measured times. The scripts print per-source timings to stderr, and the report gives wall-clock time from the first search to the answer, plus any source that failed or was slow.
+
+## 3. Names before headlines
+
+If you search a library catalog with a newspaper headline, you get the wrong books. First you have to learn the real title from the article.
+
+The term is **query vocabulary mismatch**. Paper APIs match the words papers use, and news headlines use different words. So a question like "the news that AI proved X" first gets one WebSearch to learn the paper title, authors, arXiv id or the actual claim. Then `search.mjs` runs with 2–3 English phrasings.
+
+```bash
+node ~/.claude/skills/paper-search/scripts/search.mjs "<query>" --limit 10
+```
+
+Searching with the headline itself mixes in cranks. The skill flags the pattern: a `preprint·repository (peer review 없음)` grade, a claimed proof of a famous conjecture (on Zenodo, OSF or viXra), and near-zero citations. A preprint on arXiv by known researchers is fine, but the answer says it is not peer reviewed.
+
+Query expansion in deep mode always includes one query naming each actor in the question (a model, tool or project). In the first test on 2026-11-27, five topic queries missed "Human Exposition of Claude's 2/3 Theorem", and the query with "Claude" in it found it. That miss became the rule.
+
+## 4. Merging copies
+
+The same book sits in three library catalogs, each spelled differently. You have to count the three as one.
+
+The term is **deduplication**. Within one call, `search.mjs` merges results like this.
+
+1. Same DOI means same paper. arXiv DOIs (`10.48550/arxiv.*`) are converted to the arXiv id before comparing.
+2. Without a shared id, titles are normalized (lowercase, NFKC, anything but letters and digits becomes a space) and compared; if the years are at most one apart, it is the same paper. Preprints and published versions often land in different years.
+3. After merging, the venue decides which version to show. Citation counts are kept per DB.
+
+USENIX, ICML, ICLR, JMLR and TMLR papers often have no Crossref DOI, so rule 2 fires a lot there. Results from several queries are merged with the same rules by `search.mjs --merge a.json b.json`. In the first deep test, 266 papers from 7 queries came down to 226 at this step.
+
+Citation counts carry the DB name for the same reason. One paper (nature12373) shows OpenAlex 2192, Crossref 1875, S2 1845 and Europe PMC 720. A bare number doesn't say which DB it came from.
+
+## 5. Venue grades
+
+Think of a dictionary with one report-card line per conference and journal. The agent doesn't grade anything; it only looks the line up.
+
+![A venue string is matched against the 112 rows of venues.tsv through venue.mjs alias rules, and a grade and rank are attached](/static/images/skills-07-paper-search/venue-lookup.svg)
+
+_Looking up a venue string in the table to attach a grade_
+
+The dictionary is `data/venues.tsv`; the lookup is `venue.mjs`. The table has 112 rows: 55 conferences, 37 journals, 7 workshops, 11 conference sub-tracks, and 2 poster or preprint rows. AI/ML and SE are the largest fields at 22 rows each.
+
+| Column           | Source                                                              |
+| ---------------- | ------------------------------------------------------------------- |
+| Conference grade | CORE ICORE2026 (A\* > A > B > C)                                    |
+| Journal grade    | SJR 2025 best quartile                                              |
+| Domestic grade   | KIISE 2024 excellent SW conferences (top S, excellent A) or KCI     |
+| Rank             | grade tier first, then Google Scholar h5-index 2025 within the tier |
+
+h5-index grows with field size, so comparisons across fields use the in-field rank. Venue strings differ by API. OpenAlex, for example, writes ACL as "Association for Computational Linguistics Meeting"; the first table did not have that spelling, so the second commit (`edcbf735`) added an alias. Aliases come in three forms: `!ACL` is a case-sensitive token, `=text` is an exact match, and plain text is a substring match.
+
+A venue missing from the table comes out as `목록 밖` (not in the list). That doesn't mean it is bad; the table covers only CS and five multidisciplinary journals. When math or biology venues show up, the answer says so once under the table. Acceptance rates, JCR quartiles and JIF are not available from any public API, so they are never filled in from memory. When several venues share one name, like PLDI, POPL and OOPSLA under `Proceedings of the ACM on Programming Languages`, every candidate is printed and the DOI landing page or DBLP decides.
+
+## 6. Order for full text
+
+Check the public library shelf first, then the copy the author posted, then the publisher's front door, then the reading room you enter with a student card, and last a letter to the author. There is no climbing over the wall.
+
+![The five rungs of the full-text ladder: oa.mjs, arXiv·Europe PMC·CORE, publisher page, Claude in Chrome with the university subscription, author request. Beside it, the shadow libraries that are never used](/static/images/skills-07-paper-search/ladder.svg)
+
+_Legal routes only, one rung at a time from the top_
+
+That order is the **full-text ladder**. It is used in deep mode, only for the papers I pick.
+
+1. `oa.mjs <doi>`: checks OpenAlex's `best_oa_location`, the same data Unpaywall serves. Unpaywall's `/v2/search` was retired on 2026-09-18 and DOI lookup needs a real email, so it runs only when `UNPAYWALL_EMAIL` is set.
+2. arXiv, Europe PMC and CORE copies from the same output.
+3. A plain fetch of the publisher landing page. ACM DL, ScienceDirect, science.org, PNAS, Wiley, AAAI OJS and SIAM answer scripts with Cloudflare, so they are not retried.
+4. Claude in Chrome with my university subscription. The agent asks before each paywalled paper, opens one at a time, and I sign in myself. The agent never types credentials and leaves the tab open. Browser-based research is covered further in [CH8. report-research](/en/blog/side-projects/skills/skills-08-report-research/).
+5. Author request: a short email draft for me to send, or a pointer to the author's homepage or institutional repository.
+
+Sci-Hub, LibGen, Anna's Archive, Z-Library, paywall-bypass extensions and archive mirrors of paywalled pages are never used, even when a search result or page offers them. If no legal copy exists, the answer says so and stays on the abstract.
+
+## 7. API limits
+
+Every library has its own rules at the loan desk. Some serve one person at a time; some want a member card.
+
+The terms are **rate limit** and **bot blocking**. The skill records the values as checked directly on 2026-11-27.
+
+| Source           | Limit                                                                          |
+| ---------------- | ------------------------------------------------------------------------------ |
+| OpenAlex         | keyless 10 req/s, small shared daily budget. Abstracts come as inverted index  |
+| Semantic Scholar | keyless calls share one pool. HTTP 429 on 8 of 8 calls that day                |
+| arXiv            | 1 request per 3 s, one connection. No citation counts                          |
+| Crossref         | search on public pool 1 req/s. Many unreviewed posted-content items, deep only |
+| DBLP             | answers scripts with an Anubis bot page (6 of 6 that day)                      |
+| KCI              | API needs a key I don't have. Search `kci.go.kr` in Chrome, or use `--ko`      |
+
+When S2 returns 429, the script retries twice, 3 s apart (about 7 s lost per call), and carries on without that source. Because of arXiv's limit, quick mode leaves about 3 s between calls. Crossref's polite pool asks for contact details in the User-Agent, but the scripts use only a generic name like `paper-search-skill/1.0` and never my email.
+
+## 8. Saving results
+
+This is deciding which drawer the research notes go in. At first I couldn't pick one, so the skill said "not decided".
+
+The term is **output location**. Step 7 in the first commit read "OPEN, not decided yet". Two minutes later, in the second commit, I decided that deep research happens inside a project, and the location became the project's Drive folder `projects-docs/<project>`. That afternoon the third commit changed the format from Google Doc to docx. It follows the shared rule that documents are docx and sheets are xlsx, which lives in [CH2. docs-style](/en/blog/side-projects/skills/skills-02-docs-style/).
+
+- File name: `<project> 문헌 조사 - <topic> (YYYY-MM-DD).docx` ("literature review"), with the date checked by `date +%F`.
+- Never write into the stage-document Docs in the same folder. The docs-sync workflow overwrites them from the repo's `docs/specs` on every push.
+- Contents: the pick table, per-paper summaries (marked read in full or abstract only), the overall map, open gaps, and a source list with DOI or arXiv links and the DB behind each citation count.
+
+Copying the docx into the Drive sync folder on the Mac, and the Drive location on Windows, have not been tried for real yet. The skill marks them "untested"; if it fails, the agent hands over the local file and I move it.
+
+## Test log
+
+From the session that built the skill on 2026-11-27. Times are wall clock as measured by that session.
+
+| Test                                          | Result                                                       |
+| --------------------------------------------- | ------------------------------------------------------------ |
+| quick, first run (a Riemann zeta question)    | about 1 min 40 s. 1 WebSearch, 1 web fetch, 4 API searches   |
+| deep search and merge (7 queries)             | 1 min 17 s. 266 papers → 226                                 |
+| quick, second run (twenty-questions question) | 13 searches, 1 min 9 s. No paper directly on the topic found |
+| Semantic Scholar keyless                      | HTTP 429 on 8/8                                              |
+| DBLP from scripts                             | Anubis page on 6/6                                           |
+
+The second quick run asked about something no paper covers, so reporting "not found" was the right result. The step that saves deep-mode results to Drive has not run in practice yet.
+
+## By the numbers
+
+As of 2026-11-28. Sources: `wc -c`, `wc -l` and `git log -- claude/skills/paper-search` in the dotfiles repo.
+
+| Item                        | Value                       |
+| --------------------------- | --------------------------- |
+| `SKILL.md`                  | 10,584 B, 76 lines          |
+| `scripts/search.mjs`        | 12,181 B, 204 lines         |
+| `scripts/venue.mjs`         | 4,577 B, 107 lines          |
+| `scripts/oa.mjs`            | 4,859 B, 79 lines           |
+| `data/venues.tsv`           | 13,215 B, 112 rows + header |
+| Skill folder total          | 45,416 B                    |
+| Script dependencies         | 0 (Node 18+ built-in fetch) |
+| Commits touching this skill | 3 (all on 2026-11-27)       |
+
+## Glossary
+
+| Term                                                                                               | Meaning                                                                                                             |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| [skill](/en/blog/side-projects/devblog/devblog-04-agent-environment/#3-pulling-out-what-is-needed) | A bundle of procedure whose one-paragraph description is always visible and whose body opens when a trigger matches |
+| abstract                                                                                           | The summary paragraph at the top of a paper; what most APIs return instead of the body                              |
+| venue                                                                                              | The conference or journal a paper appears in                                                                        |
+| DOI                                                                                                | A persistent identifier attached to each paper                                                                      |
+| deduplication                                                                                      | Merging copies of the same paper from several sources into one                                                      |
+| open access (OA)                                                                                   | A copy anyone can read without a subscription                                                                       |
+| full-text ladder                                                                                   | The fixed order of legal routes used to find a paper's body                                                         |
+| crank                                                                                              | A non-expert paper making large claims without support                                                              |
+| rate limit                                                                                         | The cap on how many requests an API accepts in a given time                                                         |
+| HTTP 429                                                                                           | The response code for too many requests                                                                             |
+| h5-index                                                                                           | The largest h such that h papers from the last 5 years have at least h citations each                               |
+| CORE ICORE2026                                                                                     | A ranking that grades computing conferences from A\* to C                                                           |
+| SJR quartile                                                                                       | A quarter of a field's journals, ranked by influence                                                                |

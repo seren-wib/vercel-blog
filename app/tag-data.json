@@ -1,13 +1,13 @@
 {
-  "cloudflare": 2,
-  "auth": 2,
   "devops": 2,
+  "auth": 2,
+  "cloudflare": 2,
+  "git": 4,
   "hardware": 2,
   "payments": 2,
-  "git": 4,
-  "web": 2,
   "sql": 2,
   "unity": 4,
+  "web": 2,
   "ai": 10,
   "cloud-computing": 15,
   "computer-systems": 8,
@@ -19,9 +19,9 @@
   "software-engineering": 12,
   "hackathon": 2,
   "woowangthon": 36,
-  "project-docs": 10,
-  "devblog": 8,
   "coffee-shop": 14,
-  "stairno": 12,
-  "skills": 6
+  "devblog": 8,
+  "project-docs": 10,
+  "skills": 8,
+  "stairno": 12
 }

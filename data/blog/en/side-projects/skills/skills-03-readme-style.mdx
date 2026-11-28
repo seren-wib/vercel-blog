@@ -1,0 +1,167 @@
+---
+title: 'CH3. readme-style: one format for public repo READMEs'
+date: '2026-11-28'
+tags: ['Skills']
+draft: false
+aiGenerated: true
+summary: 'How the section order, badges and real-output terminal images of my public READMEs ended up in one skill'
+---
+
+> Part 3 of the skills series. What a skill is, and why these rules live in skills instead of the instruction file, is in [CH0. Skills overview](/en/blog/side-projects/skills/skills-00-overview/).
+
+## Summary
+
+On 2026-10-11, after writing the README for the agent-commonplace repo, I decided every public repo README would follow that format from then on. The same day I stripped that README down to a skeleton and made the `readme-style` skill. The skill is three files, 241 lines, and it has not been changed since. Five of my public repos follow the format today, and the script that draws terminal images has produced 31 images across 9 blog posts.
+
+## 1. What the skill does
+
+Think of a résumé template. When the order of the boxes is fixed, the writer only worries about content and the reader knows where to look.
+
+![16 README sections in four groups: Landing, Why and Quickstart, How it works, Reference](/static/images/skills-03-readme-style/section-order.svg)
+
+_16 README sections in four groups: Landing, Why and Quickstart, How it works, Reference_
+
+In real terms, the skill fixes a README's **section order** and ships a **template**. The skill folder has three files.
+
+- **`SKILL.md`**: the order of the 16 sections, image rules, and what to check before finishing.
+- **`template.md`**: a README skeleton where only the placeholders (`<repo-name>`, `<owner>/<repo>`) need filling.
+- **`terminal-svg.js`**: a script that turns a command's real output into a terminal-window SVG.
+
+The section order reads as four groups, as in the diagram. The top is where a first-time visitor looks (nav row, intro paragraph, badges), the middle is what someone installing follows (Quickstart), and the bottom is where someone who got stuck comes looking (FAQ). The README is written in English, and there is no logo unless asked. The rule about writing public documents in English lives in [CH2. docs-style](/en/blog/side-projects/skills/skills-02-docs-style/).
+
+When the skill opens is written in its description: writing a README, rewriting one, or preparing a repo for publishing. The instruction file only lists the word "`readme-style`(README)"; the body is read only at that point.
+
+## 2. The day the format appeared
+
+Think of seeing a house you like and tracing its blueprint as is.
+
+On 2026-10-11 I wrote the agent-commonplace README. It borrowed the structure of the airllm project's README. I liked how it came out, so I decided READMEs would use this format from then on. That night I took the content out of that README, kept only the structure as `template.md`, and moved the rules I had followed while writing it into `SKILL.md`.
+
+The same commit also added a global memory file. It was a one-line rule: "open this skill when writing a README". On 2026-11-13, when every working rule in global memory moved into the instruction file and skills, that memory file was deleted, and now it survives only as one line in the instruction file's skill list.
+
+| Date       | Event                                                             |
+| ---------- | ----------------------------------------------------------------- |
+| 2026-10-11 | agent-commonplace README written, first skill commit the same day |
+| 2026-10-15 | first stairno.com README commit                                   |
+| 2026-10-17 | first account.stairno.com and stairno-ui README commits           |
+| 2026-11-13 | README rule removed from global memory, moved to the skill list   |
+| 2026-11-17 | first random-idea-generator README commit                         |
+
+Only one commit has ever touched the skill folder: the one that created it. Two other skills point to it. `docs-style` hands off with "README layout: `readme-style`", and the skill behind the [project-docs series](/en/blog/side-projects/project-docs/project-docs-00-overview/) says, in its repo-docs row, that the README is written with this skill.
+
+## 3. Rules for the first screen
+
+Think of a shop sign. Put a dish on the sign that isn't on the menu and customers walk in and walk out.
+
+The first screen of the README is three things.
+
+- **nav row**: one line right under the title, bold anchor links joined by `|`. It jumps straight to sections like Quickstart, How it works, Configuration and FAQ.
+- **intro paragraph**: one paragraph. Bold what it does, who it is for, and the one-line difference from alternatives. No marketing filler.
+- **badges**: two rows of shields.io badges. The first row is project facts (stars, CI status, version, license, runtime version, platforms), the second is what it supports and PRs welcome.
+
+```md
+# <repo-name>
+
+[**Quickstart**](#quickstart) | [**How it works**](#how-it-works) | [**FAQ**](#faq)
+```
+
+The most important badge rule is "only badges that are true and won't render as broken or 0". A sponsors badge with no sponsors, or a chat badge with no chat room, leaves an empty spot on the first screen, so empty badges are left out entirely. The star badge and the Star History chart need the GitHub repo to exist, though, so they look empty before the first push, and the skill makes me say so in the report.
+
+Below come `## Updates` (newest first, `[YYYY/MM/DD] **vX.Y.Z, summary.**`), the Star History chart, and the table of contents. Before finishing, I check that the anchors in the nav row and the table of contents match the real headings.
+
+## 4. Follow the Quickstart yourself
+
+Think of cooking a recipe from start to finish before printing the cookbook. If the written steps don't work, the book is wrong.
+
+In real terms, this is verification by running the README's Quickstart literally in a **throwaway environment**. The skill's "Before finishing" section requires it.
+
+- Override `HOME` with a temporary folder so my real settings are untouched.
+- If a remote is needed, create a local bare repo and use it instead.
+- If a step fails, fix the README or the code, and repeat until every step passes.
+- At the end, report what was verified and what wasn't.
+
+The shape of the Quickstart is fixed too. `### Requirements` comes first, then numbered steps like `### 1. …`, each with a command code block. The one thing people must not get wrong goes in a single `> [!IMPORTANT]` alert. The last step is "check it works", and that is where the terminal image goes.
+
+The FAQ comes from the same idea. With headings like `### 1. <exact error message>`, someone who is stuck can copy the error and find it with in-page search. The cause and the fixing command sit under it.
+
+Why these rules appeared, for example whether a README once went out with a Quickstart that didn't work, is not recorded (no record). They were in the skill's first commit.
+
+## 5. Terminal images from real output only
+
+Think of a rule that only photos actually taken get used, never composites.
+
+![Making a terminal image: run the command, output.txt, terminal-svg.js, out.svg, headless render check](/static/images/skills-03-readme-style/terminal-pipeline.svg)
+
+_Making a terminal image: run the command, output.txt, terminal-svg.js, out.svg, headless render check_
+
+In real terms, this is a pipeline that captures a real command's **stdout** to a file and renders it as an SVG. The shoot is running the command, the film is `output.txt`, developing is `terminal-svg.js`, and the inspection is a headless browser render.
+
+1. Run the command for real. If needed, do it in the throwaway environment from section 4.
+2. Save the output to a text file and replace home paths with `~`.
+3. Draw it with `node ~/.claude/skills/readme-style/terminal-svg.js <output.txt> <out.svg> [title] [command]`.
+4. On Windows, take a PNG with `msedge --headless=new --screenshot=<png>` and open it. Fix text that overflows its box or lines that overlap.
+
+The script is 57 lines and uses only Node's built-in `fs`. What it does is simple. The window is a fixed 900 px wide with the height set by the line count, and the top bar gets three red, yellow and green dots like a macOS window. Then each line gets colour from a few regular expressions.
+
+- In lines shaped like `Label   value`, the label is blue.
+- Words like `ok`, `passed`, `synced` and `done` are green.
+- `error`, `failed` and `fatal` are red.
+- An ISO timestamp at the start of a line is grey.
+- Backslashes in Windows paths become `/`.
+
+The image below is real output drawn with this script. It is the result of running `wc -l` in the skill folder, unchanged.
+
+![wc -l output drawn with terminal-svg.js: SKILL.md 40 lines, template.md 144 lines, terminal-svg.js 57 lines, 241 total](/static/images/skills-03-readme-style/terminal-wc.svg)
+
+_wc -l output drawn with terminal-svg.js: SKILL.md 40 lines, template.md 144 lines, terminal-svg.js 57 lines, 241 total_
+
+The rule against inventing output is written into the skill as "Never invent output". An image in a README is a promise that this is the screen a user will see when they type the same thing.
+
+The diagram half of the same rule is there too. README SVGs go in `docs/images/`, and each one sits on a light grey background card (`#f6f8fa` fill, `#d0d7de` stroke, corner radius 16), so the text doesn't disappear into the background in GitHub's dark mode. For accessibility they get `role="img"` and an `aria-label`, and they are embedded centred.
+
+## 6. Where the format is used
+
+Think of five forms filled in on the same template. The boxes are the same; how much goes in them depends on the project.
+
+As of 2026-11-28 I have 22 public repos, 5 of them forks. Of the remaining 17, five READMEs have both `## Star History` and a numbered FAQ, which is to say they follow this format. The values come from fetching each README through the GitHub API and counting headings.
+
+| Repo                  | First README commit | README commits | `##` sections | FAQ items | `<details>` | SVGs |
+| --------------------- | ------------------- | -------------- | ------------- | --------- | ----------- | ---- |
+| agent-commonplace     | 2026-10-11          | 1              | 15            | 11        | 6           | 3    |
+| stairno.com           | 2026-10-15          | 10             | 12            | 6         | 4           | 2    |
+| account.stairno.com   | 2026-10-17          | 6              | 13            | 11        | 2           | 2    |
+| stairno-ui            | 2026-10-17          | 6              | 12            | 10        | 6           | 2    |
+| random-idea-generator | 2026-11-17          | 1              | 12            | 6         | 3           | 0    |
+
+The other 12 READMEs have neither section. Three of them, stairnoworks.com, stairnolabs.com and stairnogames.com, are placeholder READMEs of 101 bytes or less. My GitHub profile README deliberately uses a different format, which [CH4. profile-edit](/en/blog/side-projects/skills/skills-04-profile-edit/) covers.
+
+`terminal-svg.js` has been used outside READMEs too. On 2026-11-08, while writing the hackathon series, the work was on remote servers so there were hardly any photos, and I decided to save the real output of key commands as I went and draw it with this script. School and Tailscale IPs, MAC addresses, account names and original hostnames were masked before drawing. The result is 31 terminal images across 9 posts, from [Woowangthon 7](/en/blog/hackathon/woowangthon/woowangthon-07-leader-vllm/) through part 15. The rules for blog posts themselves are in [CH1. blog-post](/en/blog/side-projects/skills/skills-01-blog-post/).
+
+## By the numbers
+
+As of 2026-11-28. Sources: `wc` on the skill folder, the dotfiles `git log`, each repo's README fetched through the GitHub API, and a grep over the blog repo's `public/static/images/`.
+
+| Item                                     | Value                           |
+| ---------------------------------------- | ------------------------------- |
+| Skill files                              | 3 files, 241 lines, 9,878 bytes |
+| `SKILL.md` / `template.md` / script      | 40 / 144 / 57 lines             |
+| Commits that changed the skill folder    | 1 (the first, 2026-10-11)       |
+| README sections in order                 | 16                              |
+| Public repos following the format        | 5 (of 17 non-fork repos)        |
+| Blog images drawn with `terminal-svg.js` | 31 images, 9 posts              |
+
+## Glossary
+
+| Term                                                       | Meaning                                                                             |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| nav row                                                    | One line of anchor links to the main sections, right under the title                |
+| badge                                                      | A small status image drawn by shields.io: version, CI, license and so on            |
+| Star History                                               | A chart of a GitHub repo's star count over time, drawn by star-history.com          |
+| Quickstart                                                 | The minimal numbered steps from install to a working check                          |
+| GitHub alert                                               | A highlighted box written as `> [!IMPORTANT]`                                       |
+| `<details>`                                                | An HTML block that expands when clicked                                             |
+| throwaway environment                                      | An environment made for checking and then thrown away; real settings stay untouched |
+| bare repo                                                  | A git repository with history but no working folder; can stand in for a remote      |
+| stdout                                                     | The standard output a command writes to the screen                                  |
+| headless browser                                           | A browser that renders without opening a window; used to check screenshots          |
+| [skill](/en/blog/side-projects/skills/skills-00-overview/) | A bundle of task-specific instructions opened only when needed                      |

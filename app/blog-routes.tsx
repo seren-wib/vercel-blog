@@ -10,14 +10,23 @@ import {
   parentHref,
   parentOf,
   sortByChapter,
+  withDeclared,
 } from '@/data/categories'
 import { getDictionary, locales, type Locale } from '@/data/i18n'
 import { genPageMetadata } from 'app/seo'
 
 export const POSTS_PER_PAGE = 5
 
-/** Published post counts per locale and category path, written by contentlayer.config.ts */
-export const categoryCounts = categoryData as Record<string, Record<string, number>>
+/**
+ * Published post counts per locale and category path (written by contentlayer.config.ts), plus every
+ * category declared in data/categoryTree.js at 0, so a category with no posts yet still has a page.
+ */
+export const categoryCounts: Record<string, Record<string, number>> = Object.fromEntries(
+  locales.map((locale) => [
+    locale,
+    withDeclared((categoryData as Record<string, Record<string, number>>)[locale] ?? {}),
+  ])
+)
 
 /**
  * What a URL under /<locale>/blog/ shows (see data/categories.ts for the URL shapes).
@@ -44,7 +53,19 @@ const listCount = (locale: Locale, list: BlogList) =>
     ? parentCount(locale, list.parent)
     : (categoryCounts[locale]?.[list.categoryPath] ?? 0)
 
+/** Whether the list exists in this locale: a known category path, or a parent of one */
+const listExists = (locale: Locale, list: BlogList) => {
+  const paths = Object.keys(categoryCounts[locale] ?? {})
+  return list.kind === 'parent'
+    ? paths.some((path) => parentOf(path) === list.parent)
+    : paths.includes(list.categoryPath)
+}
+
 const totalPages = (count: number) => Math.ceil(count / POSTS_PER_PAGE)
+
+/** Pages of a list; an existing list with no posts still has page 1 (the empty state) */
+const listPages = (locale: Locale, list: BlogList) =>
+  listExists(locale, list) ? Math.max(1, totalPages(listCount(locale, list))) : 0
 
 /** Resolve the segments after /<locale>/blog/ (catch-all route). Posts win over list pages. */
 export function resolveBlogRoute(locale: Locale, segments: string[]): BlogRoute | null {
@@ -65,8 +86,7 @@ export function resolveBlogRoute(locale: Locale, segments: string[]): BlogRoute 
     list = { kind: 'category', categoryPath: listSegments.join('/'), page }
   }
   if (!list) return null
-  const pages = totalPages(listCount(locale, list))
-  return page >= 1 && page <= pages ? list : null
+  return page >= 1 && page <= listPages(locale, list) ? list : null
 }
 
 /** Every list page of the catch-all route (parent and category pages, with their /page/<n>) */
@@ -81,7 +101,7 @@ export function listStaticParams() {
     ]
     return lists.flatMap(([segments, count]) => [
       { locale, slug: segments },
-      ...Array.from({ length: totalPages(count) }, (_, i) => ({
+      ...Array.from({ length: Math.max(1, totalPages(count)) }, (_, i) => ({
         locale,
         slug: [...segments, 'page', String(i + 1)],
       })),
@@ -104,7 +124,7 @@ export function listMetadata(locale: Locale, list: BlogList) {
     description: getDictionary(locale).categoryPosts(label),
     locale,
     path: listPath(list),
-    availableLocales: locales.filter((l) => totalPages(listCount(l, list)) >= list.page),
+    availableLocales: locales.filter((l) => listPages(l, list) >= list.page),
   })
 }
 
@@ -137,7 +157,7 @@ export function BlogListPage({ locale, list }: { locale: Locale; list: BlogList 
         POSTS_PER_PAGE * (list.page - 1),
         POSTS_PER_PAGE * list.page
       )}
-      pagination={{ currentPage: list.page, totalPages: totalPages(posts.length) }}
+      pagination={{ currentPage: list.page, totalPages: Math.max(1, totalPages(posts.length)) }}
       title={listTitle(locale, list)}
       current={{
         parent: parent || undefined,

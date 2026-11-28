@@ -1,21 +1,32 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded by next.config.js as CommonJS
-const { parents, topLevel } = require('./categoryTree')
-
 /**
- * Categories that moved under a parent: /blog/<category>/... -> /blog/<parent>/<category>/...
- * Every child in data/categoryTree.js counts (a child that never existed at the top level only adds a
- * harmless rule). A child must not share its name with a parent or a top-level category, or these rules
- * would catch that one's URLs.
+ * Categories that lived at /blog/<category>/ before the parent level: old name -> '<parent>/<category>'.
+ * An explicit list, not every child in data/categoryTree.js: child names can repeat across parents
+ * (dev/hardware, side-projects/hardware), and only these old URLs ever existed.
  */
-const movedCategories = Object.fromEntries(
-  Object.entries(parents).flatMap(([parent, { children }]) =>
-    children.map((child) => [child, `${parent}/${child}`])
-  )
-)
-for (const child of Object.keys(movedCategories)) {
-  if (parents[child] || topLevel.includes(child)) {
-    throw new Error(`Category "${child}" has the same name as a parent or a top-level category`)
-  }
+const movedCategories = {
+  unity: 'dev/unity',
+  git: 'dev/git',
+  sql: 'dev/sql',
+  web: 'dev/web',
+  auth: 'dev/auth',
+  payments: 'dev/payments',
+  devops: 'dev/devops',
+  cloudflare: 'dev/cloudflare',
+  hardware: 'dev/hardware',
+  'computer-systems': 'cs-fundamentals/computer-systems',
+  'data-structures': 'cs-fundamentals/data-structures',
+  'software-engineering': 'cs-fundamentals/software-engineering',
+  'database-systems': 'cs-fundamentals/database-systems',
+  'information-retrieval': 'cs-fundamentals/information-retrieval',
+  network: 'cs-fundamentals/network',
+  os: 'cs-fundamentals/os',
+  ai: 'cs-fundamentals/ai',
+  'cloud-computing': 'cs-fundamentals/cloud-computing',
+  stairno: 'side-projects/stairno',
+  devblog: 'side-projects/devblog',
+  'project-docs': 'side-projects/project-docs',
+  'coffee-shop': 'side-projects/coffee-shop',
+  woowangthon: 'hackathon/woowangthon',
 }
 
 /**
@@ -28,7 +39,18 @@ const categoriesTurnedParents = {
     'hackathon-grokbot-bus-transfer': 'hackathon/grokbot/hackathon-grokbot-bus-transfer',
   },
   'side-projects': {
-    'side-projects-random-idea-generator': 'side-projects/random-idea/random-idea-generator',
+    'side-projects-random-idea-generator': 'side-projects/skills/skills-random-idea-generator',
+  },
+}
+
+/**
+ * Categories renamed under a parent: old '<parent>/<category>' -> current, with the posts that moved.
+ * side-projects/random-idea lived for one deploy before its post moved to side-projects/skills.
+ */
+const renamedChildCategories = {
+  'side-projects/random-idea': {
+    to: 'side-projects/skills',
+    posts: { 'random-idea-generator': 'skills-random-idea-generator' },
   },
 }
 
@@ -38,6 +60,13 @@ function currentPostPath(oldPath) {
   if (movedCategories[category]) return [movedCategories[category], ...rest].join('/')
   return categoriesTurnedParents[category]?.[rest.join('/')] ?? oldPath
 }
+
+/** Old category names grouped by their parent, for one regex rule per parent */
+const movedByParent = Object.entries(movedCategories).reduce((groups, [name, current]) => {
+  const parent = current.split('/')[0]
+  groups[parent] = [...(groups[parent] ?? []), name]
+  return groups
+}, {})
 
 /**
  * Old flat post URLs (/blog/<slug>) from before posts were split into category folders.
@@ -157,7 +186,7 @@ const replacedPostRedirects = prefixes.flatMap((prefix) =>
  */
 const tagRedirects = [
   { source: '/tags', destination: '/kr/', permanent: true },
-  ...Object.entries(parents).flatMap(([parent, { children }]) => {
+  ...Object.entries(movedByParent).flatMap(([parent, children]) => {
     const tag = `:tag(${children.join('|')})`
     return [
       { source: `/tags/${tag}`, destination: `/kr/blog/${parent}/:tag/`, permanent: true },
@@ -212,7 +241,7 @@ const removedPageRedirects = [
  * Posts and category pages from before the parent categories, one rule per parent.
  */
 const movedCategoryRedirects = prefixes.flatMap(({ from, to }) => [
-  ...Object.entries(parents).flatMap(([parent, { children }]) => {
+  ...Object.entries(movedByParent).flatMap(([parent, children]) => {
     const category = `:category(${children.join('|')})`
     return [
       {
@@ -246,6 +275,19 @@ const movedCategoryRedirects = prefixes.flatMap(({ from, to }) => [
     ...Object.entries(posts).map(([file, current]) => ({
       source: `${from}/blog/${parent}/${file}`,
       destination: `${to}/blog/${current}/`,
+      permanent: true,
+    })),
+  ]),
+  ...Object.entries(renamedChildCategories).flatMap(([old, { to: current, posts }]) => [
+    { source: `${from}/blog/${old}`, destination: `${to}/blog/${current}/`, permanent: true },
+    {
+      source: `${from}/blog/${old}/page/:page`,
+      destination: `${to}/blog/${current}/page/:page/`,
+      permanent: true,
+    },
+    ...Object.entries(posts).map(([file, newFile]) => ({
+      source: `${from}/blog/${old}/${file}`,
+      destination: `${to}/blog/${current}/${newFile}/`,
       permanent: true,
     })),
   ]),

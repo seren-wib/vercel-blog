@@ -11,6 +11,7 @@ import categoryData from 'app/category-data.json'
 import {
   categoryHref,
   categoryTree,
+  withDeclared,
   getCategoryLabel,
   getParentLabel,
   parentHref,
@@ -85,7 +86,11 @@ function Pagination({ totalPages, currentPage, locale }: PaginationProps & { loc
   )
 }
 
-/** A sidebar entry: bold text when it is the current page, a link otherwise */
+/**
+ * A sidebar entry: bold text when it is the current page, a link otherwise.
+ * Name and count are separate flex items so a long name never pushes "(6)" onto a line of its own:
+ * the name truncates (full name in the title tooltip) and the count stays on the same line.
+ */
 function SidebarLink({
   href,
   label,
@@ -101,25 +106,29 @@ function SidebarLink({
   ariaLabel: string
   strong?: boolean
 }) {
-  const text = `${label} (${count})`
+  const content = (
+    <>
+      <span className="min-w-0 truncate" title={label}>
+        {label}
+      </span>
+      <span className="ml-1 shrink-0 whitespace-nowrap">({count})</span>
+    </>
+  )
+  const layout = 'flex min-w-0 items-baseline py-2 pr-1 pl-3 text-sm uppercase'
   if (active) {
-    return (
-      <h3 className="inline px-3 py-2 text-sm font-bold text-gray-950 uppercase dark:text-white">
-        {text}
-      </h3>
-    )
+    return <h3 className={`${layout} font-bold text-gray-950 dark:text-white`}>{content}</h3>
   }
   return (
     <Link
       href={href}
-      className={`hover:text-primary-500 dark:hover:text-primary-500 px-3 py-2 text-sm uppercase ${
+      className={`${layout} hover:text-primary-500 dark:hover:text-primary-500 ${
         strong
           ? 'font-semibold text-gray-700 dark:text-gray-200'
           : 'font-medium text-gray-500 dark:text-gray-300'
       }`}
       aria-label={ariaLabel}
     >
-      {text}
+      {content}
     </Link>
   )
 }
@@ -137,7 +146,7 @@ export default function ListLayoutWithCategories({
   const pathname = usePathname()
   const dict = getDictionary(locale)
   const categoryCounts = (categoryData as Record<string, Record<string, number>>)[locale] ?? {}
-  const tree = categoryTree(categoryCounts)
+  const tree = categoryTree(withDeclared(categoryCounts))
   const currentParentNode = tree.find(
     (node) => node.kind === 'parent' && node.parent === current.parent
   )
@@ -218,7 +227,7 @@ export default function ListLayoutWithCategories({
         </div>
         <div className="flex sm:space-x-24">
           <div className="hidden h-full max-h-screen max-w-[280px] min-w-[280px] flex-wrap overflow-auto rounded-sm bg-white pt-5 shadow-md ring-1 ring-gray-200 sm:flex dark:bg-gray-950/60 dark:shadow-gray-800/40 dark:ring-gray-800">
-            <div className="px-6 py-4">
+            <div className="w-full min-w-0 py-4 pr-2 pl-5">
               {isAllPosts ? (
                 <h3 className="font-bold text-gray-950 uppercase dark:text-white">
                   {dict.allPosts}
@@ -309,6 +318,9 @@ export default function ListLayoutWithCategories({
             </div>
           </div>
           <div>
+            {displayPosts.length === 0 && (
+              <p className="py-5 text-gray-500 dark:text-gray-400">{dict.emptyCategory}</p>
+            )}
             <ul>
               {displayPosts.map((post) => {
                 const { path, date, title, summary, categoryPath, aiGenerated } = post

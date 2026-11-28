@@ -111,6 +111,16 @@ function checkUrlCollisions(allBlogs) {
         throw new Error(`Post ${file._raw.sourceFilePath} has the same URL as a category page`)
       }
     }
+    // File names must be unique across the blog: images live in public/static/images/<file name>/,
+    // and two categories can share a name (dev/hardware, side-projects/hardware)
+    const seen = new Map<string, string>()
+    for (const file of posts) {
+      const name = file._raw.sourceFileName
+      if (seen.has(name)) {
+        throw new Error(`${file._raw.sourceFilePath} has the same file name as ${seen.get(name)}`)
+      }
+      seen.set(name, file._raw.sourceFilePath)
+    }
   }
 }
 

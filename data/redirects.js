@@ -182,6 +182,38 @@ const replacedPostRedirects = prefixes.flatMap((prefix) =>
 )
 
 /**
+ * Term-only posts whose entries moved into the glossary (/<locale>/glossary/). The category stays.
+ */
+const glossaryPosts = [
+  'dev/auth/auth-00-basics',
+  'dev/cloudflare/cloudflare-00-basics',
+  'dev/devops/devops-00-basics',
+  'dev/payments/payments-00-basics',
+  'dev/web/web-00-basics',
+]
+
+const glossaryPostRedirects = prefixes.flatMap((prefix) =>
+  glossaryPosts.map((post) => ({
+    source: `${prefix.from}/blog/${post}`,
+    destination: `${prefix.to}/glossary/`,
+    permanent: true,
+  }))
+)
+
+/**
+ * Posts merged into another post of the same category: '<parent>/<category>/<file>' -> merged post.
+ */
+const mergedPosts = {}
+
+const mergedPostRedirects = prefixes.flatMap((prefix) =>
+  Object.entries(mergedPosts).map(([from, to]) => ({
+    source: `${prefix.from}/blog/${from}`,
+    destination: `${prefix.to}/blog/${to}/`,
+    permanent: true,
+  }))
+)
+
+/**
  * Tag pages were replaced by category pages. Every tag slug matches a category folder name.
  */
 const tagRedirects = [
@@ -297,6 +329,8 @@ const movedCategoryRedirects = prefixes.flatMap(({ from, to }) => [
 module.exports = [
   ...postRedirects,
   ...replacedPostRedirects,
+  ...glossaryPostRedirects,
+  ...mergedPostRedirects,
   ...removedPageRedirects,
   ...tagRedirects,
   ...listRedirects,

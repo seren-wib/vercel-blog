@@ -194,6 +194,8 @@ export const Blog = defineDocumentType(() => ({
     layout: { type: 'string' },
     bibliography: { type: 'string' },
     canonicalUrl: { type: 'string' },
+    // 1 beginner, 2 intermediate, 3 advanced; non-course posts only
+    level: { type: 'number' },
   },
   computedFields: {
     ...computedFields,

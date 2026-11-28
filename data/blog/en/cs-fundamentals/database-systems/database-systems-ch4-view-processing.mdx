@@ -10,20 +10,20 @@ summary: 'Query modification, view materialization, incremental update, immediat
 
 ## 1. How views are processed
 
-| Approach                 | What it does                                                               | Pros and cons                                                              |
-| ------------------------ | -------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| **Query modification**   | Rewrites a query on the view into a query on the base tables and runs that | Nothing stored, joins every time                                           |
-| **View materialization** | Builds the view as a real table and keeps it for a while                   | Fast, but must be updated when the base tables change (incremental update) |
+| Approach                                                  | What it does                                                                                      | Pros and cons                                                                                                                    |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **[Query modification](glossary:query-modification)**     | Rewrites a query on the view into a query on the [base tables](glossary:base-table) and runs that | Nothing stored, [joins](glossary:join) every time                                                                                |
+| **[View materialization](glossary:view-materialization)** | Builds the view as a real table and keeps it for a while                                          | Fast, but must be updated when the [base tables](glossary:base-table) change ([incremental update](glossary:incremental-update)) |
 
-| When a stored view is updated | When                              | Problem                          |
-| ----------------------------- | --------------------------------- | -------------------------------- |
-| Immediate                     | As soon as the base tables change | Updates even when nobody uses it |
-| Lazy                          | When a query hits the view        | Old values until then            |
-| Periodic                      | Periodically                      | Results may not be up to date    |
+| When a stored view is updated          | When                                                     | Problem                          |
+| -------------------------------------- | -------------------------------------------------------- | -------------------------------- |
+| [Immediate](glossary:immediate-update) | As soon as the [base tables](glossary:base-table) change | Updates even when nobody uses it |
+| [Lazy](glossary:lazy-update)           | When a query hits the view                               | Old values until then            |
+| [Periodic](glossary:periodic-update)   | Periodically                                             | Results may not be up to date    |
 
 ## 2. Numbers to memorize
 
-| How many | What                       |
-| -------- | -------------------------- |
-| 2        | View processing approaches |
-| 3        | View update timings        |
+| How many | What                                        |
+| -------- | ------------------------------------------- |
+| 2        | [View](glossary:view) processing approaches |
+| 3        | [View](glossary:view) update timings        |

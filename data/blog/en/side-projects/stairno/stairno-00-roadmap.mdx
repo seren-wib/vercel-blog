@@ -1,136 +1,78 @@
 ---
-title: 'Stairno 0. The Whole Roadmap'
+title: 'Stairno 0. Roadmap and Shared Design'
 date: '2026-10-20'
 tags: ['Stairno']
 draft: false
-summary: 'What Stairno is, why there are four sites but one account, the 10-step roadmap and where it stands (step 4 done, step 5 next), the series contents and the tools that appear in it'
+summary: 'Stairno: four sites and one account, a 10-step roadmap, and step 1, the shared design package @stairno/ui'
+level: 2
 ---
 
-> The first post in a development log of Stairno, a brand I build on my own. It is written so that non-developers can follow from the start. When a term is new, its link takes you to that entry in a glossary post.
+## 0. Introduction
 
-## 1. What is Stairno
+Run separately, my freelance work, games, and small programs and web services would mean three names, three sites and three accounts. For one person that is the same work done several times, so I tied them under one name. This post covers the overall structure and order, and the first job, the shared design package.
 
-Stairno is a **brand** that gathers the things I make under one name. I take freelance work for other people, make games, and build and sell small programs and web services. Run separately, those three would mean three names, three sites and three accounts. So I tied them together.
+In restaurant terms, Stairno is the name of a restaurant chain and the four branches are the four sites. Instead of a membership card per branch there is one card that works in all of them, and the head-office counter that issues cards and takes payments is the account center and the shared [API](glossary:api). The signboard and interior manual that every branch follows the same way is the [Design system](glossary:design-system), and a branch's address is its [Domain](glossary:domain). The name comes from _stairno_, "star" in Gothic; read in English it contains _stair_, so I chose it for a star climbing one step at a time from the ground. What I did: fixed the site structure and the account policy, wrote a 10-step roadmap, and pulled the look of the hub `stairno.com` out into the `@stairno/ui` package.
 
-The name comes from _stairno_, "star" in Gothic (an old Germanic language). Read in English, it contains _stair_. I chose it for the image of a star climbing one step at a time from the ground.
-
-## 2. Why four sites
+## 1. Four sites, one account
 
 ![Stairno's overall structure](/static/images/stairno-00-roadmap/structure.svg)
 
 _Solid lines are live today, dashed lines are planned (the labels in the diagram are in Korean)_
 
-| Site                 | Role                                                                                              |
-| -------------------- | ------------------------------------------------------------------------------------------------- |
-| **stairno.com**      | **The hub.** Introduces Stairno and sends people to each site. Sells nothing                      |
-| **stairnoworks.com** | **Works.** The freelance desk: requests, quotes, deposits, progress                               |
-| **stairnogames.com** | **Games.** The home of the game Vane                                                              |
-| **stairnolabs.com**  | **Labs.** Catalog and store for Stairno products. Desktop programs are bought and downloaded here |
+| Site                 | Role                                                                                      |
+| -------------------- | ----------------------------------------------------------------------------------------- |
+| **stairno.com**      | **The hub.** Introduces Stairno and sends people to each site. Sells nothing              |
+| **stairnoworks.com** | **Works.** The freelance desk: requests, quotes, deposits, progress                       |
+| **stairnogames.com** | **Games.** The home of the game Vane                                                      |
+| **stairnolabs.com**  | **Labs.** Catalog and store for products. Desktop programs are bought and downloaded here |
 
-They do completely different things, so they are separate sites. Someone looking to hire a freelancer and someone looking for a game have no reason to wander the same page. The hub is the front gate in between that only shows "this is what Stairno does". All four [domains](/en/blog/dev/web/web-00-basics/#domain) were bought on 17 October 2026.
+They do different things, so they are separate sites. All four [domains](glossary:domain) were bought on 17 October 2026.
 
-## 3. Why one account
+Four sites easily turn into four sign-ins and four payment systems. A sign-up form, a [Payment gateway](glossary:payment-gateway) and a refund process per site means doing the same work four times, with four times the bugs and security holes. So I decided to build it like an Amazon account.
 
-Four sites easily turn into four sign-ins and four payment systems: a sign-up form on every site, a [payment provider](/en/blog/dev/payments/payments-00-basics/#payment-provider) on every site, a refund process on every site. For someone running everything alone, that means doing the same work four times, with four times the bugs and security holes.
-
-So I decided to build it like an Amazon account.
-
-- **One Stairno account** signs you into every Stairno site and product except the hub
+- **One Stairno account** signs you into every site and product except the hub
 - **Register a card once**
-- See purchases, subscriptions and downloads in **one account center** (`account.stairno.com`)
-- Payments, subscriptions and entitlements are handled in **one shared [API](/en/blog/dev/web/web-00-basics/#api)** (`api.stairno.com`)
+- See purchases, subscriptions and downloads in the **account center** (`account.stairno.com`)
+- Payments, subscriptions and entitlements are handled in **one shared [API](glossary:api)** (`api.stairno.com`)
 
-The other sites do not build sign-in or payments themselves. They just call these two. That is why every arrow in the diagram above gathers in the middle band. The hub has no account screens and no payments, only an account menu in the header.
+The other sites just call these two, which is why every arrow in the diagram gathers in the middle band. The hub has no account screens and no payments.
 
-## 4. Roadmap
+## 2. The 10-step roadmap
 
-I set the order on 18 October 2026. There are no dates, only order.
+On 18 October I set the order only, with no dates.
 
-| Step | Task                                         | What it covers                                                                                                     | Status  |
-| ---- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------- |
-| 1    | Shared design package `stairno-ui`           | Pull the hub's colors, fonts, header and footer out so every site uses the same look                               | ✅ Done |
-| 2    | Account center documents                     | Project plan, requirements and design specifications. First, an experiment on whether sign-in works across domains | ✅ Done |
-| 3    | Account center, part 1: sign-in              | Sign-up, sign-in, verification mail, device management, a sign-in gateway for sites. Live                          | ✅ Done |
-| 4    | Account center, part 2: payments (test mode) | Card registration, one-time payments, subscriptions, refunds, payment mail. No real money moves                    | ✅ Done |
-| 5    | stairnolabs.com                              | Product catalog → payments and downloads. The first site to connect to Stairno accounts                            |         |
-| 6    | stairnoworks.com                             | Service introduction → requests, quotes, deposits                                                                  |         |
-| 7    | stairnogames.com                             | Vane introduction and dev diary                                                                                    |         |
-| 8    | First product launch                         | Open atlas-odyssey, a learning roadmap service, for free with Stairno accounts                                     |         |
-| 9    | Business registration → real payments        | Sign a contract with the payment provider and swap the test keys for real keys                                     |         |
-| 10   | Vane                                         | Starting from one playable section                                                                                 |         |
+| Step | Task                                                               | What it covers                                                                                                          | Status  |
+| ---- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | ------- |
+| 1    | Shared design package `stairno-ui`                                 | Pull the hub's colors, fonts, header and footer out so every site uses the same look                                    | ✅ Done |
+| 2    | Account center documents                                           | Project plan, [SRS](glossary:srs) and [SDD](glossary:sdd). First, an experiment on whether sign-in works across domains | ✅ Done |
+| 3    | Account center, part 1: sign-in                                    | Sign-up, sign-in, verification mail, device management, a sign-in gateway for sites. Live                               | ✅ Done |
+| 4    | Account center, part 2: payments ([Test mode](glossary:test-mode)) | Card registration, one-time payments, subscriptions, refunds, payment mail. No real money moves                         | ✅ Done |
+| 5    | stairnolabs.com                                                    | Product catalog → payments and downloads. The first site to connect to Stairno accounts                                 |         |
+| 6    | stairnoworks.com                                                   | Service introduction → requests, quotes, deposits                                                                       |         |
+| 7    | stairnogames.com                                                   | Vane introduction and dev diary                                                                                         |         |
+| 8    | First product launch                                               | Open atlas-odyssey, a learning roadmap service, for free with Stairno accounts                                          |         |
+| 9    | Business registration → real payments                              | Sign a [Payment gateway](glossary:payment-gateway) contract and swap the test keys for real keys                        |         |
+| 10   | Vane                                                               | Starting from one playable section                                                                                      |         |
 
-### Why this order
+Why this order:
 
-- **The design package comes first.** So that every site, starting with the account center, begins with the same look as the hub. Building sites first and matching the look later means fixing every site
-- **The account center and API come before the sites.** Every other site calls these two. They are the only servers, and the sites start as introduction pages and add sign-in and payments later only where needed
-- **Real payments are step 9.** Taking real money requires business registration and a provider contract first. Until then every payment is in [test mode](/en/blog/dev/payments/payments-00-basics/#test-mode), and the design makes switching a matter of swapping keys
-- **Works comes after Labs.** A freelance site becomes useful once a few reviews have piled up. Until then, freelance work comes through freelance platforms
+- **The design package comes first.** So that every site begins with the same look as the hub. Building sites first and matching the look later means fixing every site
+- **The account center and [API](glossary:api) come before the sites.** Every other site calls these two. They are the only servers, and the sites start as introduction pages and add sign-in and payments later only where needed
+- **Real payments are step 9.** Taking real money requires business registration and a [Payment gateway](glossary:payment-gateway) contract first. Until then everything runs in [Test mode](glossary:test-mode), and the design makes switching a matter of swapping keys
+- **Works comes after Labs.** A freelance site becomes useful once reviews have piled up. Until then, freelance work comes through freelance platforms
 
-## 5. Where things stand
+## 3. Working principles and tools
 
-| Date                      | What happened                                                                                                                       |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 16 October                | The brand name Stairno and the four-site structure settled                                                                          |
-| 17 October                | Four domains bought. The hub `stairno.com` went live. Decided to split accounts and payments into their own project                 |
-| 18 October                | Roadmap set. Steps 1–3 done, sign-in live. Payments built and first release `v0.4.0`                                                |
-| 19 October                | Account center redesign `v0.4.1`. Payment rehearsal tool                                                                            |
-| Early hours of 20 October | Two production bugs fixed in a hurry (`v0.4.2`). Production payment rehearsal: 8 of 10 passed                                       |
-| 21 October                | The last two rehearsal scenarios (three failed renewals, mail in both languages) passed. All 10 passed                              |
-| 22 October                | Rehearsal cleanup, shared documents brought in line, operating procedures written, pending changes shipped as `v0.4.3`. Step 4 done |
+Four principles run through the whole series.
 
-**Step 4 is done.** All 10 production payment rehearsal scenarios passed. The rehearsal scripts and connection details are gone, the shared documents match the Markdown originals again, and the pending changes shipped as `v0.4.3`. The closing day is in [section 12 of part 4a](/en/blog/side-projects/stairno/stairno-04a-payment-rehearsal/#12-addendum-closing-step-4-october-22). Step 5, Labs, is next, but first come the jobs the rehearsal turned up: refund requests in the account center, "keep me signed in", and three bugs found along the way.
+1. **Can one person run it?** One language ([TypeScript](glossary:typescript)), servers someone else manages, fixed costs close to zero
+2. **Documents first.** Before code, write the project plan, [SRS](glossary:srs) and [SDD](glossary:sdd). If documents and code disagree, fix one of them in the same change
+3. **Tests first.** With [TDD](glossary:tdd), write a failing [Software testing](glossary:software-testing) case first, then make it pass
+4. **Check in production.** At the end of each stage, go through the [Acceptance criteria](glossary:acceptance-criteria) item by item on the real service address
 
-The pace may look oddly fast. The plan said 1–2 weeks for sign-in and 2–3 weeks for payments, but the code went in within a day. Most of the code was written by an [AI coding agent](/en/blog/dev/devops/devops-00-basics/#ai-coding-agent) (Claude Code). I set the scope and made the decisions, checked the results, and did what a person has to do, such as dashboard settings and entering cards. That speed also meant missing things, and each post says so openly.
+The tools: [Astro](glossary:astro) (the hub and account center screens), [Hono](glossary:hono) and [Better Auth](glossary:better-auth) (the shared API), [Cloudflare Workers](glossary:cloudflare-workers) and [Cloudflare Pages](glossary:cloudflare-pages) (every site and the API), a [Database](glossary:database) on [Neon](glossary:neon)'s [PostgreSQL](glossary:postgresql) used through [Drizzle](glossary:drizzle), mail through [Resend](glossary:resend), payments through [Toss Payments](glossary:toss-payments) (won) and [PayPal](glossary:paypal) (dollars), tests with [Vitest](glossary:vitest), and automation with [GitHub Actions](glossary:github-actions). Most of the code was written by an [AI coding agent](glossary:ai-coding-agent), [Claude Code](glossary:claude-code). I set the scope and made the decisions, checked the results, and did what a person has to do, such as dashboard settings and entering cards.
 
-## 6. Working principles
-
-Four principles run through the whole series. They come back in each post.
-
-1. **Can one person run it?** Technology is chosen not for "does it look impressive" but for "is it less work to run alone". One language (TypeScript), servers someone else manages, fixed costs close to zero
-2. **Documents first.** Before code, write the [project plan, requirements and design specifications](/en/blog/dev/devops/devops-00-basics/#specifications). If documents and code disagree, fix one of them in the same change
-3. **Tests first.** [TDD](/en/blog/dev/devops/devops-00-basics/#tdd). Write a failing test first, then make it pass
-4. **Check in production.** Do not stop at passing tests. At the end of each stage, go through the [acceptance checklist](/en/blog/dev/devops/devops-00-basics/#acceptance-checklist) item by item on the real service address
-
-## 7. Series contents
-
-| Post                                                                                                                   | Roadmap step | Content                                                      |
-| ---------------------------------------------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------ |
-| [Stairno 1. The shared design package](/en/blog/side-projects/stairno/stairno-01-shared-ui/)                           | 1            | Pulling the hub's look out so every site can share it        |
-| [Stairno 2. The plan and the cross-domain sign-in experiment](/en/blog/side-projects/stairno/stairno-02-account-plan/) | 2            | Four documents, and an experiment on "does this really work" |
-| [Stairno 3. Building sign-in and going live](/en/blog/side-projects/stairno/stairno-03-login/)                         | 3            | From an empty repo to production                             |
-| [Stairno 4. Building payments](/en/blog/side-projects/stairno/stairno-04-payments/)                                    | 4            | Card registration, payments, subscriptions, refunds          |
-| [Stairno 4a. The production payment rehearsal](/en/blog/side-projects/stairno/stairno-04a-payment-rehearsal/)          | 4            | What came out of running it on production (all 10 passed)    |
-
-There are five glossary posts.
-
-| Post                                                                                | Covers                                                         |
-| ----------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| [Web Basics Glossary](/en/blog/dev/web/web-00-basics/)                              | Domains, servers, APIs, cookies, sessions, status codes        |
-| [Sign-in Basics Glossary](/en/blog/dev/auth/auth-00-basics/)                        | OIDC, tokens, JWT, PKCE, hashing                               |
-| [Online Payments Basics Glossary](/en/blog/dev/payments/payments-00-basics/)        | Providers, billing keys, webhooks, idempotency, state machines |
-| [Development and Operations Basics Glossary](/en/blog/dev/devops/devops-00-basics/) | Git, TDD, CI/CD, deploying, secrets, databases                 |
-| [Cloudflare Basics Glossary](/en/blog/dev/cloudflare/cloudflare-00-basics/)         | Workers, regions and latency, R2, wrangler                     |
-
-## 8. Tools in this series
-
-No need to be put off by the names. They are all "parts someone else made".
-
-| Name                      | One-line description                                                                        | Used for                          |
-| ------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------- |
-| TypeScript                | JavaScript plus checks like "this value is a number"                                        | Everything                        |
-| Astro                     | A framework for building web pages                                                          | The hub, account center screens   |
-| Hono                      | A lightweight framework for building APIs                                                   | The shared API                    |
-| Better Auth               | An auth component bundling sign-up, sign-in, sessions and a sign-in gateway for other sites | The shared API                    |
-| Cloudflare Workers, Pages | Places to run code and host sites without a server machine                                  | Every site and the API            |
-| Neon                      | A PostgreSQL DB rented in the cloud                                                         | Accounts, orders, payment records |
-| Drizzle                   | A tool for defining and using DB tables in TypeScript code                                  | The shared API                    |
-| Resend                    | A service that sends service mail (verification mail, receipts)                             | The shared API                    |
-| Toss Payments, PayPal     | Payment providers. Korean won at home, US dollars abroad                                    | The shared API                    |
-| Vitest                    | A tool that runs tests                                                                      | Everything                        |
-| GitHub Actions            | Automation that runs tests and deploys on every push                                        | Everything                        |
-| Claude Code               | An AI coding agent                                                                          | Everything                        |
-
-## 9. Repos
+There are three repos.
 
 | Repo                                                                              | Content                                 |
 | --------------------------------------------------------------------------------- | --------------------------------------- |
@@ -138,4 +80,83 @@ No need to be put off by the names. They are all "parts someone else made".
 | [seren-wib/stairno-ui](https://github.com/seren-wib/stairno-ui)                   | The shared design package `@stairno/ui` |
 | [seren-wib/account.stairno.com](https://github.com/seren-wib/account.stairno.com) | The account center and the shared API   |
 
-Next: [Stairno 1. The shared design package](/en/blog/side-projects/stairno/stairno-01-shared-ui/)
+## 4. Step 1: the shared design package
+
+### The starting point and the problem
+
+Before step 1 there was the hub, a [Static site](glossary:static-site) built and published in a single day on 17 October: pages prebuilt with [Astro](glossary:astro) and uploaded to [Cloudflare Pages](glossary:cloudflare-pages), with no sign-in and no [Database](glossary:database). The design is black and white only, a night sky and a staircase drawn in dots with a star climbing the stairs. The font is [Pretendard](glossary:pretendard). It has Korean/English switching, light/[Dark mode](glossary:dark-mode) switching (following the computer's setting at first) and [Responsive design](glossary:responsive-design).
+
+On 18 October I decided "every Stairno site looks exactly like the hub", but the hub's look was mixed into the hub's code. If each new site copies it, changing one header button means making the same change on the other three, and forgetting one leaves every site slightly different a few months later. So the look is managed in one place only: `@stairno/ui` (repo `stairno-ui`).
+
+### What was pulled out
+
+| Pulled out                            | Content                                                                                   |
+| ------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [Design token](glossary:design-token) | Named values for colors, spacing and corner rounding, used like `--bg` (background color) |
+| Base styles                           | Fonts, text sizes, content width, fixed header, footer, button shapes                     |
+| Header and footer                     | The site passes in the text and links                                                     |
+| Theme switch button                   | Switches between light and dark and remembers the choice                                  |
+| [i18n](glossary:i18n)                 | Links that move between `/ko` and `/en`                                                   |
+| [Font loading](glossary:font-loading) | Where and how to fetch [Pretendard](glossary:pretendard)                                  |
+
+The dot lettering and night-sky animation are the hub's own first impression, so they stayed in the hub; floating dot letters would only get in the way in the account center. The shared parts do not know "what to show". The header only draws the menu items it is given, and the site decides what goes in, so the hub and the account center can have different menus while sharing one header.
+
+### Installing with a pinned version
+
+Other sites install the [Package](glossary:package) straight from the [GitHub](glossary:github) repo with [npm](glossary:npm) and always pin a [Git tag](glossary:git-tag).
+
+```bash
+npm install github:seren-wib/stairno-ui#v0.2.2
+```
+
+Without a tag you get the latest code at that moment, so the hub runs yesterday's code, the account center runs today's, and the look changes although nobody bumped a [Semantic versioning](glossary:semantic-versioning) number. With a tag each site records "I use v0.2.2". Changing the look goes in this order: change `stairno-ui` and test it, put a new version tag on it, then bump the [Dependency](glossary:dependency) on each site.
+
+### Did a single pixel change?
+
+The success condition was "the hub looks as if nothing changed". It was checked in three layers.
+
+1. **Comparing output files.** Built the hub before and after: the HTML differed only in a script's indentation, and the CSS only in two blocks of the same rule merged into one
+2. **[Visual regression testing](glossary:visual-regression-testing).** 12 shots, light and dark × desktop (1280px) and mobile (360px) × the Korean, English and [HTTP status code](glossary:http-status-code) 404 pages, compared with a [Pixel diff](glossary:pixel-diff): **all 12 had zero pixels of difference**
+3. **Behavior and [Unit test](glossary:unit-test).** Clicked the theme button, checked that the choice is remembered, the header changing on scroll and the language links by hand. Tests passed: 118 in the hub and 43 in the package
+
+In the early hours of 18 October `stairno-ui` `v0.1.0` was released and the change that switched the hub over to it was merged. Step 1 done.
+
+### Adding the account menu
+
+That afternoon, while working on step 3, I added an account menu to the package. The original decision was no sign-in related screens on the hub, but once the account center existed it felt awkward that the brand's front page did not show whether I was signed in or where the account center was. So the hub gets one round button on the right of its header; account screens and payments still stay off the hub. It has to look exactly the same on every site, so it went into the shared package.
+
+- **Signed in**: a button with the first letter of the name. Clicking opens a card with the name, the email, "Manage account" and "Log out"
+- **Signed out**: a person icon. Clicking shows "Log in" and "Sign up"
+- **Sites without a server, like the hub**: the browser asks the shared [API](glossary:api) directly who is signed in. If there is no answer within 3 seconds, or it fails, it shows the signed-out state
+- **[Keyboard navigation](glossary:keyboard-navigation)**: opening it moves [Focus](glossary:focus) to the first link, and Esc or a click outside closes it and returns Focus to the button ([Accessibility](glossary:accessibility))
+
+I built a fresh practice site and took 16 shots across signed in / signed out / hub mode × light and dark × desktop and mobile.
+
+| Version  | What changed                                                                                           |
+| -------- | ------------------------------------------------------------------------------------------------------ |
+| `v0.1.0` | The first version pulled out of the hub                                                                |
+| `v0.2.0` | Account menu added                                                                                     |
+| `v0.2.1` | Fixed an empty band under the footer on short pages                                                    |
+| `v0.2.2` | Sites can choose where the brand logo points. In the account center, clicking the logo goes to the hub |
+
+What is left is [Font loading](glossary:font-loading). While the [Pretendard](glossary:pretendard) stylesheet loads, drawing stops for about 0.9 seconds. It is the main reason the account center's sign-in page scored 91 in English and 81–85 in Korean for [Lighthouse](glossary:lighthouse) performance, short of the target of 90. Drawing first without waiting for the font is an open [Issue](glossary:issue) in `stairno-ui`.
+
+## 5. Where things stand
+
+| Date                      | What happened                                                                                         |
+| ------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 16 October                | The brand name Stairno and the four-site structure settled                                            |
+| 17 October                | Four domains bought. The hub went live. Decided to split accounts and payments into their own project |
+| 18 October                | Roadmap set. Steps 1–3 done, sign-in live. Payments built and first release `v0.4.0`                  |
+| 19 October                | Account center redesign `v0.4.1`. Payment rehearsal tool                                              |
+| Early hours of 20 October | Two production bugs fixed in a hurry (`v0.4.2`). Production payment rehearsal: 8 of 10 passed         |
+| 21 October                | The last two scenarios (three failed renewals, mail in both languages) passed. All 10 passed          |
+| 22 October                | Rehearsal cleanup, shared documents brought in line, pending changes shipped as `v0.4.3`. Step 4 done |
+
+Step 4 is done. The closing day is in [section 12 of part 4a](/en/blog/side-projects/stairno/stairno-04-payments/#12-closing-step-4-22-october). Step 5, Labs, is next, but first come the jobs the rehearsal turned up: refund requests in the account center, "keep me signed in", and three bugs found along the way. The plan said 1–2 weeks for sign-in and 2–3 weeks for payments, but the code went in within a day.
+
+The rest of the series: [Stairno 2. The plan and the cross-domain sign-in experiment](/en/blog/side-projects/stairno/stairno-02-account-plan/), [Stairno 3. Building sign-in and going live](/en/blog/side-projects/stairno/stairno-03-login/), [Stairno 4. Building payments](/en/blog/side-projects/stairno/stairno-04-payments/) and [Stairno 4a. The production payment rehearsal](/en/blog/side-projects/stairno/stairno-04-payments/#6-a-rehearsal-only-site).
+
+## 6. Reflection
+
+The speed meant missing things too, and each post says so openly.

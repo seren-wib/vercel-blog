@@ -17,35 +17,35 @@ summary: 'CNN structure, convolution, gradient computation, pooling'
 
 # 1. CNN(Convolutional Neural Network)
 
-- 전반부: 컨볼루션 연산을 수행하여 **특징 추출**
-- 후반부: 특징을 이용해 **분류**
+- 전반부: [Convolution](glossary:convolution) 연산을 수행하여 **[Feature extraction](glossary:feature-extraction)**
+- 후반부: 특징을 이용해 **[Classification](glossary:classification)**
 
 ## 구조
 
-1. 특징 추출을 위한 컨볼루션 부분
-   - Conv층 (Convolution연산)
-   - ReLU층 (ReLU연산)
-   - Pool층(선택) (Pooling연산)
-2. 분류 또는 회귀를 수행하는 다층 퍼셉트론 부분
-   - FC(Fully Connected)층
-     - 추출된 특징값들을 펼친 뒤, 각 뉴런이 앞층의 모든 값을 보도록 연결하고, 그런 층을 여러 번 거쳐 최종 분류 점수를 만든다.
-   - SM(SoftMax연산)층: 마지막 층
-     - softmax연산: FC에서 가져온 값을 확률 형태로 만들어준다
+1. [Feature extraction](glossary:feature-extraction)을 위한 [Convolution](glossary:convolution) 부분
+   - [Conv](glossary:convolution)층 ([Convolution](glossary:convolution)연산)
+   - [ReLU](glossary:relu)층 ([ReLU](glossary:relu)연산)
+   - [Pool](glossary:pooling)층(선택) ([Pooling](glossary:pooling)연산)
+2. [Classification](glossary:classification) 또는 [Regression](glossary:regression)을 수행하는 [Multilayer perceptron](glossary:multilayer-perceptron) 부분
+   - [FC](glossary:fully-connected-layer)([Fully Connected](glossary:fully-connected-layer))층
+     - 추출된 특징값들을 펼친 뒤, 각 [Neuron](glossary:neuron)이 앞층의 모든 값을 보도록 연결하고, 그런 층을 여러 번 거쳐 최종 [Classification](glossary:classification) 점수를 만든다.
+   - [SM](glossary:softmax)([SoftMax](glossary:softmax)연산)층: 마지막 층
+     - [softmax](glossary:softmax)연산: [FC](glossary:fully-connected-layer)에서 가져온 값을 확률 형태로 만들어준다
        - e^점수를 다 더한다음에 각각의 e^점수로 나눠서 확률형태로 표현
 
-대표 예시: **Conv - ReLU - Pool - Conv - ReLU - Pool - FC - SM**
+대표 예시: **[Conv](glossary:convolution) - [ReLU](glossary:relu) - [Pool](glossary:pooling) - [Conv](glossary:convolution) - [ReLU](glossary:relu) - [Pool](glossary:pooling) - [FC](glossary:fully-connected-layer) - [SM](glossary:softmax)**
 
 # 2. Convolution
 
-일정영역의 값들에 대해 가중치를 적용하여 하나의 값을 만드는 연산
+일정영역의 값들에 대해 [Weight](glossary:weight)를 적용하여 하나의 값을 만드는 연산
 
-- stride(보폭): 필터 W가 X 위에서 이동하는 간격
-- padding: 입력 배열의 둘레를 확장하고 0으로 채우는 연산
-- 특징지도: 컨볼루션 결과 Y이고, 특징지도 안의 각 y값은 특정 위치에서 필터가 찾는 특징의 반응 정도
+- [stride](glossary:stride): [Filter](glossary:filter) W가 X 위에서 이동하는 간격
+- [padding](glossary:padding): 입력 배열의 둘레를 확장하고 0으로 채우는 연산
+- [Feature map](glossary:feature-map): [Convolution](glossary:convolution) 결과 Y이고, [Feature map](glossary:feature-map) 안의 각 y값은 특정 위치에서 [Filter](glossary:filter)가 찾는 특징의 반응 정도
 - 변수:
   - x: 입력값,
-  - w: 필터,
-  - y: 결과값(특징지도)
+  - w: [Filter](glossary:filter),
+  - y: 결과값([Feature map](glossary:feature-map))
 
 ```
 예시:
@@ -81,7 +81,7 @@ W =
 
 ## 필터 가중치 w를 어떻게 학습하냐?
 
-- 처음에는 랜덤값 > 이후 예측이 틀리면 손실을 보고 가중치를 조금씩 수정
+- 처음에는 랜덤값 > 이후 예측이 틀리면 [Loss function](glossary:loss-function)을 보고 [Weight](glossary:weight)를 조금씩 수정
 
 ### 미분으로 가중치 수정하기
 
@@ -100,20 +100,20 @@ f(x) = x²
 f'(x) = 2x
 ```
 
-신경망은 너무 크고 복잡해서 수치, 기호적 미분으론 안된다.
+신경망은 너무 크고 복잡해서 [Numerical differentiation](glossary:numerical-differentiation), [Symbolic differentiation](glossary:symbolic-differentiation)으론 안된다.
 
 #### 자동 미분
 
-- 복잡한 신경망 전체를 작은 연산 그래프로 쪼갠 뒤,
-- 각 연산의 미분을 연쇄법칙으로 이어서,
-- 각 가중치를 얼마나 수정해야 하는지 계산한다.
+- 복잡한 신경망 전체를 작은 [Computational graph](glossary:computational-graph)로 쪼갠 뒤,
+- 각 연산의 [Derivative](glossary:derivative)를 [Chain rule](glossary:chain-rule)로 이어서,
+- 각 [Weight](glossary:weight)를 얼마나 수정해야 하는지 계산한다.
 
 # 3. 풀링(pooling)
 
 **일정 크기의 블록의 통합하여 하나의 대푯값으로 대체하는 연산**
 
 - 역할:
-  - 중간 연산 과정에서 만들어지는 특징지도들의 크기 축소
+  - 중간 연산 과정에서 만들어지는 [Feature map](glossary:feature-map)들의 크기 축소
     > 다음 단계에서 만들어질 메모리 크기와 계산량 감소
   - 가까운 위치들의 특징 반응을 하나의 대표값으로 압축한다.
   - 특징이 조금 옆으로 움직여도 비슷한 출력이 나오게 만든다.
@@ -130,9 +130,9 @@ f'(x) = 2x
 
 블록 내에 원소 값에 비례하는 확률을 부여하고 이 확률에 따라 대푯값을 랜덤 선택
 
-| 학습시                            | 추론시                    |
-| --------------------------------- | ------------------------- |
-| 확률에 따라 원소 하나를 랜덤 선택 | 확률적 가중합(기댓값)사용 |
+| 학습시                            | [Inference](glossary:inference)시 |
+| --------------------------------- | --------------------------------- |
+| 확률에 따라 원소 하나를 랜덤 선택 | 확률적 가중합(기댓값)사용         |
 
 ```math
 확률적 가중합 공식

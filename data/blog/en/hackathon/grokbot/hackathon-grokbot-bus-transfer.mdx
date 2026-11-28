@@ -3,14 +3,23 @@ title: 'Grok Bot Seoul Build Day retrospective: designing and verifying a bus tr
 date: '2026-11-26'
 tags: ['Hackathon']
 draft: false
-summary: 'A retrospective on the bus transfer bot our two-person team built at Grok Bot Seoul Build Day on November 1, 2026. Problem definition, requirements and the bot contract, the rules changed after the rehearsal and why, the split where the agent wrote the code and I gave the design directives and did the verification, the map-app comparison numbers and their source, and what I would do differently'
+summary: 'A bus transfer bot built by a two-person team in one day: the design directives, the rules changed after the rehearsal, and verification against map apps'
+level: 2
 ---
 
-> This is the story of the bus transfer bot I built in one day at Grok Bot Seoul Build Day on November 1, 2026. The code was written by "Jubi", a Grok Bot agent. This post is about my side of the work: **what I told it to build and why**, and **how I made the results trustworthy**. I made the entry repo `bus-transfer-bot` private after the event, because it holds code that calls the internal API behind the Naver Map website, not an official API published by Naver.
+## 0. Introduction
+
+> This is the story of the bus transfer bot I built in one day at Grok Bot Seoul Build Day on November 1, 2026. The code was written by "Jubi", a [Grok Bot](glossary:grok-bot) [agent](glossary:ai-agent). This post is about my side of the work: **what I told it to build and why**, and **how I made the results trustworthy**. I made the entry repo `bus-transfer-bot` private after the event, because it holds code that calls the internal [API](glossary:api) behind the Naver Map website, not an official [API](glossary:api) published by Naver.
+
+A map app picks exactly one transfer point, and people who know their buses redo that math in their heads. I wanted to hand that mental math to a bot.
+
+In restaurant terms, a head chef splits the orders and hands them to line cooks, each cook plates only their own share, and the head chef collects the plates and serves the guest. I wrote the recipes and the order-slip format and tasted what came out, and Jubi did the cooking. The head chef is the [orchestrator](glossary:orchestrator-worker-pattern), the cooks are the workers (search bots), the slips and plates are the files in the bot [contract](glossary:interface), written as [JSON](glossary:json), and the recipes are the [requirements specification](glossary:requirements-specification).
+
+What I did: wrote the [requirements specification](glossary:requirements-specification) and the [contract](glossary:interface), changed the rules after the rehearsal, verified the results against Naver, Kakao and Google maps, and gave the three-minute pitch.
 
 ## 1. The event and the team
 
-Grok Bot is an agent product from SpaceXAI. Each agent gets its own cloud box (a Linux work environment) where it writes code, runs it and commits to a repo. Build Day is an event where you build something with these bots in one day and pitch it in about three minutes. The official name, as printed on the venue screen and on our deck's cover, is **Grok Bot Seoul Build Day**.
+[Grok Bot](glossary:grok-bot) is an [agent](glossary:ai-agent) product from SpaceXAI. Each [agent](glossary:ai-agent) gets its own cloud box (a Linux work environment) where it writes code, runs it and [commits](glossary:commit) to a repo. Build Day is an event where you build something with these bots in one day and pitch it in about three minutes. The official name, as printed on the venue screen and on our deck's cover, is **Grok Bot Seoul Build Day**.
 
 We were a two-person team: a classmate from my university, and me.
 
@@ -18,16 +27,16 @@ We were a two-person team: a classmate from my university, and me.
 
 _The group photo at the end of Build Day. Every face is masked._
 
-I fixed the day's schedule in the requirements document I wrote that morning and we ran on it.
+I fixed the day's schedule in the [requirements](glossary:requirements-specification) document I wrote that morning and we ran on it.
 
-| Time        | Task                                                    |
-| ----------- | ------------------------------------------------------- |
-| 10:30–11:00 | Check logins, clone the repo                            |
-| 11:20–11:50 | Rehearsal: everything on the map-app checklist          |
-| 12:00–12:30 | Instruct the orchestrator, start the search bots        |
-| 15:00       | Integration deadline. If it doesn't run, drop a feature |
-| 15:40       | Feature freeze, submit the slide link                   |
-| 16:10       | Pitch, 3 min 5 s                                        |
+| Time        | Task                                                                                     |
+| ----------- | ---------------------------------------------------------------------------------------- |
+| 10:30–11:00 | Check logins, clone the repo                                                             |
+| 11:20–11:50 | Rehearsal: everything on the map-app checklist                                           |
+| 12:00–12:30 | Instruct the [orchestrator](glossary:orchestrator-worker-pattern), start the search bots |
+| 15:00       | Integration deadline. If it doesn't run, drop a feature                                  |
+| 15:40       | Feature freeze, submit the slide link                                                    |
+| 16:10       | Pitch, 3 min 5 s                                                                         |
 
 ## 2. The problem
 
@@ -35,7 +44,7 @@ If you ride buses a lot, you know this moment. The map app says "get off here an
 
 > That stop gets that bus at that time… and I'll get there around then, so oh, this one's faster?
 
-The goal was to hand this mental math to a bot. I wrote the problem at the top of the requirements document like this:
+The goal was to hand this mental math to a bot. I wrote the problem at the top of the [requirements](glossary:requirements-specification) document like this:
 
 - The app recommends **only one** transfer point, and shows it as-is even when the real wait there is 20 minutes.
 - Hubs such as transfer centers collapse several platforms into one stop.
@@ -45,30 +54,30 @@ So the solution is one line too: **treat every stop the first bus passes as a tr
 
 ## 3. The split: I designed, Jubi coded
 
-In construction terms, I wrote the blueprints and the specifications and inspected the site, and Jubi was the crew that built to that design.
+I wrote the [requirements specification](glossary:requirements-specification) and the bot [contract](glossary:interface) and verified results against the map apps, and Jubi wrote the code to that design.
 
 ![Role diagram. Left, me: problem definition, requirements.md, the bot contract, rule changes after the rehearsal, the directive to split off what code can do, verification against map apps, the deck. Middle, Jubi: naver.py, search_bot.py, make_tasks.py, tests. Right, the public repo. Results and logs come back to me for verification](/static/images/hackathon-grokbot-bus-transfer/roles.svg)
 
-The blueprint is the requirements specification (`docs/requirements.md`), the specification is the bot contract inside it (which bot writes which JSON file), and the inspection is verifying results against the map apps. That's as far as the analogy goes.
+The [requirements specification](glossary:requirements-specification) is `docs/requirements.md`, the bot [contract](glossary:interface) is the part of it that says which bot writes which [JSON](glossary:json) file, and verification is comparing results against the map apps.
 
-The repo's commit history shows this split directly. The first commit, `Add requirements and repo layout for bus transfer bot` (10:45), was pushed by me. Requirements R1–R9, non-functional requirements N1–N5, the bot roles, the bot contract, the success criteria and the schedule are all in that commit. The eight commits after it were all pushed by Jubi under the name `Cursor Agent`. Grok Bot is built on Cursor, so that's the author name the agent's commits carry.
+The repo's [commit](glossary:commit) history shows this split directly. The first [commit](glossary:commit), `Add requirements and repo layout for bus transfer bot` (10:45), was pushed by me. [Requirements](glossary:requirements-specification) R1–R9, [non-functional requirements](glossary:non-functional-requirement) N1–N5, the bot roles, the bot [contract](glossary:interface), the success criteria and the schedule are all in that [commit](glossary:commit). The eight [commits](glossary:commit) after it were all pushed by Jubi under the name `Cursor Agent`. Grok Bot is built on [Cursor](glossary:cursor), so that's the author name the [agent](glossary:ai-agent)'s [commits](glossary:commit) carry.
 
-| Who            | What                                                                                                                                                        |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| me (seren-wib) | Problem definition, requirements and the bot contract, the rehearsal checklist, rule changes after the rehearsal, verifying results, the deck and the pitch |
-| Jubi           | Naver Map API client (`naver.py`), search worker (`search_bot.py`), task-file and summary scripts, tests                                                    |
+| Who            | What                                                                                                                                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| me (seren-wib) | Problem definition, [requirements](glossary:requirements-specification) and the bot [contract](glossary:interface), the rehearsal checklist, rule changes after the rehearsal, verifying results, the deck and the pitch |
+| Jubi           | Naver Map [API](glossary:api) client (`naver.py`), search worker (`search_bot.py`), task-file and summary scripts, [tests](glossary:unit-test)                                                                           |
 
 ## 4. The first design: an orchestrator, search bots, and a file contract
 
-On a construction site, one foreman splits the job into work orders and hands them out, and each worker turns in a report on their own share only. The foreman collects the reports and makes the final call.
+One [orchestrator](glossary:orchestrator-worker-pattern) splits the job into task files and hands them out, and each worker writes a result file for its own share only. The [orchestrator](glossary:orchestrator-worker-pattern) collects the result files and makes the final call.
 
 ![Orchestrator and worker structure. Input (GPS, destination) → orchestrator (R1 baseline route, R2 every stop of the first bus) → task files → search workers W1–W8 (R3 platforms within 500 m, R4 platform to B, R5 real-time arrival) → result files → orchestrator (R6 total time, R7 pick the minimum, never slower than the map apps)](/static/images/hackathon-grokbot-bus-transfer/pipeline.svg)
 
-The foreman is the orchestrator, the work orders are `tasks/bot{n}.json`, and the reports are `results/{si}.json`. The structure is orchestrator–worker, the simplest form of a [multi-agent](/en/blog/cs-fundamentals/ai/ai-07-01-ai-agent/#5-single-agent-and-multi-agent) system.
+The task files are `tasks/bot{n}.json` and the result files are `results/{si}.json`. The structure is [orchestrator–worker](glossary:orchestrator-worker-pattern), the simplest form of a [multi-agent](/en/blog/cs-fundamentals/ai/ai-07-01-ai-agent/#5-single-agent-and-multi-agent) system.
 
 What I decided in the first version, and why:
 
-- **Bots talk only through files.** Only the orchestrator writes `tasks/bot{n}.json`, and each search bot writes `results/{si}.json` **for its own stop only**. When several bots work in one repo at once, the first thing to break is overwriting the same file. Pin each file to a single writer and the conflict can't happen by construction.
+- **Bots talk only through files.** Only the [orchestrator](glossary:orchestrator-worker-pattern) writes `tasks/bot{n}.json`, and each search bot writes `results/{si}.json` **for its own stop only**. When several bots work in one repo at once, the first thing to break is overwriting the same file. Pin each file to a single writer and the conflict can't happen by construction.
 - **A failure kills only one candidate (N3).** If one search fails, only that stop's result drops out and the overall calculation still runs. In a one-day event an external map service can slow down or block you at any moment, so I chose to keep partial results.
 - **A search cap (N2) and a time cap (N4).** At first I capped it at 8 intermediate stops, 4 hub platforms, and 20 searches in total. If one run takes more than 5 minutes, the picture of "get a route from one sentence" falls apart. The plan was to measure one search in the rehearsal and reset the numbers.
 - **No penalty for transfers (R6).** People do dislike transfers, but the question this bot answers is "when do I arrive". One criterion is what makes the result comparable to the map apps.
@@ -77,28 +86,28 @@ What I decided in the first version, and why:
 
 ## 5. Rules changed after the rehearsal
 
-A rehearsal is walking the site first to check the assumptions. The 11:20 rehearsal (Sadang Station → Gwanghwamun) broke several of them, and I rewrote the requirements at 13:30. The "change history" table at the end of the document is the record. Here are the changes with the reasons.
+A rehearsal is the step where assumptions are checked before the main work. The 11:20 rehearsal (Sadang Station → Gwanghwamun) broke several of them, and I rewrote the [requirements](glossary:requirements-specification) at 13:30. The "change history" table at the end of the document is the record. Here are the changes with the reasons.
 
-| Item                | Before                               | After                                                                         | Why                                                                                                                                              |
-| ------------------- | ------------------------------------ | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Map app             | Pick one, drive its UI               | Naver Map web internal JSON API (unofficial); Kakao and Google for comparison | Kakao's route API was blocked by an anti-automation token. On Naver, one API call took 0.6–0.8 s versus 1–1.3 s on screen                        |
-| Transfer candidates | Platforms inside a hub only          | Every platform within a 500 m walk                                            | Hub platforms were split by stop number (18+ at Sadang Station). We'd miss the case where a faster bus comes from the platform across the street |
-| Walking time        | Fixed 1 min inside a hub             | Computed from meters ÷ 83.3 m/min (5 km/h)                                    | At 500 m a fixed 1 min is wrong. Computing from meters instead of the app's minutes keeps all apps on the same basis                             |
-| Wait                | Real-time arrival of line Y          | Based on **when the user reaches that platform**                              | The bus arriving right now leaves before the user gets to that stop                                                                              |
-| Safety margin       | Under review                         | None, always the fastest                                                      | The question was fixed as "arrive the earliest"                                                                                                  |
-| Comparison basis    | The app's top result only            | Best of Kakao, Naver, Google; **if slower, return the app's route**           | A bot that gives a slower answer than the app has no reason to exist. When it loses, it hands over the app's route (R7)                          |
-| Running lines       | None                                 | Lines not running now are removed from results entirely                       | The raw result of a Sunday 13:35 search included "새벽A741 (autonomous) (not on Sat/Sun)" departing at 05:09 the next day                        |
-| Bot roles           | Three search bots, same instructions | One Naver worker (concurrent queries) + Kakao browser + Google script         | With the API, one query took under a second, so running queries concurrently in one process beat adding more bots                                |
-| Search cap (N2)     | 8 stops, 4 platforms, 20 searches    | The whole line (e.g. 15 stops), up to 5 platforms per stop                    | Same reason. As long as it finishes inside the 5-minute cap, looking at more is better                                                           |
-| Input               | Address of A                         | Current GPS, departure now                                                    | It has to end with one sentence: "I want to go to Gwanghwamun"                                                                                   |
+| Item                | Before                               | After                                                                                                          | Why                                                                                                                                                       |
+| ------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Map app             | Pick one, drive its UI               | Naver Map web internal [JSON](glossary:json) [API](glossary:api) (unofficial); Kakao and Google for comparison | Kakao's route [API](glossary:api) was blocked by an anti-automation token. On Naver, one [API](glossary:api) call took 0.6–0.8 s versus 1–1.3 s on screen |
+| Transfer candidates | Platforms inside a hub only          | Every platform within a 500 m walk                                                                             | Hub platforms were split by stop number (18+ at Sadang Station). We'd miss the case where a faster bus comes from the platform across the street          |
+| Walking time        | Fixed 1 min inside a hub             | Computed from meters ÷ 83.3 m/min (5 km/h)                                                                     | At 500 m a fixed 1 min is wrong. Computing from meters instead of the app's minutes keeps all apps on the same basis                                      |
+| Wait                | Real-time arrival of line Y          | Based on **when the user reaches that platform**                                                               | The bus arriving right now leaves before the user gets to that stop                                                                                       |
+| Safety margin       | Under review                         | None, always the fastest                                                                                       | The question was fixed as "arrive the earliest"                                                                                                           |
+| Comparison basis    | The app's top result only            | Best of Kakao, Naver, Google; **if slower, return the app's route**                                            | A bot that gives a slower answer than the app has no reason to exist. When it loses, it hands over the app's route (R7)                                   |
+| Running lines       | None                                 | Lines not running now are removed from results entirely                                                        | The raw result of a Sunday 13:35 search included "새벽A741 (autonomous) (not on Sat/Sun)" departing at 05:09 the next day                                 |
+| Bot roles           | Three search bots, same instructions | One Naver worker ([concurrent](glossary:concurrency) queries) + Kakao browser + Google script                  | With the [API](glossary:api), one query took under a second, so running queries [concurrently](glossary:concurrency) in one process beat adding more bots |
+| Search cap (N2)     | 8 stops, 4 platforms, 20 searches    | The whole line (e.g. 15 stops), up to 5 platforms per stop                                                     | Same reason. As long as it finishes inside the 5-minute cap, looking at more is better                                                                    |
+| Input               | Address of A                         | Current GPS, departure now                                                                                     | It has to end with one sentence: "I want to go to Gwanghwamun"                                                                                            |
 
-The running-line filter took the most work. It removes lines whose names carry "not running", "weekdays only", "dawn" or a late-night N, lines whose service calendar doesn't include today, lines outside first-to-last bus, lines with neither real-time data nor headway info, and routes that board more than 120 minutes later. I pinned this rule down with `tests/test_filters.py`, a test that checks 새벽A741 is dropped on a Sunday.
+The running-line filter took the most work. It removes lines whose names carry "not running", "weekdays only", "dawn" or a late-night N, lines whose service calendar doesn't include today, lines outside first-to-last bus, lines with neither real-time data nor headway info, and routes that board more than 120 minutes later. When a line had no real-time data, the wait was estimated as half of its headway. I pinned this rule down with `tests/test_filters.py`, a [test](glossary:unit-test) that checks 새벽A741 is dropped on a Sunday.
 
 ### Split off what code can do
 
-At first the bot explored by opening the map apps in a browser itself. That took far too long. So I had the repeated parts (route search, real-time arrival lookup, stop and line lookup) split off into scripts, and used the bot only to call the scripts and interpret the results. Requirement N1 is that directive. Naver is fixed to `naver.py`, which calls the JSON API through the request context of a Playwright headless browser, and never grabs and drives a desktop browser. Because this JSON API is not an official one, we called it only as much as the demo needed during the one-day hackathon.
+At first the bot explored by opening the map apps in a browser itself. That took far too long. So I had the repeated parts (route search, real-time arrival lookup, stop and line lookup) split off into scripts, and used the bot only to call the scripts and interpret the results. Requirement N1 is that directive. Naver is fixed to `naver.py`, which calls the [JSON](glossary:json) [API](glossary:api) through the request context of a [Playwright](glossary:playwright) [headless browser](glossary:headless-browser), and never grabs and drives a desktop browser. Because this [JSON](glossary:json) [API](glossary:api) is not an official one, we called it only as much as the demo needed during the one-day hackathon.
 
-The problem was getting the scripts into the bot. Grok Bot doesn't let you put script files into it directly. So I bundled the scripts (data collection and parser files) into a zip, uploaded it to Google Drive, and wrote in the bot's instructions to fetch and read that file. The bot did not run the files as-is. It read them and then wrote its code again the way they showed. In the end the zip worked not as executables but as **instructions written in code**. Showing the bot working code was a more precise instruction than describing at length how to call the Naver API. The catch is that Grok Bot needs its Google Drive integration turned on.
+The problem was getting the scripts into the bot. [Grok Bot](glossary:grok-bot) doesn't let you put script files into it directly. So I bundled the scripts (data collection and parser files) into a zip, uploaded it to Google Drive, and wrote in the bot's instructions to fetch and read that file. The bot did not run the files as-is. It read them and then wrote its code again the way they showed. In the end the zip worked not as executables but as **instructions written in code**. Showing the bot working code was a more precise instruction than describing at length how to call the Naver [API](glossary:api). The catch is that [Grok Bot](glossary:grok-bot) needs its Google Drive integration turned on.
 
 ## 6. Verification: at first, we lost
 
@@ -111,7 +120,7 @@ This is where R7 did its job. When our candidate is slower than the apps' best, 
 
 ### The numbers after that
 
-The numbers below come from runs Jubi did in the afternoon and went onto slides 5–7 of the deck. **They are not in the repo; they are the bot's own measurements, sourced from Jubi's chat log.** I did not re-measure them, and Jubi once flipped its own test verdict from FAIL to pass. So I only claim "this is what the bot measured".
+The numbers below come from runs Jubi did in the afternoon and went onto slides 5–7 of the deck. **They are not in the repo; they are the bot's own measurements, sourced from Jubi's chat log.** I did not re-measure them, and Jubi once flipped its own [test](glossary:unit-test) verdict from FAIL to pass. So I only claim "this is what the bot measured".
 
 | Measurement (2026-11-01, Sunday, bot's own)                 | Value                                                                                     |
 | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
@@ -132,21 +141,10 @@ The deck lists four next steps: extend to two transfers, add the subway, factor 
 
 ## 8. What I'd do differently
 
-- **Keep measurements in the repo.** The strongest numbers in the deck (8/10, mean 7.4 min) are not in the repo. If they live only in a chat log, even I can't check them again. The contract should have said from the start: commit the run scripts and raw results to `results/`.
+- **Keep measurements in the repo.** The strongest numbers in the deck (8/10, mean 7.4 min) are not in the repo. If they live only in a chat log, even I can't check them again. The [contract](glossary:interface) should have said from the start: [commit](glossary:commit) the run scripts and raw results to `results/`.
 - **Fix the comparison basis first.** Each app handles waiting differently, so the basis of "N minutes faster" wobbled. Pin down the query time and whether the wait is included before measuring, and the numbers hold up.
-- **Explore briefly, code early.** The time spent exploring in a browser was a waste. Had we moved to scripts the moment the rehearsal exposed the API, there would have been more time in the afternoon for verification.
 - **Check first what the bot can take in.** I found out late that scripts can't be put in directly and bolted on the Drive workaround. It worked out because the code doubled as instructions, but what form of input the bot accepts is something to check on day one of the design.
 
-## Glossary
+## 9. Reflection
 
-| Term              | Meaning                                                                                                            |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Agent             | An LLM program that uses tools and runs several steps on its own. Here, Grok Bot's Jubi                            |
-| Orchestrator      | The role that splits work, hands it to workers, collects the results and makes the final call                      |
-| Worker            | An execution unit that handles only the share the orchestrator gave it and returns the result                      |
-| Bot contract      | The agreement on which bot writes which file in what format. Here, `tasks/bot{n}.json` and `results/{si}.json`     |
-| Headless browser  | A browser that runs without a screen. Used when a script opens pages and sends requests                            |
-| Playwright        | A library for driving a browser from code                                                                          |
-| Real-time arrival | "Arrives in N minutes" computed from bus positions. Different from timetable-based headway                         |
-| Headway           | The interval between buses on the same line. When real-time data was missing, the wait was estimated as half of it |
-| Rehearsal         | The step where assumptions are checked for real before the main work                                               |
+Had we moved to scripts the moment the rehearsal exposed the [API](glossary:api), there would have been more time in the afternoon for verification.

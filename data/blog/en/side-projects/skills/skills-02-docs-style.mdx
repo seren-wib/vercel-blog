@@ -5,41 +5,42 @@ tags: ['Skills']
 draft: false
 aiGenerated: true
 summary: 'The docs-style skill I open before writing plan docs, option comparisons, public repo docs and school reports.'
+level: 1
 ---
+
+## 0. Introduction
 
 > Part 2 of the skills series. What a skill is, and why these rules moved out of the instruction file, is in [CH0. Skills Overview](/en/blog/side-projects/skills/skills-00-overview/).
 
-## In one line
+The rules for documents (plan pages, report format, the language of public docs, [Google Docs](glossary:google-docs) image tips) were scattered across several global memory files. They only matter when writing a document, so I gathered them into one [skill](glossary:agent-skill) that loads only then.
 
-`docs-style` is the skill opened right before writing a document. It holds six groups of rules: plan pages and checklists, option comparisons, the language of public repo docs, file formats, building school reports, and Google Docs gotchas. It started as rules gathered from global memory, and over two weeks and seven commits it moved the source of school reports from Google Docs to local files. The size history is in the "By the numbers" table below.
+In restaurant terms, it is recipe cards for each kind of dish pinned on the kitchen wall, where you take down only the card for the dish you are cooking. The stack of cards is the `docs-style` [skill](glossary:agent-skill), the kinds of dish are the kinds of document, and one card is one `##` section of `SKILL.md`.
+
+`docs-style` is the [skill](glossary:agent-skill) opened right before writing a document. It holds six groups of rules: plan pages and checklists, option comparisons, the language of public repo docs, file formats, building school reports, and [Google Docs](glossary:google-docs) gotchas. Over two weeks and seven [commits](glossary:commit) it moved the source of school reports from [Google Docs](glossary:google-docs) to local files. The size history is in the table in section 7.
 
 ## 1. What the skill covers
-
-Think of a binder with one form per kind of document. Before writing, you open only the tab that fits.
 
 ![The six groups docs-style covers and the two places it hands off to other skills](/static/images/skills-02-docs-style/skill-map.svg)
 
 _The six groups docs-style covers and the two places it hands off to other skills_
 
-The binder tabs are the `##` sections of `SKILL.md`. Normally the agent sees only the one-line `description` in the frontmatter, and opens the body when it is about to write a plan doc, a checklist, an option table, a README or CONTRIBUTING, or a report for submission.
+Normally the agent sees only the one-line `description` in the frontmatter, and opens the body when it is about to write a plan doc, a checklist, an option table, a [README](glossary:readme) or [CONTRIBUTING](glossary:contributingmd), or a report for submission.
 
-The skill was created in a commit on 2026-11-13. Before that, the same rules lived in separate global memory files (`report-doc-format`, the public-doc language rule, Google Docs image tips and so on). The commit message gives one reason: these rules only matter for one kind of task, so they should load only when that task comes up. Why the report format rules existed in the first place is recorded in the old memory file as "got corrected on every item of an assignment document."
+The [skill](glossary:agent-skill) was created in a [commit](glossary:commit) on 2026-11-13. Before that, the same rules lived in separate global memory files (`report-doc-format`, the public-doc language rule, [Google Docs](glossary:google-docs) image tips and so on). The [commit](glossary:commit) message gives one reason: these rules only matter for one kind of task, so they should load only when that task comes up. Why the report format rules existed in the first place is recorded in the old memory file as "got corrected on every item of an assignment document."
 
-Where it overlaps with other skills, it hands off with a one-line pointer.
+Where it overlaps with other [skills](glossary:agent-skill), it hands off with a one-line pointer.
 
-- Stage documents (SPMP, SRS, SDD, STP, SIP, SMP) and decision records go to the `project-docs` skill. Why decision records live inside the SDD is in [Project Docs 2](/en/blog/side-projects/project-docs/project-docs-02-decision-records/).
-- README layout goes to the `readme-style` skill ([CH3](/en/blog/side-projects/skills/skills-03-readme-style/)).
-- Blog posts go to the `blog-post` skill ([CH1](/en/blog/side-projects/skills/skills-01-blog-post/)).
+- Stage documents ([SPMP](glossary:spmp), [SRS](glossary:srs), [SDD](glossary:sdd), [STP](glossary:stp), [SIP](glossary:sip), [SMP](glossary:smp)) and [decision records](glossary:decision-record) go to the `project-docs` [skill](glossary:agent-skill). Why [decision records](glossary:decision-record) live inside the [SDD](glossary:sdd) is in [Project Docs 2](/en/blog/side-projects/project-docs/project-docs-00-overview/#5-decision-records-inside-the-sdd).
+- [README](glossary:readme) layout goes to the `readme-style` [skill](glossary:agent-skill) ([CH3](/en/blog/side-projects/skills/skills-03-readme-style/)).
+- Blog posts go to the `blog-post` [skill](glossary:agent-skill) ([CH1](/en/blog/side-projects/skills/skills-01-blog-post/)).
 
 ## 2. Plan pages and checklists
-
-Think of a to-do note on the fridge. You don't tear it into one strip per person; you keep one sheet and tick lines off as they are done.
 
 ![One TODO list ticked off in place instead of lists split by person](/static/images/skills-02-docs-style/todo-list.svg)
 
 _One TODO list ticked off in place instead of lists split by person_
 
-The sheet is one **TODO list**, and the tick is the Markdown task list `- [x]`. There are three rules.
+A plan page is one **TODO list**, and finished items are ticked with the [Markdown](glossary:markdown) [task list](glossary:task-list) `- [x]`. There are three rules.
 
 - No person's name anywhere, mine included. Lines like "owner: ○○○" or "for ○○ to do" are out.
 - One list. No "done / who does what" split; finished items are checked where they are. Groups are by phase or place only ("prep", "at school (per PC)", "check"). When the device matters, prefix it ("desktop:").
@@ -49,124 +50,90 @@ The **team documents** rule added the same day sits here too. Before changing a 
 
 ## 3. Option comparisons
 
-Think of a balance scale. If several heavy weights go on one pan as a single "slightly inconvenient," the scale lies.
-
 For an **option comparison** table or list there are two rules.
 
 - Every drawback that matters gets its own bullet, with the concrete consequence. Several costs are never shrunk into one soft phrase.
 - Before finishing, check that every cost of an option mentioned in chat is also in the document.
 
-The second rule follows from comparisons happening in conversation first. If a cost said in chat drops out on the way into the document, anyone reading only the document later never learns about it. The specific incident behind this rule is not recorded. The format for keeping rejected options and their reasons in decision records is in [the entry shape in Project Docs 2](/en/blog/side-projects/project-docs/project-docs-02-decision-records/#4-the-shape-of-one-entry).
+The second rule follows from comparisons happening in conversation first. If a cost said in chat drops out on the way into the document, anyone reading only the document later never learns about it. The specific incident behind this rule is not recorded. The format for keeping rejected options and their reasons in [decision records](glossary:decision-record) is in [the entry shape in Project Docs 2](/en/blog/side-projects/project-docs/project-docs-00-overview/#5-decision-records-inside-the-sdd).
 
 ## 4. Language and file formats
 
-Think of a guest notice and an envelope standard. A notice a first-time guest reads is in a language everyone reads, and papers go out in the agreed envelope.
-
 **Language** rules:
 
-- Public documents a visitor reads first (README, CONTRIBUTING, SECURITY, CHANGELOG, PR templates) are in English, and the repo docs say so.
-- Planning documents (`docs/specs/`), their Google Docs copies, CLAUDE.md, and commit and PR language follow the repo's own rule.
+- Public documents a visitor reads first ([README](glossary:readme), [CONTRIBUTING](glossary:contributingmd), SECURITY, [CHANGELOG](glossary:changelog), [PR](glossary:pull-request) templates) are in English, and the repo docs say so.
+- Planning documents (`docs/specs/`), their [Google Docs](glossary:google-docs) copies, [CLAUDE.md](glossary:claudemd), and [commit](glossary:commit) and [PR](glossary:pull-request) language follow the repo's own rule.
 
 The **file format** rules came in on 2026-11-27.
 
-- A document is a docx and a sheet is an xlsx, built locally. I open them in Google Docs and Sheets through Drive.
-- Deliverables are not made as new native Google Docs or Sheets. Existing ones stay as they are.
-- Exceptions: Markdown in a repo, the repo → Google Docs sync in `project-docs` ([Project Docs 4](/en/blog/side-projects/project-docs/project-docs-04-docs-sync/)), and documents teammates edit together.
-- On the Mac, the iCloud Drive `UNIV/` folder shows in Drive under "Computers → mac → UNIV". It was the only folder Google Drive for desktop had added on that Mac (checked 2026-11-27), and the Drive API reports those copies as `canEdit: false`. The Windows side has not been checked.
+- A document is a [docx](glossary:docx) and a sheet is an [xlsx](glossary:xlsx), built locally. I open them in [Google Docs](glossary:google-docs) and Sheets through [Drive](glossary:google-drive).
+- Deliverables are not made as new native [Google Docs](glossary:google-docs) or Sheets. Existing ones stay as they are.
+- Exceptions: [Markdown](glossary:markdown) in a repo, the repo → [Google Docs](glossary:google-docs) sync in `project-docs` ([Project Docs 4](/en/blog/side-projects/project-docs/project-docs-04-docs-sync/)), and documents teammates edit together.
+- On the Mac, the iCloud Drive `UNIV/` folder shows in [Drive](glossary:google-drive) under "Computers → mac → UNIV". It was the only folder [Google Drive](glossary:google-drive) for desktop had added on that Mac (checked 2026-11-27), and the [Drive](glossary:google-drive) API reports those copies as `canEdit: false`. The Windows side has not been checked.
 
 ## 5. Building school reports
 
-Think of keeping the manuscript and the typesetter on your own desk and binding a fresh copy each time. To fix something, you don't write on the bound book; you fix the manuscript and print again.
-
 ![A build pipeline from an HTML source and a build script to docx and PDF, with Google Docs dropped as the source](/static/images/skills-02-docs-style/report-pipeline.svg)
 
-_A build pipeline from an HTML source and a build script to docx and PDF, with Google Docs dropped as the source_
+_A [build pipeline](glossary:build-pipeline) from an [HTML](glossary:html) source and a [build script](glossary:build) to [docx](glossary:docx) and [PDF](glossary:pdf), with [Google Docs](glossary:google-docs) dropped as the source_
 
-The manuscript is the **HTML body**, the typesetter is the **build script**, and the binding is the **docx** and the **PDF** converted from it.
+A report starts as one [HTML](glossary:html) body, the [build script](glossary:build) turns it into a [docx](glossary:docx), and that is converted to a [PDF](glossary:pdf). To fix something, you don't edit the [docx](glossary:docx); you fix the source and build again.
 
-- The source stays local: one HTML body and one build script (`hwN-body.html` + `hwN-docx-build.js`). The script builds the docx with the npm packages `docx` and `node-html-parser`. Figures are referenced by file path.
-- For the PDF, a copy with fonts swapped is converted through `soffice` (바탕 → AppleMyungjo, Consolas → Menlo, 맑은 고딕 → Apple SD Gothic Neo). Why the fonts are swapped is not written in the skill (not recorded).
+- The source stays local: one [HTML](glossary:html) body and one [build script](glossary:build) (`hwN-body.html` + `hwN-docx-build.js`). The script builds the [docx](glossary:docx) with the [npm](glossary:npm) packages `docx` and `node-html-parser`. Figures are referenced by file path.
+- For the [PDF](glossary:pdf), a copy with fonts swapped is converted through `soffice` (바탕 → AppleMyungjo, Consolas → Menlo, 맑은 고딕 → Apple SD Gothic Neo). Why the fonts are swapped is not written in the [skill](glossary:agent-skill) (not recorded).
 - If the course folder has its own `CLAUDE.md`, it wins over this section.
 
 ### Why Google Docs stopped being the source
 
-The first rule (2026-11-13) was to build reports in Google Docs and export them to PDF. On 2026-11-25 the default moved to a local source, and the skill keeps three reasons measured on a cloud computing assignment.
+The first rule (2026-11-13) was to build reports in [Google Docs](glossary:google-docs) and export them to [PDF](glossary:pdf). On 2026-11-25 the default moved to a local source, and the [skill](glossary:agent-skill) keeps three reasons measured on a cloud computing assignment.
 
-- A Doc with screenshots returns over 400k characters per `read_doc`. The local HTML source is about 30k characters.
+- A Doc with screenshots returns over 400k characters per `read_doc`. The local [HTML](glossary:html) source is about 30k characters.
 - Every fix repeats read, write and re-check.
 - Conversion drops the TOC heading ids, and the API can't restore them.
 
-The same conclusion showed up earlier in that course folder's memory. On 2026-10-04 there is a record of trying to edit HW3 in Google Docs and going back to docx, and from then on cloud computing reports were local docx as an exception in the course `CLAUDE.md`. The 11-25 commit promoted that exception to the default and deleted the exception sentence. Text-only reports are built locally too. Only documents teammates edit together stay in Google Docs.
+The same conclusion showed up earlier in that course folder's memory. On 2026-10-04 there is a record of trying to edit HW3 in [Google Docs](glossary:google-docs) and going back to [docx](glossary:docx), and from then on cloud computing reports were local [docx](glossary:docx) as an exception in the course `CLAUDE.md`. The 11-25 [commit](glossary:commit) promoted that exception to the default and deleted the exception sentence. Text-only reports are built locally too. Only documents teammates edit together stay in [Google Docs](glossary:google-docs).
 
 ### Page rules
 
-- Page 1 cover: the CBNU (Chungbuk National University) logo, title, course, submission date and authors. Authors are GitHub handles or roles, never real names. The logo line came in on 2026-11-17, when 13 document instructions from that day were checked against the skill and it was one of the 5 found missing.
+- Page 1 cover: the CBNU (Chungbuk National University) logo, title, course, submission date and authors. Authors are GitHub handles or roles, never real names. The logo line came in on 2026-11-17, when 13 document instructions from that day were checked against the [skill](glossary:agent-skill) and it was one of the 5 found missing.
 - Page 2 table of contents: indented headings, no page numbers.
 - A big block (a diagram section, a schema or table spec, each algorithm) starts with a page break. To keep a heading from sitting alone at the bottom of a page, headings get keep-with-next.
 - Heading levels follow weight. A major component like a Class Diagram or the DB schema is never at the same level as a small subtopic. Sub-sections are numbered like 2-2-1.
-- Figures are embedded images in the docx. No links or paths where a figure should be. SVG diagrams are rendered to PNG locally before embedding.
+- Figures are embedded images in the [docx](glossary:docx). No links or paths where a figure should be. [SVG](glossary:svg) diagrams are rendered to [PNG](glossary:png) locally before embedding.
 - Section names use the assignment's own wording ("사용자 인터페이스 명세 및 설계", user interface specification and design, not just "wireframe").
 - A report built from stage documents has its own source. Docs that the `project-docs` sync overwrites are never edited.
-- After building, every page of the PDF is rendered and looked at before reporting.
+- After building, every page of the [PDF](glossary:pdf) is rendered and looked at before reporting.
 
 ## 6. Google Docs gotchas
 
-Think of a note taped to the copier. The original won't take on just any paper; you copy it once to the right format and then put it in.
-
 ![Converting an SVG from a public repo to PNG through weserv and inserting it with insertInlineImage](/static/images/skills-02-docs-style/svg-to-docs.svg)
 
-_Converting an SVG from a public repo to PNG through weserv and inserting it with insertInlineImage_
+_Converting an [SVG](glossary:svg) from a public repo to [PNG](glossary:png) through weserv and inserting it with insertInlineImage_
 
-The copier is the image proxy **images.weserv.nl**, and the format is what the Google Docs API `insertInlineImage` accepts. Even after report sources moved local, these gotchas still show up in Docs shared with teammates and in synced Docs.
+The image [proxy](glossary:proxy) **images.weserv.nl** and the format the [Google Docs API](glossary:google-docs-api) `insertInlineImage` accepts are the heart of this section. Even after report sources moved local, these gotchas still show up in Docs shared with teammates and in synced Docs.
 
-- `insertInlineImage` takes only PNG, JPEG or GIF from a public URL. An SVG in a public GitHub repo goes in as `https://images.weserv.nl/?url=raw.githubusercontent.com/<owner>/<repo>/<sha>/<path>.svg&output=png&w=1600`. The path uses a commit SHA instead of `main`, because weserv caches by URL and a `main` path can return an old picture. Fetch it with curl and look at it before inserting. drawio SVGs with Korean text render fine.
-- Mermaid source is not sent to mermaid.ink without asking. That counts as uploading data, so it is rendered locally.
+- `insertInlineImage` takes only [PNG](glossary:png), JPEG or GIF from a public URL. An [SVG](glossary:svg) in a public GitHub repo goes in as `https://images.weserv.nl/?url=raw.githubusercontent.com/<owner>/<repo>/<sha>/<path>.svg&output=png&w=1600`. The path uses a [commit SHA](glossary:commit-hash) instead of `main`, because weserv [caches](glossary:cache) by URL and a `main` path can return an old picture. Fetch it with curl and look at it before inserting. [drawio](glossary:drawio) [SVG](glossary:svg)s with Korean text render fine.
+- [Mermaid](glossary:mermaid) source is not sent to mermaid.ink without asking. That counts as uploading data, so it is rendered locally.
 - To resize an inline image, delete it and insert again with a new `objectSize`. About 420-440 pt wide × 300 pt high fits two landscape diagrams on one page.
 - `read_file_content` shows bold text inside tables as `\*\*text\*\*`. Those are not literal asterisks.
-- A `read_doc` result over 1 MB is saved to a file. Extract it with node and find the body after the first HEADING_1 (the TOC lines repeat the headings). The final check is exporting to PDF and rendering every page.
+- A `read_doc` result over 1 MB is saved to a file. Extract it with node and find the body after the first HEADING_1 (the TOC lines repeat the headings). The final check is exporting to [PDF](glossary:pdf) and rendering every page.
 
-## 7. Summary
+## 7. Size history of the skill
 
-| Group          | Core rule                                              |
-| -------------- | ------------------------------------------------------ |
-| Plan pages     | No names, one TODO list, finish by checking            |
-| Team documents | Before editing, report whose, where and what           |
-| Option compare | One bullet per drawback, checked against the chat      |
-| Language       | Public docs in English, the rest by repo rule          |
-| File formats   | Documents docx, sheets xlsx, no new Google Docs        |
-| School reports | Local HTML → docx → PDF, render every page to check    |
-| Google Docs    | SVG as weserv PNG, SHA paths, Mermaid rendered locally |
+As of 2026-11-28. Source: `git log -- claude/skills/docs-style` in the dotfiles repo and `git show <commit>:claude/skills/docs-style/SKILL.md | wc -c` for each [commit](glossary:commit).
 
-The skill itself has changed by these rules. The reasons for switching the source (400k vs 30k characters, lost heading ids) are kept as measured values, and if those values change again, the rule gets reopened.
+| Date       | Change                                                                                                         | Size (bytes) | Lines |
+| ---------- | -------------------------------------------------------------------------------------------------------------- | ------------ | ----- |
+| 2026-11-13 | Created, moved from global memory                                                                              | 3,412        | 37    |
+| 2026-11-13 | Team documents section added                                                                                   | 3,555        | 40    |
+| 2026-11-13 | Line letting the course `CLAUDE.md` win                                                                        | 3,686        | 41    |
+| 2026-11-16 | Section handing [decision records](glossary:decision-record) to project-docs                                   | 3,932        | 44    |
+| 2026-11-17 | CBNU logo on the cover, separate stage-doc reports                                                             | 4,077        | 45    |
+| 2026-11-25 | Report source [Google Docs](glossary:google-docs) → local [docx](glossary:docx)                                | 4,877        | 48    |
+| 2026-11-27 | Documents [docx](glossary:docx), sheets [xlsx](glossary:xlsx), where [Drive](glossary:google-drive) shows them | 5,497        | 52    |
 
-## By the numbers
+Seven [commits](glossary:commit) over two weeks, 3,412 → 5,497 bytes (+2,085, about 1.6×). The biggest single change was +800 bytes on 11-25.
 
-As of 2026-11-28. Source: `git log -- claude/skills/docs-style` in the dotfiles repo and `git show <commit>:claude/skills/docs-style/SKILL.md | wc -c` for each commit.
+## 8. Reflection
 
-| Date       | Change                                              | Size (bytes) | Lines |
-| ---------- | --------------------------------------------------- | ------------ | ----- |
-| 2026-11-13 | Created, moved from global memory                   | 3,412        | 37    |
-| 2026-11-13 | Team documents section added                        | 3,555        | 40    |
-| 2026-11-13 | Line letting the course `CLAUDE.md` win             | 3,686        | 41    |
-| 2026-11-16 | Section handing decision records to project-docs    | 3,932        | 44    |
-| 2026-11-17 | CBNU logo on the cover, separate stage-doc reports  | 4,077        | 45    |
-| 2026-11-25 | Report source Google Docs → local docx              | 4,877        | 48    |
-| 2026-11-27 | Documents docx, sheets xlsx, where Drive shows them | 5,497        | 52    |
-
-Seven commits over two weeks, 3,412 → 5,497 bytes (+2,085, about 1.6×). The biggest single change was +800 bytes on 11-25.
-
-## Glossary
-
-| Term                                                                                     | Meaning                                                                                                            |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Skill                                                                                    | A bundle of instructions that loads only for one kind of task; normally only its one-line `description` is visible |
-| TODO list                                                                                | One list of tasks where finished items are checked off                                                             |
-| option comparison                                                                        | A table or list that puts each option's pros and cons side by side                                                 |
-| [decision record](/en/blog/side-projects/project-docs/project-docs-02-decision-records/) | A dated entry of what was chosen, what was rejected and why                                                        |
-| build script                                                                             | A script that rebuilds the output (docx) from the source files                                                     |
-| page break                                                                               | A document marker that starts the next content on a new page                                                       |
-| keep-with-next                                                                           | A paragraph property that keeps a heading on the same page as the next paragraph                                   |
-| heading id                                                                               | The unique identifier of a heading that a TOC link points to                                                       |
-| `insertInlineImage`                                                                      | The Google Docs API request that inserts an image into the body                                                    |
-| images.weserv.nl                                                                         | A public image proxy that fetches an image by URL and converts its format and size                                 |
-| [Docs sync](/en/blog/side-projects/project-docs/project-docs-04-docs-sync/)              | Keeping Google Docs in line with Markdown sources in a repo, one way                                               |
+The [skill](glossary:agent-skill) itself has changed by these rules: the reasons for switching the source (400k vs 30k characters, lost heading ids) are kept as measured values, and if those values change again, the rule gets reopened.

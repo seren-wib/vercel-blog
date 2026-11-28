@@ -5,58 +5,55 @@ tags: ['Skills']
 draft: false
 aiGenerated: true
 summary: 'A skill that downloads only the course files I have not fetched yet, converts them to PDF, and adds deadlines to the calendar'
+level: 2
 ---
-
-> Part 9 of the skills series. What a skill is and why these rules moved out of the instruction files is in [CH0. Skills overview](/en/blog/side-projects/skills/skills-00-overview/).
 
 ## 0. Introduction
 
-During the semester, lecture files, assignment attachments and notices keep appearing on the school LMS for every course. I collect these files in iCloud under `UNIV/<semester>/<course>/` and write my notes there. The problem was that a person had to check by eye, every time, what had not been downloaded yet. Assignment deadlines were also often on the LMS only, not on my calendar.
+> Part 9 of the [skills](glossary:agent-skill) series. What a [skill](glossary:agent-skill) is and why these rules moved out of the instruction files is in [CH0. Skills overview](/en/blog/side-projects/skills/skills-00-overview/).
 
-`lms-sync` is the skill that hands this job to the agent. When I say "get the LMS files", it runs three steps per course: download missing files, convert PPT to PDF, and add deadlines to the calendar. The skill is one `SKILL.md` and one helper script, `pagecount.mjs`. Sizes and run records are in the [By the numbers](#by-the-numbers) table.
+During the semester, lecture files, assignment attachments and notices keep appearing on the school [LMS](glossary:lms) for every course. I collect these files in iCloud under `UNIV/<semester>/<course>/` and write my notes there. The problem was that a person had to check by eye, every time, what had not been downloaded yet. Assignment deadlines were also often on the [LMS](glossary:lms) only, not on my [calendar](glossary:google-calendar).
 
-The sources are the 3 commits to this skill in my dotfiles repo, the worklog for school work, and the memory change log. Where a reason is not written down anywhere, the post says "no record". Values that must not be public, such as course numbers, the school account and the login steps, are left out.
+In restaurant terms, the [LMS](glossary:lms) is a kitchen pass where order slips keep piling up, and I am the waiter who walks past it each time and picks up only the plates I have not taken yet. I check whether a plate is one I already have by its contents, not by the name tag on it, bind loose plates into one course set, and copy the booking times into a reservation book. The pass is the course page of a Moodle-based [LMS](glossary:lms), the plates are the lecture files, checking contents is a [SHA-1](glossary:sha-1) [hash](glossary:hash-function) comparison, binding into a course set is converting PPT to [PDF](glossary:pdf), and the reservation book is [Google Calendar](glossary:google-calendar).
 
-## 1. The shape of one run
+`lms-sync` is the [skill](glossary:agent-skill) that hands this job to the agent. When I say "get the [LMS](glossary:lms) files", it runs three steps per course: download missing files, convert PPT to [PDF](glossary:pdf), and add deadlines to the [calendar](glossary:google-calendar). The [skill](glossary:agent-skill) is one `SKILL.md` and one helper script, `pagecount.mjs`. Sizes and run records are in the tables of [5. Reporting and closing to-dos](#5-reporting-and-closing-to-dos). The sources are the 3 commits to this [skill](glossary:agent-skill) in my dotfiles repo, the worklog for school work, and the [memory](glossary:memory-file) change log. Where a reason is not written down anywhere, the post says "no record". Values that must not be public, such as course numbers, the school account and the login steps, are left out.
 
-As an analogy, it is like walking past each course's notice board once, picking up only the handouts you have not taken yet, binding the slides into a book, and copying the due dates onto a wall calendar.
+## 1. Reading the LMS through Chrome
 
 ![One lms-sync run: LMS course page, Files, Convert, Calendar](/static/images/skills-09-lms-sync/sync-flow.svg)
 
-_One lms-sync run: LMS course page, Files, Convert, Calendar_
+_One lms-sync run: [LMS](glossary:lms) course page, Files, Convert, Calendar_
 
-The notice board is the course page of a Moodle-based LMS, the handouts are its modules (`ubfile` lecture files, `assign` assignment attachments, `ubboard` notice attachments), and the wall calendar is Google Calendar.
+The course page of a Moodle-based [LMS](glossary:lms) holds the modules: `ubfile` for lecture files, `assign` for assignment attachments, `ubboard` for notice attachments. Deadlines go to [Google Calendar](glossary:google-calendar).
 
-The agent does not use an LMS API. On top of the session I am already logged into in Chrome, it opens a new tab through the Claude in Chrome extension and runs JavaScript `fetch` inside the page. The limits that come with this approach are written at the top of the skill.
+The agent does not use an [LMS](glossary:lms) API. On top of the session I am already logged into in Chrome, it opens a new tab through the [Claude in Chrome](glossary:claude-in-chrome) extension and runs [JavaScript](glossary:javascript) `fetch` inside the page. The limits that come with this approach are written at the top of the [skill](glossary:agent-skill).
 
-- **School notice (2026-11-09)**: abnormal heavy access can get an account restricted. So the skill goes one course at a time, pauses between requests, never runs `fetch` in parallel, and fetches only what is missing.
-- **Extension limits**: a JavaScript call is cut off after about 45 seconds (the script keeps running), and results are truncated at about 1000 characters. One course per call; results are stored on `window` and read back in pieces.
-- **Query string masking**: if a result contains a URL query string, the extension replaces it with `[BLOCKED: Cookie/query string data]`. So only file names are returned.
-- **Approval scope**: the request to fetch is itself the approval to download the missing files. The agent does not ask per file; it lists what it saved in the report.
+- **School notice (2026-11-09)**: abnormal heavy access can get an account [restricted](glossary:rate-limiting). So the [skill](glossary:agent-skill) goes one course at a time, pauses between requests, never runs `fetch` in parallel, and fetches only what is missing.
+- **Extension limits**: a [JavaScript](glossary:javascript) call is cut off after about 45 seconds (the script keeps running), and results are truncated at about 1000 characters. One course per call; results are stored on `window` and read back in pieces.
+- **[Query string](glossary:query-string) masking**: if a result contains a URL query string, the extension replaces it with `[BLOCKED: Cookie/query string data]`. So only file names are returned.
+- **Approval scope**: the request to [fetch](glossary:fetch-api) is itself the approval to download the missing files. The agent does not ask per file; it lists what it saved in the report.
 
-At first this was not a skill but a memory file (notes on collecting LMS files). On 2026-11-17, when task-specific rules were moved from memory into skills, `lms-sync` was born at 46 lines. Why a skill rather than memory is the same story as in [CH0](/en/blog/side-projects/skills/skills-00-overview/): this is not needed in every session, only when looking at the LMS.
+At first this was not a [skill](glossary:agent-skill) but a [memory](glossary:memory-file) file (notes on collecting [LMS](glossary:lms) files). On 2026-11-17, when task-specific rules were moved from [memory](glossary:memory-file) into [skills](glossary:agent-skill), `lms-sync` was born at 46 lines. Why a [skill](glossary:agent-skill) rather than [memory](glossary:memory-file) is the same story as in [CH0](/en/blog/side-projects/skills/skills-00-overview/): this is not needed in every session, only when looking at the [LMS](glossary:lms).
 
 ## 2. Recognizing files already downloaded
 
-As an analogy, it checks whether two sheets of paper are the same by fingerprint, not by the name tag stuck on them. I often rename the files I download, so comparing names alone would fetch the same file again.
+I often rename the files I download, so comparing names alone would [fetch](glossary:fetch-api) the same file again. So the [skill](glossary:agent-skill) decides whether a file is the same by its [SHA-1](glossary:sha-1) [hash](glossary:hash-function), not its name, and keeps the list of what was taken in the course folder's [manifest](glossary:manifest) file, `.lms-sync.json`.
 
 ![Deciding whether one LMS item is already there: manifest, name match, SHA-1](/static/images/skills-09-lms-sync/match-flow.svg)
 
-_Deciding whether one LMS item is already there: manifest, name match, SHA-1_
-
-The name tag is the file name, the fingerprint is a **SHA-1 hash**, and the list of what was taken is the course folder's **manifest** file, `.lms-sync.json`.
+_Deciding whether one [LMS](glossary:lms) item is already there: [manifest](glossary:manifest), name match, SHA-1_
 
 The first version (2026-11-17) compared by file name only (or by title when the name could not be read). Two days later, the 2026-11-19 commit turned this into three steps.
 
-1. **Manifest**: each course folder keeps `.lms-sync.json`, one entry per LMS module id: `{"title", "name", "sha1", "size", "path"}`. An item in the manifest counts as already there whatever its local name is now. It is fetched again only when its `path` is gone and no local file has the same `sha1`.
-2. **Name comparison**: items not in the manifest are matched by name against the whole course folder, recursively and across every file type, including `jpg`s attached to notices.
-3. **Hash comparison**: if no name matches, the page `fetch`es the file without saving it and hashes it with `crypto.subtle.digest("SHA-1", ...)`. Local files of the same extension are hashed with `crypto.createHash("sha1")` in `node -e`. A match means the file was only renamed, so it is recorded in the manifest and not saved.
+1. **[Manifest](glossary:manifest)**: each course folder keeps `.lms-sync.json`, one entry per [LMS](glossary:lms) module id: `{"title", "name", "sha1", "size", "path"}`. An item in the [manifest](glossary:manifest) counts as already there whatever its local name is now. It is fetched again only when its `path` is gone and no local file has the same `sha1`.
+2. **Name comparison**: items not in the [manifest](glossary:manifest) are matched by name against the whole course folder, [recursively](glossary:recursion) and across every file type, including `jpg`s attached to notices.
+3. **Hash comparison**: if no name matches, the page `fetch`es the file without saving it and hashes it with `crypto.subtle.digest("SHA-1", ...)`. Local files of the same extension are hashed with `crypto.createHash("sha1")` in `node -e`. A match means the file was only renamed, so it is recorded in the [manifest](glossary:manifest) and not saved.
 
-Why SHA-1 and not MD5 is in the worklog: the browser's Web Crypto `crypto.subtle` has no MD5. The browser and the local side have to use the same algorithm, so it became SHA-1. The local side uses `node` because the command is the same on macOS and Windows.
+Why [SHA-1](glossary:sha-1) and not [MD5](glossary:md5) is in the worklog: the browser's [Web Crypto](glossary:web-crypto-api) `crypto.subtle` has no [MD5](glossary:md5). The browser and the local side have to use the same algorithm, so it became [SHA-1](glossary:sha-1). The local side uses `node` because the command is the same on macOS and Windows.
 
-The hash comparison also catches duplicate posts. In one course, the file posted under "Chapter 15" was actually the same file as the Chapter 14 pptx. The skill keeps this as one line: when a fetched file looks like one already there, compare SHA-1 and drop the duplicate.
+The [hash](glossary:hash-function) comparison also catches [duplicate](glossary:deduplication) posts. In one course, the file posted under "Chapter 15" was actually the same file as the Chapter 14 pptx. The [skill](glossary:agent-skill) keeps this as one line: when a fetched file looks like one already there, compare [SHA-1](glossary:sha-1) and drop the [duplicate](glossary:deduplication).
 
-Only files that are truly missing get saved. The fetched blob is clicked through `<a download>`, lands in `~/Downloads`, and is moved with `mv` into the course folder. For lecture files, `GET /mod/ubfile/view.php` redirects to the file, but `HEAD` returns 404, so the file name is taken from the last path segment of `r.url` after `fetch`. If the redirect goes to another host, `fetch` throws a TypeError, and the item is matched by title instead. Items that only have an `열기` (Open) button go to a viewer and cannot be downloaded; the report counts them as viewer-only.
+Only files that are truly missing get saved. The fetched [blob](glossary:blob) is clicked through `<a download>`, lands in `~/Downloads`, and is moved with `mv` into the course folder. For lecture files, `GET /mod/ubfile/view.php` [redirects](glossary:http-redirect) to the file, but `HEAD` returns 404, so the file name is taken from the last path segment of `r.url` after `fetch`. If the [redirect](glossary:http-redirect) goes to another host, `fetch` throws a TypeError, and the item is matched by title instead. Items that only have an `열기` (Open) button go to a viewer and cannot be downloaded; the report counts them as viewer-only.
 
 The same commit also fixed where files go. The folder's existing layout comes first; these defaults apply only when it has none.
 
@@ -68,84 +65,67 @@ The same commit also fixed where files go. The folder's existing layout comes fi
 | Syllabus                          | Course folder root, as `<course name>-강의계획서.pdf`    |
 | Anything else                     | Course folder root, and the report says where it went    |
 
-## 3. PDF conversion and page count check
+The 2026-11-27 run created 4 new manifests, and from then on items in a [manifest](glossary:manifest) are not fetched again.
 
-As an analogy, it binds a stack of slides into a book, then checks that the "n pages in total" line at the front matches the original number of slides.
+## 3. PDF conversion and page count check
 
 ![Two ways to count PDF pages: /Count of the root Pages and the number of /Type /Page objects](/static/images/skills-09-lms-sync/page-count.svg)
 
-_Two ways to count PDF pages: /Count of the root Pages and the number of /Type /Page objects_
+_Two ways to count [PDF](glossary:pdf) pages: /Count of the root Pages and the number of /Type /Page objects_
 
-Binding is `soffice --headless --convert-to pdf`, the "n pages in total" line is the `/Count` at the root of the PDF page tree, and counting loose sheets is counting `/Type /Page` objects.
+Conversion is `soffice --headless --convert-to pdf`. Pages are counted either from the `/Count` at the root of the [PDF](glossary:pdf) [page tree](glossary:pdf) or from the number of `/Type /Page` objects.
 
-`ppt`, `pptx`, `doc` and `docx` are converted with LibreOffice's `soffice --headless --convert-to pdf --outdir <same folder> <file>`, and the original stays next to the pdf. The Mac has LibreOffice from Homebrew. Windows has none (checked 2026-11-19), so the agent converts with the installed PowerPoint, or asks me before installing LibreOffice with `winget`. `hwp` files are left alone and only listed, because LibreOffice cannot read current HWP.
+`ppt`, `pptx`, `doc` and `docx` are converted with [LibreOffice](glossary:libreoffice)'s `soffice --headless --convert-to pdf --outdir <same folder> <file>`, and the original stays next to the pdf. The Mac has [LibreOffice](glossary:libreoffice) from [Homebrew](glossary:homebrew). Windows has none (checked 2026-11-19), so the agent converts with the installed [PowerPoint](glossary:microsoft-powerpoint), or asks me before installing [LibreOffice](glossary:libreoffice) with `winget`. `hwp` files are left alone and only listed, because [LibreOffice](glossary:libreoffice) cannot read current HWP.
 
-After conversion, the page count must match the slide count. The slide count is the number of `ppt/slides/slide*.xml` files inside the pptx zip. Counting pages turned out to be the tricky part. The first version said to use mupdf's `mutool info` or count `/Type /Page` objects, but Windows has no `mutool`, and `mdls` on the Mac returned null for the page count.
+After conversion, the page count must match the slide count. The slide count is the number of `ppt/slides/slide*.xml` files inside the pptx [zip](glossary:zip). Counting pages turned out to be the tricky part. The first version said to use mupdf's `mutool info` or count `/Type /Page` objects, but Windows has no `mutool`, and `mdls` on the Mac returned null for the page count.
 
 So on 2026-11-19 a dependency-free Node script, `pagecount.mjs`, was added. It does two things.
 
-- It reads the PDF as `latin1` and collects the `N 0 obj` objects. Compressed object streams (`/Type /ObjStm`) are decompressed with `zlib.inflateSync` so the objects inside are collected too. When an object number appears again, the later definition wins (incremental update).
-- The first column is the largest `/Count` among `/Type /Pages` objects, the page count the root page tree states. The second column is the number of `/Type /Page` objects, marked `OBJ+` when it differs from the first.
+- It reads the [PDF](glossary:pdf) as `latin1` and collects the `N 0 obj` objects. Compressed object streams (`/Type /ObjStm`) are decompressed with `zlib.inflateSync` so the objects inside are collected too. When an object number appears again, the later definition wins ([incremental update](glossary:incremental-update)).
+- The first column is the largest `/Count` among `/Type /Pages` objects, the page count the root [page tree](glossary:pdf) states. The second column is the number of `/Type /Page` objects, marked `OBJ+` when it differs from the first.
 
-Why the first column is trusted is recorded with numbers in the script comment and the worklog. Checked against the Windows PDF API page count on 110 course PDFs, the root `/Count` matched on all 110. The object count was higher on 2 of the 110. Those PDFs keep orphan pages that are not linked into the page tree, so `OBJ+` is only a flag, not an error. If LibreOffice breaks the layout, the agent converts again with PowerPoint and says so in the report.
+Why the first column is trusted is recorded with numbers in the script comment and the worklog. Checked against the Windows [PDF](glossary:pdf) API page count on 110 course PDFs, the root `/Count` matched on all 110. The object count was higher on 2 of the 110. Those PDFs keep orphan pages that are not linked into the [page tree](glossary:pdf), so `OBJ+` is only a flag, not an error. If [LibreOffice](glossary:libreoffice) breaks the layout, the agent converts again with [PowerPoint](glossary:microsoft-powerpoint) and says so in the report.
 
-There were few actual conversions. The first run on 2026-11-17 converted one pptx, and its 48 slides matched 48 PDF pages. The 2026-11-20 run re-counted one existing PDF (35 pages, 35 slides).
+There were few actual conversions. The first run on 2026-11-17 converted one pptx, and its 48 slides matched 48 [PDF](glossary:pdf) pages. The 2026-11-20 run re-counted one existing [PDF](glossary:pdf) (35 pages, 35 slides).
 
 ## 4. Adding deadlines to the calendar
 
-As an analogy, it reads the assignment notice and writes the due date on the calendar, but skips it when that day already has an entry for the same course.
-
 ![Deciding whether one deadline goes on the calendar: submitted, past, same date + course](/static/images/skills-09-lms-sync/calendar-dedupe.svg)
 
-_Deciding whether one deadline goes on the calendar: submitted, past, same date + course_
+_Deciding whether one deadline goes on the [calendar](glossary:google-calendar): submitted, past, same date + course_
 
-The notice is the assignment page's `.submissionstatustable` (end time, submission status) plus notice board posts, the calendar is the school-schedule calendar in Google Calendar, and checking the day is `list_events`.
+Deadlines are read from the assignment page's `.submissionstatustable` (end time, submission status) and from notice board posts. They go into the school-schedule [calendar](glossary:google-calendar) in [Google Calendar](glossary:google-calendar), and `list_events` checks what is already on the day.
 
 - **Submitted assignments are skipped.** Past dates are skipped too.
 - **Duplicates are matched by date and course, not by title.** Some existing events were added by hand, so title formats vary. The same deadline can be there as "assignment due" or "[Submit] …".
 - **Exam dates come from notices only.** This semester's syllabi list exams by week ("week 15") with no date. So the agent does not guess; it reports "no date yet".
-- **Search scope**: the calendar connector's `search_events` only searches the primary calendar. So the agent finds the school calendar's id with `list_calendars` and runs `list_events` on that calendar around the date.
-- A new event gets the title `[course short name] <assignment> due`, the LMS end time, and the LMS item title as its description. The list (title, date, reminder) is shown before writing, unless the request already said to add them.
+- **Search scope**: the [calendar](glossary:google-calendar) [connector](glossary:connector)'s `search_events` only searches the primary [calendar](glossary:google-calendar). So the agent finds the school [calendar](glossary:google-calendar)'s id with `list_calendars` and runs `list_events` on that [calendar](glossary:google-calendar) around the date.
+- A new event gets the title `[course short name] <assignment> due`, the [LMS](glossary:lms) end time, and the [LMS](glossary:lms) item title as its description. The list (title, date, reminder) is shown before writing, unless the request already said to add them.
 
-The reminder time once caused a rule conflict. My general calendar rule was "always ask for the reminder time first". On the first run, 2026-11-17, it collided with the LMS deadline default (9 a.m. the day before; 900 minutes before for all-day events as a popup). That day a line saying "LMS assignment deadlines are the exception" went into the memory change log, and the skill now says this default is my standing answer for LMS deadlines, so the general rule does not apply.
+The reminder time once caused a rule conflict. My general [calendar](glossary:google-calendar) rule was "always ask for the reminder time first". On the first run, 2026-11-17, it collided with the [LMS](glossary:lms) deadline default (9 a.m. the day before; 900 minutes before for all-day events as a popup). That day a line saying "[LMS](glossary:lms) assignment deadlines are the exception" went into the [memory](glossary:memory-file) change log, and the [skill](glossary:agent-skill) now says this default is my standing answer for [LMS](glossary:lms) deadlines, so the general rule does not apply.
 
 ## 5. Reporting and closing to-dos
-
-As an analogy, after one round it writes a line of numbers in the ledger, then crosses finished assignments off the to-do column of every other logbook.
 
 ![What a run leaves behind: report, worklog/univ/WORK.md, worklog/*/WORK.md](/static/images/skills-09-lms-sync/report-record.svg)
 
 _What a run leaves behind: report, worklog/univ/WORK.md, worklog/\*/WORK.md_
 
-The ledger is the report, my logbook is `worklog/univ/WORK.md`, and the other logbooks are every worklog key (`worklog/*/WORK.md`). The worklog structure is covered in [CH6. session-flow](/en/blog/side-projects/skills/skills-06-session-flow/).
+A run leaves records in three places: the report, my logbook `worklog/univ/WORK.md`, and the other logbooks, which are every worklog key (`worklog/*/WORK.md`). The worklog structure is covered in [CH6. session-flow](/en/blog/side-projects/skills/skills-06-session-flow/).
 
-The report is in numbers per course: downloaded, already there, viewer-only, failed (with the reason), converted, events added, skipped as duplicates. The same numbers go as one dated line under `## 한 일` (done) in `worklog/univ/WORK.md`. New LMS facts, such as a new course or a changed page structure, go into the school file in memory.
+The report is in numbers per course: downloaded, already there, viewer-only, failed (with the reason), converted, events added, skipped as duplicates. The same numbers go as one dated line under `## 한 일` (done) in `worklog/univ/WORK.md`. New [LMS](glossary:lms) facts, such as a new course or a changed page structure, go into the school file in [memory](glossary:memory-file).
 
-The last rule was added on 2026-11-27. That day the LMS sync session confirmed two assignments as submitted and closed only the to-dos in `worklog/univ/WORK.md`. The same assignments were also open to-dos under the worklog key for the virtual machine labs, and the session did not look there. So the skill gained a line: for each assignment confirmed as submitted, grep every key's `WORK.md` for the course short name and the assignment number (like `HW7`) and close its to-dos. The shared instructions and the `session-flow` skill got the same kind of rule that day.
-
-## 6. Summary
-
-| Date       | What changed                                                                     | Trigger                                          |
-| ---------- | -------------------------------------------------------------------------------- | ------------------------------------------------ |
-| 2026-11-17 | LMS notes moved from memory into a skill (46 lines)                              | Task-specific rules moved from memory to skills  |
-| 2026-11-17 | LMS deadline reminders use a default instead of asking                           | Collided with the calendar rule on the first run |
-| 2026-11-19 | Manifest and SHA-1 matching, file placement, `pagecount.mjs`, Windows conversion | Renamed files were being fetched again           |
-| 2026-11-27 | Close to-dos of submitted assignments in every worklog key                       | To-dos in another key stayed open                |
-
-A sync that compared names only became one that recognizes the same file even after I rename it. The 2026-11-27 run created 4 new manifests, and from then on items in a manifest are not fetched again.
-
-## By the numbers
+The last rule was added on 2026-11-27. That day the [LMS](glossary:lms) sync session confirmed two assignments as submitted and closed only the to-dos in `worklog/univ/WORK.md`. The same assignments were also open to-dos under the worklog key for the virtual machine labs, and the session did not look there. So the [skill](glossary:agent-skill) gained a line: for each assignment confirmed as submitted, [grep](glossary:grep) every key's `WORK.md` for the course short name and the assignment number (like `HW7`) and close its to-dos. The shared instructions and the `session-flow` [skill](glossary:agent-skill) got the same kind of rule that day.
 
 As of 2026-11-28. Sources: `git log -- claude/skills/lms-sync` and `wc -c -l` in the dotfiles repo, and the run records in the school worklog.
 
-| Item                                 | Value                             |
-| ------------------------------------ | --------------------------------- |
-| Commits to the skill                 | 3 (11-17, 11-19, 11-27)           |
-| `SKILL.md`                           | 58 lines, 6,983 B                 |
-| `SKILL.md`, first version            | 46 lines, 5,045 B                 |
-| `pagecount.mjs`                      | 56 lines, 2,361 B, 0 dependencies |
-| Page check (root `/Count` matched)   | 110 / 110                         |
-| Page check (more objects than pages) | 2 / 110                           |
+| Item                                         | Value                                                    |
+| -------------------------------------------- | -------------------------------------------------------- |
+| Commits to the [skill](glossary:agent-skill) | 3 (11-17, 11-19, 11-27)                                  |
+| `SKILL.md`                                   | 58 lines, 6,983 B                                        |
+| `SKILL.md`, first version                    | 46 lines, 5,045 B                                        |
+| `pagecount.mjs`                              | 56 lines, 2,361 B, 0 [dependencies](glossary:dependency) |
+| Page check (root `/Count` matched)           | 110 / 110                                                |
+| Page check (more objects than pages)         | 2 / 110                                                  |
 
 Runs recorded in the worklog:
 
@@ -156,20 +136,8 @@ Runs recorded in the worklog:
 | 2026-11-23 | 1 course  | 0          | 17            | 0           | 0      | 0         | 2            | 0       |
 | 2026-11-27 | 6 courses | 7          | no record     | no record   | 0      | 0         | 2            | 5       |
 
-On 2026-11-20 the request narrowed the run to one course (one more course was only compared, and all 15 of its items were already there). Of the 2 events on 2026-11-23, one was not an LMS deadline but an event asked for in the same request.
+On 2026-11-20 the request narrowed the run to one course (one more course was only compared, and all 15 of its items were already there). Of the 2 events on 2026-11-23, one was not an [LMS](glossary:lms) deadline but an event asked for in the same request.
 
-## Glossary
+## 6. Reflection
 
-| Term                                                                                               | Meaning                                                                                          |
-| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| [Skill](/en/blog/side-projects/devblog/devblog-04-agent-environment/#3-pulling-out-what-is-needed) | A procedure document the agent opens only when doing a specific task                             |
-| LMS                                                                                                | The school's learning management system for lecture files, assignments and notices               |
-| Moodle                                                                                             | An open-source learning management system many university LMSs are built on                      |
-| manifest                                                                                           | A file listing, item by item, what has already been downloaded                                   |
-| SHA-1                                                                                              | A hash function that turns file contents into a 160-bit value, used here to tell identical files |
-| Web Crypto (`crypto.subtle`)                                                                       | The browser's built-in cryptography API, which has no MD5                                        |
-| LibreOffice `soffice --headless`                                                                   | A command that converts documents to other formats without a window                              |
-| page tree `/Count`                                                                                 | The number of pages below a node of the PDF page tree, as stored in that node                    |
-| object stream                                                                                      | A stream that packs several PDF objects into one compressed block                                |
-| orphan page                                                                                        | A page object left in the file without being linked into the page tree                           |
-| worklog                                                                                            | The `WORK.md` per key (group of work) that holds to-dos and done items                           |
+A sync that compared names only became one that recognizes the same file even after I rename it.

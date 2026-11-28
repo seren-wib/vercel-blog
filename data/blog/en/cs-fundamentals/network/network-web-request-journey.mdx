@@ -6,7 +6,7 @@ draft: false
 summary: 'Wi-Fi association, DHCP (DORA), default gateway, URL parsing, recursive DNS lookup (root, TLD and authoritative servers), subnet check and ARP, TCP 3-way handshake, TLS 1.3 handshake, encapsulation with MTU and MSS, CSMA/CA, home router NAT (NAPT), router hops and longest prefix match, TTL, routing vs forwarding, decapsulation, load balancer, flow control and congestion control, adaptive streaming, TCP teardown and TIME_WAIT, VPN tunnels (full and split tunnel, DNS leak), SSH connection steps with host key and public key authentication, port forwarding, SSH tunnels'
 ---
 
-> This post follows one packet from a laptop on home Wi-Fi opening `https://www.example.com/video` all the way to the web server and back, in steps 0 to 13. At the end it adds what changes when a VPN is on and when you connect over SSH. It started as a note I wrote while studying lecture 5 (networking) of Introduction to Computer Systems (컴퓨터시스템개론), covering more than the slides did. The same material grouped by layer (application, transport, network, link, physical) is in [Networking by Layer](/en/blog/cs-fundamentals/network/network-tcp-ip-layers/). The same material grouped by layer (application, transport, network, link, physical) is in [Networking by Layer](/en/blog/cs-fundamentals/network/network-tcp-ip-layers/).
+> This post follows one [packet](glossary:ip) from a laptop on home [Wi-Fi](glossary:wi-fi) opening `https://www.example.com/video` all the way to the web server and back, in steps 0 to 13. At the end it adds what changes when a [VPN](glossary:vpn) is on and when you connect over [SSH](glossary:ssh). It started as a note I wrote while studying lecture 5 (networking) of Introduction to Computer Systems (컴퓨터시스템개론), covering more than the slides did. The same material grouped by layer (application, transport, network, link, physical) is in [Networking by Layer](/en/blog/cs-fundamentals/network/network-tcp-ip-layers/). The same material grouped by layer (application, transport, network, link, physical) is in [Networking by Layer](/en/blog/cs-fundamentals/network/network-tcp-ip-layers/).
 
 # The whole picture
 
@@ -14,368 +14,341 @@ Think of a parcel. The sender puts the item in a box, puts that box in a bigger 
 
 ![How a packet travels from a laptop to a web server, with the headers that change on each link](/static/images/network-web-request-journey/packet-journey.svg)
 
-_Laptop → home router → ISP router → router B → web server. The box below is the frame on the current link, and red text marks values that change when the link changes. Diagram labels are in Korean._
+_Laptop → home [router](glossary:router) → [ISP](glossary:isp) [router](glossary:router) → [router](glossary:router) B → web server. The box below is the [frame](glossary:frame) on the current link, and red text marks values that change when the link changes. Diagram labels are in Korean._
 
-In the analogy, the nested boxes are **encapsulation**, the outer label is the link layer header (MAC addresses), the final address on the inner box is the destination IP in the IP header, and the sorting centers are routers.
+In the analogy, the nested boxes are **[encapsulation](glossary:encapsulation)**, the outer label is the link layer header ([MAC addresses](glossary:mac-address)), the final address on the inner box is the destination IP in the IP header, and the sorting centers are [routers](glossary:router).
 
 **How to read the diagram**
 
-- Top: laptop → home router → ISP router → router B → web server. Links 1 to 4 are the hops between devices.
-- Bottom box: the frame flying over the current link. From the outside in: link header (MAC) ⊃ IP header ⊃ TCP header ⊃ HTTP encrypted with TLS.
-- Red text: values that change when the link changes. The destination IP and destination port stay the same to the end.
+- Top: laptop → home [router](glossary:router) → [ISP](glossary:isp) [router](glossary:router) → [router](glossary:router) B → web server. Links 1 to 4 are the [hops](glossary:hop) between devices.
+- Bottom box: the [frame](glossary:frame) flying over the current link. From the outside in: link header ([MAC](glossary:mac-address)) ⊃ IP header ⊃ [TCP](glossary:tcp) header ⊃ [HTTP](glossary:http) encrypted with [TLS](glossary:tls).
+- Red text: values that change when the link changes. The destination IP and destination [port](glossary:port) stay the same to the end.
 
-**The whole flow in one line**: the sender goes down four layers doing [encapsulation](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#encapsulation) → each router looks only at the IP header and passes the packet to the next link → the receiver goes up four layers doing decapsulation.
+**The whole flow in one line**: the sender goes down four layers doing [encapsulation](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#encapsulation) → each [router](glossary:router) looks only at the IP header and passes the [packet](glossary:ip) to the next link → the receiver goes up four layers doing [decapsulation](glossary:decapsulation).
 
 **Example addresses** (all reserved for documentation)
 
-| Device            | Address                       |
-| ----------------- | ----------------------------- |
-| Laptop (private)  | 192.168.1.20                  |
-| Router (LAN side) | 192.168.1.1 (default gateway) |
-| Router (public)   | 203.0.113.5                   |
-| Web server        | 192.0.2.10                    |
+| Device                                               | Address                                                   |
+| ---------------------------------------------------- | --------------------------------------------------------- |
+| Laptop (private)                                     | 192.168.1.20                                              |
+| [Router](glossary:router) ([LAN](glossary:lan) side) | 192.168.1.1 ([default gateway](glossary:default-gateway)) |
+| [Router](glossary:router) (public)                   | 203.0.113.5                                               |
+| Web server                                           | 192.0.2.10                                                |
 
 # 0. Setup: join the network and get an address
 
-Think of your first day in a new apartment. You need a building pass (the wireless connection), and the management office has to give you your unit number and where the nearest post office is (IP and gateway) before you can send any mail. The building pass is Wi-Fi association, and the management office is the DHCP server.
+Think of your first day in a new apartment. You need a building pass (the wireless connection), and the management office has to give you your unit number and where the nearest post office is (IP and gateway) before you can send any mail. The building pass is [Wi-Fi](glossary:wi-fi) association, and the management office is the [DHCP](glossary:dhcp) server.
 
 ## Wi-Fi connection
 
-1. Scan: find the SSID in the beacons the AP broadcasts.
+1. Scan: find the [SSID](glossary:ssid) in the beacons the [AP](glossary:access-point) broadcasts.
 2. Authentication and association.
-3. The WPA2/3 4-way handshake creates the encryption keys for the wireless link.
+3. The [WPA2/3 4-way handshake](glossary:wpa2-4-way-handshake) creates the encryption keys for the wireless link.
 
-At this point only the laptop ↔ AP connection exists. Whether you can reach the internet is still unknown. The ISP and server links are separate.
+At this point only the laptop ↔ [AP](glossary:access-point) connection exists. Whether you can reach the internet is still unknown. The [ISP](glossary:isp) and server links are separate.
 
 ## Router ↔ ISP
 
-The router's WAN port connects to the ISP network through a modem or ONT (optical network terminal). The public IP 203.0.113.5 is the address the ISP gave the router.
+The [router](glossary:router)'s WAN [port](glossary:port) connects to the [ISP](glossary:isp) network through a modem or [ONT](glossary:ont) (optical network terminal). The [public IP](glossary:public-ip-address) 203.0.113.5 is the address the [ISP](glossary:isp) gave the [router](glossary:router).
 
 ## DHCP
 
-The router hands out IPs automatically. It takes four steps, called **DORA** after their first letters.
+The [router](glossary:router) hands out IPs automatically. It takes four steps, called **[DORA](glossary:dhcp)** after their first letters.
 
-1. **Discover**: broadcast "anyone giving out IPs?" There is no IP yet, so it goes 0.0.0.0 → 255.255.255.255, UDP 68 → 67.
-2. **Offer**: the router offers 192.168.1.20.
+1. **Discover**: [broadcast](glossary:broadcast) "anyone giving out IPs?" There is no IP yet, so it goes 0.0.0.0 → 255.255.255.255, [UDP](glossary:udp) 68 → 67.
+2. **Offer**: the [router](glossary:router) offers 192.168.1.20.
 3. **Request**: "I'll take that."
 4. **Ack**: confirmed.
 
-What you get: your IP, the subnet mask (/24), the **default gateway** (= the router, 192.168.1.1), DNS server addresses, and the lease time.
+What you get: your IP, the [subnet mask](glossary:subnet-mask) (/24), the **[default gateway](glossary:default-gateway)** (= the [router](glossary:router), 192.168.1.1), [DNS](glossary:dns) server addresses, and the lease time.
 
-The **default gateway** is the exit to other networks. It is usually the IP of a router interface on the same LAN.
+The **[default gateway](glossary:default-gateway)** is the exit to other networks. It is usually the IP of a [router](glossary:router) interface on the same [LAN](glossary:lan).
 
 # 1. URL parsing
 
-The browser splits the URL.
+The browser splits the [URL](glossary:url).
 
-- Scheme `https` → default port 443
+- Scheme `https` → default [port](glossary:port) 443
 - Host `www.example.com`
 - Path `/video`
 
-If the browser cache still has a valid response, nothing goes out on the network and it ends here (web cache).
+If the browser cache still has a valid response, nothing goes out on the network and it ends here ([web cache](glossary:web-cache)).
 
 # 2. DNS: name → IP
 
-It works like a phone book. People know the name (`www.example.com`), but calling needs the number (IP). You ask the local operator (the resolver), and the operator asks head office → regional branch → the responsible department in turn and tells you the number. The local operator is the recursive DNS resolver, and head office, branch and department are the root, TLD and authoritative DNS servers.
+It works like a phone book. People know the name (`www.example.com`), but calling needs the number (IP). You ask the local operator (the [resolver](glossary:recursive-resolver)), and the operator asks head office → regional branch → the responsible department in turn and tells you the number. The local operator is the [recursive DNS resolver](glossary:recursive-resolver), and head office, branch and department are the root, [TLD](glossary:tld) and [authoritative DNS servers](glossary:authoritative-dns-server).
 
-**Check the caches first**: browser DNS cache → OS DNS cache → the `hosts` file. If one has it, it ends here.
+**Check the caches first**: browser [DNS](glossary:dns) cache → OS [DNS](glossary:dns) cache → the `hosts` file. If one has it, it ends here.
 
-If not, the device asks the **recursive DNS resolver** (the DNS server from DHCP, usually the ISP's or the router). The query is usually UDP 53. This DNS query packet also goes out and back through ARP → gateway → NAT → router hops, exactly like steps 3 and 6 to 9 below.
+If not, the device asks the **[recursive DNS resolver](glossary:recursive-resolver)** (the [DNS](glossary:dns) server from [DHCP](glossary:dhcp), usually the [ISP](glossary:isp)'s or the [router](glossary:router)). The query is usually [UDP](glossary:udp) 53. This [DNS](glossary:dns) query [packet](glossary:ip) also goes out and back through [ARP](glossary:arp) → gateway → [NAT](glossary:nat) → [router](glossary:router) [hops](glossary:hop), exactly like steps 3 and 6 to 9 below.
 
-The resolver asks on your behalf, in order. Each server only says "ask over there next."
+The [resolver](glossary:recursive-resolver) asks on your behalf, in order. Each server only says "ask over there next."
 
-1. **Root DNS server**: where the `.com` server (TLD server) is
-2. **Top-level domain (TLD) DNS server**: where the server for `example.com` (authoritative server) is
-3. **Authoritative DNS server**: the official record for `www.example.com` → A record 192.0.2.10
+1. **[Root DNS server](glossary:root-dns-server)**: where the `.com` server ([TLD](glossary:tld) server) is
+2. **Top-level domain ([TLD](glossary:tld)) [DNS](glossary:dns) server**: where the server for `example.com` ([authoritative server](glossary:authoritative-dns-server)) is
+3. **[Authoritative DNS server](glossary:authoritative-dns-server)**: the official record for `www.example.com` → [A record](glossary:dns-record) 192.0.2.10
 
-The resolver caches the result for the record's TTL. The next person who asks for the same name gets it right away. For large services, the authoritative server may return the IP of a nearby **CDN** server. Buying a domain and setting DNS records yourself is covered in [DNS and Registrar](/en/blog/dev/cloudflare/cloudflare-00-basics/#dns-and-registrar).
+The [resolver](glossary:recursive-resolver) caches the result for the record's [TTL](glossary:ttl). The next person who asks for the same name gets it right away. For large services, the [authoritative server](glossary:authoritative-dns-server) may return the IP of a nearby **[CDN](glossary:cdn)** server. Buying a domain and setting [DNS](glossary:dns) records yourself is covered in [DNS and Registrar](glossary:domain-registrar).
 
 # 3. Same network or not + ARP
 
-Mail for a neighbor in the same building you can leave at their door. Mail for another town has to go through the post office. To hand it to the post office you need to know where its counter is (MAC), and asking that over the building's PA system is ARP.
+Mail for a neighbor in the same building you can leave at their door. Mail for another town has to go through the post office. To hand it to the post office you need to know where its counter is ([MAC](glossary:mac-address)), and asking that over the building's PA system is [ARP](glossary:arp).
 
 ## Subnet check
 
-AND your IP and the server IP each with the subnet mask and compare the network addresses. 192.168.1.0 ≠ 192.0.2.0 → different networks. How to compute it is in [How to find which subnet an arbitrary IP belongs to](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#7-how-to-find-which-subnet-an-arbitrary-ip-belongs-to).
+AND your IP and the server IP each with the [subnet mask](glossary:subnet-mask) and compare the network addresses. 192.168.1.0 ≠ 192.0.2.0 → different networks. How to compute it is in [How to find which subnet an arbitrary IP belongs to](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#7-how-to-find-which-subnet-an-arbitrary-ip-belongs-to).
 
-- Same: send directly inside the LAN to the peer's MAC.
-- Different: send to the default gateway.
+- Same: send directly inside the [LAN](glossary:lan) to the peer's [MAC](glossary:mac-address).
+- Different: send to the [default gateway](glossary:default-gateway).
 
 ## ARP
 
-You know the gateway IP (192.168.1.1) but not its MAC.
+You know the gateway IP (192.168.1.1) but not its [MAC](glossary:mac-address).
 
-1. Check the ARP cache first.
-2. If it is not there, broadcast an ARP request: "who is 192.168.1.1?" (destination MAC `FF:FF:FF:FF:FF:FF`)
-3. The router sends an ARP reply with its MAC (unicast).
-4. Save it in the ARP cache. No need to ask next time.
+1. Check the [ARP](glossary:arp) cache first.
+2. If it is not there, [broadcast](glossary:broadcast) an [ARP](glossary:arp) request: "who is 192.168.1.1?" (destination [MAC](glossary:mac-address) `FF:FF:FF:FF:FF:FF`)
+3. The [router](glossary:router) sends an [ARP](glossary:arp) reply with its [MAC](glossary:mac-address) ([unicast](glossary:unicast)).
+4. Save it in the [ARP](glossary:arp) cache. No need to ask next time.
 
-So the first frame has destination MAC = router and destination IP = server. The two point at different things. Why two addresses are needed is in [IP and MAC complement each other](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#ip-and-mac-complement-each-other).
+So the first [frame](glossary:frame) has destination [MAC](glossary:mac-address) = [router](glossary:router) and destination IP = server. The two point at different things. Why two addresses are needed is in [IP and MAC complement each other](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#ip-and-mac-complement-each-other).
 
 # 4. TCP connection (3-way handshake)
 
 On a phone call you say "Hello?" → "Yes, I can hear you. Can you hear me?" → "Yes" before getting to the point. Those three lines are SYN → SYN+ACK → ACK.
 
-- The browser creates a socket. The OS picks a temporary source port (ephemeral port, e.g. 51000), and the destination port is 443.
-- SYN (seq = x, options such as MSS) → SYN+ACK (seq = y, ack = x+1) → ACK (ack = y+1)
+- The browser creates a [socket](glossary:socket). The OS picks a temporary source [port](glossary:port) ([ephemeral port](glossary:ephemeral-port), e.g. 51000), and the destination [port](glossary:port) is 443.
+- SYN (seq = x, options such as [MSS](glossary:mss)) → SYN+ACK (seq = y, ack = x+1) → ACK (ack = y+1)
 - This does not connect a wire. It creates connection state on both sides (starting sequence numbers and so on).
-- Each of the three segments makes the round trip through steps 6 to 9. This costs 1 RTT.
+- Each of the three segments makes the round trip through steps 6 to 9. This costs 1 [RTT](glossary:rtt).
 
 A field-by-field explanation is in [Three-Way Handshake process](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#three-way-handshake-process).
 
 # 5. TLS setup (because it is HTTPS)
 
-This step builds a cipher only the two sides know. First you check the business registration (certificate) to make sure the shop is real, then the two sides exchange numbers and each builds the same key on its own. The key itself never travels. The business registration is the server certificate, and the key each side builds is the session key.
+This step builds a cipher only the two sides know. First you check the business registration ([certificate](glossary:digital-certificate)) to make sure the shop is real, then the two sides exchange numbers and each builds the same key on its own. The key itself never travels. The business registration is the server [certificate](glossary:digital-certificate), and the key each side builds is the [session key](glossary:session-key).
 
-For TLS 1.3:
+For [TLS](glossary:tls) 1.3:
 
-1. **ClientHello**: supported cipher suites, key exchange value, the name to connect to (SNI = `www.example.com`)
-2. **ServerHello**: the chosen suite, the server's key exchange value + **certificate** + signature + Finished
-3. The browser verifies the certificate: CA signature chain, certificate domain = the domain you connected to, validity period.
-4. Finished → both sides compute the same **session key** (ECDHE key exchange, the key itself is never sent).
+1. **ClientHello**: supported cipher suites, key exchange value, the name to connect to ([SNI](glossary:sni) = `www.example.com`)
+2. **ServerHello**: the chosen suite, the server's key exchange value + **[certificate](glossary:digital-certificate)** + signature + Finished
+3. The browser verifies the [certificate](glossary:digital-certificate): [CA](glossary:ca) signature chain, [certificate](glossary:digital-certificate) domain = the domain you connected to, validity period.
+4. Finished → both sides compute the same **[session key](glossary:session-key)** ([ECDHE](glossary:ecdhe) key exchange, the key itself is never sent).
 
-After that, HTTP data is encrypted with the session key (symmetric key).
+After that, [HTTP](glossary:http) data is encrypted with the [session key](glossary:session-key) ([symmetric key](glossary:symmetric-encryption)).
 
-What it protects: confidentiality (can't read it), integrity (you notice if it changes), and server authentication. It does not guarantee that the site's content is genuine. Phishing sites use HTTPS too.
+What it protects: confidentiality (can't read it), integrity (you notice if it changes), and server authentication. It does not guarantee that the site's content is genuine. [Phishing](glossary:phishing) sites use [HTTPS](glossary:https) too.
 
 # 6. HTTP request + encapsulation (sender side, top → bottom)
 
 The parcel analogy from the start actually happens here. Each layer adds one more box and one more label.
 
-HTTP request: `GET /video HTTP/1.1`, `Host: www.example.com`, cookies, browser info and so on.
+[HTTP](glossary:http) request: `GET /video HTTP/1.1`, `Host: www.example.com`, cookies, browser info and so on.
 
-**Encapsulation**: each layer wraps the data from the layer above with the header it needs for its own job.
+**[Encapsulation](glossary:encapsulation)**: each layer wraps the data from the layer above with the header it needs for its own job.
 
-| Layer       | Unit        | What it adds                                                        | In this example                   |
-| ----------- | ----------- | ------------------------------------------------------------------- | --------------------------------- |
-| Application | Message     | HTTP request → encrypted into TLS records                           | `GET /video`                      |
-| Transport   | TCP segment | Source and destination ports, sequence number, ACK number, checksum | 51000 → 443                       |
-| Network     | IP packet   | Source and destination IPs, TTL, protocol number (TCP = 6)          | 192.168.1.20 → 192.0.2.10, TTL 64 |
-| Link        | Frame       | Source and destination MACs, error detection (FCS)                  | Laptop MAC → router MAC           |
+| Layer       | Unit                                | What it adds                                                                               | In this example                                                                            |
+| ----------- | ----------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| Application | Message                             | [HTTP](glossary:http) request → encrypted into [TLS](glossary:tls) records                 | `GET /video`                                                                               |
+| Transport   | [TCP segment](glossary:tcp-segment) | Source and destination [ports](glossary:port), sequence number, ACK number, checksum       | 51000 → 443                                                                                |
+| Network     | IP [packet](glossary:ip)            | Source and destination IPs, [TTL](glossary:ttl), protocol number ([TCP](glossary:tcp) = 6) | 192.168.1.20 → 192.0.2.10, [TTL](glossary:ttl) 64                                          |
+| Link        | [Frame](glossary:frame)             | Source and destination [MACs](glossary:mac-address), error detection ([FCS](glossary:fcs)) | Laptop [MAC](glossary:mac-address) → [router](glossary:router) [MAC](glossary:mac-address) |
 
-- **Size limit**: one frame is at most 1500 B (MTU). So TCP splits the data into pieces no larger than the MSS (usually 1460 B). Large data becomes many packets, and each may take a different path.
-- **Physical layer**: turns the frame's bits into a signal and sends it. Wi-Fi uses radio waves, copper Ethernet uses electricity, and fiber uses light.
+- **Size limit**: one [frame](glossary:frame) is at most 1500 B ([MTU](glossary:mtu)). So [TCP](glossary:tcp) splits the data into pieces no larger than the [MSS](glossary:mss) (usually 1460 B). Large data becomes many [packets](glossary:ip), and each may take a different path.
+- **[Physical layer](glossary:physical-layer)**: turns the [frame](glossary:frame)'s bits into a signal and sends it. [Wi-Fi](glossary:wi-fi) uses radio waves, copper Ethernet uses electricity, and fiber uses light.
 
 # 7. Link 1: laptop → router (Wi-Fi)
 
-Picture several people in one room sharing a single walkie-talkie channel. You first listen for whether anyone is talking, and even when it is quiet you don't start right away: you count for a moment first. That cuts down on two people starting at once. This rule is CSMA/CA.
+Picture several people in one room sharing a single walkie-talkie channel. You first listen for whether anyone is talking, and even when it is quiet you don't start right away: you count for a moment first. That cuts down on two people starting at once. This rule is [CSMA/CA](glossary:csmaca).
 
-The wireless channel is a shared medium, so it uses **CSMA/CA**.
+The wireless channel is a shared medium, so it uses **[CSMA/CA](glossary:csmaca)**.
 
-- Listen for whether the channel is free → even if it is, wait a random backoff → transmit → the AP sends an ACK (retransmit if it doesn't arrive).
-- If there is a hidden terminal problem, reserve the channel first with RTS/CTS.
+- Listen for whether the channel is free → even if it is, wait a random [backoff](glossary:backoff) → transmit → the [AP](glossary:access-point) sends an ACK (retransmit if it doesn't arrive).
+- If there is a [hidden terminal problem](glossary:hidden-terminal-problem), reserve the channel first with [RTS/CTS](glossary:rtscts).
 
-A home router is an AP + switch + router + DHCP server + firewall bundled into one product.
+A home [router](glossary:router) is an [AP](glossary:access-point) + [switch](glossary:switch) + [router](glossary:router) + [DHCP](glossary:dhcp) server + [firewall](glossary:firewall) bundled into one product.
 
-- A wireless frame received by the AP is handed to the router function inside the box (wireless frame → Ethernet frame conversion).
-- For a wired PC, the switch looks up its MAC address table and forwards only to that port. For an unknown MAC it sends to every port.
+- A wireless [frame](glossary:frame) received by the [AP](glossary:access-point) is handed to the [router](glossary:router) function inside the box (wireless [frame](glossary:frame) → Ethernet [frame](glossary:frame) conversion).
+- For a wired PC, the [switch](glossary:switch) looks up its [MAC address](glossary:mac-address) table and forwards only to that [port](glossary:port). For an unknown [MAC](glossary:mac-address) it sends to every [port](glossary:port).
 
 # 8. Router: firewall + routing + NAT
 
-Think of a company's main phone number. From the outside there is one number, but the operator writes down in a log "extension 20 made this call" and, when the reply comes, routes it back to that extension. The main number is the public IP, the extension is the private IP and port, and the operator's log is the NAT translation table.
+Think of a company's main phone number. From the outside there is one number, but the operator writes down in a log "extension 20 made this call" and, when the reply comes, routes it back to that extension. The main number is the [public IP](glossary:public-ip-address), the extension is the [private IP](glossary:private-ip-address) and [port](glossary:port), and the operator's log is the [NAT](glossary:nat) translation table.
 
-1. Check the frame FCS → strip the frame and take out the IP packet.
-2. Check the firewall rules (outgoing traffic is usually allowed).
-3. Routing: the destination 192.0.2.10 is outside the home LAN → default route = toward the ISP.
-4. **NAT** (more precisely NAPT, which rewrites ports too)
-   - Rewrite (192.168.1.20 : 51000) → (203.0.113.5 : 40001) and record it in the **NAT translation table**.
-   - Several devices at home share one public IP, so ports tell them apart.
-   - Recompute the IP and TCP checksums.
-5. TTL 64 → 63.
-6. Build a new frame for the outgoing link. Destination MAC = the next device on the ISP side (also learned through ARP or similar).
+1. Check the [frame](glossary:frame) [FCS](glossary:fcs) → strip the [frame](glossary:frame) and take out the IP [packet](glossary:ip).
+2. Check the [firewall](glossary:firewall) rules (outgoing traffic is usually allowed).
+3. [Routing](glossary:routing): the destination 192.0.2.10 is outside the home [LAN](glossary:lan) → default route = toward the [ISP](glossary:isp).
+4. **[NAT](glossary:nat)** (more precisely [NAPT](glossary:napt), which rewrites [ports](glossary:port) too)
+   - Rewrite (192.168.1.20 : 51000) → (203.0.113.5 : 40001) and record it in the **[NAT](glossary:nat) translation table**.
+   - Several devices at home share one [public IP](glossary:public-ip-address), so [ports](glossary:port) tell them apart.
+   - Recompute the IP and [TCP](glossary:tcp) checksums.
+5. [TTL](glossary:ttl) 64 → 63.
+6. Build a new [frame](glossary:frame) for the outgoing link. Destination [MAC](glossary:mac-address) = the next device on the [ISP](glossary:isp) side (also learned through [ARP](glossary:arp) or similar).
 
 # 9. Link 2 onward: ISP → internet → server side (repeated at every router hop)
 
-A box arriving at a sorting center has its outer label torn off. The center looks only at the final address inside, checks the dispatch sheet ("that region goes on that truck"), and puts on a new label for the next center. The dispatch sheet is the forwarding table, and passing one center is a hop.
+A box arriving at a sorting center has its outer label torn off. The center looks only at the final address inside, checks the dispatch sheet ("that region goes on that truck"), and puts on a new label for the next center. The dispatch sheet is the [forwarding table](glossary:forwarding-table), and passing one center is a [hop](glossary:hop).
 
-At every router:
+At every [router](glossary:router):
 
-1. Check the frame FCS. If it is corrupted, drop it (TCP retransmission recovers it later).
-2. Strip the frame and take out the IP packet.
-3. Destination IP → find the longest matching prefix in the forwarding table (longest prefix match) → next router.
-4. Decrease TTL by 1. If it hits 0, drop the packet and send ICMP Time Exceeded to the source (this stops packets from looping forever).
-5. Build a new frame for the outgoing link (destination MAC = the next device).
+1. Check the [frame](glossary:frame) [FCS](glossary:fcs). If it is corrupted, drop it ([TCP](glossary:tcp) retransmission recovers it later).
+2. Strip the [frame](glossary:frame) and take out the IP [packet](glossary:ip).
+3. Destination IP → find the longest matching prefix in the [forwarding table](glossary:forwarding-table) ([longest prefix match](glossary:longest-prefix-match)) → next [router](glossary:router).
+4. Decrease [TTL](glossary:ttl) by 1. If it hits 0, drop the [packet](glossary:ip) and send [ICMP](glossary:icmp) Time Exceeded to the source (this stops [packets](glossary:ip) from looping forever).
+5. Build a new [frame](glossary:frame) for the outgoing link (destination [MAC](glossary:mac-address) = the next device).
 
-**Routing vs forwarding**
+**[Routing](glossary:routing) vs [forwarding](glossary:packet-forwarding)**
 
-- Routing: deciding and maintaining path information. The result is the [routing table](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#3-routing-table).
-- Forwarding: actually passing a packet to the next device by looking at that table.
-- Routing protocols build the table: something like OSPF inside an ISP, BGP between ISPs.
+- [Routing](glossary:routing): deciding and maintaining path information. The result is the [routing table](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#3-routing-table).
+- [Forwarding](glossary:packet-forwarding): actually passing a [packet](glossary:ip) to the next device by looking at that table.
+- [Routing](glossary:routing) protocols build the table: something like [OSPF](glossary:ospf) inside an [ISP](glossary:isp), [BGP](glossary:bgp) between [ISPs](glossary:isp).
 
 Also:
 
-- Intermediate routers don't look at application data (only up to the link and network layers). With TLS they couldn't read it anyway.
-- ISPs connect directly, through an upstream provider, or by exchanging at an IXP. Overseas traffic rides the backbone and submarine cables.
-- When a router queue fills up, packets are dropped → congestion. Time spent waiting in queues adds to the delay.
-- If a link along the way has a smaller MTU, the packet is fragmented, or path MTU discovery is used to send small packets from the start.
-- **Packet switching**: many people's packets share a link. That is why delay and throughput to the same server vary from moment to moment.
+- Intermediate [routers](glossary:router) don't look at application data (only up to the link and network layers). With [TLS](glossary:tls) they couldn't read it anyway.
+- [ISPs](glossary:isp) connect directly, through an upstream provider, or by exchanging at an [IXP](glossary:ixp). Overseas traffic rides the backbone and submarine cables.
+- When a [router](glossary:router) queue fills up, [packets](glossary:ip) are dropped → congestion. Time spent waiting in queues adds to the delay.
+- If a link along the way has a smaller [MTU](glossary:mtu), the [packet](glossary:ip) is fragmented, or [path MTU discovery](glossary:pmtud) is used to send small [packets](glossary:ip) from the start.
+- **[Packet switching](glossary:packet-switching)**: many people's [packets](glossary:ip) share a link. That is why delay and throughput to the same server vary from moment to moment.
 
 # 10. Server side: arrival + decapsulation + processing
 
-The receiver opens the boxes one at a time from the outside. Is the outer label for this house, is the next box addressed to me, which room (port) is it for, and finally the item comes out. That is decapsulation.
+The receiver opens the boxes one at a time from the outside. Is the outer label for this house, is the next box addressed to me, which room ([port](glossary:port)) is it for, and finally the item comes out. That is [decapsulation](glossary:decapsulation).
 
-Data center router → firewall → a **load balancer** hands it to one of several servers.
+Data center [router](glossary:router) → [firewall](glossary:firewall) → a **[load balancer](glossary:load-balancer)** hands it to one of several servers.
 
-**Decapsulation**: frame → IP packet → TCP segment → application
+**[Decapsulation](glossary:decapsulation)**: [frame](glossary:frame) → IP [packet](glossary:ip) → [TCP segment](glossary:tcp-segment) → application
 
-- Link: is the destination MAC mine, check the FCS → take out the IP packet.
-- Network: is the destination IP mine → look at the protocol number and pass it to TCP.
-- Transport: find the matching socket by (source IP and port, destination IP and port) → reorder and send ACKs → hand the bytes to the web server program on 443.
-- TLS decryption → application: parse the HTTP request.
+- Link: is the destination [MAC](glossary:mac-address) mine, check the [FCS](glossary:fcs) → take out the IP [packet](glossary:ip).
+- Network: is the destination IP mine → look at the protocol number and pass it to [TCP](glossary:tcp).
+- Transport: find the matching [socket](glossary:socket) by (source IP and [port](glossary:port), destination IP and [port](glossary:port)) → reorder and send ACKs → hand the bytes to the web server program on 443.
+- [TLS](glossary:tls) decryption → application: parse the [HTTP](glossary:http) request.
 
-The web server program processes it (database queries and so on) and builds the HTTP response: `200 OK`, `Content-Type`, body (video data).
+The web server program processes it (database queries and so on) and builds the [HTTP](glossary:http) response: `200 OK`, `Content-Type`, body (video data).
 
 # 11. Response: the same road in reverse
 
 The reply is packed the same way. The truck route back may differ from the one going out, though.
 
-- The response is also encapsulated like steps 4 to 9 → crosses the hops and arrives at the router's public IP 203.0.113.5 : 40001. The path back can differ from the path out.
-- The router looks up the NAT translation table, rewrites the destination back to 192.168.1.20 : 51000, and delivers it to the laptop.
-- Laptop decapsulation: frame → packet → TCP
+- The response is also encapsulated like steps 4 to 9 → crosses the [hops](glossary:hop) and arrives at the [router](glossary:router)'s [public IP](glossary:public-ip-address) 203.0.113.5 : 40001. The path back can differ from the path out.
+- The [router](glossary:router) looks up the [NAT](glossary:nat) translation table, rewrites the destination back to 192.168.1.20 : 51000, and delivers it to the laptop.
+- Laptop [decapsulation](glossary:decapsulation): [frame](glossary:frame) → [packet](glossary:ip) → [TCP](glossary:tcp)
   - Reassemble in order, ACK what arrived, get missing pieces retransmitted.
-  - **Flow control**: limit how much is sent so the receiver's buffer (receive window) doesn't overflow. Details in [Flow control](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#2-flow-control-the-receiver-sets-the-speed).
-  - **Congestion control**: when loss and delay suggest the network is clogged, slow down. Details in [Congestion control](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#3-congestion-control-the-network-sets-the-speed).
-- TLS decryption → the HTTP response goes up to the browser.
+  - **[Flow control](glossary:flow-control)**: limit how much is sent so the receiver's buffer (receive window) doesn't overflow. Details in [Flow control](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#2-flow-control-the-receiver-sets-the-speed).
+  - **[Congestion control](glossary:congestion-control)**: when loss and delay suggest the network is clogged, slow down. Details in [Congestion control](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#3-congestion-control-the-network-sets-the-speed).
+- [TLS](glossary:tls) decryption → the [HTTP](glossary:http) response goes up to the browser.
 
 # 12. Browser: turning it into a page
 
-Check the [HTTP status code](/en/blog/dev/web/web-00-basics/#http-status-code) first: 200 success, 404 not found, 403 forbidden, 500 server error.
+Check the [HTTP status code](glossary:http-status-code) first: 200 success, 404 not found, 403 forbidden, 500 server error.
 
 Parse the HTML → request CSS, JavaScript and images → render and show the page.
 
-- Additional requests reuse the same TCP and TLS connection (keep-alive; HTTP/2 runs several requests at once over one connection). So steps 1 to 5 aren't repeated.
-- Fetched resources are stored in the web cache.
+- Additional requests reuse the same [TCP](glossary:tcp) and [TLS](glossary:tls) connection ([keep-alive](glossary:http-keep-alive); [HTTP/2](glossary:http2) runs several requests at once over one connection). So steps 1 to 5 aren't repeated.
+- Fetched resources are stored in the [web cache](glossary:web-cache).
 
-Video is **streaming**. It plays while downloading instead of after the whole file arrives (with a little kept in a buffer).
+Video is **[streaming](glossary:streaming)**. It plays while downloading instead of after the whole file arrives (with a little kept in a buffer).
 
-- **Adaptive streaming**: segments are prepared in advance at 1080p/720p/480p, and the player picks the quality of the next segment from the recent download speed and buffer level. When things slow down it lowers the quality so playback doesn't stall.
+- **[Adaptive streaming](glossary:adaptive-streaming)**: segments are prepared in advance at 1080p/720p/480p, and the player picks the quality of the next [segment](glossary:tcp-segment) from the recent download speed and buffer level. When things slow down it lowers the quality so playback doesn't stall.
 
 # 13. Closing the connection
 
 Hanging up a call also goes "I'm going to hang up" → "OK" → "I'll hang up too" → "OK", with each side announcing its own end. That is the 4-way close with FIN and ACK exchanged twice.
 
-- After a while of no use, or when the tab is closed, TCP closes: FIN → ACK, FIN → ACK (4-way). The order is in [Connection release](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#3-connection-release).
-- The side that closes first waits briefly in TIME_WAIT (to clean up late packets).
-- The router's NAT translation table entry is also removed after a timeout.
+- After a while of no use, or when the tab is closed, [TCP](glossary:tcp) closes: FIN → ACK, FIN → ACK (4-way). The order is in [Connection release](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#3-connection-release).
+- The side that closes first waits briefly in [TIME_WAIT](glossary:time_wait) (to clean up late [packets](glossary:ip)).
+- The [router](glossary:router)'s [NAT](glossary:nat) translation table entry is also removed after a timeout.
 
 # What changes on each link vs what stays
 
-| Header      | Changes                                         | Stays                                               |
-| ----------- | ----------------------------------------------- | --------------------------------------------------- |
-| Link        | Source and destination MAC (new frame per link) |                                                     |
-| IP          | TTL (−1 per hop), source IP (once, at NAT)      | Destination IP                                      |
-| TCP         | Source port (once, at NAT)                      | Destination port 443                                |
-| Application |                                                 | HTTP encrypted with TLS (unreadable to middleboxes) |
+| Header              | Changes                                                                                    | Stays                                                                                |
+| ------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| Link                | Source and destination [MAC](glossary:mac-address) (new [frame](glossary:frame) per link)  |                                                                                      |
+| IP                  | [TTL](glossary:ttl) (−1 per [hop](glossary:hop)), source IP (once, at [NAT](glossary:nat)) | Destination IP                                                                       |
+| [TCP](glossary:tcp) | Source [port](glossary:port) (once, at [NAT](glossary:nat))                                | Destination [port](glossary:port) 443                                                |
+| Application         |                                                                                            | [HTTP](glossary:http) encrypted with [TLS](glossary:tls) (unreadable to middleboxes) |
 
 # 14. When using a VPN
 
-It is like putting a letter, envelope and all, inside another envelope and mailing it to a "forwarding office". The mail carrier only sees the office address on the outer envelope, and the office opens it and mails the inner letter on to the real recipient. To the recipient, the letter seems to come from the office. The outer envelope is the outer IP and UDP headers, the office is the VPN server, and the letter inside is the encrypted original packet.
+It is like putting a letter, envelope and all, inside another envelope and mailing it to a "forwarding office". The mail carrier only sees the office address on the outer envelope, and the office opens it and mails the inner letter on to the real recipient. To the recipient, the letter seems to come from the office. The outer envelope is the outer IP and [UDP](glossary:udp) headers, the office is the [VPN](glossary:vpn) server, and the letter inside is the encrypted original [packet](glossary:ip).
 
 ![VPN: the original packet encrypted and wrapped in one more layer inside the tunnel](/static/images/network-web-request-journey/vpn-journey.svg)
 
-_The purple band between the laptop and the VPN server is the tunnel. Gray marks what middleboxes can't read._
+_The purple band between the laptop and the [VPN](glossary:vpn) server is the [tunnel](glossary:tunnel). Gray marks what middleboxes can't read._
 
 **How to read the diagram**
 
-- Top: laptop → router → ISP router → VPN server → web server. The purple band between the laptop and the VPN server is the **tunnel**.
-- Bottom box: on the tunnel links, **the entire original packet is encrypted** inside the outer IP and UDP headers (gray = the part middleboxes can't read).
-- After the VPN server, the outer shell is gone and only the original packet continues.
+- Top: laptop → [router](glossary:router) → [ISP](glossary:isp) [router](glossary:router) → [VPN](glossary:vpn) server → web server. The purple band between the laptop and the [VPN](glossary:vpn) server is the **[tunnel](glossary:tunnel)**.
+- Bottom box: on the [tunnel](glossary:tunnel) links, **the entire original [packet](glossary:ip) is encrypted** inside the outer IP and [UDP](glossary:udp) headers (gray = the part middleboxes can't read).
+- After the [VPN](glossary:vpn) server, the outer shell is gone and only the original [packet](glossary:ip) continues.
 
-**VPN (Virtual Private Network)**: encrypting your whole packet, putting it inside another packet (one more layer of encapsulation), and sending it to the VPN server. That path is the **tunnel**.
+**[VPN](glossary:vpn) (Virtual Private Network)**: encrypting your whole [packet](glossary:ip), putting it inside another [packet](glossary:ip) (one more layer of [encapsulation](glossary:encapsulation)), and sending it to the [VPN](glossary:vpn) server. That path is the **[tunnel](glossary:tunnel)**.
 
 ## Connection setup
 
-- The VPN client exchanges keys with the VPN server (198.51.100.7) → a virtual network interface (`utun`, `tun0`) appears and gets the virtual IP 10.8.0.2.
-- The routing table changes: the default route goes into the tunnel (**full tunnel**). Sending only the company range through the tunnel is a **split tunnel**.
-- DNS also switches to the VPN's DNS server. If it doesn't, DNS queries go out outside the tunnel, which is called a **DNS leak**.
+- The [VPN](glossary:vpn) client exchanges keys with the [VPN](glossary:vpn) server (198.51.100.7) → a virtual network interface (`utun`, `tun0`) appears and gets the virtual IP 10.8.0.2.
+- The [routing table](glossary:routing-table) changes: the default route goes into the [tunnel](glossary:tunnel) (**[full tunnel](glossary:full-tunnel)**). Sending only the company range through the [tunnel](glossary:tunnel) is a **[split tunnel](glossary:split-tunnel)**.
+- [DNS](glossary:dns) also switches to the [VPN](glossary:vpn)'s [DNS](glossary:dns) server. If it doesn't, [DNS](glossary:dns) queries go out outside the [tunnel](glossary:tunnel), which is called a **[DNS leak](glossary:dns-leak)**.
 
 ## When sending
 
-1. Original packet: 10.8.0.2 → 192.0.2.10 : 443 (HTTP encrypted with TLS inside)
-2. The routing table sends it to the tunnel interface → the VPN client encrypts the whole packet.
-3. New headers go on the outside: UDP (→ 51820, WireGuard as an example) + IP (192.168.1.20 → 198.51.100.7)
-4. After that it is the usual path: ARP → router → NAT (only the outer source changes) → ISP router hops.
+1. Original [packet](glossary:ip): 10.8.0.2 → 192.0.2.10 : 443 ([HTTP](glossary:http) encrypted with [TLS](glossary:tls) inside)
+2. The [routing table](glossary:routing-table) sends it to the [tunnel](glossary:tunnel) interface → the [VPN](glossary:vpn) client encrypts the whole [packet](glossary:ip).
+3. New headers go on the outside: [UDP](glossary:udp) (→ 51820, [WireGuard](glossary:wireguard) as an example) + IP (192.168.1.20 → 198.51.100.7)
+4. After that it is the usual path: [ARP](glossary:arp) → [router](glossary:router) → [NAT](glossary:nat) (only the outer source changes) → [ISP](glossary:isp) [router](glossary:router) [hops](glossary:hop).
 
 ## Who sees what
 
-- **Middleboxes**: only the outer header. The router and the ISP know only that you are talking to a VPN server; they can't see the real destination (192.0.2.10) or the content.
-- **VPN server**: strips the outer header and decrypts to recover the original packet → NAT rewrites the source 10.8.0.2 → 198.51.100.7 → sends it over the regular internet to the web server.
-- **Web server**: source = the VPN server's IP. Your real IP and location are hidden.
+- **Middleboxes**: only the outer header. The [router](glossary:router) and the [ISP](glossary:isp) know only that you are talking to a [VPN](glossary:vpn) server; they can't see the real destination (192.0.2.10) or the content.
+- **[VPN](glossary:vpn) server**: strips the outer header and decrypts to recover the original [packet](glossary:ip) → [NAT](glossary:nat) rewrites the source 10.8.0.2 → 198.51.100.7 → sends it over the regular internet to the web server.
+- **Web server**: source = the [VPN](glossary:vpn) server's IP. Your real IP and location are hidden.
 
 ## Caveats
 
-- There is no VPN encryption on the VPN server → web server leg. With HTTPS, TLS is still there (inside the tunnel it is VPN + TLS, double encryption).
-- The VPN company sees all your destinations. Your trust just moves from the ISP to the VPN company.
-- The extra headers mean less data per packet (MTU), and the detour adds delay.
-- A company VPN has a different purpose: getting into the private network behind the VPN server (10.x servers).
+- There is no [VPN](glossary:vpn) encryption on the [VPN](glossary:vpn) server → web server leg. With [HTTPS](glossary:https), [TLS](glossary:tls) is still there (inside the [tunnel](glossary:tunnel) it is [VPN](glossary:vpn) + [TLS](glossary:tls), double encryption).
+- The [VPN](glossary:vpn) company sees all your destinations. Your trust just moves from the [ISP](glossary:isp) to the [VPN](glossary:vpn) company.
+- The extra headers mean less data per [packet](glossary:ip) ([MTU](glossary:mtu)), and the detour adds delay.
+- A company [VPN](glossary:vpn) has a different purpose: getting into the private network behind the [VPN](glossary:vpn) server (10.x servers).
 
 # 15. Connecting over SSH
 
-You type as if you were sitting in front of the remote computer, but even if the line in between is tapped, nothing leaks. On the first call you check the other side's voice (host key), and you prove who you are by signing with your key (private key). The voice is the fingerprint of the server's host key, and the key is your private key.
+You type as if you were sitting in front of the remote computer, but even if the line in between is tapped, nothing leaks. On the first call you check the other side's voice ([host key](glossary:ssh-host-key)), and you prove who you are by signing with your key ([private key](glossary:private-key)). The voice is the [fingerprint](glossary:fingerprint) of the server's [host key](glossary:ssh-host-key), and the key is your [private key](glossary:private-key).
 
 ![SSH: the connection steps and one keystroke traveling to the server](/static/images/network-web-request-journey/ssh-journey.svg)
 
-_The top shows the message order between the laptop (ssh) and the server (sshd); the bottom shows the packet for a single keystroke._
+_The top shows the message order between the laptop ([ssh](glossary:ssh)) and the server (sshd); the bottom shows the [packet](glossary:ip) for a single keystroke._
 
 **How to read the diagram**
 
-- Top sequence: the message order between the laptop (ssh) and the server (sshd). They appear one at a time in number order. From ④ on, the lock = encrypted.
-- Bottom: the packet when you press one key after the connection is set up. The path and hops are the same as the web request; only the destination port is 22.
+- Top sequence: the message order between the laptop ([ssh](glossary:ssh)) and the server (sshd). They appear one at a time in number order. From ④ on, the lock = encrypted.
+- Bottom: the [packet](glossary:ip) when you press one key after the connection is set up. The path and [hops](glossary:hop) are the same as the web request; only the destination [port](glossary:port) is 22.
 
-**SSH (Secure Shell)**: a protocol for connecting to a remote computer with encryption and running commands. Default port 22.
+**[SSH](glossary:ssh) (Secure Shell)**: a protocol for connecting to a remote computer with encryption and running commands. Default [port](glossary:port) 22.
 
-**Telnet**: the same kind of remote access with no encryption (port 23). Passwords and commands travel in plaintext, so it is unsuitable for remote access over the internet.
+**[Telnet](glossary:telnet)**: the same kind of remote access with no encryption ([port](glossary:port) 23). Passwords and commands travel in plaintext, so it is unsuitable for remote access over the internet.
 
 ## When you type `ssh user@server.example.com`
 
-1. DNS: server.example.com → IP (same as step 2)
-2. ARP, gateway, NAT and hops (same as steps 3 and 7 to 9). Destination port 22.
-3. TCP 3-way handshake (→ 22)
+1. [DNS](glossary:dns): server.example.com → IP (same as step 2)
+2. [ARP](glossary:arp), gateway, [NAT](glossary:nat) and [hops](glossary:hop) (same as steps 3 and 7 to 9). Destination [port](glossary:port) 22.
+3. [TCP](glossary:tcp) [3-way handshake](glossary:three-way-handshake) (→ 22)
 4. **Version exchange**: each side sends one line `SSH-2.0-OpenSSH_…` in plaintext.
-5. **Algorithm negotiation**: exchange lists of key exchange, cipher and MAC methods and pick one of each.
-6. **Key exchange**: both sides compute the same session key with ECDH (curve25519 or similar). The server signs with its **host key** → from here on everything is encrypted.
-7. **Host key check**: the laptop compares against the fingerprint in `~/.ssh/known_hosts`.
+5. **Algorithm negotiation**: exchange lists of key exchange, cipher and [MAC](glossary:mac-address) methods and pick one of each.
+6. **Key exchange**: both sides compute the same [session key](glossary:session-key) with ECDH ([curve25519](glossary:curve25519) or similar). The server signs with its **[host key](glossary:ssh-host-key)** → from here on everything is encrypted.
+7. **[Host key](glossary:ssh-host-key) check**: the laptop compares against the [fingerprint](glossary:fingerprint) in `~/.ssh/known_hosts`.
    - The first time, it asks "Are you sure you want to continue connecting?" and saves the key on yes.
-   - If it differs from the saved one, it warns (possible man-in-the-middle attack, server reinstall, etc.).
+   - If it differs from the saved one, it warns (possible [man-in-the-middle attack](glossary:man-in-the-middle-attack), server reinstall, etc.).
 8. **User authentication**
-   - Public key: your public key is in the server's `~/.ssh/authorized_keys`, and the laptop proves itself by signing with the private key. The private key never leaves. Hands-on in [SSH Key Authentication](/en/blog/cs-fundamentals/cloud-computing/cloud-computing-hw2-kvm-vm-cluster/#2-ssh-key-authentication-ch04-extra).
+   - [Public key](glossary:public-key-authentication): your [public key](glossary:public-key-authentication) is in the server's `~/.ssh/authorized_keys`, and the laptop proves itself by signing with the [private key](glossary:private-key). The [private key](glossary:private-key) never leaves. Hands-on in [SSH Key Authentication](/en/blog/cs-fundamentals/cloud-computing/cloud-computing-hw2-kvm-vm-cluster/#2-ssh-key-authentication-ch04-extra).
    - Password: the channel is already encrypted, so it doesn't leak in plaintext.
-9. **Open a channel + start a shell**: session channel → pseudo-terminal (pty) → a login shell starts on the server.
-10. **Every keystroke**: key input → SSH encrypts → TCP 22 → hops → the server's sshd decrypts → passed to the shell → the screen output (including the echo of the typed character) comes back encrypted.
+9. **Open a channel + start a shell**: session channel → pseudo-terminal ([pty](glossary:pty)) → a login shell starts on the server.
+10. **Every keystroke**: key input → [SSH](glossary:ssh) encrypts → [TCP](glossary:tcp) 22 → [hops](glossary:hop) → the server's sshd decrypts → passed to the shell → the screen output (including the echo of the typed character) comes back encrypted.
 
 A walkthrough of steps 4 to 8 from the server and client files' point of view is in [How an SSH Server and Client Connect](/en/blog/cs-fundamentals/cloud-computing/cloud-computing-hw3-htcondor-cluster/#ch4-2-how-an-ssh-server-and-client-connect).
 
 ## Reaching a PC behind NAT
 
-To ssh from outside into a PC behind the home router, the router needs **port forwarding** (public IP:22 → 192.168.1.20:22). For connections going out from inside, the NAT translation table creates entries on its own, but packets coming in first from outside have no entry in the table and are dropped. Another way is to skip opening ports and run SSH over an [overlay network](/en/blog/cs-fundamentals/network/network-ssh-overlay/#3-what-each-layer-needs) such as Tailscale.
+To [ssh](glossary:ssh) from outside into a PC behind the home [router](glossary:router), the [router](glossary:router) needs **[port forwarding](glossary:port-forwarding)** ([public IP](glossary:public-ip-address):22 → 192.168.1.20:22). For connections going out from inside, the [NAT](glossary:nat) translation table creates entries on its own, but [packets](glossary:ip) coming in first from outside have no entry in the table and are dropped. Another way is to skip opening [ports](glossary:port) and run [SSH](glossary:ssh) over an [overlay network](/en/blog/cs-fundamentals/network/network-ssh-overlay/#3-what-each-layer-needs) such as [Tailscale](glossary:tailscale).
 
 ## SSH tunnel
 
-Carrying another TCP connection inside the SSH connection (`ssh -L 8080:localhost:80 server`). The principle is the same as a VPN: one more layer of encapsulation.
-
-# Glossary
-
-| Term                                                                                                    | Meaning                                                                            |
-| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| [Encapsulation](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#encapsulation)                 | Each layer wraps the data from the layer above with its own header                 |
-| Decapsulation                                                                                           | The receiver strips headers from the bottom layer up                               |
-| DHCP (DORA)                                                                                             | Protocol that hands out IP, subnet mask, gateway and DNS addresses automatically   |
-| Default gateway                                                                                         | IP of the exit router to other networks                                            |
-| DNS resolver                                                                                            | Server that asks root, TLD and authoritative servers to turn a name into an IP     |
-| ARP                                                                                                     | Protocol that finds a MAC from an IP inside the same LAN                           |
-| [3-way handshake](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#three-way-handshake-process) | SYN → SYN+ACK → ACK, which sets up TCP connection state                            |
-| TLS                                                                                                     | Protocol that verifies the server by certificate and encrypts with a session key   |
-| MTU / MSS                                                                                               | Max size of one frame (usually 1500 B) / max TCP data size (1460 B)                |
-| CSMA/CA                                                                                                 | Wireless access method: listen, wait a random time, then send, to avoid collisions |
-| NAT (NAPT)                                                                                              | Rewriting private IP and port to public IP and port, recorded in a table           |
-| TTL                                                                                                     | IP header value that drops by 1 per hop; the packet is dropped at 0                |
-| longest prefix match                                                                                    | Rule for picking the next hop by the longest matching prefix in the table          |
-| [Routing table](/en/blog/cs-fundamentals/network/network-ch1-2-overview/#3-routing-table)               | Table of the next hop for each destination network                                 |
-| Load balancer                                                                                           | Device that spreads incoming requests across several servers                       |
-| Flow control / congestion control                                                                       | TCP features that slow sending for the receiver's buffer / the network's state     |
-| TIME_WAIT                                                                                               | State where the side that closed first waits briefly to clean up late packets      |
-| VPN tunnel                                                                                              | Path that carries the original packet, encrypted, inside another packet            |
-| Full / split tunnel                                                                                     | Sending all traffic / only certain ranges through the tunnel                       |
-| DNS leak                                                                                                | DNS queries going outside the tunnel while the VPN is on                           |
-| Host key / fingerprint                                                                                  | Key that identifies a server / short hash of that key                              |
-| Port forwarding                                                                                         | Router setting that passes connections on a public IP:port to an inside PC         |
+Carrying another [TCP](glossary:tcp) connection inside the [SSH](glossary:ssh) connection (`ssh -L 8080:localhost:80 server`). The principle is the same as a [VPN](glossary:vpn): one more layer of [encapsulation](glossary:encapsulation).

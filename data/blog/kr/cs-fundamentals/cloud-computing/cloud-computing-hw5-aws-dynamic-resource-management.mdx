@@ -6,11 +6,11 @@ draft: false
 summary: 'AWS EC2에 HTCondor main·worker 구성, worker AMI 생성, Python boto3로 만든 EC2 제어 프로그램(list·zones·start·regions·stop·create·reboot·images), start·stop·create에 따라 Condor Pool이 2→1→2→3→2→1대로 바뀌는 것 확인, IAM 사용자 키, Pool 비밀번호 공유, 재등록 지연·SigV4 시계 오차 문제 해결, 8·9장 연습문제(AMI 종류, 인스턴스 타입, 툴에서 condor_status 실행, 국내 클라우드 가상머신 API)'
 ---
 
-HW4까지는 맥 안의 VM으로 HTCondor 클러스터를 만들었다. 이번엔 교재 9장대로 클러스터를 AWS EC2로 옮겼다. main과 worker 인스턴스를 만들고, worker를 머신 이미지(AMI)로 떠 둔 다음, Ubuntu 호스트에서 SDK 프로그램으로 인스턴스를 시작·중지·생성하면 Condor Pool의 노드 수가 따라 바뀌는지 확인했다. 교재는 Java SDK를 쓰지만 과제에서 다른 언어 SDK를 허용해서 Python boto3로 작성했다. 뒤쪽에는 8·9장 연습문제 답을 정리했다.
+HW4까지는 맥 안의 [VM](glossary:vm)으로 [HTCondor](glossary:htcondor) [Cluster](glossary:cluster)를 만들었다. 이번엔 교재 9장대로 [Cluster](glossary:cluster)를 AWS [EC2](glossary:amazon-ec2)로 옮겼다. main과 [worker](glossary:worker-node) 인스턴스를 만들고, [worker](glossary:worker-node)를 [AMI](glossary:ami)로 떠 둔 다음, [Ubuntu](glossary:ubuntu) 호스트에서 [SDK](glossary:sdk) 프로그램으로 인스턴스를 시작·중지·생성하면 [Condor Pool](glossary:condor-pool)의 노드 수가 따라 바뀌는지 확인했다. 교재는 [Java](glossary:java) [SDK](glossary:sdk)를 쓰지만 과제에서 다른 언어 [SDK](glossary:sdk)를 허용해서 [Python](glossary:python) [boto3](glossary:boto3)로 작성했다. 뒤쪽에는 8·9장 연습문제 답을 정리했다.
 
 # 0. 실습 환경
 
-HTCondor 클러스터는 AWS EC2 위에 만들었고, 인스턴스를 제어하는 프로그램은 HW2~HW4에서 쓰던 Ubuntu 호스트(UTM 위의 Ubuntu 24.04 ARM64 VM)에서 돌렸다. 인스턴스는 모두 x86_64(t3.small)지만, 제어 프로그램은 AWS API를 HTTPS로 호출할 뿐이라 호스트가 ARM64여도 상관없다.
+[HTCondor](glossary:htcondor) [Cluster](glossary:cluster)는 AWS [EC2](glossary:amazon-ec2) 위에 만들었고, 인스턴스를 제어하는 프로그램은 HW2~HW4에서 쓰던 [Ubuntu](glossary:ubuntu) 호스트([UTM](glossary:utm) 위의 [Ubuntu](glossary:ubuntu) 24.04 [ARM64](glossary:arm64) [VM](glossary:vm))에서 돌렸다. 인스턴스는 모두 [x86_64](glossary:x86-64)(t3.small)지만, 제어 프로그램은 AWS API를 [HTTPS](glossary:https)로 호출할 뿐이라 호스트가 [ARM64](glossary:arm64)여도 상관없다.
 
 ```text
 macOS (Apple M3)
@@ -24,36 +24,36 @@ AWS 서울 리전 ap-northeast-2, 기본 VPC 172.31.0.0/16
 └─ AMI aws-htcondor-worker로 생성한 worker   172.31.6.235  worker
 ```
 
-| 교재 (슬라이드)                            | 이 환경                                                                                                             |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| Ubuntu 호스트 x86_64, 계정 cloudman@abelia | Ubuntu 24.04.5 aarch64, 계정 yoosung@yoosung-vm                                                                     |
-| 리전 us-east-1(버지니아 북부)              | ap-northeast-2(서울). 과제 요구 사항이 아니라서 SSH 지연이 작은 가까운 리전을 골랐다                                |
-| 루트 사용자 액세스 키                      | EC2 권한(AmazonEC2FullAccess)만 준 IAM 사용자 cloud-hw의 액세스 키                                                  |
-| Java SDK v1(1.11.643) + libs/ + OpenJDK    | Python boto3(AWS SDK for Python, Ubuntu 패키지 1.34.46)                                                             |
-| 콘솔에서 보안 그룹·키 페어·인스턴스 생성   | AWS CLI로 생성. 설정은 같고, 명령과 결과가 한 화면에 남아 다시 실행할 수 있다                                       |
-| Marketplace에서 Rocky Linux 10 검색·구독   | Rocky 공식 계정(792107900819)이 배포한 커뮤니티 AMI `Rocky-10-EC2-Base-10.2-20260525.0.x86_64` 직접 지정(구독 없음) |
-| 사설 DNS `ip-172-31-17-242.ec2.internal`   | `ip-172-31-12-47.ap-northeast-2.compute.internal` (us-east-1만 `ec2.internal`을 쓴다)                               |
-| HTCondor 버전 명시 없음                    | condor-25.0.14-1.el10.x86_64 (25.0 저장소)                                                                          |
+| 교재 (슬라이드)                                                                                | 이 환경                                                                                                                                                     |
+| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Ubuntu](glossary:ubuntu) 호스트 [x86_64](glossary:x86-64), 계정 cloudman@abelia               | [Ubuntu](glossary:ubuntu) 24.04.5 [aarch64](glossary:arm64), 계정 yoosung@yoosung-vm                                                                        |
+| [Region](glossary:region) us-east-1(버지니아 북부)                                             | ap-northeast-2(서울). 과제 요구 사항이 아니라서 [SSH](glossary:ssh) 지연이 작은 가까운 [Region](glossary:region)을 골랐다                                   |
+| 루트 사용자 [Access key](glossary:access-key)                                                  | [EC2](glossary:amazon-ec2) 권한(AmazonEC2FullAccess)만 준 [IAM](glossary:iam) 사용자 cloud-hw의 [Access key](glossary:access-key)                           |
+| [Java](glossary:java) [SDK](glossary:sdk) v1(1.11.643) + libs/ + OpenJDK                       | [Python](glossary:python) [boto3](glossary:boto3)(AWS [SDK](glossary:sdk) for [Python](glossary:python), [Ubuntu](glossary:ubuntu) 패키지 1.34.46)          |
+| 콘솔에서 [Security group](glossary:security-group)·[Key pair](glossary:key-pair)·인스턴스 생성 | [AWS CLI](glossary:aws-cli)로 생성. 설정은 같고, 명령과 결과가 한 화면에 남아 다시 실행할 수 있다                                                           |
+| [Marketplace](glossary:aws-marketplace)에서 [Rocky Linux](glossary:rocky-linux) 10 검색·구독   | [Rocky](glossary:rocky-linux) 공식 계정(792107900819)이 배포한 커뮤니티 [AMI](glossary:ami) `Rocky-10-EC2-Base-10.2-20260525.0.x86_64` 직접 지정(구독 없음) |
+| 사설 [DNS](glossary:dns) `ip-172-31-17-242.ec2.internal`                                       | `ip-172-31-12-47.ap-northeast-2.compute.internal` (us-east-1만 `ec2.internal`을 쓴다)                                                                       |
+| [HTCondor](glossary:htcondor) 버전 명시 없음                                                   | condor-25.0.14-1.el10.x86_64 (25.0 저장소)                                                                                                                  |
 
 ## 진행 순서
 
 목표는 슬라이드 5쪽 구성도와 같다. 진행 순서는 다음과 같다.
 
-| 단계 | 내용                                 | 슬라이드        | 그림  |
-| ---- | ------------------------------------ | --------------- | ----- |
-| 1    | AWS CLI 설치, 자격 증명 설정         | Ch9 66~70       | 1~2   |
-| 2    | 보안 그룹, 키 페어                   | Ch8 18~21·28~29 | 3~4   |
-| 3    | main 인스턴스 생성과 HTCondor 설치   | Ch9 6~19        | 5~10  |
-| 4    | worker 인스턴스 생성과 HTCondor 설치 | Ch9 20~28       | 11~14 |
-| 5    | SSH 키, Pool 비밀번호 공유, 2대 확인 | Ch9 29~35       | 15~21 |
-| 6    | worker AMI 생성                      | Ch9 36~38       | 22    |
-| 7    | 동적 관리 프로그램 작성·실행         | Ch9 39~64·71~76 | 23~37 |
+| 단계 | 내용                                                                              | 슬라이드        | 그림  |
+| ---- | --------------------------------------------------------------------------------- | --------------- | ----- |
+| 1    | [AWS CLI](glossary:aws-cli) 설치, [Credential](glossary:credential) 설정          | Ch9 66~70       | 1~2   |
+| 2    | [Security group](glossary:security-group), [Key pair](glossary:key-pair)          | Ch8 18~21·28~29 | 3~4   |
+| 3    | main 인스턴스 생성과 [HTCondor](glossary:htcondor) 설치                           | Ch9 6~19        | 5~10  |
+| 4    | [worker](glossary:worker-node) 인스턴스 생성과 [HTCondor](glossary:htcondor) 설치 | Ch9 20~28       | 11~14 |
+| 5    | [SSH](glossary:ssh) 키, [Pool](glossary:condor-pool) 비밀번호 공유, 2대 확인      | Ch9 29~35       | 15~21 |
+| 6    | [worker](glossary:worker-node) [AMI](glossary:ami) 생성                           | Ch9 36~38       | 22    |
+| 7    | 동적 관리 프로그램 작성·실행                                                      | Ch9 39~64·71~76 | 23~37 |
 
 # 1. AWS 준비
 
 ## AWS CLI 설치
 
-슬라이드 66쪽은 x86_64용 설치 파일을 받지만 이 호스트는 aarch64라서 `awscli-exe-linux-aarch64.zip`을 받았다. 또 슬라이드 명령의 `-o "awscliv2.zip“`는 닫는 따옴표가 둥근 따옴표(U+201C)라 그대로 붙여 넣으면 셸이 문자열을 닫지 못한다. 일반 따옴표로 입력했다.
+슬라이드 66쪽은 [x86_64](glossary:x86-64)용 설치 파일을 받지만 이 호스트는 [aarch64](glossary:arm64)라서 `awscli-exe-linux-aarch64.zip`을 받았다. 또 슬라이드 명령의 `-o "awscliv2.zip“`는 닫는 따옴표가 둥근 따옴표(U+201C)라 그대로 붙여 넣으면 셸이 문자열을 닫지 못한다. 일반 따옴표로 입력했다.
 
 ```bash
 uname -m
@@ -66,13 +66,13 @@ aws --version
 
 ![AWS CLI 설치](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/01.webp)
 
-_aarch64용 AWS CLI v2 설치 — aws-cli/2.38.5 ... exe/aarch64.ubuntu.24_
+_aarch64용 [AWS CLI](glossary:aws-cli) v2 설치 — aws-cli/2.38.5 ... exe/aarch64.ubuntu.24_
 
 ## 자격 증명 설정
 
-슬라이드 67~70쪽은 루트 사용자의 액세스 키를 만든다. 루트 키는 결제·계정 해지까지 계정의 모든 권한을 갖고 정책으로 제한할 수도 없어서, AWS도 생성 화면에서 "권장하지 않음" 경고를 띄운다(슬라이드 69쪽 4번 체크박스). 그래서 IAM에서 콘솔 로그인 없이 AmazonEC2FullAccess 정책만 붙인 사용자 cloud-hw를 만들고, 그 사용자의 액세스 키(사용 사례: CLI)를 발급했다. 이 키로는 EC2만 다룰 수 있다.
+슬라이드 67~70쪽은 루트 사용자의 [Access key](glossary:access-key)를 만든다. 루트 키는 결제·계정 해지까지 계정의 모든 권한을 갖고 정책으로 제한할 수도 없어서, AWS도 생성 화면에서 "권장하지 않음" 경고를 띄운다(슬라이드 69쪽 4번 체크박스). 그래서 [IAM](glossary:iam)에서 콘솔 로그인 없이 AmazonEC2FullAccess 정책만 붙인 사용자 cloud-hw를 만들고, 그 사용자의 [Access key](glossary:access-key)(사용 사례: CLI)를 발급했다. 이 키로는 [EC2](glossary:amazon-ec2)만 다룰 수 있다.
 
-`aws configure`에 키와 리전(ap-northeast-2), 출력 형식(json)을 넣으면 `~/.aws/credentials`·`~/.aws/config`에 저장되고, AWS CLI와 boto3가 둘 다 이 파일을 읽는다. `aws sts get-caller-identity`로 이 키가 `user/cloud-hw`로 인증되는 것을 확인했다. 키는 끝 4자리만 보이게 가려져 출력된다.
+`aws configure`에 키와 [Region](glossary:region)(ap-northeast-2), 출력 형식(json)을 넣으면 `~/.aws/credentials`·`~/.aws/config`에 저장되고, [AWS CLI](glossary:aws-cli)와 [boto3](glossary:boto3)가 둘 다 이 파일을 읽는다. `aws sts get-caller-identity`로 이 키가 `user/cloud-hw`로 인증되는 것을 확인했다. 키는 끝 4자리만 보이게 가려져 출력된다.
 
 ```bash
 aws configure
@@ -81,11 +81,11 @@ aws configure list; aws sts get-caller-identity
 
 ![자격 증명 확인](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/02.webp)
 
-_자격 증명 확인 — 서울 리전, IAM 사용자 cloud-hw (계정 ID는 가림)_
+_[Credential](glossary:credential) 확인 — 서울 [Region](glossary:region), [IAM](glossary:iam) 사용자 cloud-hw (계정 ID는 가림)_
 
 ## 보안 그룹
 
-8장 슬라이드 18~21쪽처럼 이름이 HTCondor인 보안 그룹을 만들고 인바운드 규칙 두 개를 넣었다. SSH(22)는 Ubuntu 호스트에서 접속해야 하므로 Anywhere(0.0.0.0/0)로 뒀다. HTCondor 포트(9618)는 슬라이드에선 Anywhere지만, 노드끼리는 VPC 사설망 주소로 통신하고 설정이 `ALLOW_WRITE = *`라서 인터넷 전체에 열면 누구나 Pool에 노드를 붙일 수 있다. 그래서 기본 VPC 대역(172.31.0.0/16)만 허용했다.
+8장 슬라이드 18~21쪽처럼 이름이 [HTCondor](glossary:htcondor)인 [Security group](glossary:security-group)을 만들고 [Inbound rule](glossary:inbound-rule) 두 개를 넣었다. [SSH](glossary:ssh)(22)는 [Ubuntu](glossary:ubuntu) 호스트에서 접속해야 하므로 Anywhere(0.0.0.0/0)로 뒀다. [HTCondor](glossary:htcondor) [Port](glossary:port)(9618)는 슬라이드에선 Anywhere지만, 노드끼리는 [VPC](glossary:vpc) [Private network](glossary:private-network) 주소로 통신하고 설정이 `ALLOW_WRITE = *`라서 인터넷 전체에 열면 누구나 [Pool](glossary:condor-pool)에 노드를 붙일 수 있다. 그래서 기본 [VPC](glossary:vpc) 대역(172.31.0.0/16)만 허용했다.
 
 ```bash
 SG=$(aws ec2 create-security-group --group-name HTCondor --description "HTCondor pool (SSH + 9618)" --query GroupId --output text); echo $SG
@@ -96,11 +96,11 @@ aws ec2 describe-security-groups --group-ids $SG --query "SecurityGroups[0].IpPe
 
 ![보안 그룹](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/03.webp)
 
-_보안 그룹 HTCondor — 22번은 어디서나, 9618번은 VPC 안에서만_
+_[Security group](glossary:security-group) [HTCondor](glossary:htcondor) — 22번은 어디서나, 9618번은 [VPC](glossary:vpc) 안에서만_
 
 ## 키 페어
 
-8장 슬라이드 28~29·34쪽대로 cloud-test RSA 키 페어를 만들어 개인 키를 `~/Downloads/cloud-test.pem`에 저장하고, SSH가 받아들이도록 소유자만 읽을 수 있게 `chmod 400`했다. 슬라이드는 `cat`으로 개인 키 전체를 출력하지만, 개인 키가 화면에 남지 않도록 첫 줄만 확인했다.
+8장 슬라이드 28~29·34쪽대로 cloud-test [RSA](glossary:rsa) [Key pair](glossary:key-pair)를 만들어 [Private key](glossary:private-key)를 `~/Downloads/cloud-test.pem`에 저장하고, [SSH](glossary:ssh)가 받아들이도록 소유자만 읽을 수 있게 `chmod 400`했다. 슬라이드는 `cat`으로 [Private key](glossary:private-key) 전체를 출력하지만, [Private key](glossary:private-key)가 화면에 남지 않도록 첫 줄만 확인했다.
 
 ```bash
 aws ec2 create-key-pair --key-name cloud-test --key-type rsa --key-format pem --query KeyMaterial --output text > cloud-test.pem
@@ -110,13 +110,13 @@ chmod 400 cloud-test.pem; ls -l cloud-test.pem
 
 ![키 페어](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/04.webp)
 
-_키 페어 cloud-test 생성과 권한 변경(-rw-rw-r-- → -r--------)_
+_[Key pair](glossary:key-pair) cloud-test 생성과 권한 변경(-rw-rw-r-- → -r--------)_
 
 # 2. HTCondor 클러스터 구성
 
 ## main 인스턴스 생성과 접속
 
-Rocky Linux 10.2 x86_64 AMI, t3.small, 키 페어 cloud-test, 보안 그룹 HTCondor로 인스턴스를 만들고 이름 태그를 htcondor-main으로 붙였다(슬라이드 6~15쪽). `wait instance-running`으로 Pending → Running을 기다린 다음 사설·공인 DNS를 확인하고, 슬라이드처럼 rocky 계정으로 접속했다. Rocky 이미지는 root 로그인이 막혀 있다.
+[Rocky Linux](glossary:rocky-linux) 10.2 [x86_64](glossary:x86-64) [AMI](glossary:ami), t3.small, [Key pair](glossary:key-pair) cloud-test, [Security group](glossary:security-group) [HTCondor](glossary:htcondor)로 인스턴스를 만들고 이름 태그를 htcondor-main으로 붙였다(슬라이드 6~15쪽). `wait instance-running`으로 Pending → Running을 기다린 다음 사설·공인 [DNS](glossary:dns)를 확인하고, 슬라이드처럼 rocky 계정으로 접속했다. [Rocky](glossary:rocky-linux) 이미지는 root 로그인이 막혀 있다.
 
 ```bash
 AMI=ami-0e86f920feb0e6b17      # Rocky-10-EC2-Base-10.2-20260525.0.x86_64
@@ -129,15 +129,15 @@ ssh -i "cloud-test.pem" rocky@ec2-15-165-74-33.ap-northeast-2.compute.amazonaws.
 
 ![main 인스턴스 생성](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/05.webp)
 
-_main 인스턴스 생성 — t3.small, running, 사설 DNS ip-172-31-12-47.ap-northeast-2.compute.internal_
+_main 인스턴스 생성 — t3.small, running, 사설 [DNS](glossary:dns) ip-172-31-12-47.ap-northeast-2.compute.internal_
 
 ![main 접속](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/06.webp)
 
-_main에 SSH 접속 — Rocky Linux 10.2, x86_64_
+_main에 [SSH](glossary:ssh) 접속 — [Rocky Linux](glossary:rocky-linux) 10.2, x86_64_
 
 ## main에 HTCondor 설치와 설정
 
-HTCondor 25.0 저장소 패키지를 설치하고(EPEL이 같이 설치된다) condor를 설치했다(슬라이드 16~19쪽). `condor_config.local`은 슬라이드와 같은 여섯 줄이고, `CONDOR_HOST`에는 main 자신의 사설 DNS 이름을 넣었다. main은 Pool의 중앙 관리자라서 COLLECTOR·NEGOTIATOR가, 작업 제출을 받으니 SCHEDD가, 작업도 실행하니 STARTD가 같이 뜬다. 서비스를 시작하자 `condor_status`에 main 슬롯 하나가 나타났고, 재부팅 후에도 뜨도록 enable했다.
+[HTCondor](glossary:htcondor) 25.0 저장소 패키지를 설치하고([EPEL](glossary:epel)이 같이 설치된다) condor를 설치했다(슬라이드 16~19쪽). `condor_config.local`은 슬라이드와 같은 여섯 줄이고, `CONDOR_HOST`에는 main 자신의 사설 [DNS](glossary:dns) 이름을 넣었다. main은 [Pool](glossary:condor-pool)의 중앙 관리자라서 COLLECTOR·[NEGOTIATOR](glossary:htcondor-negotiator)가, 작업 제출을 받으니 [SCHEDD](glossary:htcondor-schedd)가, 작업도 실행하니 [STARTD](glossary:htcondor-startd)가 같이 뜬다. 서비스를 시작하자 `condor_status`에 main 슬롯 하나가 나타났고, 재부팅 후에도 뜨도록 enable했다.
 
 ```bash
 sudo su -
@@ -153,7 +153,7 @@ systemctl enable condor; systemctl status condor
 
 ![main HTCondor 설치](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/07.webp)
 
-_main에 HTCondor 25.0.14 설치_
+_main에 [HTCondor](glossary:htcondor) 25.0.14 설치_
 
 ![main 설정 파일](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/08.webp)
 
@@ -165,11 +165,11 @@ _condor 시작 후 condor_status — main 슬롯 1개, enable_
 
 ![main condor 서비스](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/10.webp)
 
-_main의 condor 서비스 — master·collector·schedd·startd·negotiator 실행 중_
+_main의 condor 서비스 — master·collector·schedd·[startd](glossary:htcondor-startd)·negotiator 실행 중_
 
 ## worker 인스턴스 생성과 HTCondor 설치
 
-main과 같은 AMI·타입·키·보안 그룹으로 htcondor-worker를 만들고 같은 방법으로 HTCondor를 설치했다(슬라이드 20~28쪽). worker의 `condor_config.local`은 `CONDOR_HOST`가 main의 사설 DNS고, 작업만 실행하므로 데몬은 MASTER·STARTD뿐이다.
+main과 같은 [AMI](glossary:ami)·타입·키·[Security group](glossary:security-group)으로 htcondor-[worker](glossary:worker-node)를 만들고 같은 방법으로 [HTCondor](glossary:htcondor)를 설치했다(슬라이드 20~28쪽). [worker](glossary:worker-node)의 `condor_config.local`은 `CONDOR_HOST`가 main의 사설 [DNS](glossary:dns)고, 작업만 실행하므로 데몬은 MASTER·[STARTD](glossary:htcondor-startd)뿐이다.
 
 ```bash
 WORKER=$(aws ec2 run-instances --image-id $AMI --instance-type t3.small --key-name cloud-test --security-groups HTCondor \
@@ -191,19 +191,19 @@ _worker 인스턴스 생성 — 인스턴스 2대 running_
 
 ![worker 접속](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/12.webp)
 
-_worker에 SSH 접속_
+_worker에 [SSH](glossary:ssh) 접속_
 
 ![worker HTCondor 설치](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/13.webp)
 
-_worker에 HTCondor 설치_
+_worker에 [HTCondor](glossary:htcondor) 설치_
 
 ![worker 설정과 서비스](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/14.webp)
 
-_worker의 condor_config.local과 서비스 시작 — master·startd만 실행_
+_worker의 condor_config.local과 서비스 시작 — master·[startd](glossary:htcondor-startd)만 실행_
 
 ## main → worker SSH 키
 
-Pool 비밀번호 파일을 main에서 worker로 복사하려고 main의 rocky 계정이 worker에 키로 접속할 수 있게 했다(슬라이드 29~31쪽). 두 노드에서 ed25519 키를 만들고(빈 암호), main의 공개 키를 worker의 `~/.ssh/authorized_keys`에 추가했다. 이 파일의 첫 줄은 인스턴스 생성 때 AWS가 넣은 cloud-test 키다. main에서 worker의 사설 DNS로 접속되는 것을 확인했다. 보안 그룹의 22번 규칙이 VPC 안 접속도 허용한다.
+[Pool](glossary:condor-pool) 비밀번호 파일을 main에서 [worker](glossary:worker-node)로 복사하려고 main의 rocky 계정이 [worker](glossary:worker-node)에 키로 접속할 수 있게 했다(슬라이드 29~31쪽). 두 노드에서 [ed25519](glossary:ed25519) 키를 만들고(빈 암호), main의 [Public key](glossary:public-key)를 [worker](glossary:worker-node)의 `~/.ssh/authorized_keys`에 추가했다. 이 파일의 첫 줄은 인스턴스 생성 때 AWS가 넣은 cloud-test 키다. main에서 [worker](glossary:worker-node)의 사설 [DNS](glossary:dns)로 접속되는 것을 확인했다. [Security group](glossary:security-group)의 22번 규칙이 [VPC](glossary:vpc) 안 접속도 허용한다.
 
 ```bash
 ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519          # main, worker 각각
@@ -214,7 +214,7 @@ ssh rocky@ip-172-31-11-85.ap-northeast-2.compute.internal   # main → worker
 
 ![main 키 생성](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/15.webp)
 
-_main의 키 생성과 공개 키_
+_main의 키 생성과 [Public key](glossary:public-key)_
 
 ![worker 키 생성](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/16.webp)
 
@@ -226,11 +226,11 @@ _worker의 authorized_keys — cloud-test 키와 main의 키_
 
 ![main에서 worker로 접속](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/18.webp)
 
-_main에서 worker로 SSH 접속_
+_main에서 [worker](glossary:worker-node)로 [SSH](glossary:ssh) 접속_
 
 ## Pool 비밀번호 공유와 2대 확인
 
-두 노드 설정이 데몬 간 인증을 PASSWORD 방식으로 하므로, 같은 Pool 비밀번호 파일을 둘 다 가져야 서로를 믿는다(슬라이드 32~35쪽). main에서 `condor_store_cred add -c`로 Pool 비밀번호를 만들면 `/etc/condor/passwords.d/POOL`(root만 읽기)이 생긴다. 비밀번호는 무작위 문자열로 넣고 기록하지 않았다. 이 파일을 rocky 소유로 복사해 scp로 worker의 `/tmp`에 보내고, worker에서 같은 위치로 옮겨 권한을 600·root로 되돌렸다. 두 노드의 md5가 같은 것을 확인하고 condor를 재시작하자 `condor_status`에 2대가 나타났다(중간에 생긴 문제는 아래 문제 1).
+두 노드 설정이 데몬 간 인증을 PASSWORD 방식으로 하므로, 같은 [Pool](glossary:condor-pool) 비밀번호 파일을 둘 다 가져야 서로를 믿는다(슬라이드 32~35쪽). main에서 `condor_store_cred add -c`로 [Pool](glossary:condor-pool) 비밀번호를 만들면 `/etc/condor/passwords.d/POOL`(root만 읽기)이 생긴다. 비밀번호는 무작위 문자열로 넣고 기록하지 않았다. 이 파일을 rocky 소유로 복사해 [scp](glossary:scp)로 [worker](glossary:worker-node)의 `/tmp`에 보내고, [worker](glossary:worker-node)에서 같은 위치로 옮겨 권한을 600·root로 되돌렸다. 두 노드의 [md5](glossary:md5)가 같은 것을 확인하고 condor를 재시작하자 `condor_status`에 2대가 나타났다(중간에 생긴 문제는 아래 문제 1).
 
 ```bash
 condor_store_cred add -c                                   # main, root
@@ -244,19 +244,19 @@ condor_status                                                                   
 
 ![POOL 파일 생성과 전송](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/19.webp)
 
-_main에서 Pool 비밀번호 파일 생성과 worker로 전송_
+_main에서 [Pool](glossary:condor-pool) 비밀번호 파일 생성과 [worker](glossary:worker-node)로 전송_
 
 ![worker에 POOL 설치](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/20.webp)
 
-_worker에 POOL 설치 — 권한 600 root, md5 79330bd9…_
+_worker에 POOL 설치 — 권한 600 root, [md5](glossary:md5) 79330bd9…_
 
 ![2대 확인](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/21.webp)
 
-_main의 md5가 같고 condor_status에 main·worker 2대 (슬라이드 35쪽)_
+_main의 [md5](glossary:md5)가 같고 condor_status에 main·[worker](glossary:worker-node) 2대 (슬라이드 35쪽)_
 
 ## worker 머신 이미지 생성
 
-worker 인스턴스를 그대로 AMI aws-htcondor-worker로 떴다(슬라이드 36~38쪽). 이미지에는 HTCondor 패키지, main을 가리키는 설정, POOL 파일, enable된 서비스가 다 들어가므로, 이 이미지로 만든 인스턴스는 부팅만 되면 알아서 main에 붙는다. 이게 동적 관리의 기반이다. 이미지를 만드는 동안 worker는 일관된 디스크 스냅샷을 위해 한 번 재부팅되고, 재부팅 후 Pool에 다시 붙는 것도 확인했다.
+[worker](glossary:worker-node) 인스턴스를 그대로 [AMI](glossary:ami) aws-htcondor-[worker](glossary:worker-node)로 떴다(슬라이드 36~38쪽). 이미지에는 [HTCondor](glossary:htcondor) 패키지, main을 가리키는 설정, POOL 파일, enable된 서비스가 다 들어가므로, 이 이미지로 만든 인스턴스는 부팅만 되면 알아서 main에 붙는다. 이게 동적 관리의 기반이다. 이미지를 만드는 동안 [worker](glossary:worker-node)는 일관된 디스크 [Snapshot](glossary:snapshot)을 위해 한 번 재부팅되고, 재부팅 후 [Pool](glossary:condor-pool)에 다시 붙는 것도 확인했다.
 
 ```bash
 WIMG=$(aws ec2 create-image --instance-id $WORKER --name aws-htcondor-worker --description "HTCondor worker (Rocky 10.2, condor 25.0)" --query ImageId --output text)
@@ -266,27 +266,27 @@ aws ec2 describe-images --owners self --query "Images[].[ImageId,Name,State,Bloc
 
 ![AMI 생성](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/22.webp)
 
-_AMI aws-htcondor-worker 생성 — pending → available, EBS 스냅샷_
+_AMI aws-htcondor-[worker](glossary:worker-node) 생성 — pending → available, [EBS](glossary:ebs) [Snapshot](glossary:snapshot)_
 
 # 3. 동적 관리 프로그램
 
 ## Python boto3로 작성
 
-Java 대신 Python용 AWS SDK인 boto3로 작성했다(`~/cloud_project/aws_control.py`, 156줄). 교재의 Java SDK v1(1.11.x)은 2025년 말에 지원이 끝났고, boto3는 Ubuntu 패키지(`python3-boto3`)로 설치돼서 JDK·라이브러리 묶음을 따로 받을 필요가 없다. 메뉴와 출력 형식은 슬라이드 42~63쪽 화면에 맞췄다. 프로그램은 실행할 때 `boto3.client("ec2")` 하나를 만들고, 자격 증명과 리전은 앞에서 설정한 `~/.aws` 파일에서 읽는다. 메뉴별로 호출하는 EC2 API는 다음과 같다.
+[Java](glossary:java) 대신 [Python](glossary:python)용 AWS [SDK](glossary:sdk)인 [boto3](glossary:boto3)로 작성했다(`~/cloud_project/aws_control.py`, 156줄). 교재의 [Java](glossary:java) [SDK](glossary:sdk) v1(1.11.x)은 2025년 말에 지원이 끝났고, [boto3](glossary:boto3)는 [Ubuntu](glossary:ubuntu) 패키지(`python3-boto3`)로 설치돼서 [JDK](glossary:jdk)·라이브러리 묶음을 따로 받을 필요가 없다. 메뉴와 출력 형식은 슬라이드 42~63쪽 화면에 맞췄다. 프로그램은 실행할 때 `boto3.client("ec2")` 하나를 만들고, [Credential](glossary:credential)과 [Region](glossary:region)은 앞에서 설정한 `~/.aws` 파일에서 읽는다. 메뉴별로 호출하는 [EC2](glossary:amazon-ec2) API는 다음과 같다.
 
-| 메뉴                 | boto3 호출 (EC2 API)                | 동작                                                                                   |
-| -------------------- | ----------------------------------- | -------------------------------------------------------------------------------------- |
-| 1. list instance     | `describe_instances` (페이지네이터) | 모든 인스턴스의 ID·Name 태그·타입·상태·사설 IP                                         |
-| 2. available zones   | `describe_availability_zones`       | 현재 리전의 가용 영역 ID·이름과 개수                                                   |
-| 3. start instance    | `start_instances`                   | 입력한 ID의 인스턴스 시작                                                              |
-| 4. available regions | `describe_regions`                  | 계정에서 쓸 수 있는 리전과 EC2 엔드포인트                                              |
-| 5. stop instance     | `stop_instances`                    | 입력한 ID의 인스턴스 중지                                                              |
-| 6. create instance   | `run_instances`                     | 입력한 AMI로 t3.small·cloud-test·HTCondor 인스턴스 1대 생성, Name 태그 htcondor-worker |
-| 7. reboot instance   | `reboot_instances`                  | 입력한 ID의 인스턴스 재부팅                                                            |
-| 8. list images       | `describe_images(Owners=["self"])`  | 내 계정이 만든 AMI 목록                                                                |
-| 99. quit             | —                                   | 종료                                                                                   |
+| 메뉴                 | [boto3](glossary:boto3) 호출 ([EC2](glossary:amazon-ec2) API) | 동작                                                                                                                                                |
+| -------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. list instance     | `describe_instances` ([Pagination](glossary:pagination))      | 모든 인스턴스의 ID·Name 태그·타입·상태·[Private IP address](glossary:private-ip-address)                                                            |
+| 2. available zones   | `describe_availability_zones`                                 | 현재 [Region](glossary:region)의 [Availability zone](glossary:availability-zone) ID·이름과 개수                                                     |
+| 3. start instance    | `start_instances`                                             | 입력한 ID의 인스턴스 시작                                                                                                                           |
+| 4. available regions | `describe_regions`                                            | 계정에서 쓸 수 있는 [Region](glossary:region)과 [EC2](glossary:amazon-ec2) 엔드포인트                                                               |
+| 5. stop instance     | `stop_instances`                                              | 입력한 ID의 인스턴스 중지                                                                                                                           |
+| 6. create instance   | `run_instances`                                               | 입력한 [AMI](glossary:ami)로 t3.small·cloud-test·[HTCondor](glossary:htcondor) 인스턴스 1대 생성, Name 태그 htcondor-[worker](glossary:worker-node) |
+| 7. reboot instance   | `reboot_instances`                                            | 입력한 ID의 인스턴스 재부팅                                                                                                                         |
+| 8. list images       | `describe_images(Owners=["self"])`                            | 내 계정이 만든 [AMI](glossary:ami) 목록                                                                                                             |
+| 99. quit             | —                                                             | 종료                                                                                                                                                |
 
-API 오류(권한 없음, 잘못된 ID 등)는 `ClientError`로 잡아 메시지만 출력하고 메뉴로 돌아가고, 숫자가 아닌 입력은 `concentration!`을 출력하고 무시한다. create의 키 페어·보안 그룹·타입은 환경 변수로 바꿀 수 있다. 전체 소스는 다음과 같다.
+API 오류(권한 없음, 잘못된 ID 등)는 `ClientError`로 잡아 메시지만 출력하고 메뉴로 돌아가고, 숫자가 아닌 입력은 `concentration!`을 출력하고 무시한다. create의 [Key pair](glossary:key-pair)·[Security group](glossary:security-group)·타입은 [Environment variable](glossary:environment-variable)로 바꿀 수 있다. 전체 소스는 다음과 같다.
 
 ```python:aws_control.py
 #!/usr/bin/env python3
@@ -458,45 +458,45 @@ _프로그램 실행 — 메뉴, 1 list instance(인스턴스를 만들기 전�
 
 ![리전 목록](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/24.webp)
 
-_4 available regions — 17개 리전과 엔드포인트 (맨 윗줄은 숫자가 아닌 입력을 거른 메시지)_
+_4 available regions — 17개 [Region](glossary:region)과 엔드포인트 (맨 윗줄은 숫자가 아닌 입력을 거른 메시지)_
 
 ## 메뉴 구성
 
-과제에 나온 메뉴 1~8과 99를 같은 번호·배치로 구현했다. 각 메뉴가 호출하는 EC2 API는 위 표와 같고, 2·4번 결과는 위 두 그림, 1·3·5·6·7·8번 결과는 아래 Condor Pool 확인 과정에 나온다.
+과제에 나온 메뉴 1~8과 99를 같은 번호·배치로 구현했다. 각 메뉴가 호출하는 [EC2](glossary:amazon-ec2) API는 위 표와 같고, 2·4번 결과는 위 두 그림, 1·3·5·6·7·8번 결과는 아래 [Condor Pool](glossary:condor-pool) 확인 과정에 나온다.
 
 ## Java SDK와 비교
 
-boto3는 Java SDK와 같은 EC2 API를 같은 이름(snake_case)으로 제공해서 슬라이드의 Java 프로그램과 구조가 1:1로 대응한다. Java 판은 `AmazonEC2ClientBuilder`로 클라이언트를 만들고 `DescribeInstancesRequest` 객체를 만들어 넘기지만, boto3는 `client.describe_instances()`처럼 키워드 인자로 호출하고 응답을 딕셔너리로 받는다. 컴파일과 클래스패스 설정(슬라이드 75쪽)이 없어서 실행이 간단하다.
+[boto3](glossary:boto3)는 [Java](glossary:java) [SDK](glossary:sdk)와 같은 [EC2](glossary:amazon-ec2) API를 같은 이름(snake_case)으로 제공해서 슬라이드의 [Java](glossary:java) 프로그램과 구조가 1:1로 대응한다. [Java](glossary:java) 판은 `AmazonEC2ClientBuilder`로 클라이언트를 만들고 `DescribeInstancesRequest` 객체를 만들어 넘기지만, [boto3](glossary:boto3)는 `client.describe_instances()`처럼 키워드 인자로 호출하고 응답을 딕셔너리로 받는다. 컴파일과 클래스패스 설정(슬라이드 75쪽)이 없어서 실행이 간단하다.
 
 ## REST API와의 관계
 
-REST API를 직접 호출하지는 않았다. 다만 boto3와 AWS CLI는 내부에서 EC2의 HTTPS API(`https://ec2.ap-northeast-2.amazonaws.com/`에 `Action=DescribeInstances` 같은 요청)를 보내고, 요청마다 액세스 키로 서명(Signature Version 4)을 붙인다. 이 서명에 요청 시각이 들어가서, 실습 중 Ubuntu 호스트의 시계가 늦었을 때 요청이 거부됐다(아래 문제 2). 4번 메뉴의 엔드포인트 목록이 이 API 주소들이다.
+[REST API](glossary:rest-api)를 직접 호출하지는 않았다. 다만 [boto3](glossary:boto3)와 [AWS CLI](glossary:aws-cli)는 내부에서 [EC2](glossary:amazon-ec2)의 [HTTPS](glossary:https) API(`https://ec2.ap-northeast-2.amazonaws.com/`에 `Action=DescribeInstances` 같은 요청)를 보내고, 요청마다 [Access key](glossary:access-key)로 서명([Signature Version 4](glossary:aws-signature-version-4))을 붙인다. 이 서명에 요청 시각이 들어가서, 실습 중 [Ubuntu](glossary:ubuntu) 호스트의 시계가 늦었을 때 요청이 거부됐다(아래 문제 2). 4번 메뉴의 엔드포인트 목록이 이 API 주소들이다.
 
 # 4. Condor Pool 동적 변경 확인
 
-프로그램(왼쪽 tmux 창 tool)으로 인스턴스를 조작하고, 매번 main 노드에서 `condor_status`로 Pool의 슬롯 수를 확인했다. 결과는 2 → 1 → 2 → 3 → 2 → 1대로 바뀌었다.
+프로그램(왼쪽 [tmux](glossary:tmux) 창 tool)으로 인스턴스를 조작하고, 매번 main 노드에서 `condor_status`로 [Pool](glossary:condor-pool)의 슬롯 수를 확인했다. 결과는 2 → 1 → 2 → 3 → 2 → 1대로 바뀌었다.
 
-| 조작 (메뉴)                          | 인스턴스 상태       | Pool | 그림         |
-| ------------------------------------ | ------------------- | ---- | ------------ |
-| 시작 상태 (1 list)                   | main·worker running | 2대  | 25 (그림 21) |
-| worker 중지 (5 stop)                 | worker stopping     | 1대  | 26, 27       |
-| worker 시작 (3 start)                | worker pending      | 2대  | 28, 29       |
-| AMI로 생성 (8 list images, 6 create) | 새 worker running   | 3대  | 30, 31       |
-| 새 worker 중지 (5 stop)              | 새 worker stopping  | 2대  | 32, 33       |
-| 첫 worker 중지 (5 stop)              | worker stopping     | 1대  | 34, 35       |
-| main 재부팅 (7 reboot)               | main 재부팅         | 1대  | 36, 37       |
+| 조작 (메뉴)                                          | 인스턴스 상태                               | [Pool](glossary:condor-pool) | 그림         |
+| ---------------------------------------------------- | ------------------------------------------- | ---------------------------- | ------------ |
+| 시작 상태 (1 list)                                   | main·[worker](glossary:worker-node) running | 2대                          | 25 (그림 21) |
+| [worker](glossary:worker-node) 중지 (5 stop)         | [worker](glossary:worker-node) stopping     | 1대                          | 26, 27       |
+| [worker](glossary:worker-node) 시작 (3 start)        | [worker](glossary:worker-node) pending      | 2대                          | 28, 29       |
+| [AMI](glossary:ami)로 생성 (8 list images, 6 create) | 새 [worker](glossary:worker-node) running   | 3대                          | 30, 31       |
+| 새 [worker](glossary:worker-node) 중지 (5 stop)      | 새 [worker](glossary:worker-node) stopping  | 2대                          | 32, 33       |
+| 첫 [worker](glossary:worker-node) 중지 (5 stop)      | [worker](glossary:worker-node) stopping     | 1대                          | 34, 35       |
+| main 재부팅 (7 reboot)                               | main 재부팅                                 | 1대                          | 36, 37       |
 
 ## stop — Pool에서 빠짐
 
-stop을 요청하면 인스턴스가 stopping이 되면서 운영체제가 종료되고, systemd가 condor를 끄는 과정에서 worker의 startd가 collector에 자기 광고를 철회한다. 그래서 몇 초 안에 main의 `condor_status`에서 worker가 사라졌다(슬라이드 53~58쪽).
+stop을 요청하면 인스턴스가 stopping이 되면서 운영체제가 종료되고, [systemd](glossary:systemd)가 condor를 끄는 과정에서 [worker](glossary:worker-node)의 [startd](glossary:htcondor-startd)가 collector에 자기 광고를 철회한다. 그래서 몇 초 안에 main의 `condor_status`에서 [worker](glossary:worker-node)가 사라졌다(슬라이드 53~58쪽).
 
 ![list instance](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/25.webp)
 
-_1 list instance — main·worker running_
+_1 list instance — main·[worker](glossary:worker-node) running_
 
 ![worker 중지](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/26.webp)
 
-_5 stop instance로 worker 중지 → list에서 stopping (맨 위 두 줄은 숫자가 아닌 입력을 거른 메시지)_
+_5 stop instance로 [worker](glossary:worker-node) 중지 → list에서 stopping (맨 위 두 줄은 숫자가 아닌 입력을 거른 메시지)_
 
 ![중지 후 condor_status](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/27.webp)
 
@@ -504,7 +504,7 @@ _worker 중지 후 condor_status — main 1대_
 
 ## start — Pool에 다시 들어옴
 
-중지된 worker를 시작하면 부팅 후 enable된 condor가 자동으로 올라오고, startd가 설정의 `CONDOR_HOST`(main)로 자기 정보를 보낸다. start 요청 후 약 20초 만에 Pool이 다시 2대가 됐다. 사설 IP는 중지·시작 후에도 그대로라 main 쪽에선 같은 노드로 보인다(슬라이드 43~48쪽).
+중지된 [worker](glossary:worker-node)를 시작하면 부팅 후 enable된 condor가 자동으로 올라오고, [startd](glossary:htcondor-startd)가 설정의 `CONDOR_HOST`(main)로 자기 정보를 보낸다. start 요청 후 약 20초 만에 [Pool](glossary:condor-pool)이 다시 2대가 됐다. [Private IP address](glossary:private-ip-address)는 중지·시작 후에도 그대로라 main 쪽에선 같은 노드로 보인다(슬라이드 43~48쪽).
 
 ![worker 시작](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/28.webp)
 
@@ -516,11 +516,11 @@ _worker 시작 후 condor_status — 2대_
 
 ## create — 새 노드가 자동으로 합류
 
-8 list images로 AMI ID를 확인하고 6 create instance에 넣자 새 인스턴스(i-07c62b6193bc399c5, 172.31.6.235)가 만들어졌다(슬라이드 49~52쪽). 이 노드에는 아무 설정도 안 했는데, 이미지에 들어 있던 설정과 POOL 파일 덕분에 부팅하자마자 main에 붙어서 약 40초 만에 Pool이 3대가 됐다. 노드를 늘리는 데 사람이 SSH로 들어갈 필요가 없다는 게 동적 자원 관리의 핵심이다.
+8 list images로 [AMI](glossary:ami) ID를 확인하고 6 create instance에 넣자 새 인스턴스(i-07c62b6193bc399c5, 172.31.6.235)가 만들어졌다(슬라이드 49~52쪽). 이 노드에는 아무 설정도 안 했는데, 이미지에 들어 있던 설정과 POOL 파일 덕분에 부팅하자마자 main에 붙어서 약 40초 만에 [Pool](glossary:condor-pool)이 3대가 됐다. 노드를 늘리는 데 사람이 [SSH](glossary:ssh)로 들어갈 필요가 없다는 게 동적 자원 관리의 핵심이다.
 
 ![AMI로 인스턴스 생성](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/30.webp)
 
-_8 list images → 6 create instance(AMI ami-055e133532793acd2) → list에 인스턴스 3대 (계정 ID는 가림)_
+_8 list images → 6 create instance([AMI](glossary:ami) ami-055e133532793acd2) → list에 인스턴스 3대 (계정 ID는 가림)_
 
 ![생성 후 condor_status](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/31.webp)
 
@@ -528,7 +528,7 @@ _새 인스턴스 생성 후 condor_status — 3대 (172.31.6.235 추가)_
 
 ## 다시 줄이기
 
-슬라이드 53~58쪽처럼 방금 만든 인스턴스와 처음 worker를 차례로 중지해서 Pool이 2대, 1대로 줄어드는 것을 확인했다.
+슬라이드 53~58쪽처럼 방금 만든 인스턴스와 처음 [worker](glossary:worker-node)를 차례로 중지해서 [Pool](glossary:condor-pool)이 2대, 1대로 줄어드는 것을 확인했다.
 
 ![새 인스턴스 중지](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/32.webp)
 
@@ -540,7 +540,7 @@ _condor_status — 2대_
 
 ![처음 worker 중지](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/34.webp)
 
-_처음 worker 중지 → stopping (새 인스턴스는 stopped)_
+_처음 [worker](glossary:worker-node) 중지 → stopping (새 인스턴스는 stopped)_
 
 ![1대](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/35.webp)
 
@@ -548,7 +548,7 @@ _condor_status — main 1대_
 
 ## reboot
 
-main을 재부팅하자 슬라이드 59~61쪽처럼 main에 연결된 SSH 세션이 `closed by remote host`로 끊겼다. 다시 접속하면 uptime이 1분이고, condor가 enable돼 있어서 `condor_status`가 바로 다시 나온다.
+main을 재부팅하자 슬라이드 59~61쪽처럼 main에 연결된 [SSH](glossary:ssh) 세션이 `closed by remote host`로 끊겼다. 다시 접속하면 uptime이 1분이고, condor가 enable돼 있어서 `condor_status`가 바로 다시 나온다.
 
 ![main 재부팅](/static/images/cloud-computing-hw5-aws-dynamic-resource-management/36.webp)
 
@@ -562,94 +562,94 @@ _SSH 끊김 → 재접속, uptime 1분, condor_status 정상_
 
 ## 문제 1. Pool 비밀번호를 맞춘 뒤에도 worker가 안 보임
 
-**증상**: 두 노드의 POOL md5가 같은데 main의 `condor_status`에 main 1대만 있었다. worker의 `/var/log/condor/StartLog`에 `attempt to connect to <172.31.12.47:9618> failed: Connection refused`, `TCP connection to collector ... failed`가 찍혀 있었다.
+**증상**: 두 노드의 POOL [md5](glossary:md5)가 같은데 main의 `condor_status`에 main 1대만 있었다. [worker](glossary:worker-node)의 `/var/log/condor/StartLog`에 `attempt to connect to <172.31.12.47:9618> failed: Connection refused`, `TCP connection to collector ... failed`가 찍혀 있었다.
 
-**원인**: POOL 파일을 설치한 worker를 main보다 먼저 재시작해서, worker가 처음 등록하려던 시점에 main의 collector가 재시작 중이라 연결이 거부됐다. startd는 정기 갱신(기본 5분) 때 다시 보내므로 기다리면 붙지만, 그 전까지는 Pool에 없다.
+**원인**: POOL 파일을 설치한 [worker](glossary:worker-node)를 main보다 먼저 재시작해서, [worker](glossary:worker-node)가 처음 등록하려던 시점에 main의 collector가 재시작 중이라 연결이 거부됐다. [startd](glossary:htcondor-startd)는 정기 갱신(기본 5분) 때 다시 보내므로 기다리면 붙지만, 그 전까지는 [Pool](glossary:condor-pool)에 없다.
 
-**해결**: main을 재시작한 다음 worker를 한 번 더 재시작하니 바로 2대가 됐다. 슬라이드 34쪽 순서(main → worker)대로 하면 안 생긴다.
+**해결**: main을 재시작한 다음 [worker](glossary:worker-node)를 한 번 더 재시작하니 바로 2대가 됐다. 슬라이드 34쪽 순서(main → [worker](glossary:worker-node))대로 하면 안 생긴다.
 
 ## 문제 2. AWS 요청이 갑자기 인증 실패
 
-**증상**: 실습 도중 Ubuntu 호스트의 aws 명령이 `AuthFailure`, `SignatureDoesNotMatch: Signature expired: 20261027T111114Z is now earlier than 20261027T114023Z`로 실패했다.
+**증상**: 실습 도중 [Ubuntu](glossary:ubuntu) 호스트의 aws 명령이 `AuthFailure`, `SignatureDoesNotMatch: Signature expired: 20261027T111114Z is now earlier than 20261027T114023Z`로 실패했다.
 
-**원인**: Ubuntu VM의 시계가 실제보다 44분 늦어 있었다. 맥이 잠자기에 들어간 동안 VM 시계가 멈췄던 것으로 보인다. AWS는 서명에 들어간 요청 시각이 서버 시각과 15분 넘게 차이 나면 재전송 공격으로 보고 거부한다.
+**원인**: [Ubuntu](glossary:ubuntu) [VM](glossary:vm)의 시계가 실제보다 44분 늦어 있었다. 맥이 잠자기에 들어간 동안 [VM](glossary:vm) 시계가 멈췄던 것으로 보인다. AWS는 서명에 들어간 요청 시각이 서버 시각과 15분 넘게 차이 나면 [Replay attack](glossary:replay-attack)으로 보고 거부한다.
 
-**해결**: `sudo systemctl restart systemd-timesyncd`로 NTP 동기화를 다시 해서 시계를 맞추자 바로 인증됐다.
+**해결**: `sudo systemctl restart systemd-timesyncd`로 [NTP](glossary:ntp) 동기화를 다시 해서 시계를 맞추자 바로 인증됐다.
 
 ## 슬라이드의 오타·함정
 
-| 쪽     | 내용                                                                    | 결과                                                                                     |
-| ------ | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Ch9 66 | `-o "awscliv2.zip“`의 닫는 따옴표가 둥근 따옴표(U+201C)                 | 복사해 붙이면 셸이 문자열을 닫지 못함. 일반 따옴표로 입력                                |
-| Ch9 74 | `apt install openjdk-8-jdk` 뒤 `java -version`이 25.0.3                 | 8을 설치했지만 기본 JDK가 25로 남은 화면. JDK를 쓰려면 `update-alternatives`로 골라야 함 |
-| Ch9 16 | `dnf install -y condor` 다음 프롬프트가 ip-172-31-20-99                 | main은 ip-172-31-17-242. 다른 인스턴스 화면이 섞임                                       |
-| Ch9 26 | worker 프롬프트 `[rocky@172-31-19-71 ~]`, 출력에 Rocky Linux 9 - BaseOS | `ip-` 누락, Rocky 10 이미지인데 9 저장소 출력                                            |
+| 쪽     | 내용                                                                                                                    | 결과                                                                                                                     |
+| ------ | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Ch9 66 | `-o "awscliv2.zip“`의 닫는 따옴표가 둥근 따옴표(U+201C)                                                                 | 복사해 붙이면 셸이 문자열을 닫지 못함. 일반 따옴표로 입력                                                                |
+| Ch9 74 | `apt install openjdk-8-jdk` 뒤 `java -version`이 25.0.3                                                                 | 8을 설치했지만 기본 [JDK](glossary:jdk)가 25로 남은 화면. [JDK](glossary:jdk)를 쓰려면 `update-alternatives`로 골라야 함 |
+| Ch9 16 | `dnf install -y condor` 다음 프롬프트가 ip-172-31-20-99                                                                 | main은 ip-172-31-17-242. 다른 인스턴스 화면이 섞임                                                                       |
+| Ch9 26 | [worker](glossary:worker-node) 프롬프트 `[rocky@172-31-19-71 ~]`, 출력에 [Rocky Linux](glossary:rocky-linux) 9 - BaseOS | `ip-` 누락, [Rocky](glossary:rocky-linux) 10 이미지인데 9 저장소 출력                                                    |
 
 # 6. 연습문제
 
 ## Ch8-9. AWS에서 제공하는 다양한 AMI
 
-> 아마존 AWS에서 제공하는 다양한 AMI에 대해서 조사하고 특징을 설명하라.
+> 아마존 AWS에서 제공하는 다양한 [AMI](glossary:ami)에 대해서 조사하고 특징을 설명하라.
 
-AMI(Amazon Machine Image)는 인스턴스를 띄울 때 쓰는 템플릿으로, 루트 볼륨의 스냅샷(OS와 설치된 소프트웨어), 시작 권한(누가 이 AMI를 쓸 수 있는지), 인스턴스에 붙일 볼륨 매핑 정보로 이루어진다. 같은 AMI로 여러 인스턴스를 띄우면 모두 같은 상태로 시작하므로, 이번 실습에서 HTCondor가 설치된 worker를 AMI로 만들어 두고 메뉴 6(create instance)으로 똑같은 worker를 하나 더 띄울 수 있었다. AMI는 누가 만들어 어디에 공개했는지에 따라 다음 네 가지로 나뉜다.
+[AMI](glossary:ami)(Amazon Machine Image)는 인스턴스를 띄울 때 쓰는 템플릿으로, [Root volume](glossary:root-volume)의 [Snapshot](glossary:snapshot)(OS와 설치된 소프트웨어), 시작 권한(누가 이 [AMI](glossary:ami)를 쓸 수 있는지), 인스턴스에 붙일 볼륨 매핑 정보로 이루어진다. 같은 [AMI](glossary:ami)로 여러 인스턴스를 띄우면 모두 같은 상태로 시작하므로, 이번 실습에서 [HTCondor](glossary:htcondor)가 설치된 [worker](glossary:worker-node)를 [AMI](glossary:ami)로 만들어 두고 메뉴 6(create instance)으로 똑같은 [worker](glossary:worker-node)를 하나 더 띄울 수 있었다. [AMI](glossary:ami)는 누가 만들어 어디에 공개했는지에 따라 다음 네 가지로 나뉜다.
 
-| 구분                       | 내용 / 예                                                                                                                                       | 특징                                                                                                                                                                                                                                                                     |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Quick Start AMI (AWS 제공) | Amazon Linux 2023, Ubuntu, Red Hat Enterprise Linux, SUSE, Debian, Windows Server, macOS 등. 콘솔 인스턴스 시작 화면 첫 탭                      | AWS나 OS 배포처가 검증해 정기적으로 보안 패치판을 올림. Amazon Linux는 AWS CLI·SSM 에이전트가 미리 들어 있고 추가 요금이 없음. Windows·RHEL 등 상용 OS는 라이선스 비용이 시간당 요금에 포함됨                                                                            |
-| AWS Marketplace AMI        | 소프트웨어 회사가 OS에 자기 제품(방화벽, DB, 보안 솔루션 등)을 설치·설정해 판매하는 AMI. Rocky Linux·CIS 하드닝 이미지도 여기 있음              | 사용 전에 구독(약관 동의)이 필요하고, 유료 제품은 인스턴스 요금에 소프트웨어 요금이 더해짐. 설치·설정 없이 바로 제품을 쓸 수 있음                                                                                                                                        |
-| Community AMI (공개 AMI)   | 누구나 공개로 올린 AMI. 이번 실습의 `Rocky-10-EC2-Base-10.2-20260525.0.x86_64`(ami-0e86f920feb0e6b17)는 Rocky 공식 계정(792107900819)이 올린 것 | 구독 절차 없이 ID만 지정하면 바로 쓸 수 있음. 대신 아무나 올릴 수 있으므로 소유자 계정이 공식 배포처인지 반드시 확인해야 함(악성 코드가 심긴 AMI가 섞여 있을 수 있음)                                                                                                    |
-| My AMI (직접 만든 AMI)     | 실행 중이거나 중지된 내 인스턴스로 만든 AMI. 이번 실습의 aws-htcondor-worker(ami-055e133532793acd2)                                             | 기본은 비공개이고 특정 계정에만 공유하거나 공개로 바꿀 수 있음. 설정이 끝난 상태를 그대로 복제하므로 같은 노드를 빠르게 늘리는 데(오토 스케일링, 이번 create instance) 씀. AMI가 참조하는 EBS 스냅샷 저장 비용이 계속 나가므로 다 쓰면 등록 해제와 스냅샷 삭제를 해야 함 |
+| 구분                                                            | 내용 / 예                                                                                                                                                                               | 특징                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Quick Start [AMI](glossary:ami) (AWS 제공)                      | [Amazon Linux](glossary:amazon-linux) 2023, [Ubuntu](glossary:ubuntu), Red Hat Enterprise Linux, SUSE, Debian, Windows Server, macOS 등. 콘솔 인스턴스 시작 화면 첫 탭                  | AWS나 OS 배포처가 검증해 정기적으로 보안 패치판을 올림. [Amazon Linux](glossary:amazon-linux)는 [AWS CLI](glossary:aws-cli)·SSM 에이전트가 미리 들어 있고 추가 요금이 없음. Windows·RHEL 등 상용 OS는 라이선스 비용이 시간당 요금에 포함됨                                                                                                                                     |
+| AWS [Marketplace](glossary:aws-marketplace) [AMI](glossary:ami) | 소프트웨어 회사가 OS에 자기 제품(방화벽, DB, 보안 솔루션 등)을 설치·설정해 판매하는 [AMI](glossary:ami). [Rocky Linux](glossary:rocky-linux)·CIS 하드닝 이미지도 여기 있음              | 사용 전에 구독(약관 동의)이 필요하고, 유료 제품은 인스턴스 요금에 소프트웨어 요금이 더해짐. 설치·설정 없이 바로 제품을 쓸 수 있음                                                                                                                                                                                                                                              |
+| Community [AMI](glossary:ami) (공개 [AMI](glossary:ami))        | 누구나 공개로 올린 [AMI](glossary:ami). 이번 실습의 `Rocky-10-EC2-Base-10.2-20260525.0.x86_64`(ami-0e86f920feb0e6b17)는 [Rocky](glossary:rocky-linux) 공식 계정(792107900819)이 올린 것 | 구독 절차 없이 ID만 지정하면 바로 쓸 수 있음. 대신 아무나 올릴 수 있으므로 소유자 계정이 공식 배포처인지 반드시 확인해야 함(악성 코드가 심긴 [AMI](glossary:ami)가 섞여 있을 수 있음)                                                                                                                                                                                          |
+| My [AMI](glossary:ami) (직접 만든 [AMI](glossary:ami))          | 실행 중이거나 중지된 내 인스턴스로 만든 [AMI](glossary:ami). 이번 실습의 aws-htcondor-[worker](glossary:worker-node)(ami-055e133532793acd2)                                             | 기본은 비공개이고 특정 계정에만 공유하거나 공개로 바꿀 수 있음. 설정이 끝난 상태를 그대로 복제하므로 같은 노드를 빠르게 늘리는 데([Auto scaling](glossary:auto-scaling), 이번 create instance) 씀. [AMI](glossary:ami)가 참조하는 [EBS](glossary:ebs) [Snapshot](glossary:snapshot) 저장 비용이 계속 나가므로 다 쓰면 등록 해제와 [Snapshot](glossary:snapshot) 삭제를 해야 함 |
 
-그 밖에 특정 용도로 미리 맞춰 둔 AMI도 있다. 딥러닝 프레임워크와 GPU 드라이버를 넣은 Deep Learning AMI, 컨테이너 서비스용으로 Docker·에이전트를 넣은 ECS/EKS 최적화 AMI, 컨테이너 실행만을 위한 최소 OS인 Bottlerocket 등이다.
+그 밖에 특정 용도로 미리 맞춰 둔 [AMI](glossary:ami)도 있다. 딥러닝 프레임워크와 [GPU](glossary:gpu) 드라이버를 넣은 [Deep Learning AMI](glossary:deep-learning-ami), 컨테이너 서비스용으로 Docker·에이전트를 넣은 [ECS](glossary:amazon-ecs)/[EKS](glossary:amazon-eks) 최적화 [AMI](glossary:ami), 컨테이너 실행만을 위한 최소 OS인 [Bottlerocket](glossary:bottlerocket) 등이다.
 
-AMI를 고를 때는 다음 속성을 함께 확인해야 한다.
+[AMI](glossary:ami)를 고를 때는 다음 속성을 함께 확인해야 한다.
 
-- **아키텍처**: x86_64(Intel·AMD) 또는 arm64(AWS Graviton). 인스턴스 타입과 맞아야 한다. 이번에는 t3.small을 쓰려고 x86_64 Rocky AMI를 골랐다(호스트 Ubuntu가 aarch64인 것과는 상관없음).
-- **루트 디바이스 유형**: EBS 기반은 중지(stop)·시작이 가능하고 디스크 내용이 남는다. 인스턴스 스토어 기반은 중지할 수 없고 종료하면 데이터가 사라진다. 지금은 대부분 EBS 기반이다.
-- **가상화 유형·부팅 모드**: 현재 세대 인스턴스는 HVM만 지원하며, 부팅 모드는 Legacy BIOS·UEFI 중 인스턴스 타입이 지원하는 것이어야 한다.
-- **리전**: AMI는 리전마다 따로 있고 ID도 다르다. 같은 Rocky 10.2라도 서울 리전의 ID를 써야 하며, 다른 리전에서 쓰려면 AMI를 복사(copy-image)해야 한다.
+- **아키텍처**: [x86_64](glossary:x86-64)(Intel·AMD) 또는 [arm64](glossary:arm64)(AWS [Graviton](glossary:aws-graviton)). [Instance type](glossary:instance-type)과 맞아야 한다. 이번에는 t3.small을 쓰려고 [x86_64](glossary:x86-64) [Rocky](glossary:rocky-linux) [AMI](glossary:ami)를 골랐다(호스트 [Ubuntu](glossary:ubuntu)가 [aarch64](glossary:arm64)인 것과는 상관없음).
+- **루트 디바이스 유형**: [EBS](glossary:ebs) 기반은 중지(stop)·시작이 가능하고 디스크 내용이 남는다. [Instance store](glossary:instance-store) 기반은 중지할 수 없고 종료하면 데이터가 사라진다. 지금은 대부분 [EBS](glossary:ebs) 기반이다.
+- **[Virtualization](glossary:virtualization) 유형·부팅 모드**: 현재 세대 인스턴스는 [HVM](glossary:hvm)만 지원하며, 부팅 모드는 Legacy [BIOS](glossary:bios)·[UEFI](glossary:uefi) 중 [Instance type](glossary:instance-type)이 지원하는 것이어야 한다.
+- **[Region](glossary:region)**: [AMI](glossary:ami)는 [Region](glossary:region)마다 따로 있고 ID도 다르다. 같은 [Rocky](glossary:rocky-linux) 10.2라도 서울 [Region](glossary:region)의 ID를 써야 하며, 다른 [Region](glossary:region)에서 쓰려면 [AMI](glossary:ami)를 복사(copy-image)해야 한다.
 
 ## Ch8-13. AWS 인스턴스 타입의 종류와 특징
 
-> AWS에서 제공하는 인스턴스 타입(예: t3.nano)은 어떤 것이 있고 특징은 무엇인지 설명하라.
+> AWS에서 제공하는 [Instance type](glossary:instance-type)(예: t3.nano)은 어떤 것이 있고 특징은 무엇인지 설명하라.
 
-인스턴스 타입은 인스턴스에 할당되는 vCPU 수, 메모리, 스토리지, 네트워크 성능의 조합이다. 이름은 `패밀리 + 세대 + (추가 속성) . 크기` 형식이다. 예를 들어 t3.nano는 T 패밀리(버스트형 범용) 3세대의 nano 크기이고, c7gn.xlarge는 C 패밀리(컴퓨팅 최적화) 7세대, g(Graviton 프로세서), n(네트워크 강화)의 xlarge 크기다. 숫자가 클수록 최신 세대로, 같은 가격에 성능이 더 좋다.
+[Instance type](glossary:instance-type)은 인스턴스에 할당되는 [vCPU](glossary:vcpu) 수, 메모리, 스토리지, 네트워크 성능의 조합이다. 이름은 `패밀리 + 세대 + (추가 속성) . 크기` 형식이다. 예를 들어 t3.nano는 T 패밀리([Burstable instance](glossary:burstable-instance) 범용) 3세대의 nano 크기이고, c7gn.xlarge는 C 패밀리(컴퓨팅 최적화) 7세대, g([Graviton](glossary:aws-graviton) 프로세서), n(네트워크 강화)의 xlarge 크기다. 숫자가 클수록 최신 세대로, 같은 가격에 성능이 더 좋다.
 
-| 분류            | 대표 패밀리              | 특징·용도                                                                                                                                                                                                             |
-| --------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 범용            | T, M, Mac                | CPU·메모리 균형(vCPU 1개당 메모리 약 4GiB). M은 웹 서버, 중소 규모 DB 등 일반 작업. T는 평소엔 기준 성능 아래로 쓰다가 필요할 때 CPU를 순간적으로 끌어올리는 버스트형으로 가장 저렴함. Mac은 macOS 실행용 전용 호스트 |
-| 컴퓨팅 최적화   | C                        | vCPU 대비 메모리가 적음(약 2GiB). 배치 처리, 과학 계산, 동영상 인코딩, 게임 서버처럼 CPU를 오래 많이 쓰는 작업. HTCondor 작업 노드로 쓰기 좋음                                                                        |
-| 메모리 최적화   | R, X, z, u-(High Memory) | vCPU 대비 메모리가 큼(R 약 8GiB, X 약 16GiB 이상). 인메모리 DB(Redis, SAP HANA), 대용량 분석. z는 높은 클럭 주파수                                                                                                    |
-| 가속 컴퓨팅     | P, G, Inf, Trn, F        | GPU(P: 머신러닝 학습·HPC, G: 그래픽·추론), AWS 자체 칩(Inferentia: 추론, Trainium: 학습), FPGA(F) 장착. 가장 비쌈                                                                                                     |
-| 스토리지 최적화 | I, D, H                  | 인스턴스에 직접 붙은 로컬 NVMe SSD·HDD로 디스크 입출력이 매우 빠름. NoSQL DB, 데이터 웨어하우스, 분산 파일 시스템                                                                                                     |
-| HPC 최적화      | Hpc                      | 고성능 컴퓨팅용. 노드 간 저지연 네트워크(EFA)를 갖춰 대규모 병렬 계산에 맞음                                                                                                                                          |
+| 분류                       | 대표 패밀리              | 특징·용도                                                                                                                                                                                                                                                                     |
+| -------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 범용                       | T, M, Mac                | CPU·메모리 균형([vCPU](glossary:vcpu) 1개당 메모리 약 4GiB). M은 웹 서버, 중소 규모 DB 등 일반 작업. T는 평소엔 기준 성능 아래로 쓰다가 필요할 때 CPU를 순간적으로 끌어올리는 [Burstable instance](glossary:burstable-instance)로 가장 저렴함. Mac은 macOS 실행용 전용 호스트 |
+| 컴퓨팅 최적화              | C                        | [vCPU](glossary:vcpu) 대비 메모리가 적음(약 2GiB). 배치 처리, 과학 계산, 동영상 인코딩, 게임 서버처럼 CPU를 오래 많이 쓰는 작업. [HTCondor](glossary:htcondor) 작업 노드로 쓰기 좋음                                                                                          |
+| 메모리 최적화              | R, X, z, u-(High Memory) | [vCPU](glossary:vcpu) 대비 메모리가 큼(R 약 8GiB, X 약 16GiB 이상). 인메모리 DB([Redis](glossary:redis), SAP HANA), 대용량 분석. z는 높은 클럭 주파수                                                                                                                         |
+| 가속 컴퓨팅                | P, G, Inf, Trn, F        | [GPU](glossary:gpu)(P: 머신러닝 학습·[HPC](glossary:hpc), G: 그래픽·추론), AWS 자체 칩([Inferentia](glossary:aws-inferentia): 추론, [Trainium](glossary:aws-trainium): 학습), [FPGA](glossary:fpga)(F) 장착. 가장 비쌈                                                        |
+| 스토리지 최적화            | I, D, H                  | 인스턴스에 직접 붙은 로컬 [NVMe](glossary:nvme) SSD·HDD로 디스크 입출력이 매우 빠름. [NoSQL](glossary:nosql) DB, [Data warehouse](glossary:data-warehouse), 분산 파일 시스템                                                                                                  |
+| [HPC](glossary:hpc) 최적화 | Hpc                      | 고성능 컴퓨팅용. 노드 간 저지연 네트워크([EFA](glossary:efa))를 갖춰 대규모 병렬 계산에 맞음                                                                                                                                                                                  |
 
-이름 중간의 추가 속성은 다음과 같다: g AWS Graviton(Arm) 프로세서, a AMD 프로세서, i Intel 프로세서, d 로컬 NVMe 스토리지 포함, n 네트워크 대역폭 강화, e 메모리·스토리지 추가, flex 가격을 낮춘 유연형. 크기는 nano &lt; micro &lt; small &lt; medium &lt; large &lt; xlarge &lt; 2xlarge … 순으로 커지며, 한 단계 오를 때마다 대체로 자원과 요금이 두 배가 된다. metal은 가상화 없이 물리 서버 전체를 쓰는 베어메탈이다.
+이름 중간의 추가 속성은 다음과 같다: g AWS [Graviton](glossary:aws-graviton)(Arm) 프로세서, a AMD 프로세서, i Intel 프로세서, d 로컬 [NVMe](glossary:nvme) 스토리지 포함, n 네트워크 대역폭 강화, e 메모리·스토리지 추가, flex 가격을 낮춘 유연형. 크기는 nano &lt; micro &lt; small &lt; medium &lt; large &lt; xlarge &lt; 2xlarge … 순으로 커지며, 한 단계 오를 때마다 대체로 자원과 요금이 두 배가 된다. metal은 [Virtualization](glossary:virtualization) 없이 물리 서버 전체를 쓰는 [Bare metal](glossary:bare-metal)이다.
 
 문제의 예인 T3 패밀리는 크기별로 다음과 같다.
 
-| 타입                   | vCPU  | 메모리      | vCPU당 기준 성능 |
-| ---------------------- | ----- | ----------- | ---------------- |
-| t3.nano                | 2     | 0.5 GiB     | 5%               |
-| t3.micro               | 2     | 1 GiB       | 10%              |
-| t3.small               | 2     | 2 GiB       | 20%              |
-| t3.medium              | 2     | 4 GiB       | 20%              |
-| t3.large               | 2     | 8 GiB       | 30%              |
-| t3.xlarge / t3.2xlarge | 4 / 8 | 16 / 32 GiB | 40%              |
+| 타입                   | [vCPU](glossary:vcpu) | 메모리      | [vCPU](glossary:vcpu)당 기준 성능 |
+| ---------------------- | --------------------- | ----------- | --------------------------------- |
+| t3.nano                | 2                     | 0.5 GiB     | 5%                                |
+| t3.micro               | 2                     | 1 GiB       | 10%                               |
+| t3.small               | 2                     | 2 GiB       | 20%                               |
+| t3.medium              | 2                     | 4 GiB       | 20%                               |
+| t3.large               | 2                     | 8 GiB       | 30%                               |
+| t3.xlarge / t3.2xlarge | 4 / 8                 | 16 / 32 GiB | 40%                               |
 
-T 패밀리는 기준 성능보다 적게 쓰는 동안 CPU 크레딧이 쌓이고, 순간적으로 CPU를 많이 쓸 때 크레딧을 소모해 100%까지 올린다. T3는 기본이 Unlimited 모드라 크레딧이 바닥나도 성능은 유지되지만, 기준을 넘긴 사용량만큼 추가 요금이 붙는다. 그래서 평소 한가한 개발·테스트 서버에는 싸고 적당하지만, CPU를 계속 100% 쓰는 계산 작업에는 C나 M 패밀리가 더 경제적이다. 이번 실습에서는 HTCondor 데몬 여러 개를 띄우기에 1GiB는 빠듯해 t3.small(2 vCPU, 2GiB)을 썼고, `condor_status`에 슬롯 메모리가 1711MB로 표시됐다(OS와 커널이 쓰는 몫을 뺀 값).
+T 패밀리는 기준 성능보다 적게 쓰는 동안 [CPU credit](glossary:cpu-credit)이 쌓이고, 순간적으로 CPU를 많이 쓸 때 크레딧을 소모해 100%까지 올린다. T3는 기본이 Unlimited 모드라 크레딧이 바닥나도 성능은 유지되지만, 기준을 넘긴 사용량만큼 추가 요금이 붙는다. 그래서 평소 한가한 개발·테스트 서버에는 싸고 적당하지만, CPU를 계속 100% 쓰는 계산 작업에는 C나 M 패밀리가 더 경제적이다. 이번 실습에서는 [HTCondor](glossary:htcondor) 데몬 여러 개를 띄우기에 1GiB는 빠듯해 t3.small(2 [vCPU](glossary:vcpu), 2GiB)을 썼고, `condor_status`에 슬롯 메모리가 1711MB로 표시됐다(OS와 커널이 쓰는 몫을 뺀 값).
 
 ## Ch9-3. 툴에서 condor_status 바로 실행하기
 
 > condor_status 명령을 프로그램 툴에서 직접 실행시킬 수 있도록 변경하라.
 
-실습에서는 툴에서 start·stop·create를 한 뒤 Pool이 바뀌었는지 보려고 main 인스턴스의 SSH 창으로 옮겨 가 `condor_status`를 따로 입력했다. 이걸 툴 안에서 바로 하도록 메뉴 `9. condor status`를 추가했다(`aws_control.py`).
+실습에서는 툴에서 start·stop·create를 한 뒤 [Pool](glossary:condor-pool)이 바뀌었는지 보려고 main 인스턴스의 [SSH](glossary:ssh) 창으로 옮겨 가 `condor_status`를 따로 입력했다. 이걸 툴 안에서 바로 하도록 메뉴 `9. condor status`를 추가했다(`aws_control.py`).
 
-`condor_status`는 Collector가 돌고 있는 main 노드에서 실행해야 한다. 툴이 도는 Ubuntu 호스트에는 HTCondor가 없고, 보안 그룹에서 9618 포트를 VPC 내부(172.31.0.0/16)에만 열어 둬서 바깥에서 Collector에 직접 물어볼 수도 없다. 그래서 툴이 SSH로 main에 접속해 명령을 실행하고 결과를 받아 출력하게 했다.
+`condor_status`는 [Collector](glossary:htcondor-collector)가 돌고 있는 main 노드에서 실행해야 한다. 툴이 도는 [Ubuntu](glossary:ubuntu) 호스트에는 [HTCondor](glossary:htcondor)가 없고, [Security group](glossary:security-group)에서 9618 [Port](glossary:port)를 [VPC](glossary:vpc) 내부(172.31.0.0/16)에만 열어 둬서 바깥에서 [Collector](glossary:htcondor-collector)에 직접 물어볼 수도 없다. 그래서 툴이 [SSH](glossary:ssh)로 main에 접속해 명령을 실행하고 결과를 받아 출력하게 했다.
 
-1. **주소 조회**: EC2 API `describe_instances`로 Name 태그가 htcondor-main이고 상태가 running인 인스턴스를 찾는다. main의 공인 DNS 이름은 중지·시작할 때마다 바뀌므로 고정값으로 두지 않고 매번 조회한다.
-2. **원격 실행**: 찾은 주소로 `ssh -i cloud-test.pem rocky@<공인 DNS> condor_status`를 실행한다(Python `subprocess`). 주소가 바뀌어도 멈추지 않게 처음 보는 호스트 키는 자동으로 받아들이고(`StrictHostKeyChecking=accept-new`), 접속 10초·전체 60초 제한을 뒀다.
-3. **결과 출력**: 표준 출력을 그대로 보여 주고, 실패하면 SSH의 오류 메시지를 출력한다. main이 꺼져 있으면 `htcondor-main is not running.`을 출력한다.
+1. **주소 조회**: [EC2](glossary:amazon-ec2) API `describe_instances`로 Name 태그가 htcondor-main이고 상태가 running인 인스턴스를 찾는다. main의 공인 [DNS](glossary:dns) 이름은 중지·시작할 때마다 바뀌므로 고정값으로 두지 않고 매번 조회한다.
+2. **원격 실행**: 찾은 주소로 `ssh -i cloud-test.pem rocky@<공인 DNS> condor_status`를 실행한다([Python](glossary:python) `subprocess`). 주소가 바뀌어도 멈추지 않게 처음 보는 호스트 키는 자동으로 받아들이고(`StrictHostKeyChecking=accept-new`), 접속 10초·전체 60초 제한을 뒀다.
+3. **결과 출력**: 표준 출력을 그대로 보여 주고, 실패하면 [SSH](glossary:ssh)의 오류 메시지를 출력한다. main이 꺼져 있으면 `htcondor-main is not running.`을 출력한다.
 
 ```python:aws_control.py
 MAIN_NAME = os.environ.get("AWS_MAIN_NAME", "htcondor-main")
@@ -690,21 +690,21 @@ ACTIONS = {
 }
 ```
 
-메뉴에도 `9. condor status` 줄을 추가했다. 이제 "5 stop instance → 9 condor status → 3 start instance → 9 condor status"처럼 한 화면 안에서 인스턴스 조작과 Pool 변화를 이어서 확인할 수 있다. 키 파일 위치·접속 사용자·main 이름은 환경 변수(`AWS_KEY_FILE`, `AWS_SSH_USER`, `AWS_MAIN_NAME`)로 바꿀 수 있게 해서 다른 계정이나 클러스터에도 그대로 쓸 수 있다.
+메뉴에도 `9. condor status` 줄을 추가했다. 이제 "5 stop instance → 9 condor status → 3 start instance → 9 condor status"처럼 한 화면 안에서 인스턴스 조작과 [Pool](glossary:condor-pool) 변화를 이어서 확인할 수 있다. 키 파일 위치·접속 사용자·main 이름은 [Environment variable](glossary:environment-variable)(`AWS_KEY_FILE`, `AWS_SSH_USER`, `AWS_MAIN_NAME`)로 바꿀 수 있게 해서 다른 계정이나 [Cluster](glossary:cluster)에도 그대로 쓸 수 있다.
 
-다른 방법으로는 AWS Systems Manager의 Run Command(`ssm.send_command`)로 SSH 없이 명령을 보내는 방법이 있다. 키 파일을 들고 다닐 필요가 없고 22번 포트를 닫아도 되지만, 인스턴스에 SSM 에이전트와 IAM 역할을 따로 붙여야 하고(이번 Rocky AMI에는 에이전트가 없음) 결과를 다시 조회해야 해서, 이미 SSH로 운영 중인 이번 환경에는 SSH 방식이 간단하다.
+다른 방법으로는 AWS [Systems Manager](glossary:aws-systems-manager)의 Run Command(`ssm.send_command`)로 [SSH](glossary:ssh) 없이 명령을 보내는 방법이 있다. 키 파일을 들고 다닐 필요가 없고 22번 [Port](glossary:port)를 닫아도 되지만, 인스턴스에 SSM 에이전트와 [IAM](glossary:iam) 역할을 따로 붙여야 하고(이번 [Rocky](glossary:rocky-linux) [AMI](glossary:ami)에는 에이전트가 없음) 결과를 다시 조회해야 해서, 이미 [SSH](glossary:ssh)로 운영 중인 이번 환경에는 [SSH](glossary:ssh) 방식이 간단하다.
 
 ## Ch9-12. 가상머신 API를 제공하는 국내 클라우드
 
-> 가상머신을 제어할 수 있는 API를 제공하는 국내 클라우드 서비스 제공자에 대해 조사하고 내용을 요약하라.
+> [VM](glossary:vm)을 제어할 수 있는 API를 제공하는 국내 클라우드 서비스 제공자에 대해 조사하고 내용을 요약하라.
 
-국내 주요 클라우드 사업자도 AWS처럼 콘솔 외에 API·CLI·SDK로 가상머신을 만들고 켜고 끌 수 있게 한다. 사업자마다 인증 방식과 API 체계가 다른데, 크게 AWS처럼 액세스 키로 요청에 서명하는 방식(네이버 클라우드)과 OpenStack처럼 먼저 토큰을 받아 요청 헤더에 넣는 방식(NHN Cloud, 카카오클라우드)으로 나뉜다.
+국내 주요 클라우드 사업자도 AWS처럼 콘솔 외에 API·CLI·[SDK](glossary:sdk)로 [VM](glossary:vm)을 만들고 켜고 끌 수 있게 한다. 사업자마다 인증 방식과 API 체계가 다른데, 크게 AWS처럼 [Access key](glossary:access-key)로 요청에 서명하는 방식(네이버 클라우드)과 [OpenStack](glossary:openstack)처럼 먼저 [Access token](glossary:access-token)을 받아 요청 헤더에 넣는 방식(NHN Cloud, 카카오클라우드)으로 나뉜다.
 
-| 사업자                      | 가상머신 API                                                                                                                                                                                                                     | 인증·특징                                                                                                                                                                                                                                                                  |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 네이버 클라우드 플랫폼(NCP) | Server API(REST). VPC 환경은 `/vserver/v2/` 아래 `createServerInstances`, `startServerInstances`, `stopServerInstances`, `rebootServerInstances`, `getServerInstanceList` 등. CLI, Java·Python 등 SDK, Terraform 프로바이더 제공 | 콘솔에서 발급한 Access Key·Secret Key로 요청을 HmacSHA256 서명해 `x-ncp-apigw-signature-v2` 헤더에 넣고, 타임스탬프·액세스 키 헤더를 함께 보냄. 서버 시각과 5분 넘게 차이 나면 거부(AWS의 서명 방식과 비슷함). API 이름 체계가 이번 실습의 boto3 함수와 거의 일대일로 대응 |
-| NHN Cloud                   | OpenStack 기반. Compute(Instance) API가 OpenStack Nova와 호환되며, 리전(판교 kr1, 평촌 kr2 등)마다 엔드포인트가 다름                                                                                                             | 계정 비밀번호와 별도인 API 비밀번호를 설정하고, Identity API(`POST /v2.0/tokens`)에 테넌트 ID·사용자·API 비밀번호를 보내 토큰을 받은 뒤 `X-Auth-Token` 헤더로 호출. OpenStack 호환이라 OpenStack CLI·SDK·Terraform 도구를 그대로 쓸 수 있음                                |
-| 카카오클라우드              | OpenStack 기반 Virtual Machine 서비스. REST API, CLI, Terraform 제공                                                                                                                                                             | 콘솔 프로필에서 프로젝트별 액세스 키를 발급(IAM 역할에 따라 권한 결정, 보안 키는 생성 때만 조회 가능). `https://iam.kakaocloud.com/identity/v3/auth/tokens`로 토큰을 받아 응답 헤더 `X-Subject-Token`의 값을 사용, 12시간 후 만료                                          |
-| KT Cloud                    | Open API로 서버 생성·시작·정지·삭제(예: `deployVirtualMachine`). Python SDK 예제 제공                                                                                                                                            | API 키·비밀 키로 요청에 서명. 서버를 만들 때 템플릿 ID(OS), 서비스 오퍼링 ID(사양), 존을 지정하는 CloudStack 계열 구조                                                                                                                                                     |
+| 사업자                      | [VM](glossary:vm) API                                                                                                                                                                                                                                                                                                      | 인증·특징                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 네이버 클라우드 플랫폼(NCP) | Server API(REST). [VPC](glossary:vpc) 환경은 `/vserver/v2/` 아래 `createServerInstances`, `startServerInstances`, `stopServerInstances`, `rebootServerInstances`, `getServerInstanceList` 등. CLI, [Java](glossary:java)·[Python](glossary:python) 등 [SDK](glossary:sdk), [Terraform](glossary:terraform) 프로바이더 제공 | 콘솔에서 발급한 Access Key·Secret Key로 요청을 [HmacSHA256](glossary:hmac) 서명해 `x-ncp-apigw-signature-v2` 헤더에 넣고, 타임스탬프·[Access key](glossary:access-key) 헤더를 함께 보냄. 서버 시각과 5분 넘게 차이 나면 거부(AWS의 서명 방식과 비슷함). API 이름 체계가 이번 실습의 [boto3](glossary:boto3) 함수와 거의 일대일로 대응                          |
+| NHN Cloud                   | [OpenStack](glossary:openstack) 기반. Compute(Instance) API가 [OpenStack](glossary:openstack) Nova와 호환되며, [Region](glossary:region)(판교 kr1, 평촌 kr2 등)마다 엔드포인트가 다름                                                                                                                                      | 계정 비밀번호와 별도인 API 비밀번호를 설정하고, Identity API(`POST /v2.0/tokens`)에 테넌트 ID·사용자·API 비밀번호를 보내 [Access token](glossary:access-token)을 받은 뒤 `X-Auth-Token` 헤더로 호출. [OpenStack](glossary:openstack) 호환이라 [OpenStack](glossary:openstack) CLI·[SDK](glossary:sdk)·[Terraform](glossary:terraform) 도구를 그대로 쓸 수 있음 |
+| 카카오클라우드              | [OpenStack](glossary:openstack) 기반 Virtual Machine 서비스. [REST API](glossary:rest-api), CLI, [Terraform](glossary:terraform) 제공                                                                                                                                                                                      | 콘솔 프로필에서 프로젝트별 [Access key](glossary:access-key)를 발급([IAM](glossary:iam) 역할에 따라 권한 결정, 보안 키는 생성 때만 조회 가능). `https://iam.kakaocloud.com/identity/v3/auth/tokens`로 [Access token](glossary:access-token)을 받아 응답 헤더 `X-Subject-Token`의 값을 사용, 12시간 후 만료                                                     |
+| KT Cloud                    | Open API로 서버 생성·시작·정지·삭제(예: `deployVirtualMachine`). [Python](glossary:python) [SDK](glossary:sdk) 예제 제공                                                                                                                                                                                                   | API 키·비밀 키로 요청에 서명. 서버를 만들 때 템플릿 ID(OS), 서비스 오퍼링 ID(사양), 존을 지정하는 [CloudStack](glossary:cloudstack) 계열 구조                                                                                                                                                                                                                  |
 
-정리하면, 국내 사업자도 가상머신의 생성·시작·중지·재부팅·조회를 모두 API로 제공하므로, 이번 과제의 동적 자원 관리 툴에서 boto3 호출 부분만 각 사업자의 API로 바꾸면 같은 메뉴를 그대로 만들 수 있다. 특히 NHN Cloud와 카카오클라우드는 OpenStack 표준 API를 따르므로 OpenStack SDK 하나로 두 곳을 함께 다룰 수 있고, 네이버 클라우드는 AWS와 비슷한 키 서명 방식이라 AWS 툴의 구조를 옮기기 쉽다. 공공기관용으로는 네이버 클라우드·NHN Cloud·KT Cloud 모두 별도의 공공 리전(CSAP 인증)을 두고 같은 형태의 API를 제공한다.
+정리하면, 국내 사업자도 [VM](glossary:vm)의 생성·시작·중지·재부팅·조회를 모두 API로 제공하므로, 이번 과제의 동적 자원 관리 툴에서 [boto3](glossary:boto3) 호출 부분만 각 사업자의 API로 바꾸면 같은 메뉴를 그대로 만들 수 있다. 특히 NHN Cloud와 카카오클라우드는 [OpenStack](glossary:openstack) 표준 API를 따르므로 [OpenStack](glossary:openstack) [SDK](glossary:sdk) 하나로 두 곳을 함께 다룰 수 있고, 네이버 클라우드는 AWS와 비슷한 키 서명 방식이라 AWS 툴의 구조를 옮기기 쉽다. 공공기관용으로는 네이버 클라우드·NHN Cloud·KT Cloud 모두 별도의 공공 [Region](glossary:region)(CSAP 인증)을 두고 같은 형태의 API를 제공한다.

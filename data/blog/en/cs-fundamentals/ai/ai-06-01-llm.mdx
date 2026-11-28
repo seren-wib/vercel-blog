@@ -32,7 +32,7 @@ A probabilistic model that predicts the most appropriate next word based on the 
 
 # 2. LLM(Large Language Model)
 
-A language model with a very large number of parameters, trained on a massive amount of text data
+A [language model](glossary:language-model) with a very large number of [parameters](glossary:parameter), trained on a massive amount of text data
 
 Mainly implemented as Transformer-based models
 
@@ -40,56 +40,56 @@ Mainly implemented as Transformer-based models
 
 ### 1. Tokenization
 
-1. The step that splits a sentence into smaller units called tokens
+1. The step that splits a sentence into smaller units called [tokens](glossary:token)
 
-2. The split tokens are mapped to integer IDs according to a predefined vocabulary
+2. The split [tokens](glossary:token) are mapped to integer IDs according to a predefined [vocabulary](glossary:vocabulary)
 
 ### 2. Embedding
 
-3. Converts each token into a numeric vector representation with hundreds or thousands of dimensions
-   - Similar concepts point in similar directions in vector space.
-   - The same word gets different vector values depending on context.
+3. Converts each [token](glossary:token) into a numeric [vector](glossary:vector) representation with hundreds or thousands of dimensions
+   - Similar concepts point in similar directions in [vector](glossary:vector) space.
+   - The same word gets different [vector](glossary:vector) values depending on context.
 
 ### Conversion steps: token > integer ID > vocabulary (voca) > embedding vector
 
 ### Transformer model
 
-The neural network architecture at the core of large language models
+The neural network architecture at the core of large [language models](glossary:language-model)
 
-Processes data (the tokens' embedding vectors) in parallel and understands context in depth
+Processes data (the [tokens](glossary:token)' [embedding](glossary:embedding) [vectors](glossary:vector)) in parallel and understands context in depth
 
 Takes in the whole sentence at once, so training speed is greatly improved over earlier models
 
-Computes the probability distribution of the next token (word, next token)
+Computes the probability distribution of the next [token](glossary:token) (word, next [token](glossary:token))
 
 ### Temperature
 
-Temperature controls the randomness of text generation by adjusting word probabilities before the model chooses a word
+[Temperature](glossary:temperature) controls the randomness of text generation by adjusting word probabilities before the model chooses a word
 
-High temperature (≥ 1): more diverse and creative output
+High [temperature](glossary:temperature) (≥ 1): more diverse and creative output
 
-Low temperature (~0): more focused and predictable responses
+Low [temperature](glossary:temperature) (~0): more focused and predictable responses
 
 ### Sampling
 
-1. Top-K sampling
+1. [Top-K sampling](glossary:top-k-sampling)
    - Limits the word pool
    - Picks probabilistically among the top K words with the highest probability
    - Fixed number of candidate words; with K=5, always 5 are chosen
 
-2. Top-p sampling
+2. [Top-p sampling](glossary:top-p-sampling)
    - Picks a word from a dynamically changing word pool, filled until the cumulative probability reaches p
    - Variable number of candidate words; candidates are added until the cumulative probability reaches p.
 
 # 3. Transformer model
 
-Creates three kinds of vectors, Query, Key and Value, from each token's embedding vector, computes how related one token's Query is to every token's Key, then mixes the Values in proportion to that relevance to make a new vector
+Creates three kinds of [vectors](glossary:vector), [Query](glossary:query-key-value), [Key](glossary:query-key-value) and [Value](glossary:query-key-value), from each [token](glossary:token)'s [embedding](glossary:embedding) [vector](glossary:vector), computes how related one [token](glossary:token)'s [Query](glossary:query-key-value) is to every [token](glossary:token)'s [Key](glossary:query-key-value), then mixes the Values in proportion to that relevance to make a new [vector](glossary:vector)
 
-Q(Query): the information I want to find
+Q([Query](glossary:query-key-value)): the information I want to find
 
-K(Key): I am related to this kind of information
+K([Key](glossary:query-key-value)): I am related to this kind of information
 
-V(Value): the content actually passed on
+V([Value](glossary:query-key-value)): the content actually passed on
 
 ## 1. Self-attention operation
 
@@ -98,14 +98,14 @@ V(Value): the content actually passed on
    Example
    input = [1010, 0202, 1111]
    ```
-2. Multiply each input by the trained weight matrices inside the model to make query, key, value
+2. Multiply each input by the trained [weight matrices](glossary:weight) inside the model to make [query, key, value](glossary:query-key-value)
    ```
    Example
    key = [[0,1,1], [4,4,0], [2,3,1]]
    value = [[1,2,3], [2,8,0], [2,6,3]]
    query = [[1,0,2], [2,2,2], [2,1,3]]
    ```
-3. query1 is compared with every key (dot product of vectors)
+3. query1 is compared with every [key](glossary:query-key-value) ([dot product](glossary:dot-product) of [vectors](glossary:vector))
 
    ```
    Example
@@ -138,7 +138,7 @@ V(Value): the content actually passed on
 
 4. The comparison produces scores
 
-5. Turn the scores into ratios with softmax
+5. Turn the scores into ratios with [softmax](glossary:softmax)
 
    ```math
    softmax(score_i) = \frac{e^{score_i}}{e^{score_1}+e^{score_2}+e^{score_3}}
@@ -165,7 +165,7 @@ V(Value): the content actually passed on
    softmax([2, 4, 4]) ≈ [0.063, 0.468, 0.468]
    ```
 
-6. Multiply every value by its ratio
+6. Multiply every [value](glossary:query-key-value) by its ratio
 
    ```
    Example
@@ -203,37 +203,37 @@ V(Value): the content actually passed on
 
 ## 2. Positional embedding vector
 
-Self-Attention computes relationships between tokens.
+[Self-Attention](glossary:self-attention) computes relationships between [tokens](glossary:token).
 
 But without order information, the meaning of the sentence falls apart.
 
-So a positional embedding is added to each token embedding.
+So a [positional embedding](glossary:positional-embedding) is added to each [token](glossary:token) [embedding](glossary:embedding).
 
-As a result, the Transformer receives "word meaning + position" together.
+As a result, the [Transformer](glossary:transformer) receives "word meaning + position" together.
 
-It must have the same dimension as the token embedding.
+It must have the same dimension as the [token](glossary:token) [embedding](glossary:embedding).
 
 ## 3. Structure of a Transformer block
 
 ### Self-Attention
 
-Computes how much each token should refer to the other tokens in the sentence
+Computes how much each [token](glossary:token) should refer to the other [tokens](glossary:token) in the sentence
 
 ### FFN(Feed Forward Network) or MLP
 
-If Self-Attention handled "the relationships between tokens", the FFN takes each token vector separately and transforms it once more
+If [Self-Attention](glossary:self-attention) handled "the relationships between [tokens](glossary:token)", the [FFN](glossary:feed-forward-network) takes each [token](glossary:token) [vector](glossary:vector) separately and transforms it once more
 
-Usually made of a linear layer, an activation function, and a linear layer
+Usually made of a linear layer, an [activation function](glossary:activation-function), and a linear layer
 
 ### Skip Connection
 
-self-attention result + original input
+[self-attention](glossary:self-attention) result + original input
 
 Preserves information from the previous layer and makes training stable
 
 ### LayerNorm (normalization layer)
 
-Normalization that tidies vector values that get too large or uneven.
+Normalization that tidies [vector](glossary:vector) values that get too large or uneven.
 
 As computations pile up, the distribution of values can shift, so it keeps things stable at every layer
 
@@ -253,32 +253,32 @@ Skip Connection + LayerNorm
 Output vector
 ```
 
-1. The input vector comes in
+1. The input [vector](glossary:vector) comes in
 
-2. Self-Attention reflects the relationships between tokens
+2. [Self-Attention](glossary:self-attention) reflects the relationships between [tokens](glossary:token)
 
 3. Add the original input
-   = Skip Connection
+   = [Skip Connection](glossary:skip-connection)
 
 4. Tidy the values
-   = LayerNorm
+   = [LayerNorm](glossary:layer-normalization)
 
-5. The FFN processes each token vector once more
+5. The [FFN](glossary:feed-forward-network) processes each [token](glossary:token) [vector](glossary:vector) once more
 
-6. Add the original value again
-   = Skip Connection
+6. Add the original [value](glossary:query-key-value) again
+   = [Skip Connection](glossary:skip-connection)
 
 7. Normalize again
-   = LayerNorm
+   = [LayerNorm](glossary:layer-normalization)
 
-8. Pass it to the next Transformer block
+8. Pass it to the next [Transformer](glossary:transformer) block
 
 ## 4. mulit-head attention
 
-A concept that came about because the self-attention approach can only focus strongly on one kind of relationship.
+A concept that came about because the [self-attention](glossary:self-attention) approach can only focus strongly on one kind of relationship.
 
-- Linear projection
-  - Multiplying a vector by a weight matrix to move it into a different vector space
+- [Linear projection](glossary:linear-projection)
+  - Multiplying a [vector](glossary:vector) by a [weight matrix](glossary:weight) to move it into a different [vector](glossary:vector) space
   - It can reduce the dimension, increase it, or just change the direction within the same dimension.
 
 ```
@@ -300,50 +300,50 @@ multi-head attention output
 
 ## 5. Encoder and decoder
 
-**The encoder reads the input sentence and produces meaning vectors, and the decoder refers to the encoder's last layer when producing the output sentence**
+**The [encoder](glossary:encoder) reads the input sentence and produces meaning [vectors](glossary:vector), and the [decoder](glossary:decoder) refers to the [encoder](glossary:encoder)'s last layer when producing the output sentence**
 
-The way it refers here: Cross-Attention
+The way it refers here: [Cross-Attention](glossary:cross-attention)
 
 ### Cross-Attention
 
-Output of the encoder's last layer = vectors summarizing the input sentence after reading it all
+Output of the [encoder](glossary:encoder)'s last layer = [vectors](glossary:vector) summarizing the input sentence after reading it all
 
-Decoder Query = a request for the information needed at the position currently being output
+[Decoder](glossary:decoder) [Query](glossary:query-key-value) = a request for the information needed at the position currently being output
 
-Encoder Key = a search tag indicating what information each input token holds
+[Encoder](glossary:encoder) [Key](glossary:query-key-value) = a search tag indicating what information each input [token](glossary:token) holds
 
-Encoder Value = the input information actually passed to the decoder
+[Encoder](glossary:encoder) [Value](glossary:query-key-value) = the input information actually passed to the [decoder](glossary:decoder)
 
-Cross-Attention = the process of searching the encoder Keys with the decoder Query and fetching the matching Values
+[Cross-Attention](glossary:cross-attention) = the process of searching the [encoder](glossary:encoder) Keys with the [decoder](glossary:decoder) [Query](glossary:query-key-value) and fetching the matching Values
 
 ### Encoder-decoder inference
 
-Key and value vectors are created from the encoder's output for the given input
+[Key](glossary:query-key-value) and [value](glossary:query-key-value) [vectors](glossary:vector) are created from the [encoder](glossary:encoder)'s output for the given input
 
 # 4. Models built on the Transformer
 
 ## 1. BERT(Bi-directional Encoder Representations from Transformers)
 
-A Transformer Encoder-based model
+A [Transformer](glossary:transformer) Encoder-based model
 
 Uses two sentences as input - feed in sentence A and sentence B and judge whether they are consecutive.
 
 ### Attach a classification layer to a well-trained BERT language model to perform various NLP tasks (natural language processing tasks)
 
-Tasks such as sentence classification, sentiment analysis and next sentence prediction
+Tasks such as sentence classification, sentiment analysis and [next sentence prediction](glossary:next-sentence-prediction)
 
 1. Next Sentence Prediction
-2. Autoencoding training: restore the hidden Masked tokens
-   - I ate [MASK]
+2. [Autoencoding](glossary:masked-language-modeling) training: restore the hidden [Masked](glossary:masked-language-modeling) [tokens](glossary:token)
+   - I ate [\[MASK\]](glossary:masked-language-modeling)
    - Infer the MASKed part from the context
 
 ## 2. GPT(Generative Pre-trained Transformer)
 
-A Transformer Decoder-based model
+A [Transformer](glossary:transformer) Decoder-based model
 
-Auto-regressive model: generates the next token based on previous outputs
+[Auto-regressive](glossary:autoregressive-model) model: generates the next [token](glossary:token) based on previous outputs
 
-The architecture used by most LLMs
+The architecture used by most [LLMs](glossary:llm)
 
 ### GPT flow
 
@@ -363,19 +363,19 @@ Feed the predicted word back into the input and repeat generation
 
 ## 1. Pre-training
 
-The stage that learns next-token prediction on a large corpus, i.e. text on the scale of trillions of tokens (compressing world knowledge)
+The stage that learns next-token prediction on a large [corpus](glossary:corpus), i.e. text on the scale of trillions of [tokens](glossary:token) (compressing world knowledge)
 
 1. Trained to predict the next word from previous words
-   - Learns everything from a single simple task: predicting the next token
-   - The labels are inherent in the data itself, so it is self-supervised
+   - Learns everything from a single simple task: predicting the next [token](glossary:token)
+   - The labels are inherent in the data itself, so it is [self-supervised](glossary:self-supervised-learning)
 
-2. Compressing the whole internet and melting it into the parameters
+2. Compressing the whole internet and melting it into the [parameters](glossary:parameter)
 3. At this stage it gains the basis for language structure, factual knowledge and reasoning ability
 4. Data quality filtering is decisive
 5. High-quality datasets go through deduplication, adult-content filters, language detection and quality classifiers
 
-- A model that has finished this stage is called a Base Model
-- It has knowledge but doesn't know well how to respond to instructions > SFT needed
+- A model that has finished this stage is called a [Base Model](glossary:base-model)
+- It has knowledge but doesn't know well how to respond to instructions > [SFT](glossary:sft) needed
 
 ## 2. SFT(supervised fine-tuning)
 
@@ -384,19 +384,19 @@ The stage where the model looks at pairs of questions and ideal responses and le
 - Data collection methods
   1. Human-written: professional annotators write (question, ideal response) pairs directly. Best quality, highest cost.
   2. Model-generated + human review: GPT-4 generates drafts → humans revise. The InstructGPT and Alpaca approach.
-  3. Self-Instruct: the model generates diverse instructions and responses on its own. Large variance in quality
+  3. [Self-Instruct](glossary:self-instruct): the model generates diverse instructions and responses on its own. Large variance in quality
 
-- Model after SFT: follows instructions, but may also follow harmful requests as is > RLHF needed
+- Model after [SFT](glossary:sft): follows instructions, but may also follow harmful requests as is > [RLHF](glossary:rlhf) needed
 
 ## 3. RLHF (reinforcement learning with human feedback)
 
 Adjusts the model based on the answers people prefer (human preference alignment)
 
 - Data collection
-  - Generate several responses to the same question, and human raters mark preferences by pairwise comparison
+  - Generate several responses to the same question, and human raters mark preferences by [pairwise comparison](glossary:pairwise-comparison)
   - OpenAI's rater interface for InstructGPT
 
-Reinforcement learning of the model
+[Reinforcement learning](glossary:reinforcement-learning) of the model
 
 - Trained to produce results with high human preference while not drifting too far from the original model
 
@@ -404,20 +404,20 @@ Reinforcement learning of the model
 
 **A model that understands and generates many data formats in one model, not just text but also images, speech and video**
 
-- Modality: data format (text, speech, image, video)
-- Projection layer: an intermediate conversion layer that vectorizes another modality such as images or speech with an encoder, then shapes that vector into a form the LLM can take
-- Uses a large language model as the backbone; data from other modalities is vectorized with a separate encoder and fed into the large language model
-- Requires fine-tuning
+- [Modality](glossary:modality): data format (text, speech, image, video)
+- [Projection layer](glossary:projection-layer): an intermediate conversion layer that vectorizes another [modality](glossary:modality) such as images or speech with an [encoder](glossary:encoder), then shapes that [vector](glossary:vector) into a form the [LLM](glossary:llm) can take
+- Uses a [large language model](glossary:llm) as the [backbone](glossary:backbone); data from other [modalities](glossary:modality) is vectorized with a separate [encoder](glossary:encoder) and fed into the [large language model](glossary:llm)
+- Requires [fine-tuning](glossary:fine-tuning)
 
 ## How to feed images in
 
-1. Turn the chunk of pixels into image embedding vectors with an image encoder like ViT
+1. Turn the chunk of pixels into image [embedding](glossary:embedding) [vectors](glossary:vector) with an image [encoder](glossary:encoder) like [ViT](glossary:vit)
 
 ### Method 1. Put image vectors into the LLM like input tokens
 
-[image tokens] [describe] [this] [photo]
+[image [tokens](glossary:token)] [describe] [this] [photo]
 
-Treats the image information as a kind of input token too, processed together with the text question that follows
+Treats the image information as a kind of input [token](glossary:token) too, processed together with the text question that follows
 
 The Molmo model uses this approach
 
@@ -429,4 +429,4 @@ The NVLM model uses this approach
 
 - A model designed to understand and process visual information such as images or video together with natural language (text)
 - Provides multifaceted reasoning, such as looking at an image and describing it or answering questions, as if it had "eyes"
-- Translates images into tokens the LLM can read
+- Translates images into [tokens](glossary:token) the [LLM](glossary:llm) can read

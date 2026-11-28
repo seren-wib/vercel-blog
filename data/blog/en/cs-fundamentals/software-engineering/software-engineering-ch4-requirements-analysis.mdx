@@ -10,31 +10,31 @@ summary: 'Requirement classification, functional and domain requirements, non-fu
 
 ## 4.1 Requirements Definition
 
-**Software requirements**: **a specification of the target system's functions, characteristics, services and constraints**
+**[Software requirements](glossary:software-requirement)**: **a specification of the target system's functions, characteristics, services and constraints**
 
 - From the user's side, everything known and unknown, explicit and hidden, expected and unexpected is a requirement.
 - Classification
-  1. Business requirements
-  2. User requirements
-  3. Software requirements
-     1. Functional requirements
-     2. Non-functional requirements
-     3. Domain requirements
+  1. [Business requirements](glossary:business-requirement)
+  2. [User requirements](glossary:user-requirement)
+  3. [Software requirements](glossary:software-requirement)
+     1. [Functional requirements](glossary:functional-requirement)
+     2. [Non-functional requirements](glossary:non-functional-requirement)
+     3. [Domain requirements](glossary:domain-requirement)
 
 ### 4.1.1 Functional Requirements
 
 **Requirements about what the system does**
 
 - Expressed as input, computation, output
-- Starts from identifying usage scenarios and use cases
+- Starts from identifying usage scenarios and [use cases](glossary:use-case)
 - List
   1. Functions the system performs
   2. Formulas
   3. Data manipulation: input, storage, update, search, output
   4. Business processing
   5. Interaction with users
-  6. Usage scenarios, use cases
-  7. Workflow
+  6. Usage scenarios, [use cases](glossary:use-case)
+  7. [Workflow](glossary:workflow)
 
 ### 4.1.2 Domain Requirements
 
@@ -50,15 +50,15 @@ summary: 'Requirement classification, functional and domain requirements, non-fu
 
 Classification
 
-- Environmental constraints: operability, portability, compatibility (execution environment), economy (budget, schedule, staff)
-- Quality requirements: performance, reliability and availability, usability, scalability and maintainability, security, safety
+- Environmental constraints: operability, [portability](glossary:portability), compatibility (execution environment), economy (budget, schedule, staff)
+- Quality requirements: performance, [reliability](glossary:reliability) and [availability](glossary:availability), usability, [scalability](glossary:scalability) and [maintainability](glossary:maintainability), security, safety
 - (The slide only names the two categories and does not say which item goes where. The split above is based on the content.)
 
 ### 4.2.1 Performance Requirements
 
 **The minimum conditions needed to perform a function**
 
-- Requirement items: response time, processing and computing capacity, operating capacity, maintainability, storage space
+- Requirement items: response time, processing and computing capacity, operating capacity, [maintainability](glossary:maintainability), storage space
 
 ### 4.2.2 Operability, Portability, Compatibility Requirements
 
@@ -72,9 +72,9 @@ Classification
 
 ### 4.2.4 Reliability, Maintainability, Availability Requirements
 
-- Reliability: how often it fails (the goal is not failing)
-- Availability: how much time it is actually usable (the goal is fast recovery after a failure)
-- Requirement items: tolerated failure frequency, maximum recovery time, the difference between uptime and downtime
+- [Reliability](glossary:reliability): how often it fails (the goal is not failing)
+- [Availability](glossary:availability): how much time it is actually usable (the goal is fast recovery after a failure)
+- Requirement items: tolerated failure frequency, maximum recovery time, the difference between uptime and [downtime](glossary:downtime)
 
 ### 4.2.5 Security Requirements
 
@@ -88,8 +88,8 @@ Requirements about how well the system is protected from hacker attacks
 
 **Whether performance requirements are met under high load**
 
-- Scale-up (vertical): the specs of a single computer
-- Scale-out (horizontal): add several similar servers -- needs load balancing
+- [Scale-up](glossary:scale-up) (vertical): the specs of a single computer
+- [Scale-out](glossary:scale-out) (horizontal): add several similar servers -- needs [load balancing](glossary:load-balancer)
 
 ### 4.2.8 Economy Requirements
 
@@ -99,32 +99,32 @@ Constraints on resources such as budget, people, equipment and time
 
 Each non-functional requirement goes through its own test stage
 
-Test list: **load and stress, volume, installation, removal, recovery, documentation**
+Test list: **[load and stress](glossary:load-testing), [volume](glossary:volume-testing), installation, removal, [recovery](glossary:recovery-testing), documentation**
 
 ## 4.3 Requirements Engineering (RE) Process
 
 **A systematic process for defining, documenting and maintaining requirements**
 
-**Elicitation and feasibility analysis → refinement → specification → validation**
+**[Elicitation](glossary:requirements-elicitation) and feasibility analysis → refinement → specification → validation**
 
 ### 4.3.1 Step 1: Requirements Elicitation and Analysis
 
-**Starts when developers meet stakeholders. The work of finding why the SW is needed, what problem it solves and what constraints exist**
+**Starts when developers meet [stakeholders](glossary:stakeholder). The work of finding why the SW is needed, what problem it solves and what constraints exist**
 
 - Items to cover
   1. Development goals and content
-  2. Functional requirements
-  3. Non-functional requirements
+  2. [Functional requirements](glossary:functional-requirement)
+  3. [Non-functional requirements](glossary:non-functional-requirement)
   4. Expected characteristics
   5. Whether development items are prioritized
   6. Development and operation constraints
 
 ### 4.3.2 Step 2: Requirements Refinement
 
-**The step that thoroughly analyzes and checks the requirements gathered with the techniques in 4.4 (interviews, focus groups, workshops, shadowing, surveys, prototype tests)**
+**The step that thoroughly analyzes and checks the requirements gathered with the techniques in 4.4 (interviews, [focus groups](glossary:focus-group), workshops, [shadowing](glossary:shadowing), surveys, prototype tests)**
 
 - Criteria: is it clear, executable, achievable, verifiable
-- Purpose: clarify the stakeholders' real needs and reach agreement
+- Purpose: clarify the [stakeholders](glossary:stakeholder)' real needs and reach agreement
 
 ### 4.3.3 Step 3: Requirements Specification (Software Requirements Specification, SRS)
 
@@ -132,25 +132,25 @@ Test list: **load and stress, volume, installation, removal, recovery, documenta
 
 **Items** (add or drop depending on the situation)
 
-- Development goals and details, WBS, glossary
-- Functional and non-functional requirements
-- Use case diagram, use case specification
-- Class diagram, DB schema table specification
+- Development goals and details, [WBS](glossary:wbs), glossary
+- [Functional](glossary:functional-requirement) and [non-functional requirements](glossary:non-functional-requirement)
+- [Use case diagram](glossary:use-case-diagram), use case specification
+- [Class diagram](glossary:class-diagram), DB schema table specification
 - UI specification
-- Sequence diagram per use case
+- [Sequence diagram](glossary:sequence-diagram) per use case
 - Class method algorithm specification
 
 **Specification guidelines**
 
-- User requirements → natural language
+- [User requirements](glossary:user-requirement) → natural language
 - Technical requirements → structured language (tools)
-- Algorithms → pseudo code
+- Algorithms → [pseudo code](glossary:pseudocode)
 - Forms, GUI → design them and describe
 
 ### 4.3.4 Requirements Validation
 
 Why?: users can ask for illegal or unrealistic things, and experts can misunderstand what was asked
-When?: must be done after the SRS is finished
+When?: must be done after the [SRS](glossary:srs) is finished
 
 **Evaluation questions**
 
@@ -162,7 +162,7 @@ When?: must be done after the SRS is finished
 
 ## 4.4 Requirements Analysis Methods
 
-**10 representative methods: stakeholder analysis, document analysis, interviews, focus groups, interface analysis, observation, JAD, surveys, brainstorming, prototyping**
+**10 representative methods: [stakeholder analysis](glossary:stakeholder-analysis), [document analysis](glossary:document-analysis), interviews, [focus groups](glossary:focus-group), [interface analysis](glossary:interface-analysis), [observation](glossary:observation), [JAD](glossary:jad), surveys, [brainstorming](glossary:brainstorming), prototyping**
 
 ### 4.4.1 Stakeholder Analysis
 
@@ -179,13 +179,13 @@ Requirements analysis starts here. First find the people who are related to or a
 
 - Targets: business plans, technical documents, problem reports, existing requirements documents
 - Especially useful for **migration projects** (fixing or replacing an existing system)
-- Compare AS-IS (existing documents) with the TO-BE (future business process) model
+- Compare [AS-IS](glossary:as-is--to-be) (existing documents) with the [TO-BE](glossary:as-is--to-be) (future business process) model
 
 ### 4.4.4 Interface Analysis
 
 **Finding out how components exchange information**
 
-Used to identify systems, stakeholders and processes
+Used to identify systems, [stakeholders](glossary:stakeholder) and processes
 
 ![Interface analysis](/static/images/software-engineering-ch4-requirements-analysis/interface-analysis.svg)
 
@@ -205,7 +205,7 @@ Creates new requirements, and validates and refines requirements already found
 
 ### 4.4.6 Surveys
 
-**Sending a questionnaire with predefined questions and choices to all stakeholders and collecting the answers**
+**Sending a questionnaire with predefined questions and choices to all [stakeholders](glossary:stakeholder) and collecting the answers**
 
 Put the questions with the highest risk priority first.
 
@@ -238,7 +238,7 @@ Business process improvement workshop: analyze the existing process to find impr
 
 **Cons**
 
-- It can fail if stakeholders are missing
+- It can fail if [stakeholders](glossary:stakeholder) are missing
 - Success depends on the facilitator's skill
 - With too many people it does not reach its goal
 
@@ -248,7 +248,7 @@ Compare with the best in the industry
 
 ### 4.4.11 The 6 Most Popular Requirements Analysis Methods
 
-**Interviews, focus groups, brainstorming, observation, prototyping, JAD (requirements workshop)**
+**Interviews, [focus groups](glossary:focus-group), [brainstorming](glossary:brainstorming), [observation](glossary:observation), prototyping, [JAD](glossary:jad) (requirements workshop)**
 
 ## 4.6 How to Write a System Proposal
 

@@ -8,80 +8,80 @@ summary: 'The role and evolution of operating systems (batch, interactive, real-
 
 # 4.1 The Evolution of Operating Systems
 
-**Batch processing → interactive processing → multiprogramming → time sharing → multicore parallelism**
+**[Batch processing](glossary:batch-processing) → [interactive processing](glossary:interactive-system) → [multiprogramming](glossary:multiprogramming) → [time sharing](glossary:time-sharing) → [multicore](glossary:multicore) [parallelism](glossary:parallelism)**
 
 ## 4.1.1 The Role of the OS and Why It Appeared
 
-- **Operating system (OS)**: system software that manages hardware and software resources and sets up the environment programs run in. Programs can't touch the hardware directly; they go through the OS
+- **[Operating system](glossary:os)**: [system software](glossary:system-software) that manages hardware and software resources and sets up the environment [programs](glossary:program) run in. [Programs](glossary:program) can't touch the hardware directly; they go through the [OS](glossary:os)
 
-  | Resource          | What the OS does                                                                                                                        |
-  | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-  | **CPU**           | [Scheduling](/en/blog/cs-fundamentals/os/os-08-scheduling/#1-purpose-of-cpu-scheduling): who goes first and for how long                |
-  | **Memory**        | [Allocation and protection](/en/blog/cs-fundamentals/os/os-09-memory/#1-goals-of-memory-management): no one invades anyone else's space |
-  | **Storage/files** | [File system](/en/blog/cs-fundamentals/os/os-15-file-system/#3-the-role-of-the-file-system)                                             |
-  | **I/O devices**   | [Device drivers](/en/blog/cs-fundamentals/os/os-13-io/#3-device-drivers) and I/O control                                                |
+  | Resource                       | What the [OS](glossary:os) does                                                                                                         |
+  | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+  | **CPU**                        | [Scheduling](/en/blog/cs-fundamentals/os/os-08-scheduling/#1-purpose-of-cpu-scheduling): who goes first and for how long                |
+  | **Memory**                     | [Allocation and protection](/en/blog/cs-fundamentals/os/os-09-memory/#1-goals-of-memory-management): no one invades anyone else's space |
+  | **Storage/files**              | [File system](/en/blog/cs-fundamentals/os/os-15-file-system/#3-the-role-of-the-file-system)                                             |
+  | **[I/O](glossary:io) devices** | [Device drivers](/en/blog/cs-fundamentals/os/os-13-io/#3-device-drivers) and [I/O](glossary:io) control                                 |
 
-- Early computers: no OS; people prepared, ran and cleaned up each job by hand → the CPU sat idle during preparation
+- Early computers: no [OS](glossary:os); people prepared, ran and cleaned up each job by hand → the CPU sat idle during preparation
 - **Operator**: a person who gathered users' jobs (a batch) and fed them in one after another
-- **Resident monitor**: an early OS. Automated loading and switching jobs in software
-- **Job**: the unit submitted at once = program + input data + control commands
+- **[Resident monitor](glossary:resident-monitor)**: an early [OS](glossary:os). Automated loading and switching jobs in software
+- **Job**: the unit submitted at once = [program](glossary:program) + input data + control commands
 
 ## 4.1.2 Batch Processing and Interactive Processing
 
 - **[Batch processing](/en/blog/cs-fundamentals/os/os-08-scheduling/#2-batch-system)**: collect jobs and process them all at once with no user involvement. e.g. end-of-month payroll
-  - Pros: minimal CPU idle time, maximum throughput
-  - Limits: no interaction while running, hard to debug, long turnaround time
-- **Job queue**: the list of jobs waiting to run. Not only FIFO ([FCFS](/en/blog/cs-fundamentals/os/os-08-scheduling/#1-fcfsfifo), priority, etc.)
+  - Pros: minimal CPU idle time, maximum [throughput](glossary:throughput)
+  - Limits: no interaction while running, hard to debug, long [turnaround time](glossary:turnaround-time)
+- **[Job queue](glossary:job-queue)**: the list of jobs waiting to run. Not only FIFO ([FCFS](/en/blog/cs-fundamentals/os/os-08-scheduling/#1-fcfsfifo), priority, etc.)
 - **[Interactive processing](/en/blog/cs-fundamentals/os/os-08-scheduling/#3-interactive-system)**: give input while it runs and get a response right away. e.g. type `ls` in a terminal → result immediately
   - Limit: CPU time is wasted while the user hesitates over input
 - **[Real-time processing](/en/blog/cs-fundamentals/os/os-08-scheduling/#4-real-time-system)**: must finish within a fixed deadline. e.g. an airbag in 10 ms
 
-  |             | Interactive                | Real-time                |
-  | ----------- | -------------------------- | ------------------------ |
-  | Goal        | fast response, convenience | **meeting the deadline** |
-  | If late     | annoying                   | an accident              |
-  | Counterpart | people                     | sensors and machines     |
+  |             | [Interactive](glossary:interactive-system) | [Real-time](glossary:real-time-system) |
+  | ----------- | ------------------------------------------ | -------------------------------------- |
+  | Goal        | fast response, convenience                 | **meeting the deadline**               |
+  | If late     | annoying                                   | an accident                            |
+  | Counterpart | people                                     | sensors and machines                   |
 
 ## 4.1.3 Multiprogramming and Time Sharing
 
 ![Comparing ways of using the CPU](/static/images/computer-systems-ch4-operating-systems/cpu-timeline.svg)
 
-- The [single-job](/en/blog/cs-fundamentals/os/os-09-memory/#2-single--batch-programming) problem: the CPU sits idle while waiting for I/O
+- The [single-job](/en/blog/cs-fundamentals/os/os-09-memory/#2-single--batch-programming) problem: the CPU sits idle while waiting for [I/O](glossary:io)
   - In the figure: the grey idle cells in the top row
-- **[Multiprogramming](/en/blog/cs-fundamentals/os/os-09-memory/#3-multiprogramming)**: keep several programs in memory; when one waits for I/O, run another. The goal is **CPU utilization**
+- **[Multiprogramming](/en/blog/cs-fundamentals/os/os-09-memory/#3-multiprogramming)**: keep several [programs](glossary:program) in memory; when one waits for [I/O](glossary:io), run another. The goal is **CPU utilization**
   - In the figure: the middle row, B fills the idle slots
-- **Time sharing**: cut CPU time into time slices and [hand them out in turn](/en/blog/cs-fundamentals/os/os-08-scheduling/#4-rrround-robin). When time runs out, the OS forcibly switches ([preemption](/en/blog/cs-fundamentals/os/os-08-scheduling/#1-non-preemptive-vs-preemptive)). The goal is **fast response**
-  - In the figure: the bottom row, it switches every slot even without I/O
+- **[Time sharing](glossary:time-sharing)**: cut CPU time into [time slices](glossary:time-slice) and [hand them out in turn](/en/blog/cs-fundamentals/os/os-08-scheduling/#4-rrround-robin). When time runs out, the [OS](glossary:os) forcibly switches ([preemption](/en/blog/cs-fundamentals/os/os-08-scheduling/#1-non-preemptive-vs-preemptive)). The goal is **fast response**
+  - In the figure: the bottom row, it switches every slot even without [I/O](glossary:io)
 - Every switch between jobs needs a [**context switch**](#434-interrupts-and-context-switching)
 
 ## 4.1.4 Multitasking and Parallel Execution
 
 ![Concurrency and parallelism](/static/images/computer-systems-ch4-operating-systems/concurrency-parallelism.svg)
 
-- **Multitasking**: coordinating several tasks so they progress at the same time on one system. e.g. editing a document + playing music
-- **Concurrency**: looks simultaneous logically. One core runs them in turn
+- **[Multitasking](glossary:multitasking)**: coordinating several tasks so they progress at the same time on one system. e.g. editing a document + playing music
+- **[Concurrency](glossary:concurrency)**: looks simultaneous logically. One core runs them in turn
   - In the figure: the top row
-- **Parallelism**: actually runs at the same instant physically. Several cores
+- **[Parallelism](glossary:parallelism)**: actually runs at the same instant physically. Several cores
   - In the figure: Core 1 and Core 2 at the bottom
 
 ## 4.1.5 Computing Environments and Operating Systems
 
-- **Multi-user time-sharing system**: many users connect to one server at once through terminals. The OS handles accounts and permissions, [protection (isolation)](/en/blog/cs-fundamentals/os/os-09-memory/#1-goals-of-memory-management) and fair sharing
-- **System administrator**: the person who manages the system (the OS is the software that manages resources)
-- **Multiprocessor**: several CPU chips / **multicore**: several cores on one chip
-  - OS jobs: [scheduling and load balancing](/en/blog/cs-fundamentals/os/os-08-scheduling/#10-scheduling-on-multiprocessors), [synchronization](/en/blog/cs-fundamentals/os/os-06-sync-1/#syncrhonization)
+- **Multi-user time-sharing system**: many users connect to one server at once through terminals. The [OS](glossary:os) handles accounts and permissions, [protection (isolation)](/en/blog/cs-fundamentals/os/os-09-memory/#1-goals-of-memory-management) and fair sharing
+- **System administrator**: the person who manages the system (the [OS](glossary:os) is the software that manages resources)
+- **[Multiprocessor](glossary:multiprocessor)**: several CPU chips / **[multicore](glossary:multicore)**: several cores on one chip
+  - [OS](glossary:os) jobs: [scheduling and load balancing](/en/blog/cs-fundamentals/os/os-08-scheduling/#10-scheduling-on-multiprocessors), [synchronization](/en/blog/cs-fundamentals/os/os-06-sync-1/#syncrhonization)
   - Limits: serial parts can't be parallelized, communication overhead between cores → it doesn't get faster by the number of cores
-- **Embedded system**: a built-in computer that does one specific job. e.g. car ECU, home appliances
+- **[Embedded system](glossary:embedded-system)**: a built-in computer that does one specific job. e.g. car [ECU](glossary:ecu), home appliances
   - Constraints: limited resources, low power, high reliability, real time
-- **RTOS**: an OS that guarantees deadlines. The key isn't speed but **[predictability](/en/blog/cs-fundamentals/os/os-08-scheduling/#4-real-time-system)**
+- **[RTOS](glossary:rtos)**: an [OS](glossary:os) that guarantees deadlines. The key isn't speed but **[predictability](/en/blog/cs-fundamentals/os/os-08-scheduling/#4-real-time-system)**
 - Summary
 
-  | Approach         | Problem solved                   | Idea                              |
-  | ---------------- | -------------------------------- | --------------------------------- |
-  | Batch processing | the hassle of manual preparation | collect and process automatically |
-  | Interactive      | no interaction while running     | immediate input and response      |
-  | Multiprogramming | CPU idle during I/O waits        | switch when waiting for I/O       |
-  | Time sharing     | CPU monopoly, slow response      | cut time finely and take turns    |
+  | Approach                                      | Problem solved                           | Idea                                       |
+  | --------------------------------------------- | ---------------------------------------- | ------------------------------------------ |
+  | [Batch processing](glossary:batch-processing) | the hassle of manual preparation         | collect and process automatically          |
+  | [Interactive](glossary:interactive-system)    | no interaction while running             | immediate input and response               |
+  | [Multiprogramming](glossary:multiprogramming) | CPU idle during [I/O](glossary:io) waits | switch when waiting for [I/O](glossary:io) |
+  | [Time sharing](glossary:time-sharing)         | CPU monopoly, slow response              | cut time finely and take turns             |
 
 # 4.2 The Structure of Operating Systems
 
@@ -90,89 +90,89 @@ summary: 'The role and evolution of operating systems (batch, interactive, real-
 ![User space, kernel and hardware](/static/images/computer-systems-ch4-operating-systems/os-layers.svg)
 
 - **How software is classified**: by **the role it plays**, not by which computer it's installed on
-  - Application software: does the user's work. Document editors, browsers, games, C code you wrote
-  - System software: manages hardware, supports development and execution. OS, device drivers, compilers and linkers, utilities
-- **Utility**: a tool for checking and managing the system. Backup, compression, antivirus, task manager. Included in the OS or installed separately
-- Some embedded devices have no OS: in a small temperature-and-fan controller, the control program itself handles registers, timers and interrupts
-  - PC: power → firmware and boot loader → OS → applications
-  - No OS: power → startup code (initialization) → control program → measure and control, repeat
+  - [Application software](glossary:application-software): does the user's work. Document editors, browsers, games, C code you wrote
+  - [System software](glossary:system-software): manages hardware, supports development and execution. [OS](glossary:os), [device drivers](glossary:device-driver), [compilers](glossary:compiler) and [linkers](glossary:linker), utilities
+- **[Utility](glossary:utility-software)**: a tool for checking and managing the system. Backup, compression, antivirus, task manager. Included in the [OS](glossary:os) or installed separately
+- Some embedded devices have no [OS](glossary:os): in a small temperature-and-fan controller, the control [program](glossary:program) itself handles [registers](glossary:register), timers and [interrupts](glossary:hardware-interrupt)
+  - PC: power → [firmware](glossary:firmware) and [boot loader](glossary:bootloader) → [OS](glossary:os) → applications
+  - No [OS](glossary:os): power → startup code (initialization) → control [program](glossary:program) → measure and control, repeat
 - **UI**: how the user tells the computer what to do and gets results
-  - CLI: type commands. Fast, easy script automation, light on resources. cmd, PowerShell, Bash
-  - GUI: windows, icons, mouse. Easy, but uses more memory and GPU
-- **Shell**: a command interpreter that parses what you type and hands it to the kernel. Lives in user space
-  - What it does: parses commands and arguments, runs built-in commands (`cd`, `echo`, `exit`), asks to run external programs, sets up redirection `>` and pipes `|`
-  - Type `hello.exe` → the shell parses it and finds the file → the kernel receives a system call, creates a process and allocates memory → it runs
-- **User space**: where applications, the shell and admin tools run. Computation and its own memory are direct; hardware is off-limits
+  - [CLI](glossary:cli): type commands. Fast, easy script automation, light on resources. cmd, [PowerShell](glossary:powershell), [Bash](glossary:bash)
+  - [GUI](glossary:gui): windows, icons, mouse. Easy, but uses more memory and GPU
+- **[Shell](glossary:shell)**: a command interpreter that parses what you type and hands it to the [kernel](glossary:kernel). Lives in [user space](glossary:user-space)
+  - What it does: parses commands and arguments, runs built-in commands (`cd`, `echo`, `exit`), asks to run external [programs](glossary:program), sets up [redirection](glossary:redirection) `>` and [pipes](glossary:pipe) `|`
+  - Type `hello.exe` → the [shell](glossary:shell) parses it and finds the file → the [kernel](glossary:kernel) receives a [system call](glossary:system-call), creates a [process](glossary:process) and allocates memory → it runs
+- **[User space](glossary:user-space)**: where applications, the [shell](glossary:shell) and admin tools run. Computation and its own memory are direct; hardware is off-limits
   - In the figure: the blue row at the top
-- **Kernel**: core software that manages the CPU, memory, files and devices and keeps programs from invading each other. Protected by dual mode (user/kernel)
-  - Four main functions: process management, memory management, file system management, I/O device control
+- **[Kernel](glossary:kernel)**: core software that manages the CPU, memory, files and devices and keeps [programs](glossary:program) from invading each other. Protected by [dual mode](glossary:dual-mode) (user/[kernel](glossary:kernel))
+  - Four main functions: process management, memory management, [file system](glossary:file-system) management, [I/O](glossary:io) device control
   - In the figure: the purple row
-- **System call**: the channel a program uses to safely request kernel services. The kernel handles it and returns the result
+- **[System call](glossary:system-call)**: the channel a [program](glossary:program) uses to safely request [kernel](glossary:kernel) services. The [kernel](glossary:kernel) handles it and returns the result
   - In the figure: the red dashed line, the request / result arrows
 
-  | Kind    | Examples                      |
-  | ------- | ----------------------------- |
-  | File    | `open()`, `read()`, `write()` |
-  | Process | `fork()`, `exec()`, `exit()`  |
-  | Memory  | `brk()`, `mmap()`             |
-  | Network | `socket()`, `connect()`       |
+  | Kind                        | Examples                      |
+  | --------------------------- | ----------------------------- |
+  | File                        | `open()`, `read()`, `write()` |
+  | [Process](glossary:process) | `fork()`, `exec()`, `exit()`  |
+  | Memory                      | `brk()`, `mmap()`             |
+  | Network                     | `socket()`, `connect()`       |
 
-- User/kernel mode = a split in **CPU execution privilege**. Not the same as the split between root/admin and regular accounts
-- Writing a file in C: C program (`fopen`, `fputs`, `fclose`) → standard library (calls `open`, `write`) → kernel (checks permissions) → driver → SSD/HDD
-  - **C standard library function**: provided by the language, not the OS. Makes the system calls for you internally
+- [User/kernel mode](glossary:dual-mode) = a split in **CPU execution privilege**. Not the same as the split between root/admin and regular accounts
+- Writing a file in C: C [program](glossary:program) (`fopen`, `fputs`, `fclose`) → [standard library](glossary:c-standard-library) (calls `open`, `write`) → [kernel](glossary:kernel) (checks permissions) → [driver](glossary:device-driver) → SSD/HDD
+  - **[C standard library](glossary:c-standard-library) function**: provided by the language, not the [OS](glossary:os). Makes the [system calls](glossary:system-call) for you internally
   - In systems programming, `open()` and `write()` are sometimes called directly
-  - **Buffering**: output isn't sent to the disk every time; it's collected in memory and sent at once, to cut down on I/O operations
+  - **[Buffering](glossary:buffer)**: output isn't sent to the disk every time; it's collected in memory and sent at once, to cut down on [I/O](glossary:io) operations
 
 ## 4.2.2 File Systems and I/O Control
 
-- File management by the kernel: create, open, read, write, delete; metadata (name, size, permissions, timestamps); the actual location on disk
-- **Directory**: a hierarchy that groups files and subfolders by name
+- File management by the [kernel](glossary:kernel): create, open, read, write, delete; [metadata](glossary:metadata) (name, size, permissions, timestamps); the actual location on disk
+- **[Directory](glossary:directory)**: a hierarchy that groups files and subfolders by name
 - **Path**: an expression of a file's location. `C:\course\data\input.txt`
-- File Explorer is just a GUI application. The kernel does the real reading and writing
+- File Explorer is just a [GUI](glossary:gui) application. The [kernel](glossary:kernel) does the real reading and writing
 - Opening a file: **request → verify → return → use → close**
   - Request: path + access mode (read/write)
   - Verify: does the file exist, is there permission
-  - Return: hands back a unique value. `FILE *`, file descriptor
+  - Return: hands back a unique value. `FILE *`, [file descriptor](glossary:file-descriptor)
   - Use: from then on, read and write with that value instead of the path
   - Close: close it to give the resources back
-- **Abstraction**: programs access files only through the value the OS gives them, without knowing sectors or physical locations
-- **Device driver**: translates a standard OS request into control operations the device understands. Storage, network, graphics (VGA) drivers
-  - Why needed: every device works differently (diversity), apps and the OS don't need to know every device (convenience), the differences are hidden in the middle (abstraction)
-  - Flow: app (`fputs`) → kernel (checks permissions) → driver (translates into device signals) → device controller and device (actually writes)
+- **[Abstraction](glossary:abstraction)**: [programs](glossary:program) access files only through the value the [OS](glossary:os) gives them, without knowing sectors or physical locations
+- **[Device driver](glossary:device-driver)**: translates a standard [OS](glossary:os) request into control operations the device understands. Storage, network, graphics (VGA) [drivers](glossary:device-driver)
+  - Why needed: every device works differently (diversity), apps and the [OS](glossary:os) don't need to know every device (convenience), the differences are hidden in the middle ([abstraction](glossary:abstraction))
+  - Flow: app (`fputs`) → [kernel](glossary:kernel) (checks permissions) → [driver](glossary:device-driver) (translates into device signals) → device controller and device (actually writes)
 
 ## 4.2.3 Memory Management and Paging
 
 ![Paging](/static/images/computer-systems-ch4-operating-systems/paging.svg)
 
-- What memory management does: allocation, linking logical addresses ↔ physical addresses, preventing unauthorized access (protection), reclaiming memory from finished programs
-- **Address space**: each program's own space. Code, data, heap, stack. Accessing somewhere not allowed is a segmentation fault
-- `malloc()`: a C library function. Asks the kernel for memory internally
-- **Virtual memory**: separates the addresses a program uses (virtual) from real RAM addresses (physical)
+- What memory management does: allocation, linking logical addresses ↔ physical addresses, preventing unauthorized access (protection), reclaiming memory from finished [programs](glossary:program)
+- **[Address space](glossary:address-space)**: each [program](glossary:program)'s own space. Code, data, [heap](glossary:heap), [stack](glossary:stack). Accessing somewhere not allowed is a [segmentation fault](glossary:segmentation-fault)
+- `malloc()`: a C library function. Asks the [kernel](glossary:kernel) for memory internally
+- **[Virtual memory](glossary:virtual-memory)**: separates the addresses a [program](glossary:program) uses (virtual) from real RAM addresses (physical)
   - A and B can both use virtual `0x1000`, but they map to different physical addresses `0x8000` and `0xC000`, so they don't collide
-- **MMU**: **hardware** that translates virtual → physical and checks permissions on every memory access
-  - The OS **sets up** the translation info and permissions; the MMU uses it to **translate**
+- **[MMU](glossary:mmu)**: **hardware** that translates virtual → physical and checks permissions on every memory access
+  - The [OS](glossary:os) **sets up** the translation info and permissions; the [MMU](glossary:mmu) uses it to **translate**
   - In the figure: the note under the middle table
-- **Paging**: divides the virtual space and RAM into fixed blocks of the same size. The size varies by system; 4 KiB is common
-  - Page: a block on the virtual side / frame: a block on the physical side / page table: page → frame mapping + permissions
-  - Contiguous pages can sit in scattered frames in RAM
-  - In the figure: Pages 0–2 on the left go to Frames 3, 0 and 5
-- **Demand paging**: don't load everything up front; bring only the pages needed into RAM as they're needed
-- **Page fault**: the exception raised when the page being accessed isn't in RAM
-  - Valid but only on disk → the OS brings it in / bad address or permission violation → segmentation fault
-  - In the figure: the red Page 3
-- Handling a page fault
+- **[Paging](glossary:paging)**: divides the virtual space and RAM into fixed blocks of the same size. The size varies by system; 4 KiB is common
+  - [Page](glossary:page): a block on the virtual side / [frame](glossary:frame): a block on the physical side / [page table](glossary:page-table): [page](glossary:page) → [frame](glossary:frame) mapping + permissions
+  - Contiguous [pages](glossary:page) can sit in scattered [frames](glossary:frame) in RAM
+  - In the figure: [Pages](glossary:page) 0–2 on the left go to [Frames](glossary:frame) 3, 0 and 5
+- **[Demand paging](glossary:demand-paging)**: don't load everything up front; bring only the [pages](glossary:page) needed into RAM as they're needed
+- **[Page fault](glossary:page-fault)**: the [exception](glossary:exception) raised when the [page](glossary:page) being accessed isn't in RAM
+  - Valid but only on disk → the [OS](glossary:os) brings it in / bad address or permission violation → [segmentation fault](glossary:segmentation-fault)
+  - In the figure: the red [Page](glossary:page) 3
+- Handling a [page fault](glossary:page-fault)
   1. Access with a virtual address
-  2. Not in RAM → page fault
-  3. The CPU raises an exception and hands control to the kernel
-  4. The OS checks validity and permissions
-  5. Secure a free frame (page replacement if none)
-  6. Load the page from disk into the frame
-  7. Update the page table
+  2. Not in RAM → [page fault](glossary:page-fault)
+  3. The CPU raises an [exception](glossary:exception) and hands control to the [kernel](glossary:kernel)
+  4. The [OS](glossary:os) checks validity and permissions
+  5. Secure a free [frame](glossary:frame) ([page replacement](glossary:page-replacement) if none)
+  6. Load the [page](glossary:page) from disk into the [frame](glossary:frame)
+  7. Update the [page table](glossary:page-table)
   8. **Re-run** the interrupted instruction
-- **Page replacement**: when RAM is full, push an unused page out to disk (swap out) to free a frame
-  - New page needed → not enough free frames → choose a page to evict → save it to disk if needed → unlink it and free the frame → load the new page and link it
-- Benefits of virtual memory: separated and protected address spaces, running programs bigger than RAM (efficiency), no need to know RAM layout (abstraction)
-- **Thrashing**: memory is so short that pages just keep swapping in and out. All the time goes to replacement instead of computation, and everything crawls
+- **[Page replacement](glossary:page-replacement)**: when RAM is full, push an unused [page](glossary:page) out to disk ([swap out](glossary:swap-space)) to free a [frame](glossary:frame)
+  - New [page](glossary:page) needed → not enough free [frames](glossary:frame) → choose a [page](glossary:page) to evict → save it to disk if needed → unlink it and free the [frame](glossary:frame) → load the new [page](glossary:page) and link it
+- Benefits of [virtual memory](glossary:virtual-memory): separated and protected [address spaces](glossary:address-space), running [programs](glossary:program) bigger than RAM (efficiency), no need to know RAM layout ([abstraction](glossary:abstraction))
+- **[Thrashing](glossary:thrashing)**: memory is so short that [pages](glossary:page) just keep [swapping](glossary:swap-space) in and out. All the time goes to replacement instead of computation, and everything crawls
 
 ## 4.2.4 Process Management
 
@@ -181,151 +181,151 @@ summary: 'The role and evolution of operating systems (batch, interactive, real-
 ## 4.2.5 GUI Window Management
 
 - Window control: position and size, show/hide
-- **Z-order**: the front-to-back order of windows. The selected window comes to the top
-- **Focus**: decides which window gets keyboard and mouse input and passes it to that program
-  - Click a window → target window fixed → input → delivered to that program
-- Window layout, size and compositing (overlap, transparency) are handled by the OS graphics subsystem
-- A GUI isn't a requirement for the kernel. Linux servers with no screen run just fine
-- Windows puts some GUI functions inside the kernel for performance; Linux keeps them in user space for stability and independence
+- **[Z-order](glossary:z-order)**: the front-to-back order of windows. The selected window comes to the top
+- **[Focus](glossary:focus)**: decides which window gets keyboard and mouse input and passes it to that [program](glossary:program)
+  - Click a window → target window fixed → input → delivered to that [program](glossary:program)
+- Window layout, size and compositing (overlap, transparency) are handled by the [OS](glossary:os) [graphics subsystem](glossary:graphics-subsystem)
+- A [GUI](glossary:gui) isn't a requirement for the [kernel](glossary:kernel). [Linux](glossary:linux) servers with no screen run just fine
+- [Windows](glossary:windows) puts some [GUI](glossary:gui) functions inside the [kernel](glossary:kernel) for performance; [Linux](glossary:linux) keeps them in [user space](glossary:user-space) for stability and independence
 
 ## 4.2.6 Starting the Operating System — Booting
 
-- **Booting**: from power-on or restart, initializing the hardware up to running the OS
-- Order: power → **firmware** → **boot loader** → **kernel** → system services and UI → user programs
+- **[Booting](glossary:booting)**: from power-on or restart, initializing the hardware up to running the [OS](glossary:os)
+- Order: power → **[firmware](glossary:firmware)** → **[boot loader](glossary:bootloader)** → **[kernel](glossary:kernel)** → system services and UI → user [programs](glossary:program)
 
-  | Component       | What it does                                                                                                 | Stored in                                      |
-  | --------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
-  | Firmware (UEFI) | initializes hardware, picks the boot device (SSD/USB), loads the boot loader into RAM and hands over control | flash memory on the motherboard (non-volatile) |
-  | Boot loader     | loads the kernel into RAM and hands over control                                                             | storage such as an SSD                         |
-  | Kernel          | initializes memory, CPU and device management, starts system services                                        | storage → RAM                                  |
+  | Component                                             | What it does                                                                                                                        | Stored in                                      |
+  | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+  | [Firmware](glossary:firmware) ([UEFI](glossary:uefi)) | initializes hardware, picks the boot device (SSD/USB), loads the [boot loader](glossary:bootloader) into RAM and hands over control | flash memory on the motherboard (non-volatile) |
+  | [Boot loader](glossary:bootloader)                    | loads the [kernel](glossary:kernel) into RAM and hands over control                                                                 | storage such as an SSD                         |
+  | [Kernel](glossary:kernel)                             | initializes memory, CPU and device management, starts system services                                                               | storage → RAM                                  |
 
-- At power-on the CPU starts executing code (firmware) at a fixed start address
+- At power-on the CPU starts executing code ([firmware](glossary:firmware)) at a fixed start address
 - System services: login, networking, etc. / UI: command line or graphical screen
-- **BIOS**: the firmware approach that played the same role in older PCs. Now mostly replaced by UEFI
+- **[BIOS](glossary:bios)**: the [firmware](glossary:firmware) approach that played the same role in older PCs. Now mostly replaced by [UEFI](glossary:uefi)
 
 # 4.3 Coordinating Computing Activities
 
 ## 4.3.1 Programs and Processes
 
-- **Program**: an executable file stored on disk. Instructions + initial data. Doesn't run by itself (static)
-- **Process**: one instance of a program loaded into memory and running. Created by the OS (dynamic)
-  - What it has: its own address space (Code, Data, Stack, Heap), CPU execution state (PC, registers), control info (PID, state), system resources (list of open files)
-- Run the same `example.exe` twice and you get two processes with different PIDs and memory spaces (A: PID 101, B: PID 102)
-- **Process coordination**: the OS managing processes so they share the CPU and memory fairly and run safely
-- Process memory layout
+- **[Program](glossary:program)**: an executable file stored on disk. Instructions + initial data. Doesn't run by itself (static)
+- **[Process](glossary:process)**: one [instance](glossary:instance) of a [program](glossary:program) loaded into memory and running. Created by the [OS](glossary:os) (dynamic)
+  - What it has: its own [address space](glossary:address-space) (Code, Data, [Stack](glossary:stack), [Heap](glossary:heap)), CPU execution state ([PC](glossary:program-counter), [registers](glossary:register)), control info ([PID](glossary:pid), state), system resources (list of open files)
+- Run the same `example.exe` twice and you get two [processes](glossary:process) with different [PIDs](glossary:pid) and memory spaces (A: [PID](glossary:pid) 101, B: [PID](glossary:pid) 102)
+- **[Process](glossary:process) coordination**: the [OS](glossary:os) managing processes so they share the CPU and memory fairly and run safely
+- [Process](glossary:process) memory layout
 
-  | Region    | What it stores                                | Characteristics                                                        |
-  | --------- | --------------------------------------------- | ---------------------------------------------------------------------- |
-  | **Code**  | machine instructions                          | read-only (no changes while running)                                   |
-  | **Data**  | global and static variables                   | allocated at start, kept until the end                                 |
-  | **Heap**  | dynamic allocation (`malloc`, `new`)          | must be freed by hand, or memory leaks                                 |
-  | **Stack** | local variables, parameters, return addresses | created on a function call, released automatically when it ends (LIFO) |
+  | Region                      | What it stores                                | Characteristics                                                        |
+  | --------------------------- | --------------------------------------------- | ---------------------------------------------------------------------- |
+  | **Code**                    | machine instructions                          | read-only (no changes while running)                                   |
+  | **Data**                    | global and static variables                   | allocated at start, kept until the end                                 |
+  | **[Heap](glossary:heap)**   | dynamic allocation (`malloc`, `new`)          | must be freed by hand, or [memory leaks](glossary:memory-leak)         |
+  | **[Stack](glossary:stack)** | local variables, parameters, return addresses | created on a function call, released automatically when it ends (LIFO) |
 
-- Stack vs heap
+- [Stack](glossary:stack) vs [heap](glossary:heap)
 
-  |            | Stack                               | Heap                                         |
-  | ---------- | ----------------------------------- | -------------------------------------------- |
-  | Managed by | compiler/OS (automatic)             | programmer/GC                                |
-  | Allocated  | at run time, on a function call     | at run time, on a dynamic allocation request |
-  | Speed      | fast (only the stack pointer moves) | slow (has to find free space)                |
-  | Size       | small (usually a few MB)            | large (within virtual memory)                |
-  | Problems   | stack overflow                      | memory leaks, fragmentation                  |
-  - `int a = 10;` is on the stack (freed automatically); `malloc` → `free(p)` → `p = NULL` is on the heap (must be freed; NULL prevents a dangling pointer)
+  |            | [Stack](glossary:stack)                                       | [Heap](glossary:heap)                                                         |
+  | ---------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+  | Managed by | [compiler](glossary:compiler)/[OS](glossary:os) (automatic)   | programmer/[GC](glossary:garbage-collection)                                  |
+  | Allocated  | at run time, on a function call                               | at run time, on a dynamic allocation request                                  |
+  | Speed      | fast (only the [stack pointer](glossary:stack-pointer) moves) | slow (has to find free space)                                                 |
+  | Size       | small (usually a few MB)                                      | large (within [virtual memory](glossary:virtual-memory))                      |
+  | Problems   | [stack overflow](glossary:stack-overflow)                     | [memory leaks](glossary:memory-leak), [fragmentation](glossary:fragmentation) |
+  - `int a = 10;` is on the [stack](glossary:stack) (freed automatically); `malloc` → `free(p)` → `p = NULL` is on the [heap](glossary:heap) (must be freed; NULL prevents a [dangling pointer](glossary:dangling-pointer))
 
-- **Execution context**: the information to remember so a stopped execution can continue
-  - PC: address of the next instruction / register values: values mid-calculation (`i`, `sum`) / SP: top of the stack / memory state: values in variables, stack and heap
-- Context vs state: context is **information for resuming** (PC, registers, SP); state is **a label for whether it can run right now** (ready, running, waiting)
-- **PCB (Process Control Block)**: the data structure the OS creates for each process to manage it
-  - Contents: PID, execution state, saved execution context, scheduling info (priority), memory management info, resource info (open files)
-- **Process table**: the structure that manages all the PCBs together. An entry is created with the process and cleaned up after termination finishes. Implementation differs by OS
+- **[Execution context](glossary:execution-context)**: the information to remember so a stopped execution can continue
+  - [PC](glossary:program-counter): address of the next instruction / [register](glossary:register) values: values mid-calculation (`i`, `sum`) / [SP](glossary:stack-pointer): top of the [stack](glossary:stack) / memory state: values in variables, [stack](glossary:stack) and [heap](glossary:heap)
+- [Context](glossary:execution-context) vs state: [context](glossary:execution-context) is **information for resuming** ([PC](glossary:program-counter), [registers](glossary:register), [SP](glossary:stack-pointer)); state is **a label for whether it can run right now** (ready, running, waiting)
+- **[PCB](glossary:pcb)**: the data structure the [OS](glossary:os) creates for each [process](glossary:process) to manage it
+  - Contents: [PID](glossary:pid), execution state, saved [execution context](glossary:execution-context), scheduling info (priority), memory management info, resource info (open files)
+- **[Process table](glossary:process-table)**: the structure that manages all the [PCBs](glossary:pcb) together. An entry is created with the [process](glossary:process) and cleaned up after termination finishes. Implementation differs by [OS](glossary:os)
 
 ## 4.3.2 Process States and State Transitions
 
 ![Process state transitions](/static/images/computer-systems-ch4-operating-systems/process-states.svg)
 
-- **Ready**: has everything except the CPU, waiting to be given the CPU. Waits in the ready queue
-  - In the figure: the blue Ready
-- **Running**: has the CPU and is executing instructions
-  - In the figure: the green Running
-- **Waiting/Blocked**: waiting for an event such as I/O completion; can't run even if given the CPU. e.g. waiting for a file read to finish
+- **[Ready](glossary:process-state)**: has everything except the CPU, waiting to be given the CPU. Waits in the [ready queue](glossary:ready-queue)
+  - In the figure: the blue [Ready](glossary:process-state)
+- **[Running](glossary:process-state)**: has the CPU and is executing instructions
+  - In the figure: the green [Running](glossary:process-state)
+- **[Waiting/Blocked](glossary:process-state)**: waiting for an event such as [I/O](glossary:io) completion; can't run even if given the CPU. e.g. waiting for a file read to finish
   - In the figure: the yellow Waiting
-- Ready vs waiting: ready waits for **the CPU** and runs as soon as it gets it; waiting waits for **an event** and can't run even with the CPU
-- **Ready queue**: where the PCBs (pointers) of ready processes line up inside the kernel. FIFO, priority queue, multi-level queue, etc.
+- [Ready](glossary:process-state) vs waiting: ready waits for **the CPU** and runs as soon as it gets it; waiting waits for **an event** and can't run even with the CPU
+- **[Ready queue](glossary:ready-queue)**: where the [PCBs](glossary:pcb) (pointers) of ready processes line up inside the [kernel](glossary:kernel). FIFO, priority queue, multi-level queue, etc.
 - When does it move where
 
-  | Transition           | When                                                         |
-  | -------------------- | ------------------------------------------------------------ |
-  | New → ready          | loaded into memory, ready to run                             |
-  | Ready → running      | the scheduler picks it and the dispatcher hands over the CPU |
-  | Running → ready      | time slice used up (timer interrupt)                         |
-  | Running → waiting    | I/O request                                                  |
-  | Waiting → ready      | I/O finished (I/O interrupt)                                 |
-  | Running → terminated | finishes executing                                           |
+  | Transition                                     | When                                                                                                           |
+  | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+  | New → ready                                    | loaded into memory, ready to run                                                                               |
+  | [Ready](glossary:process-state) → running      | the [scheduler](glossary:cpu-scheduling) picks it and the [dispatcher](glossary:dispatcher) hands over the CPU |
+  | [Running](glossary:process-state) → ready      | [time slice](glossary:time-slice) used up (timer [interrupt](glossary:hardware-interrupt))                     |
+  | [Running](glossary:process-state) → waiting    | [I/O](glossary:io) request                                                                                     |
+  | Waiting → ready                                | [I/O](glossary:io) finished ([I/O](glossary:io) [interrupt](glossary:hardware-interrupt))                      |
+  | [Running](glossary:process-state) → terminated | finishes executing                                                                                             |
 
-- Finishing I/O doesn't mean running right away. It **must go through ready** and be picked by the scheduler
-  - In the figure: the I/O done arrow at the bottom goes to Ready
+- Finishing [I/O](glossary:io) doesn't mean running right away. It **must go through ready** and be picked by the [scheduler](glossary:cpu-scheduling)
+  - In the figure: the [I/O](glossary:io) done arrow at the bottom goes to [Ready](glossary:process-state)
 
 ## 4.3.3 CPU Scheduling and Time Slices
 
-- **CPU scheduler**: **picks** who uses the CPU next from the ready queue, following a policy such as order or priority
-- **Dispatcher**: actually **hands** the CPU to the picked one. Context switch → kernel mode to user mode → switch to that process's address space → continue from its saved PC
-- Flow: ready → scheduler ("who?") → dispatcher ("you, run") → CPU
-- **Time slice/quantum**: the unit of time a process may use the CPU continuously. The typical policy is round robin. Its length depends on the OS and policy
-- When a time slice expires
-  1. Timer interrupt occurs
-  2. The OS checks the CPU time used
+- **CPU [scheduler](glossary:cpu-scheduling)**: **picks** who uses the CPU next from the [ready queue](glossary:ready-queue), following a policy such as order or priority
+- **[Dispatcher](glossary:dispatcher)**: actually **hands** the CPU to the picked one. [Context switch](glossary:context-switch) → [kernel](glossary:kernel) mode to user mode → switch to that [process](glossary:process)'s [address space](glossary:address-space) → continue from its saved [PC](glossary:program-counter)
+- Flow: ready → [scheduler](glossary:cpu-scheduling) ("who?") → [dispatcher](glossary:dispatcher) ("you, run") → CPU
+- **[Time slice](glossary:time-slice)/[quantum](glossary:time-slice)**: the unit of time a [process](glossary:process) may use the CPU continuously. The typical policy is [round robin](glossary:round-robin). Its length depends on the [OS](glossary:os) and policy
+- When a [time slice](glossary:time-slice) expires
+  1. Timer [interrupt](glossary:hardware-interrupt) occurs
+  2. The [OS](glossary:os) checks the CPU time used
   3. The current process goes to ready
-  4. The scheduler picks the next process
-- It doesn't have to be used up: I/O midway sends it to waiting, finishing returns the CPU right away. A time slice is **an allowed window**, not a quota to fill
+  4. The [scheduler](glossary:cpu-scheduling) picks the next process
+- It doesn't have to be used up: [I/O](glossary:io) midway sends it to waiting, finishing returns the CPU right away. A [time slice](glossary:time-slice) is **an allowed window**, not a quota to fill
 
 ## 4.3.4 Interrupts and Context Switching
 
-- **Hardware interrupt**: how a device tells the CPU an event happened. e.g. timer (time slice expired), I/O completion (disk, network)
-- Handling flow: user program running → interrupt → save return info (context) → kernel interrupt-handling code → resume the original process or (if needed) context switch to another process
+- **[Hardware interrupt](glossary:hardware-interrupt)**: how a device tells the CPU an event happened. e.g. timer ([time slice](glossary:time-slice) expired), [I/O](glossary:io) completion (disk, network)
+- Handling flow: user [program](glossary:program) running → [interrupt](glossary:hardware-interrupt) → save return info ([context](glossary:execution-context)) → [kernel](glossary:kernel) [interrupt](glossary:hardware-interrupt)-handling code → resume the original process or (if needed) [context switch](glossary:context-switch) to another [process](glossary:process)
 - Telling the three apart
 
-  | Kind               | Cause                                           | Examples                                        |
-  | ------------------ | ----------------------------------------------- | ----------------------------------------------- |
-  | Hardware interrupt | timer or external device                        | timer expiry, I/O completion                    |
-  | System call        | a program requests an OS service                | file read/write, process creation               |
-  | Exception          | an event in the instruction currently executing | page fault, divide by zero, invalid instruction |
-  - An I/O request goes through a **system call**; I/O completion is reported by a **device interrupt**
+  | Kind                                              | Cause                                                               | Examples                                                               |
+  | ------------------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+  | [Hardware interrupt](glossary:hardware-interrupt) | timer or external device                                            | timer expiry, [I/O](glossary:io) completion                            |
+  | [System call](glossary:system-call)               | a [program](glossary:program) requests an [OS](glossary:os) service | file read/write, process creation                                      |
+  | [Exception](glossary:exception)                   | an event in the instruction currently executing                     | [page fault](glossary:page-fault), divide by zero, invalid instruction |
+  - An [I/O](glossary:io) request goes through a **[system call](glossary:system-call)**; [I/O](glossary:io) completion is reported by a **device [interrupt](glossary:hardware-interrupt)**
 
-- **Context switch**: the procedure for changing which process runs on the CPU. Save the current one's context + restore the next one's
-  - A running → interrupt/time slice expires → into the kernel → save A's context to its PCB (PC, registers, SP) → the scheduler picks B → restore B's context (including the address space switch) → B runs
+- **[Context switch](glossary:context-switch)**: the procedure for changing which process runs on the CPU. Save the current one's [context](glossary:execution-context) + restore the next one's
+  - A running → [interrupt](glossary:hardware-interrupt)/[time slice](glossary:time-slice) expires → into the [kernel](glossary:kernel) → save A's [context](glossary:execution-context) to its [PCB](glossary:pcb) ([PC](glossary:program-counter), [registers](glossary:register), [SP](glossary:stack-pointer)) → the [scheduler](glossary:cpu-scheduling) picks B → restore B's [context](glossary:execution-context) (including the [address space](glossary:address-space) switch) → B runs
 - Misconception: it **doesn't copy** A's memory to B. A's and B's spaces both stay in memory as they are
-- **Context-switch overhead**: CPU time spent saving and restoring registers and switching permissions and addresses. No user computation happens during it
-- **Round robin (RR)**: everyone takes turns on the CPU for the same time slice. **Preemptive** (forcibly taken away when time's up). Fair + fast response
+- **[Context](glossary:execution-context)-switch overhead**: CPU time spent saving and restoring [registers](glossary:register) and switching permissions and addresses. No user computation happens during it
+- **[Round robin](glossary:round-robin) (RR)**: everyone takes turns on the CPU for the same [time slice](glossary:time-slice). **[Preemptive](glossary:preemptive-scheduling)** (forcibly taken away when time's up). Fair + fast response
   - The front of the queue runs for a fixed time (e.g. 10 ms) → finished in time: terminate; not finished: back of the queue ([time-slice expiry steps](#433-cpu-scheduling-and-time-slices))
-  - Too long a slice and it becomes first-come-first-served / too short and it does nothing but context switches
-- First-come-first-served vs preemptive
+  - Too long a slice and it becomes [first-come-first-served](glossary:fcfs) / too short and it does nothing but [context switches](glossary:context-switch)
+- [First-come-first-served](glossary:fcfs) vs [preemptive](glossary:preemptive-scheduling)
 
-  |             | FCFS (non-preemptive)          | Preemptive                         |
-  | ----------- | ------------------------------ | ---------------------------------- |
-  | CPU control | the process gives it up itself | the OS can take it back forcibly   |
-  | Analogy     | a bank teller line             | a debate with speaking time limits |
-  | Pros        | simple, few context switches   | fast response, multitasking        |
-  | Cons        | long waits                     | context-switch overhead            |
-  | Examples    | FCFS, batch processing         | RR, Windows, Linux                 |
+  |             | [FCFS](glossary:fcfs) (non-[preemptive](glossary:preemptive-scheduling)) | [Preemptive](glossary:preemptive-scheduling)             |
+  | ----------- | ------------------------------------------------------------------------ | -------------------------------------------------------- |
+  | CPU control | the [process](glossary:process) gives it up itself                       | the [OS](glossary:os) can take it back forcibly          |
+  | Analogy     | a bank teller line                                                       | a debate with speaking time limits                       |
+  | Pros        | simple, few [context switches](glossary:context-switch)                  | fast response, [multitasking](glossary:multitasking)     |
+  | Cons        | long waits                                                               | [context](glossary:execution-context)-switch overhead    |
+  | Examples    | [FCFS](glossary:fcfs), [batch processing](glossary:batch-processing)     | RR, [Windows](glossary:windows), [Linux](glossary:linux) |
 
 ## 4.3.5 I/O Waits and Multiprogramming
 
-- The whole flow of running a program
-  1. Load into memory: the loader (OS) puts the `.exe` in memory, allocates the address space, creates the PCB and puts the start address in its PC field
-  2. Ready: has every resource except the CPU, registered in the ready queue
-  3. CPU dispatch: the scheduler picks it → the dispatcher restores the PCB's PC and registers into the CPU and hands over control
-  4. Running: repeats [fetch → decode → execute](/en/blog/cs-fundamentals/computer-systems/computer-systems-ch3-computer-organization/#33-program-execution)
-- [**Multiprogramming**](#413-multiprogramming-and-time-sharing) seen as state transitions: A's I/O wait time becomes B's run time, so the CPU never sits idle
+- The whole flow of running a [program](glossary:program)
+  1. Load into memory: the [loader](glossary:loader) ([OS](glossary:os)) puts the `.exe` in memory, allocates the [address space](glossary:address-space), creates the [PCB](glossary:pcb) and puts the start address in its [PC](glossary:program-counter) field
+  2. [Ready](glossary:process-state): has every resource except the CPU, registered in the [ready queue](glossary:ready-queue)
+  3. CPU dispatch: the [scheduler](glossary:cpu-scheduling) picks it → the [dispatcher](glossary:dispatcher) restores the [PCB](glossary:pcb)'s [PC](glossary:program-counter) and [registers](glossary:register) into the CPU and hands over control
+  4. [Running](glossary:process-state): repeats [fetch → decode → execute](/en/blog/cs-fundamentals/computer-systems/computer-systems-ch3-computer-organization/#33-program-execution)
+- [**Multiprogramming**](#413-multiprogramming-and-time-sharing) seen as state transitions: A's [I/O](glossary:io) wait time becomes B's run time, so the CPU never sits idle
 - The A → B → A flow
-  1. I/O request: running process A requests I/O
-  2. Switch to waiting: the OS moves A to waiting
-  3. Scheduling and dispatch: picks B from the ready queue, runs B
-  4. I/O completion: the OS moves A to ready
-  5. Resume: when the scheduler picks A again, A runs
+  1. [I/O](glossary:io) request: running process A requests [I/O](glossary:io)
+  2. Switch to waiting: the [OS](glossary:os) moves A to waiting
+  3. Scheduling and dispatch: picks B from the [ready queue](glossary:ready-queue), runs B
+  4. [I/O](glossary:io) completion: the [OS](glossary:os) moves A to ready
+  5. Resume: when the [scheduler](glossary:cpu-scheduling) picks A again, A runs
 
-  | Time →     | 1          | 2          | 3          |
-  | ---------- | ---------- | ---------- | ---------- |
-  | CPU        | A computes | B computes | A computes |
-  | I/O device |            | A's I/O    |            |
-  | A's state  | running    | waiting    | running    |
-  | B's state  | ready      | running    | ready      |
+  | Time →                    | 1          | 2                      | 3          |
+  | ------------------------- | ---------- | ---------------------- | ---------- |
+  | CPU                       | A computes | B computes             | A computes |
+  | [I/O](glossary:io) device |            | A's [I/O](glossary:io) |            |
+  | A's state                 | running    | waiting                | running    |
+  | B's state                 | ready      | running                | ready      |

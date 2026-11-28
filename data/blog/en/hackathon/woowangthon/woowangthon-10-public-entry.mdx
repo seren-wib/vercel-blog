@@ -3,39 +3,44 @@ title: 'Woowangthon 10. Not Half of the Requests Failed, All of Them'
 date: '2026-11-10'
 tags: ['Woowangthon']
 draft: false
-summary: 'The visitor side of build stage 6: public entry. Cloudflare Tunnel and a stairnoworks.com wildcard, one Traefik per worker and maxSurge 0, X-Forwarded headers behind plain HTTP, creating a tunnel without showing its secret, UDP 7844 that nobody had checked, a worker-off test and an internet-cut test, a wrong claim and a colliding name caught by self review, and a domain that now covers the servers too'
+summary: 'Opening the visitor path with a Cloudflare Tunnel and Traefik, then testing it by turning off a worker and cutting the internet'
+level: 3
 ---
 
-> Part 10 of the series. The day I finished build 10, the visitor entry, which is part of build stage 6 (connecting to the outside). The server-side preparation that went in earlier the same day (the platform server account, admission policies, private network access rules) did not get a post of its own; it is one line in [Woowangthon 0](/en/blog/hackathon/woowangthon/woowangthon-00-overview/#8-where-we-are-now). The previous post is [part 9](/en/blog/hackathon/woowangthon/woowangthon-09-student-space/).
+## 0. Introduction
 
-## In one line
+> Part 10 of the series. The day I finished build 10, the visitor entry, which is part of build stage 6 (connecting to the outside). The server-side preparation that went in earlier the same day (the platform server account, admission policies, private network access rules) did not get a post of its own; it is one line in [Woowangthon 0](/en/blog/hackathon/woowangthon/woowangthon-00-overview/#7-where-we-are-now). The previous post is [part 9](/en/blog/hackathon/woowangthon/woowangthon-09-student-space/).
 
-I opened `https://demo.stairnoworks.com` without opening a single inbound port to the school. The leader dials out to Cloudflare first, and visitor requests ride that tunnel to Traefik on the workers. Then I turned off a worker and cut the leader's internet. I expected about half of the requests to fail when the worker went down; for 80 seconds all of them did. And a self review caught a wrong claim the agent had written, plus a test namespace name that could collide with a student's.
+The school PCs sit behind the school [firewall](glossary:firewall). I needed a way for visitors to reach `https://demo.stairnoworks.com` without asking the school to open a port.
+
+In restaurant terms, the school PCs are the inside of a kitchen that outside guests cannot open the door to. So the kitchen first lays a private passage out to a front desk outside, and guests take that passage from the front desk to the table a hall staff member points to. With a single staff member every guest is cut off whenever that person takes a break, so there are two. The front desk is [Cloudflare](glossary:cloudflare), the private passage is a [Cloudflare Tunnel](glossary:cloudflare-tunnel), the hall staff is [Traefik](glossary:traefik), and the table is the student app's [Kubernetes Service](glossary:kubernetes-service).
+
+I opened `https://demo.stairnoworks.com` without opening a single inbound port to the school. The leader dials out to [Cloudflare](glossary:cloudflare) first, and visitor requests ride that [tunnel](glossary:cloudflare-tunnel) to [Traefik](glossary:traefik) on the [workers](glossary:worker-node). Then I turned off a [worker](glossary:worker-node) and cut the leader's internet. I expected about half of the requests to fail when the [worker](glossary:worker-node) went down; for 80 seconds all of them did. And a [self review](glossary:code-review) caught a wrong claim the agent had written, plus a test namespace name that could collide with a student's. Stage 6 still has the platform server joining the private network and the deploy executor on the leader, and stage 7 is monitoring.
 
 ## 1. The way in for visitors
 
-The school PCs sit behind the school firewall. Nobody outside can open a connection to them first, and we decided not to ask the school to open a port. So, as planned in the [overall structure](/en/blog/hackathon/woowangthon/woowangthon-00-overview/#5-overall-structure), the school PCs open the connections outward.
+The school PCs sit behind the school [firewall](glossary:firewall). Nobody outside can open a connection to them first, and we decided not to ask the school to open a port. So, as planned in the [overall structure](/en/blog/hackathon/woowangthon/woowangthon-00-overview/#5-overall-structure), the school PCs open the connections outward.
 
-| Leg                         | What happens                                                                                        |
-| --------------------------- | --------------------------------------------------------------------------------------------------- |
-| Visitor → Cloudflare        | HTTPS. Cloudflare issues the certificate                                                            |
-| Cloudflare → leader         | Requests come in over the tunnel the leader's cloudflared opened earlier (port 7844)                |
-| Leader → Traefik on workers | Plain HTTP. Traefik takes outside requests and hands them to student apps by address (the hostname) |
-| Traefik → student app       | The Service in the student space `proj-<slug>`                                                      |
+| Leg                                                                     | What happens                                                                                                                               |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Visitor → [Cloudflare](glossary:cloudflare)                             | [HTTPS](glossary:https). [Cloudflare](glossary:cloudflare) issues the certificate                                                          |
+| [Cloudflare](glossary:cloudflare) → leader                              | Requests come in over the [tunnel](glossary:cloudflare-tunnel) the leader's [cloudflared](glossary:cloudflared) opened earlier (port 7844) |
+| Leader → [Traefik](glossary:traefik) on [workers](glossary:worker-node) | Plain [HTTP](glossary:http). [Traefik](glossary:traefik) takes outside requests and hands them to student apps by address (the hostname)   |
+| [Traefik](glossary:traefik) → student app                               | The [Service](glossary:kubernetes-service) in the student space `proj-<slug>`                                                              |
 
-The domain is `stairnoworks.com`, which I already own. Its DNS was already on Cloudflare, so there was nothing to buy or move. One wildcard record, `*.stairnoworks.com`, points at the tunnel. Student addresses are one level down, like `<slug>.stairnoworks.com`, so Cloudflare's free certificate covers them with HTTPS. A new student address adds one Ingress for Traefik to read; DNS, the certificate and the tunnel stay as they are.
+The domain is `stairnoworks.com`, which I already own. Its DNS was already on [Cloudflare](glossary:cloudflare), so there was nothing to buy or move. One [wildcard record](glossary:wildcard-dns-record), `*.stairnoworks.com`, points at the [tunnel](glossary:cloudflare-tunnel). Student addresses are one level down, like `<slug>.stairnoworks.com`, so [Cloudflare](glossary:cloudflare)'s free certificate covers them with [HTTPS](glossary:https). A new student address adds one [Ingress](glossary:ingress) for [Traefik](glossary:traefik) to read; DNS, the certificate and the [tunnel](glossary:cloudflare-tunnel) stay as they are.
 
-I weighed other ways in. Making an AWS server the public entrance and forwarding to the workers over the private network sends every visitor through AWS, which is slower, and if that server goes down the student services go with it. Path-based addresses like `stairnoworks.com/<name>` break student apps that assume they live at the root path. The decision is recorded as ADR-013 in the team repo.
+I weighed other ways in. Making an [AWS](glossary:aws) server the public entrance and forwarding to the [workers](glossary:worker-node) over the private network sends every visitor through [AWS](glossary:aws), which is slower, and if that server goes down the student services go with it. Path-based addresses like `stairnoworks.com/<name>` break student apps that assume they live at the root path. The decision is recorded as [ADR](glossary:adr)-013 in the team repo.
 
 ## 2. One Traefik on each worker
 
-k3s installs Traefik by default. When I checked, there was only one, on worker 2. If worker 2 went down, every student address would go down even with the tunnel up.
+[k3s](glossary:k3s) installs [Traefik](glossary:traefik) by default. When I checked, there was only one, on [worker](glossary:worker-node) 2. If [worker](glossary:worker-node) 2 went down, every student address would go down even with the [tunnel](glossary:cloudflare-tunnel) up.
 
-The Traefik that k3s installs can be overridden value by value with a HelmChartConfig. Two replicas, student workers only, never two on the same node. It is the same shape as [CoreDNS on both workers](/en/blog/hackathon/woowangthon/woowangthon-06-k3s-install/#5-coredns-on-both-workers).
+The [Traefik](glossary:traefik) that [k3s](glossary:k3s) installs can be overridden value by value with a HelmChartConfig. Two replicas, student [workers](glossary:worker-node) only, never two on the same node ([pod anti-affinity](glossary:pod-anti-affinity)). It is the same shape as [CoreDNS on both workers](/en/blog/hackathon/woowangthon/woowangthon-06-k3s-install/#5-coredns-on-both-workers).
 
-I applied it and waited, and the rollout never finished. The chart's default strategy starts a new Pod first (maxSurge 1) and removes the old one afterwards (maxUnavailable 0). But there are two workers and each already has a Traefik. The never-two-on-a-node rule leaves the new Pod nowhere to go. It would wait forever, until a third node showed up.
+I applied it and waited, and the rollout never finished. The chart's default strategy starts a new [Pod](glossary:pod) first ([maxSurge](glossary:rolling-update) 1) and removes the old one afterwards ([maxUnavailable](glossary:rolling-update) 0). But there are two [workers](glossary:worker-node) and each already has a [Traefik](glossary:traefik). The [pod anti-affinity](glossary:pod-anti-affinity) rule leaves the new [Pod](glossary:pod) nowhere to go. It would wait forever, until a third node showed up.
 
-So I flipped the order: take one down first, then start the new one in its place (maxSurge 0, maxUnavailable 1). During a rollout, a single Traefik carries the load.
+So I flipped the order: take one down first, then start the new one in its place ([maxSurge](glossary:rolling-update) 0, [maxUnavailable](glossary:rolling-update) 1). During a rollout, a single [Traefik](glossary:traefik) carries the load.
 
 ![Traefik Pod list. Before: one on worker 2. After: one each on worker 1 and worker 2. The last line shows maxSurge 0, maxUnavailable 1](/static/images/woowangthon-10-public-entry/traefik.svg)
 
@@ -43,9 +48,9 @@ _Before and after. The numbers in the wait loop are replicas / ready / updated_
 
 ## 3. The tunnel hands over plain HTTP
 
-Between the visitor and Cloudflare it is HTTPS, but when the leader's cloudflared hands a request to Traefik it is plain HTTP. Encryption ends at Cloudflare. Left alone, a student app believes it was called over http. An app that forces https then sends a visitor who already came in over https to https again, and the redirect loops forever.
+Between the visitor and [Cloudflare](glossary:cloudflare) it is [HTTPS](glossary:https), but when the leader's [cloudflared](glossary:cloudflared) hands a request to [Traefik](glossary:traefik) it is plain [HTTP](glossary:http). Encryption ends at [Cloudflare](glossary:cloudflare). Left alone, a student app believes it was called over http. An app that forces [https](glossary:https) then sends a visitor who already came in over [https](glossary:https) to [https](glossary:https) again, and the visitor ends up in a [redirect loop](glossary:redirect-loop).
 
-cloudflared passes the visitor's original details along in headers such as `X-Forwarded-Proto: https`. The catch is that Traefik doesn't trust these headers from just anyone, since anyone can make them up. So I made Traefik trust them **only from the leader's Pod range (`10.42.0.0/24`)**, which is where cloudflared lives.
+[cloudflared](glossary:cloudflared) passes the visitor's original details along in headers such as `X-Forwarded-Proto: https`. The catch is that [Traefik](glossary:traefik) doesn't trust these headers from just anyone, since anyone can make them up. So I made [Traefik](glossary:traefik) trust them **only from the leader's [Pod](glossary:pod) range (`10.42.0.0/24`)**, which is where [cloudflared](glossary:cloudflared) lives.
 
 I checked with the test app (podinfo). podinfo has a `/headers` endpoint that echoes back the request headers it received.
 
@@ -53,13 +58,13 @@ I checked with the test app (podinfo). podinfo has a `/headers` endpoint that ec
 
 _The visitor address (203.0.113.10) is a masked value_
 
-The app receives `X-Forwarded-Proto: https`. Unknown names get Traefik's 404. `http://` also returns 200 because Cloudflare's "Always Use HTTPS" setting is still off. It is a single domain setting, to be turned on separately.
+The app receives `X-Forwarded-Proto: https`. Unknown names get [Traefik](glossary:traefik)'s 404. `http://` also returns 200 because [Cloudflare](glossary:cloudflare)'s "Always Use [HTTPS](glossary:https)" setting is still off. It is a single domain setting, to be turned on separately.
 
 ## 4. Creating the tunnel without showing its secret
 
-I created a locally managed tunnel. Its routing rules (everything under `*.stairnoworks.com` goes to Traefik, the rest gets 404) live in a config file in the repo, not in the Cloudflare dashboard. Changes leave a PR behind.
+I created a locally managed [tunnel](glossary:cloudflare-tunnel). Its routing rules (everything under `*.stairnoworks.com` goes to [Traefik](glossary:traefik), the rest gets 404) live in a config file in the repo, not in the [Cloudflare](glossary:cloudflare) dashboard. Changes leave a PR behind.
 
-Creating a tunnel needs a Cloudflare login, and the login is approved in a browser. The browser is on my desktop at home, not on the leader. So I created the tunnel on the desktop. The domain is mine, so I approved the login myself.
+Creating a [tunnel](glossary:cloudflare-tunnel) needs a [Cloudflare](glossary:cloudflare) login, and the login is approved in a browser. The browser is on my desktop at home, not on the leader. So I created the [tunnel](glossary:cloudflare-tunnel) on the desktop. The domain is mine, so I approved the login myself.
 
 ```text
 $ cloudflared tunnel create wanggane
@@ -68,7 +73,7 @@ $ cloudflared tunnel route dns wanggane '*.stairnoworks.com'
 INF Added CNAME *.stairnoworks.com which will route to this tunnel tunnelID=<tunnel id>
 ```
 
-Creating the tunnel leaves a credentials file. It is the tunnel's only secret. To move it to the leader, I didn't copy it as a file; I piped it over SSH straight into a Kubernetes Secret.
+Creating the [tunnel](glossary:cloudflare-tunnel) leaves a credentials file. It is the [tunnel](glossary:cloudflare-tunnel)'s only secret. To move it to the leader, I didn't copy it as a file; I piped it over [SSH](glossary:ssh) straight into a [Kubernetes Secret](glossary:kubernetes-secret).
 
 ```bash
 ssh k3s-leader 'sudo k3s kubectl -n cloudflared create secret generic tunnel-credentials \
@@ -79,7 +84,7 @@ I compared only the size on both sides (175 bytes), then deleted the credentials
 
 ## 5. UDP 7844, which nobody had checked
 
-cloudflared connects to Cloudflare on port 7844. It uses both TCP and UDP, and if UDP works it connects with QUIC. [In part 2 we planned to check in stage 3 whether 7844 got through the school network](/en/blog/hackathon/woowangthon/woowangthon-02-network-design/#5-a-status-on-every-line), and [part 5 only checked TCP](/en/blog/hackathon/woowangthon/woowangthon-05-node-prep/#1-the-last-site-checks). Nobody had measured UDP since. If it were blocked, cloudflared would fall back to TCP (HTTP/2), so it wasn't a big deal, but I wanted to know which one we would get.
+[cloudflared](glossary:cloudflared) connects to [Cloudflare](glossary:cloudflare) on port 7844. It uses both [TCP](glossary:tcp) and [UDP](glossary:udp), and if [UDP](glossary:udp) works it connects with [QUIC](glossary:quic). [In part 2 we planned to check in stage 3 whether 7844 got through the school network](/en/blog/hackathon/woowangthon/woowangthon-02-network-design/#5-putting-a-status-on-every-line), and [part 5 only checked TCP](/en/blog/hackathon/woowangthon/woowangthon-05-node-prep/#1-the-last-site-checks). Nobody had measured [UDP](glossary:udp) since. If it were blocked, [cloudflared](glossary:cloudflared) would fall back to [TCP](glossary:tcp) ([HTTP/2](glossary:http2)), so it wasn't a big deal, but I wanted to know which one we would get.
 
 ```text
 INF Initial protocol quic
@@ -92,32 +97,32 @@ INF |  TCP Connectivity  region1.v2.argotunnel.com  PASS    HTTP/2 connection su
 INF |  SUMMARY: Environment is healthy. cloudflared will use 'quic' as primary protocol.  |
 ```
 
-It just worked. On the first run, four QUIC connections registered in Seoul (icn06, icn07). The one thing in this stage that ended without a fight.
+It just worked. On the first run, four [QUIC](glossary:quic) connections registered in Seoul (icn06, icn07). The one thing in this stage that ended without a fight.
 
 ## 6. Turning off a worker: all, not half
 
-Time to break things. On worker 1, where the test app was running, I stopped k3s and every container (`k3s-killall.sh`, with a restart scheduled 240 seconds later). From the desktop, I called the demo address once a second.
+Time to break things. On [worker](glossary:worker-node) 1, where the test app was running, I stopped [k3s](glossary:k3s) and every container (`k3s-killall.sh`, with a restart scheduled 240 seconds later). From the desktop, I called the demo address once a second.
 
-The plan expected this: during the [50 seconds it takes for a worker to be marked NotReady](/en/blog/hackathon/woowangthon/woowangthon-06-k3s-install/#notready-takes-50-seconds-not-40), requests are split between the two Traefiks, so the half that lands on the dead worker's Traefik fails. That is not what happened.
+The plan expected this: during the [50 seconds it takes for a worker to be marked NotReady](/en/blog/hackathon/woowangthon/woowangthon-06-k3s-install/#notready-takes-50-seconds-not-40), requests are split between the two Traefiks, so the half that lands on the dead [worker](glossary:worker-node)'s [Traefik](glossary:traefik) fails. That is not what happened.
 
 ![Worker-off test. No answer (000) from 0 to 50 seconds, 503 from 54 to 78 seconds, 200 from 80 seconds. On the leader, worker 1 turns Unknown at 49 seconds and a new Pod appears on worker 2 at 78 seconds. cloudflared times out on a cluster DNS lookup](/static/images/woowangthon-10-public-entry/worker-off.svg)
 
-_Desktop probes and leader-side state, with 0 seconds at the moment k3s was stopped_
+_Desktop probes and leader-side state, with 0 seconds at the moment [k3s](glossary:k3s) was stopped_
 
 **From 0 to 50 seconds, everything failed.** For two reasons.
 
-- There was only one test app, and it was on the dead worker 1. Even the Traefik on the healthy worker 2 sent requests to the app on worker 1. Two Traefiks don't help when there is one app.
-- cloudflared finds Traefik by name (`traefik.kube-system.svc.cluster.local`). That lookup goes to cluster DNS, and CoreDNS also runs one per worker, so half the lookups went to the CoreDNS on the dead worker 1. Those timed out.
+- There was only one test app, and it was on the dead [worker](glossary:worker-node) 1. Even the [Traefik](glossary:traefik) on the healthy [worker](glossary:worker-node) 2 sent requests to the app on [worker](glossary:worker-node) 1. Two Traefiks don't help when there is one app.
+- [cloudflared](glossary:cloudflared) finds [Traefik](glossary:traefik) by name (`traefik.kube-system.svc.cluster.local`). That lookup goes to [cluster DNS](glossary:coredns), and [CoreDNS](glossary:coredns) also runs one per [worker](glossary:worker-node), so half the lookups went to the [CoreDNS](glossary:coredns) on the dead [worker](glossary:worker-node) 1. Those timed out.
 
-A dead node's addresses stay in the lists until it is marked NotReady. For those 50 seconds, requests kept going to the dead side, for Traefik and CoreDNS alike.
+A dead node's addresses stay in the lists until it is marked [NotReady](glossary:node). For those 50 seconds, requests kept going to the dead side, for [Traefik](glossary:traefik) and [CoreDNS](glossary:coredns) alike.
 
-**From 50 to 78 seconds, 503.** At 49 seconds worker 1 turned NotReady (Unknown, to be exact) and its addresses were removed. The app's address list was now empty, so Traefik answered 503, "nowhere to send this". When I first wrote this up I labeled this stretch 502; going back to the raw log, it was 503. I corrected it.
+**From 50 to 78 seconds, [503](glossary:http-status-code).** At 49 seconds [worker](glossary:worker-node) 1 turned [NotReady](glossary:node) (Unknown, to be exact) and its addresses were removed. The app's address list was now empty, so [Traefik](glossary:traefik) answered [503](glossary:http-status-code), "nowhere to send this". When I first wrote this up I labeled this stretch [502](glossary:http-status-code); going back to the raw log, it was [503](glossary:http-status-code). I corrected it.
 
-**From 80 seconds, 200.** Kubernetes waited 30 seconds after NotReady and started a new app on worker 2 at 78 seconds. The gap visitors saw was about 80 seconds: 50 for NotReady plus 30 of waiting before giving up on the node.
+**From 80 seconds, 200.** [Kubernetes](glossary:kubernetes) waited 30 seconds after [NotReady](glossary:node) and started a new app on [worker](glossary:worker-node) 2 at 78 seconds. The gap visitors saw was about 80 seconds: 50 for [NotReady](glossary:node) plus 30 of waiting before giving up on the node.
 
-One more thing. The replacement Traefik and CoreDNS stayed Pending until worker 1 came back. With the never-two-on-a-node rule, worker 2 had no room left. Until then, one of each carried the load. Worker 1 was Ready again 34 seconds after k3s started back up.
+One more thing. The replacement [Traefik](glossary:traefik) and [CoreDNS](glossary:coredns) stayed Pending until [worker](glossary:worker-node) 1 came back. With the [pod anti-affinity](glossary:pod-anti-affinity) rule, [worker](glossary:worker-node) 2 had no room left. Until then, one of each carried the load. Worker 1 was Ready again 34 seconds after [k3s](glossary:k3s) started back up.
 
-If the app had been on the surviving worker, only about half would have failed, as planned. I didn't measure that. Student apps run one per project, so when a worker really goes down, the students on it lose about 80 seconds outright, as here.
+If the app had been on the surviving [worker](glossary:worker-node), only about half would have failed, as planned. I didn't measure that. Student apps run one per project, so when a [worker](glossary:worker-node) really goes down, the students on it lose about 80 seconds outright, as here.
 
 ## 7. Cutting the leader's internet: 502, then 530
 
@@ -125,29 +130,29 @@ Next, the leader's internet. I can't pull the wall LAN cable from home, so I ran
 
 ![Internet-cut test. Route removed at 6 seconds, restored at 126. The leader-side connection count metric drops from 4 to 1 and never reaches 0. On the desktop: 502, then 530 from 58 seconds, 200 at 137 seconds](/static/images/woowangthon-10-public-entry/internet-cut.svg)
 
-_cf is cloudflared's connection count metric, ts is the Tailscale state, route is whether the default route exists_
+_cf is [cloudflared](glossary:cloudflared)'s connection count metric, ts is the [Tailscale](glossary:tailscale) state, route is whether the default route exists_
 
-For roughly the first 50 seconds visitors got 502: Cloudflare still believed the tunnel connections were alive and sent requests that got no answer. After that, 530, Cloudflare's response once it decides the tunnel is offline. When the route came back, Tailscale and SSH returned in 3 seconds, the tunnel re-registered in 9, and the demo was 200 after 11. No one had to touch anything.
+For roughly the first 50 seconds visitors got [502](glossary:http-status-code): [Cloudflare](glossary:cloudflare) still believed the [tunnel](glossary:cloudflare-tunnel) connections were alive and sent requests that got no answer. After that, [530](glossary:http-status-code), [Cloudflare](glossary:cloudflare)'s response once it decides the [tunnel](glossary:cloudflare-tunnel) is offline. When the route came back, [Tailscale](glossary:tailscale) and [SSH](glossary:ssh) returned in 3 seconds, the [tunnel](glossary:cloudflare-tunnel) re-registered in 9, and the demo was 200 after 11. No one had to touch anything.
 
 Two things caught my eye in the logs.
 
-First, cloudflared had been restarted 58 seconds into the cut. The liveness probe saw no connection and restarted the container. With a 120-second cut that did no harm. But with a cut of several minutes the restarts repeat, and the kubelet lengthens the wait before the next restart every time (up to 5 minutes). When the internet comes back, cloudflared is still sitting in that wait and reconnects that much later. cloudflared reconnects on its own, so I removed the liveness probe and kept only the readiness probe (`/ready`).
+First, [cloudflared](glossary:cloudflared) had been restarted 58 seconds into the cut. The [liveness probe](glossary:liveness-probe) saw no connection and restarted the container. With a 120-second cut that did no harm. But with a cut of several minutes the restarts repeat, and the [kubelet](glossary:kubelet) lengthens the wait before the next restart every time (up to 5 minutes). When the internet comes back, [cloudflared](glossary:cloudflared) is still sitting in that wait and reconnects that much later. [cloudflared](glossary:cloudflared) reconnects on its own, so I removed the [liveness probe](glossary:liveness-probe) and kept only the [readiness probe](glossary:readiness-probe) (`/ready`).
 
-Second, cloudflared's connection count metric (`cloudflared_tunnel_ha_connections`) read 1 for the whole cut. It never dropped to 0. For the next stage (monitoring) I had planned a "tunnel down" alert on this metric hitting 0, which would have stayed silent through a cut like this one. I changed the design doc to alert on `/ready` or on Cloudflare's side instead.
+Second, [cloudflared](glossary:cloudflared)'s connection count metric (`cloudflared_tunnel_ha_connections`) read 1 for the whole cut. It never dropped to 0. For the next stage (monitoring) I had planned a "[tunnel](glossary:cloudflare-tunnel) down" alert on this metric hitting 0, which would have stayed silent through a cut like this one. I changed the design doc to alert on `/ready` or on [Cloudflare](glossary:cloudflare)'s side instead.
 
-Cuts longer than a few minutes, and pulling a real cable, are still unmeasured. That waits for a day in the club room.
+Cuts longer than a few minutes, and pulling a real cable, are still unmeasured. That waits for a day in the club room. Moving the [tunnel](glossary:cloudflare-tunnel) to both [workers](glossary:worker-node), so the visitor path stays open when the leader is down, is deferred. Right now, if the leader goes down, new deploys and visitors are cut together.
 
 ## 8. Two things the self review caught
 
-I opened the PR ([woowangthon/WOOWANGTHON_TEAM_18#91](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/91)) and ran a self review (the agent's code review). It found seven things, and I fixed all of them. Two are worth writing down. Both came from the agent I built this stage with.
+I opened the PR ([woowangthon/WOOWANGTHON_TEAM_18#91](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/91)), which is waiting for a teammate's approval, and ran a [self review](glossary:code-review) (the agent's [code review](glossary:code-review)). It found seven things, and I fixed all of them. Two are worth writing down. Both came from the agent I built this stage with.
 
 ### The leader's firewall doesn't stop cloudflared
 
-The design doc said that "cloudflared's outbound traffic is narrowed by [the leader's 7844 firewall rule](/en/blog/hackathon/woowangthon/woowangthon-05-node-prep/#outbound)". That was wrong. That rule only applies to programs running directly on the leader. cloudflared is a Pod. Pod traffic leaves by a different path (FORWARD), where a rule allows the whole Pod range. cloudflared could go anywhere.
+The design doc said that "[cloudflared](glossary:cloudflared)'s outbound traffic is narrowed by [the leader's 7844 firewall rule](/en/blog/hackathon/woowangthon/woowangthon-05-node-prep/#outbound)". That was wrong. That rule only applies to programs running directly on the leader. [cloudflared](glossary:cloudflared) is a [Pod](glossary:pod). [Pod](glossary:pod) traffic leaves by a different path (FORWARD), where a rule allows the whole [Pod](glossary:pod) range. [cloudflared](glossary:cloudflared) could go anywhere.
 
-This is [exactly what the design doc review in part 5 had already caught](/en/blog/hackathon/woowangthon/woowangthon-05-node-prep/#7-what-the-design-doc-review-caught). We wrote down back then that "once the tunnel program runs as a Pod, it is wide open regardless of this rule", and on the day it actually became a Pod, the same mistake came back in.
+This is [exactly what the design doc review in part 5 had already caught](/en/blog/hackathon/woowangthon/woowangthon-05-node-prep/#7-what-the-design-doc-review-caught). We wrote down back then that "once the [tunnel](glossary:cloudflare-tunnel) program runs as a [Pod](glossary:pod), it is wide open regardless of this rule", and on the day it actually became a [Pod](glossary:pod), the same mistake came back in.
 
-cloudflared is the only process that takes requests from the internet, and it runs on the leader. If it were compromised, it would be in reach of the k3s API, the kubelets and the image cache. So the cloudflared namespace got its own outbound rule (NetworkPolicy): cluster DNS, the Traefik Pods, and ports 7844 and 443 on the internet minus private ranges, nothing else. I probed it from a test Pod.
+[cloudflared](glossary:cloudflared) is the only process that takes requests from the internet, and it runs on the leader. If it were compromised, it would be in reach of the [k3s](glossary:k3s) API, the kubelets and the image cache. So the [cloudflared](glossary:cloudflared) namespace got its own outbound rule ([NetworkPolicy](glossary:networkpolicy)): [cluster DNS](glossary:coredns), the [Traefik](glossary:traefik) [Pods](glossary:pod), and ports 7844 and 443 on the internet minus private ranges, nothing else. I probed it from a test [Pod](glossary:pod).
 
 ```text
 traefik svc :80 (demo host) -> exit=0 200
@@ -172,26 +177,12 @@ I renamed the test space to `proj--check`. A student name can't start with a hyp
 
 The first plan only put student addresses on this domain. The platform's web and server addresses were tied to open question 5 in the system definition (how far to connect the domain, and who pays for buying one), so the agent left them as "for the team to decide" and kept them out of this stage.
 
-I looked at that question again. The domain is mine, its DNS is already on Cloudflare, and there is nothing to buy. The cost question had already been answered. Putting every student address on this domain while leaving the platform's web and server on long AWS-issued addresses made no sense. I decided on the spot: the web at `app.stairnoworks.com`, the server at `api.stairnoworks.com`. Open question 5 is closed.
+I looked at that question again. The domain is mine, its DNS is already on [Cloudflare](glossary:cloudflare), and there is nothing to buy. The cost question had already been answered. Putting every student address on this domain while leaving the platform's web and server on long [AWS](glossary:aws)-issued addresses made no sense. I decided on the spot: the web at `app.stairnoworks.com`, the server at `api.stairnoworks.com`. Open question 5 is closed.
 
-A record for a specific name takes precedence over the wildcard, so on the day each deploy target (CloudFront, EC2) exists, one record gets added. Until then the wildcard catches them and Traefik answers 404. Students must not use `app` or `api` as project names, so platform, mail and test names went into a reserved list. The server checks it when it saves a project.
+A record for a specific name takes precedence over the [wildcard](glossary:wildcard-dns-record), so on the day each deploy target ([CloudFront](glossary:cloudfront), [EC2](glossary:ec2)) exists, one record gets added. Until then the [wildcard](glossary:wildcard-dns-record) catches them and [Traefik](glossary:traefik) answers 404. Students must not use `app` or `api` as project names, so platform, mail and test names went into a reserved list. The server checks it when it saves a project.
 
-It is the same shape as [the question of who sets the caps in part 9](/en/blog/hackathon/woowangthon/woowangthon-09-student-space/#2-who-sets-the-caps). The agent didn't cross a line marked "for the team to decide". Being careful is right. But you can't tell from that line alone whose decision it really is, or whether it has already been answered. The person who owns the domain and knows the team's situation can. A colleague shouldn't stop at "this isn't my call"; it should go on to ask "whose call is it". This time, I was the one who asked.
+It is the same shape as [the question of who sets the caps in part 9](/en/blog/hackathon/woowangthon/woowangthon-09-student-space/#2-who-sets-the-caps). The agent didn't cross a line marked "for the team to decide". Being careful is right. But you can't tell from that line alone whose decision it really is, or whether it has already been answered. The person who owns the domain and knows the team's situation can. This time, I was the one who asked.
 
-## 10. Wrap-up
+## 10. Reflection
 
-| What happened                                              | What I learned                                                                                                                   |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| The Traefik rollout waited forever                         | With one per node forced on two nodes, there is no room to start a new one first. Take one down, then start one                  |
-| Apps behind the tunnel believed they were called over http | When a leg hands over plain HTTP, trust the headers carrying the original details only from that leg's source                    |
-| The tunnel credentials had to be moved                     | Create it where the browser is, and pipe the secret over SSH straight into a Secret instead of copying a file, then delete it    |
-| I expected about half to fail when a worker went down      | Two entrances don't help when there is one app. A dead node holds on to traffic, DNS lookups included, until it is NotReady      |
-| cloudflared restarted while the internet was down          | A liveness probe tied to connections on a client that reconnects by itself only piles up restart back-off in a long outage       |
-| The connection count metric never hit 0 during the cut     | Pick the metric for an alert by actually cutting the thing it watches                                                            |
-| The doc said the leader's firewall limited cloudflared     | A Pod's way out is limited by a NetworkPolicy, not the host firewall. Check something you have learned once again in a new place |
-| A test namespace name could collide with a student's       | Name test resources in a shape no user input can produce                                                                         |
-| Server addresses were put off as "for the team to decide"  | Even when something is marked as an open question, first see who can answer it                                                   |
-
-Three things are left: turning on Cloudflare's "Always Use HTTPS", pulling a real cable in the club room, and moving the tunnel to both workers so the visitor path stays open when the leader is down. I deferred the last one. Right now, if the leader goes down, new deploys and visitors are cut together.
-
-The team repo PR is waiting for a teammate's approval. Stage 6 still has the platform server joining the private network and the deploy executor on the leader. After that comes stage 7, monitoring, where the metric that never hit 0 shows up again.
+Don't stop at a line marked "for the team to decide"; go on to ask whose call it is.

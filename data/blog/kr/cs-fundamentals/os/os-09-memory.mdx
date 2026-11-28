@@ -29,96 +29,96 @@ summary: 'memory management, fixed/variable partitions, overlays, swapping, virt
 # 1. 메모리 관리의 목표
 
 1. 프로그래밍 하기 편한 추상화 제공(배열같은거)
-2. 부족한 메모리 자원을 여러 프로세스에 분배
-   - 최소한의 오버헤드로 성능 극대화
-3. 프로세스간 격리 제공
+2. 부족한 메모리 자원을 여러 [Process](glossary:process)에 분배
+   - 최소한의 [Overhead](glossary:overhead)로 성능 극대화
+3. [Process](glossary:process)간 격리 제공
 
 - 이게 그래서 왜 어려움?
 
 # 2. Single / Batch Programming
 
-- 프로세스 하나만 메모리에 올려서 실행하던 시절
-- 프로그램이 실제 RAM 주소(physical address)를 직접 사용
+- [Process](glossary:process) 하나만 메모리에 올려서 실행하던 시절
+- 프로그램이 실제 [RAM](glossary:ram) 주소([physical address](glossary:physical-address))를 직접 사용
 - 한 번에 user program 하나만 메모리에 올라간다
 
 # 3. Multiprogramming
 
-여러 프로세스를 동시에 메모리에 올리는 상황에서 프로세스끼리 서로의 메모리 영역을 침범하면 안되서 자신 영역만 사용하는 **Protection**이 필요하다. 또한 프로세스는 주소를 계속 사용해서 주소변환이 느려지면 프로세스 전체가 느려진다. 따라서 빠르게 virtual > physical로 바꿔주는 (**fast translation**)이 필요하다. 또한 context switch 때 memory설정도 빠르게 바꿔줘야한다(**fast context switch**).
+여러 [Process](glossary:process)를 동시에 메모리에 올리는 상황에서 [Process](glossary:process)끼리 서로의 메모리 영역을 침범하면 안되서 자신 영역만 사용하는 **[Protection](glossary:protection)**이 필요하다. 또한 [Process](glossary:process)는 주소를 계속 사용해서 주소변환이 느려지면 [Process](glossary:process) 전체가 느려진다. 따라서 빠르게 virtual > physical로 바꿔주는 (**fast translation**)이 필요하다. 또한 [context switch](glossary:context-switch) 때 memory설정도 빠르게 바꿔줘야한다(**fast [context switch](glossary:context-switch)**).
 
 ## virtual address vs physical address
 
-**프로세스가 보는 메모리 주소와 실제 메모리 주소는 다를 수 있다. 이는 커널이 관리한다**
+**[Process](glossary:process)가 보는 메모리 주소와 실제 메모리 주소는 다를 수 있다. 이는 [Kernel](glossary:kernel)이 관리한다**
 
 # 4. 여러 프로세스를 메모리에 올리는 방법(구식)
 
 ## 1. Fixed Partitions
 
-- 물리 메모리를 고정된 크기의 partition들로 나눈다
-- 각 파티션에는 하나의 프로세스가 들어간다
-- 필요한 하드웨어는 base register이다
-- Physical address = virtual address + base register
-- context switch가 일어나면 OS가 현제 프로세스에 맞는 base register값을 로드한다
+- 물리 메모리를 고정된 크기의 [partition](glossary:partition)들로 나눈다
+- 각 파티션에는 하나의 [Process](glossary:process)가 들어간다
+- 필요한 하드웨어는 [base register](glossary:base-register)이다
+- [Physical address](glossary:physical-address) = [virtual address](glossary:virtual-address) + [base register](glossary:base-register)
+- [context switch](glossary:context-switch)가 일어나면 OS가 현제 [Process](glossary:process)에 맞는 [base register](glossary:base-register)값을 로드한다
 
 ### 장점
 
 1. 구현이 쉽다
-2. contextswitch가 빠르다
+2. [contextswitch](glossary:context-switch)가 빠르다
 
 ### 단점
 
-1. Internal fragmentation(내부 단편화): 파티션 안에 메모리 영역이 남아있어도 다른 프로세스에서 사용하지 못한다
-2. 파티션 사이즈가 모든 프로세스에 맞지 않다(1번이랑 비슷한 얘기)
+1. [Internal fragmentation](glossary:internal-fragmentation): [Partition](glossary:partition) 안에 메모리 영역이 남아있어도 다른 [Process](glossary:process)에서 사용하지 못한다
+2. [Partition](glossary:partition) 사이즈가 모든 [Process](glossary:process)에 맞지 않다(1번이랑 비슷한 얘기)
 
 ### 그래서 나온 개선 버전
 
-- 물리 메모리를 여러가지 크기로 자른 파티션들을 준비한다
-- 어떤 프로세스가 메모리 얼마나 쓰는지를 아니까 이걸 보고 메모리 영역 스캔한 다음에 알맞은 사이즈 파티션에 집어넣는다
-- 스캔과정이 있어서 오버헤드가 더 크다
+- 물리 메모리를 여러가지 크기로 자른 [Partition](glossary:partition)들을 준비한다
+- 어떤 [Process](glossary:process)가 메모리 얼마나 쓰는지를 아니까 이걸 보고 메모리 영역 스캔한 다음에 알맞은 사이즈 [Partition](glossary:partition)에 집어넣는다
+- 스캔과정이 있어서 [Overhead](glossary:overhead)가 더 크다
 
 ## 2. Variable Partitions
 
-**process 크기에 맞춰 partition 크기를 다르게 잡는 방식**
+**[process](glossary:process) 크기에 맞춰 [partition](glossary:partition) 크기를 다르게 잡는 방식**
 
-- 물리 메모리를 variable-sized partition으로 나눈다.
-- 필요한 하드웨어는 base register와 limit register이다.
-- base register는 process가 physical memory에서 시작하는 주소를 저장한다.
-- limit register는 process가 접근 가능한 범위를 저장하며 protection 역할을 한다.
-- Physical address = virtual address + base register
-- virtual address가 limit 범위를 넘으면 protection fault가 발생한다.
-- 레지스터 값 하나만 바꿔도 되서 오버헤드가 적다(근데 오버헤드가 적어도 fixed보단 많음)
+- 물리 메모리를 [variable-sized partition](glossary:variable-partition)으로 나눈다.
+- 필요한 하드웨어는 [base register](glossary:base-register)와 [limit register](glossary:limit-register)이다.
+- [base register](glossary:base-register)는 [process](glossary:process)가 physical memory에서 시작하는 주소를 저장한다.
+- [limit register](glossary:limit-register)는 [process](glossary:process)가 접근 가능한 범위를 저장하며 [protection](glossary:protection) 역할을 한다.
+- [Physical address](glossary:physical-address) = [virtual address](glossary:virtual-address) + [base register](glossary:base-register)
+- [virtual address](glossary:virtual-address)가 limit 범위를 넘으면 [protection fault](glossary:protection-fault)가 발생한다.
+- 레지스터 값 하나만 바꿔도 되서 [Overhead](glossary:overhead)가 적다(근데 [Overhead](glossary:overhead)가 적어도 fixed보단 많음)
 
 ### Allocation strategies
 
-1. First fit
-   - 들어갈 수 있는 첫 번째 hole에 배치한다.
-2. Best fit
-   - 들어갈 수 있는 hole 중 가장 작은 hole에 배치한다.
-3. Worst fit
-   - 가장 큰 hole에 배치한다.
+1. [First fit](glossary:first-fit)
+   - 들어갈 수 있는 첫 번째 [hole](glossary:hole)에 배치한다.
+2. [Best fit](glossary:best-fit)
+   - 들어갈 수 있는 [hole](glossary:hole) 중 가장 작은 [hole](glossary:hole)에 배치한다.
+3. [Worst fit](glossary:worst-fit)
+   - 가장 큰 [hole](glossary:hole)에 배치한다.
 
 ### Advantages
 
-- Internal fragmentation이 없다: process 크기에 딱 맞게 partition을 할당하기 때문이다.
+- [Internal fragmentation](glossary:internal-fragmentation)이 없다: [process](glossary:process) 크기에 딱 맞게 [partition](glossary:partition)을 할당하기 때문이다.
 
 ### Problems
 
-- External fragmentation이 발생한다: job을 load하고 unload하는 과정에서 physical memory 곳곳에 작은 빈 공간들이 흩어지기 때문에
+- [External fragmentation](glossary:external-fragmentation)이 발생한다: job을 load하고 unload하는 과정에서 physical memory 곳곳에 작은 빈 공간들이 흩어지기 때문에
 
 ### Solutions to external fragmentation
 
-- Compaction: 흩어진 process들을 한쪽으로 몰아서 hole을 크게 합침
-- Paging: 메모리를 고정 크기 page/frame으로 나눠서 연속 공간 요구를 없앰
-- Segmentation: 프로그램을 의미 단위 segment로 나눠 관리함
+- [Compaction](glossary:compaction): 흩어진 [process](glossary:process)들을 한쪽으로 몰아서 [hole](glossary:hole)을 크게 합침
+- [Paging](glossary:paging): 메모리를 고정 크기 [page/frame](glossary:paging)으로 나눠서 연속 공간 요구를 없앰
+- [Segmentation](glossary:segmentation): 프로그램을 의미 단위 [segment](glossary:segmentation)로 나눠 관리함
 
 ## 3. Overlays
 
 - 프로그램 전체를 한 번에 메모리에 올리지 않는다.
-- 실행 시점에 필요한 instruction과 data만 메모리에 올린다.
+- 실행 시점에 필요한 instruction과[ data](glossary:data-segment)만 메모리에 올린다.
 - 동시에 필요하지 않은 부분들은 같은 메모리 영역을 번갈아 사용한다.
 
 ### 장점
 
-- 프로세스가 필요한 메모리가 메모리 영역보다 클 때 사용 가능
+- [Process](glossary:process)가 필요한 메모리가 메모리 영역보다 클 때 사용 가능
 - 특별한 OS적인 지원이 필요 없다
 
 ### 단점
@@ -127,7 +127,7 @@ summary: 'memory management, fixed/variable partitions, overlays, swapping, virt
 
 ### 예시: two-pass assembler
 
-- Symbol table, common routines, overlay driver는 항상 필요하다.
+- [Symbol table](glossary:symbol-table), common routines, overlay driver는 항상 필요하다.
 - Pass 1과 Pass 2는 동시에 필요하지 않다.
 - 따라서 Pass 1과 Pass 2를 같은 메모리 영역에 번갈아 올릴 수 있다.
   ![two-pass example](/static/images/os-09-memory/mem-overlay.png)
@@ -141,14 +141,14 @@ Overlay 사용 시 필요한 크기:
 
 ## 4. Swapping
 
-- 메모리에 올라와 있던 process를 잠시 backing store(disk)로 내보낸다.
+- 메모리에 올라와 있던 [process](glossary:process)를 잠시 [backing store](glossary:backing-store)(disk)로 내보낸다.
 - 나중에 다시 메모리로 가져와 실행을 계속한다.
 
 ### 흐름
 
-1. process가 main memory에 있다.
-2. 메모리가 부족하거나 다른 process를 실행해야 하면, OS가 process를 backing store로 swap out한다.
-3. 나중에 그 process를 다시 실행할 때 backing store에서 main memory로 swap in한다.
+1. [process](glossary:process)가 main memory에 있다.
+2. 메모리가 부족하거나 다른 [process](glossary:process)를 실행해야 하면, OS가 [process](glossary:process)를 [backing store](glossary:backing-store)로 [swap out](glossary:swapping)한다.
+3. 나중에 그 [process](glossary:process)를 다시 실행할 때 [backing store](glossary:backing-store)에서 main memory로 [swap in](glossary:swapping)한다.
 
 ### Backing store
 
@@ -158,35 +158,35 @@ Overlay 사용 시 필요한 크기:
 
 ### Problems
 
-- swap time의 대부분은 transfer time이다.
-- transfer time은 swap하는 memory 양에 직접 비례한다.
-- 처리중인 I/O가 있는 process는 swap하면 문제가 생길 수 있다.
+- [swap](glossary:swapping) time의 대부분은 [transfer time](glossary:transfer-time)이다.
+- [transfer time](glossary:transfer-time)은 [swap](glossary:swapping)하는 memory 양에 직접 비례한다.
+- 처리중인 [I/O](glossary:io)가 있는 [process](glossary:process)는 [swap](glossary:swapping)하면 문제가 생길 수 있다.
 
 # 5. Virtual Memory
 
 ## 1. 핵심 개념
 
-Virtual memory는 process가 실제 physical memory 주소를 직접 사용하지 않고, virtual address를 사용하게 하는 방식이다.
+[Virtual memory](glossary:virtual-memory)는 [process](glossary:process)가 실제 physical memory 주소를 직접 사용하지 않고, [virtual address](glossary:virtual-address)를 사용하게 하는 방식이다.
 
-- process는 자기만의 독립적인 virtual address space를 가진다.
-- 같은 virtual address라도 process마다 다른 physical address에 mapping될 수 있다.
-- CPU와 OS가 virtual address를 physical address로 변환한다.
-- 이 변환에는 page table 같은 자료구조가 사용된다.
+- [process](glossary:process)는 자기만의 독립적인 [virtual address space](glossary:address-space)를 가진다.
+- 같은 [virtual address](glossary:virtual-address)라도 [process](glossary:process)마다 다른 [physical address](glossary:physical-address)에 mapping될 수 있다.
+- CPU와 OS가 [virtual address](glossary:virtual-address)를 [physical address](glossary:physical-address)로 변환한다.
+- 이 변환에는 [page table](glossary:page-table) 같은 자료구조가 사용된다.
 
 ## 2. 왜 필요한가?
 
-여러 process를 동시에 실행할 때, process마다 독립적인 메모리 공간을 가진 것처럼 보이게 하기 위해 필요하다.
+여러 [process](glossary:process)를 동시에 실행할 때, [process](glossary:process)마다 독립적인 메모리 공간을 가진 것처럼 보이게 하기 위해 필요하다.
 
-- process끼리 서로의 메모리를 직접 침범하지 못하게 한다.
-- programmer가 실제 RAM 위치를 신경 쓰지 않아도 된다.
-- process는 크고 연속된 메모리를 가진 것처럼 사용할 수 있다.
+- [process](glossary:process)끼리 서로의 메모리를 직접 침범하지 못하게 한다.
+- programmer가 실제 [RAM](glossary:ram) 위치를 신경 쓰지 않아도 된다.
+- [process](glossary:process)는 크고 연속된 메모리를 가진 것처럼 사용할 수 있다.
 - 실제 physical memory에는 필요한 부분만 올라와 있어도 된다.
 
 ## 3. 주소 변환 흐름
 
-1. CPU instruction이 virtual address를 만든다.
+1. CPU instruction이 [virtual address](glossary:virtual-address)를 만든다.
 2. hardware가 OS의 도움을 받아 주소를 변환한다.
-3. page table을 이용해 virtual address에 대응되는 physical address를 찾는다.
+3. [page table](glossary:page-table)을 이용해 [virtual address](glossary:virtual-address)에 대응되는 [physical address](glossary:physical-address)를 찾는다.
 4. 실제 physical memory에 접근한다.
 
 ```text
@@ -198,7 +198,7 @@ Process
 
 ## 4. Virtual Address Space
 
-Virtual address space는 process가 사용할 수 있는 virtual address 전체 범위이다.
+[Virtual address space](glossary:address-space)는 [process](glossary:process)가 사용할 수 있는 [virtual address](glossary:virtual-address) 전체 범위이다.
 
 일반적인 구조는 다음과 같다.
 
@@ -213,44 +213,44 @@ Virtual address space는 process가 사용할 수 있는 virtual address 전체 
 낮은 주소
 ```
 
-- stack은 runtime에 생성된다.
-- heap은 malloc 같은 동적 메모리 할당으로 관리된다.
+- [stack](glossary:stack)은 runtime에 생성된다.
+- [heap](glossary:heap)은 [malloc](glossary:malloc) 같은 동적 메모리 할당으로 관리된다.
 - `.data`, `.bss`는 읽기/쓰기 가능한 전역 데이터 영역이다.
 - `.text`, `.rodata`는 코드와 읽기 전용 데이터 영역이다.
 
 ## 5. Lazy Loading
 
-Virtual memory에서는 프로그램 전체를 처음부터 physical memory에 올릴 필요가 없다.
+[Virtual memory](glossary:virtual-memory)에서는 프로그램 전체를 처음부터 physical memory에 올릴 필요가 없다.
 
 - 필요한 부분만 physical memory에 올린다.
 - 아직 필요하지 않은 부분은 disk에 있어도 된다.
-- process는 전체 address space가 memory에 있는 것처럼 실행된다.
-  이 방식이 demand paging으로 이어진다.
+- [process](glossary:process)는 전체 address space가 memory에 있는 것처럼 실행된다.
+  이 방식이 [demand paging](glossary:demand-paging)으로 이어진다.
 
 ## 6. 장점
 
 - logical memory와 physical memory를 분리한다.
-- process마다 독립적인 address space를 제공한다.
-- protection에 유리하다.
-- physical memory보다 큰 process도 실행할 수 있다.
+- [process](glossary:process)마다 독립적인 address space를 제공한다.
+- [protection](glossary:protection)에 유리하다.
+- physical memory보다 큰 [process](glossary:process)도 실행할 수 있다.
 - 실제로 사용하는 부분만 memory에 올릴 수 있어 더 많은 program을 동시에 실행할 수 있다.
-- demand paging을 사용하면 필요한 page만 가져오므로 I/O가 줄어들 수 있다.
+- [demand paging](glossary:demand-paging)을 사용하면 필요한 page만 가져오므로 [I/O](glossary:io)가 줄어들 수 있다.
 - file과 address space 공유가 쉬워진다.
-- process creation에 효율적이다.
+- [process](glossary:process) creation에 효율적이다.
 
 ## 7. 단점
 
-Virtual memory는 performance overhead가 있다.
+[Virtual memory](glossary:virtual-memory)는 performance [overhead](glossary:overhead)가 있다.
 
 구체적으로는 다음 비용이 생긴다.
 
-- virtual address를 physical address로 변환하는 시간 비용
-- page table을 저장하고 관리하는 공간 비용
-- 필요한 page가 memory에 없을 때 발생하는 page fault 비용
+- [virtual address](glossary:virtual-address)를 [physical address](glossary:physical-address)로 변환하는 시간 비용
+- [page table](glossary:page-table)을 저장하고 관리하는 공간 비용
+- 필요한 page가 memory에 없을 때 발생하는 [page fault](glossary:page-fault) 비용
 
 ## 8. 구현 방식
 
-Virtual memory는 대표적으로 다음 방식으로 구현된다.
+[Virtual memory](glossary:virtual-memory)는 대표적으로 다음 방식으로 구현된다.
 
-- Paging
-- Segmentation
+- [Paging](glossary:paging)
+- [Segmentation](glossary:segmentation)

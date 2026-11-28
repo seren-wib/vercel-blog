@@ -10,21 +10,21 @@ For the first Cloud Computing assignment, I wrote up the five exercises from Cha
 
 # 1. Definition of Cloud Computing
 
-**Renting computing resources whenever you need them.** It is utility computing: you pay for what you use, like electricity, gas or water. It started with the utility computing John McCarthy described in 1961.
+**Renting computing resources whenever you need them.** It is [utility computing](glossary:utility-computing): you pay for what you use, like electricity, gas or water. It started with the [utility computing](glossary:utility-computing) John McCarthy described in 1961.
 
-| Source             | Definition                                                                                            |
-| ------------------ | ----------------------------------------------------------------------------------------------------- |
-| NIST               | Defined by 5 essential characteristics, 3 service models and 4 deployment models                      |
-| Gartner            | A style of computing in which scalable and elastic IT-enabled capabilities are delivered as a service |
-| Forrester Research | Standardized IT capability delivered via Internet technologies in a pay-per-use, self-service way     |
+| Source                | Definition                                                                                            |
+| --------------------- | ----------------------------------------------------------------------------------------------------- |
+| [NIST](glossary:nist) | Defined by 5 essential characteristics, 3 service models and 4 deployment models                      |
+| Gartner               | A style of computing in which scalable and elastic IT-enabled capabilities are delivered as a service |
+| Forrester Research    | Standardized IT capability delivered via Internet technologies in a pay-per-use, self-service way     |
 
 Related keywords
 
-- On-Demand Service, Flexibility, resource reuse
-- Virtualization, Data Center
-- IaaS, PaaS, SaaS
-- Private, public, hybrid cloud
-- Amazon EC2, Google, Azure
+- [On-Demand Service](glossary:on-demand-self-service), Flexibility, resource reuse
+- [Virtualization](glossary:virtualization), Data Center
+- [IaaS](glossary:iaas), [PaaS](glossary:paas), [SaaS](glossary:saas)
+- [Private](glossary:private-cloud), [public](glossary:public-cloud), [hybrid](glossary:hybrid-cloud) cloud
+- [Amazon EC2](glossary:amazon-ec2), Google, [Azure](glossary:microsoft-azure)
 
 # 2. Ways to Increase Computing Performance and Capacity
 
@@ -32,70 +32,70 @@ The first thing that comes to mind is upgrading parts like the CPU and memory. B
 
 So there are two directions.
 
-- **Clustering**: tie several computers together and use them for one purpose. Combining machines to raise performance is built on **orchestration**.
-- **Resource partitioning**: split one computer's resources and use them for several purposes. This is built on **virtualization**.
+- **[Clustering](glossary:clustering)**: tie several computers together and use them for one purpose. Combining machines to raise performance is built on **[orchestration](glossary:orchestration)**.
+- **Resource partitioning**: split one computer's resources and use them for several purposes. This is built on **[virtualization](glossary:virtualization)**.
 
 # 3. Three Categories of Computer Virtualization
 
-Virtualization is divided into **CPU virtualization, memory virtualization and I/O virtualization**.
+[Virtualization](glossary:virtualization) is divided into **[CPU virtualization](glossary:cpu-virtualization), [memory virtualization](glossary:memory-virtualization) and [I/O virtualization](glossary:io-virtualization)**.
 
 ## Virtualization Approaches
 
-Divided by whether the guest OS is modified.
+Divided by whether the [guest OS](glossary:guest-os) is modified.
 
-- **Full virtualization**: the guest OS is not modified.
-- **Para virtualization**: the guest OS is modified.
+- **[Full virtualization](glossary:full-virtualization)**: the [guest OS](glossary:guest-os) is not modified.
+- **[Para virtualization](glossary:paravirtualization)**: the [guest OS](glossary:guest-os) is modified.
 
 ## Hypervisor
 
-The software that implements virtualization. There are two kinds depending on where it is installed.
+The software that implements [virtualization](glossary:virtualization). There are two kinds depending on where it is installed.
 
-- **Type 1 (native)**: the hypervisor is installed directly on the hardware, and virtual machines run on top of it.
-- **Type 2 (hosted)**: hardware → host OS → hypervisor → guest OS, in that order.
+- **[Type 1](glossary:type-1-hypervisor) (native)**: the [hypervisor](glossary:hypervisor) is installed directly on the hardware, and [virtual machines](glossary:vm) run on top of it.
+- **[Type 2](glossary:type-2-hypervisor) (hosted)**: hardware → [host OS](glossary:host-os) → [hypervisor](glossary:hypervisor) → [guest OS](glossary:guest-os), in that order.
 
 ## How Each Category Is Virtualized
 
-**CPU virtualization**
+**[CPU virtualization](glossary:cpu-virtualization)**
 
-- The hypervisor handles privileged instructions executed by the guest OS on its behalf.
-- If the guest is not modified, the hypervisor traps the instructions and emulates them.
-- If the guest is modified, those instructions are replaced with hypercalls that request the hypervisor directly.
+- The [hypervisor](glossary:hypervisor) handles [privileged instructions](glossary:privileged-instruction) executed by the [guest OS](glossary:guest-os) on its behalf.
+- If the guest is not modified, the [hypervisor](glossary:hypervisor) traps the instructions and emulates them.
+- If the guest is modified, those instructions are replaced with [hypercalls](glossary:hypercall) that request the [hypervisor](glossary:hypervisor) directly.
 
-**Memory virtualization**
+**[Memory virtualization](glossary:memory-virtualization)**
 
-- Address translation gains one more level: guest virtual address → guest physical address → real physical address.
-- The hypervisor manages this translation with **shadow page tables**. Physical addresses inside a VM are fake, so a separate table maps guest virtual addresses straight to real addresses.
-- Alternatively, a modified guest asks the hypervisor when it changes its page tables.
+- Address translation gains one more level: guest [virtual address](glossary:virtual-address) → guest [physical address](glossary:physical-address) → real [physical address](glossary:physical-address).
+- The [hypervisor](glossary:hypervisor) manages this translation with **[shadow page tables](glossary:shadow-page-table)**. [Physical addresses](glossary:physical-address) inside a [VM](glossary:vm) are fake, so a separate table maps guest [virtual addresses](glossary:virtual-address) straight to real addresses.
+- Alternatively, a modified guest asks the [hypervisor](glossary:hypervisor) when it changes its [page tables](glossary:page-table).
 
-**I/O virtualization**
+**[I/O virtualization](glossary:io-virtualization)**
 
 - Multiple VMs share physical devices such as disks and network cards.
-- The hypervisor either emulates the device in software, or a virtualization-specific driver (virtio, etc.) is installed in the guest to communicate directly.
+- The [hypervisor](glossary:hypervisor) either emulates the device in software, or a [virtualization](glossary:virtualization)-specific [driver](glossary:device-driver) ([virtio](glossary:virtio), etc.) is installed in the guest to communicate directly.
 
 # 4. How HPC, HTC, Grid and Cloud Connect
 
-| Keyword         | One-line description                                                          |
-| --------------- | ----------------------------------------------------------------------------- |
-| HPC             | Goal is fast computation. Supercomputers                                      |
-| HTC             | Goal is throughput. Raises utilization of idle resources to process many jobs |
-| Grid computing  | Ties together idle computers scattered around the world. Orchestration-based  |
-| Cloud computing | Splits one computer's resources into virtual machines. Virtualization-based   |
+| Keyword                                     | One-line description                                                                                                  |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| [HPC](glossary:hpc)                         | Goal is fast computation. Supercomputers                                                                              |
+| [HTC](glossary:htc)                         | Goal is throughput. Raises [utilization](glossary:utilization) of idle resources to process many jobs                 |
+| [Grid computing](glossary:grid-computing)   | Ties together idle computers scattered around the world. [Orchestration](glossary:orchestration)-based                |
+| [Cloud computing](glossary:cloud-computing) | Splits one computer's resources into [virtual machines](glossary:vm). [Virtualization](glossary:virtualization)-based |
 
-The goal of **HPC** is to finish a single computation quickly. Supercomputers fall into this category.
+The goal of **[HPC](glossary:hpc)** is to finish a single computation quickly. Supercomputers fall into this category.
 
-If the goal is throughput, you use **HTC**. Since many jobs have to be processed, the key is making the most of idle resources.
+If the goal is throughput, you use **[HTC](glossary:htc)**. Since many jobs have to be processed, the key is making the most of idle resources.
 
-**Grid computing** and **cloud computing** belong to HTC. Both play the same role of using idle resources, but they are implemented differently.
+**[Grid computing](glossary:grid-computing)** and **[cloud computing](glossary:cloud-computing)** belong to [HTC](glossary:htc). Both play the same role of using idle resources, but they are implemented differently.
 
-- A grid **ties together** idle computers scattered around the world. So it is built on orchestration.
-- A cloud uses a hypervisor to **split** one computer's resources into virtual machines. That is virtualization.
+- A [grid](glossary:grid-computing) **ties together** idle computers scattered around the world. So it is built on [orchestration](glossary:orchestration).
+- A cloud uses a [hypervisor](glossary:hypervisor) to **split** one computer's resources into [virtual machines](glossary:vm). That is [virtualization](glossary:virtualization).
 
 # 5. Three Key Issues in Data Center Operation and the Cloud
 
-| Issue                                          | How the cloud solves it                                                                                     |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Finding idle resources (utilization)           | Virtualization splits idle resources into virtual machines and offers them to users as a service            |
-| Isolating problem services (service stability) | The hypervisor isolates virtual machines from each other, so A's work does not affect B                     |
-| Fast recovery                                  | Save virtual machines as images, then quickly recover by launching a new one or moving it to another server |
+| Issue                                                        | How the cloud solves it                                                                                                                             |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Finding idle resources ([utilization](glossary:utilization)) | [Virtualization](glossary:virtualization) splits idle resources into [virtual machines](glossary:vm) and offers them to users as a service          |
+| Isolating problem services (service stability)               | The [hypervisor](glossary:hypervisor) [isolates](glossary:isolation) [virtual machines](glossary:vm) from each other, so A's work does not affect B |
+| Fast recovery                                                | Save [virtual machines](glossary:vm) as images, then quickly recover by launching a new one or moving it to another server                          |
 
-All three issues can be solved with virtualization. It is thanks to the properties of virtual machines: resources can be split finely, VMs are isolated from each other, and a whole VM can be moved as a single file.
+All three issues can be solved with [virtualization](glossary:virtualization). It is thanks to the properties of [virtual machines](glossary:vm): resources can be split finely, VMs are isolated from each other, and a whole [VM](glossary:vm) can be moved as a single file.

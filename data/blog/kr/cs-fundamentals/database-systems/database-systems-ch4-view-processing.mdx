@@ -10,20 +10,20 @@ summary: 'Query modification, View materialization, incremental update, Immediat
 
 ## 1. 뷰 처리 방식
 
-| 방식                     | 하는 일                                  | 장단                                               |
-| ------------------------ | ---------------------------------------- | -------------------------------------------------- |
-| **Query modification**   | 뷰 질의를 원본 테이블 질의로 바꿔서 실행 | 저장 안 함, 매번 join                              |
-| **View materialization** | 뷰를 진짜 테이블로 만들어 잠시 둠        | 빠름, 원본 바뀌면 같이 고쳐야 (incremental update) |
+| 방식                                                      | 하는 일                                                                           | 장단                                                                              |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **[Query modification](glossary:query-modification)**     | [View](glossary:view) 질의를 [Base table](glossary:base-table) 질의로 바꿔서 실행 | 저장 안 함, 매번 [join](glossary:join)                                            |
+| **[View materialization](glossary:view-materialization)** | [View](glossary:view)를 진짜 테이블로 만들어 잠시 둠                              | 빠름, 원본 바뀌면 같이 고쳐야 ([incremental update](glossary:incremental-update)) |
 
-| 저장한 뷰 고치는 시점 | 언제                | 문제                     |
-| --------------------- | ------------------- | ------------------------ |
-| Immediate             | 원본 바뀌자마자     | 안 쓸 때도 고침          |
-| Lazy                  | 뷰에 질의 들어올 때 | 그 전까진 옛 값          |
-| Periodic              | 주기적으로          | 결과가 최신 아닐 수 있음 |
+| 저장한 [View](glossary:view) 고치는 시점 | 언제                                   | 문제                     |
+| ---------------------------------------- | -------------------------------------- | ------------------------ |
+| [Immediate](glossary:immediate-update)   | 원본 바뀌자마자                        | 안 쓸 때도 고침          |
+| [Lazy](glossary:lazy-update)             | [View](glossary:view)에 질의 들어올 때 | 그 전까진 옛 값          |
+| [Periodic](glossary:periodic-update)     | 주기적으로                             | 결과가 최신 아닐 수 있음 |
 
 ## 2. 숫자로 외우기
 
-| 몇 개 | 뭐           |
-| ----- | ------------ |
-| 2     | 뷰 처리 방식 |
-| 3     | 뷰 갱신 시점 |
+| 몇 개 | 뭐                              |
+| ----- | ------------------------------- |
+| 2     | [View](glossary:view) 처리 방식 |
+| 3     | [View](glossary:view) 갱신 시점 |

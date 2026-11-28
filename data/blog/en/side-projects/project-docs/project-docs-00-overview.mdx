@@ -1,44 +1,86 @@
 ---
-title: 'Project Docs 0. Six Documents for Every Project'
+title: 'Project Docs 0. How I Settled on Six Project Documents'
 date: '2026-11-28'
 tags: ['Project Docs']
 draft: false
 aiGenerated: true
-summary: 'What my project document template is, why it ended up this shape, and how I use it.'
+summary: 'From twelve blog documents to six stage-document templates, with the names and the place for decision records.'
+level: 2
 ---
-
-> Part 0 of the series. It covers what the template is, why I made it, and how I use it in one place. The history behind each decision is in parts 1–4.
 
 ## 0. Introduction
 
-When I start a new project, I write six documents in the same format: a project plan, a requirements specification, a design specification, a test plan, an installation plan, and a maintenance plan. It was not always like this. Half a year ago, when I built this blog, I only had a DB schema, an API spec, and a page structure document, and I thought that was enough.
+When I start a new project, I write six documents in the same format. Half a year ago, when I built this blog, I only had a [DB schema](glossary:database-schema), an [API spec](glossary:api-specification), and a page structure document, and I thought that was enough. But as assignments and projects piled up, I kept needing a place for requirements, decision reasons, tests, and deployment procedures, and the section layout and names changed every time I wrote a document. This post traces how the template reached its current shape, using [git](glossary:git) [commits](glossary:commit) of the rule files, the worklog kept for each project, the memory change log, and the session logs from the days decisions were made. Decisions whose reasons are written down nowhere are marked "not recorded".
 
-This series traces what happened in between. The evidence is records, not memory: git commits of the rule files, the worklog kept for each project, the memory change log, and the session logs from the days decisions were made. Decisions whose reasons are written down nowhere are marked "not recorded".
+In restaurant terms, a shop that ran on a few menu cards ended up with one form per step as customers and staff grew: a business plan, an order slip, a recipe, an inspection sheet, an opening procedure, and a maintenance log, where each step needs a stamp from the previous one before work moves on. The business plan is the [SPMP](glossary:spmp), the order slip is the [SRS](glossary:srs), the recipe is the [SDD](glossary:sdd), the inspection sheet is the [STP](glossary:stp), the opening procedure is the [SIP](glossary:sip), the maintenance log is the [SMP](glossary:smp), and the stamp rule is the [stage gate](glossary:stage-gate). Below I cover how twelve documents became six templates, why I attached standards and chose a place for [decision records](glossary:decision-record), and the one-day migration of coffee-shop.
 
-The posts read in two layers. Each section starts with a sentence or two of analogy and a diagram, then moves on to the formal terms, real paths, and numbers. Numbers that change are collected with their dates in the "By the numbers" table.
+## 1. The first twelve documents
 
-## 1. What the template is
+The first docs [commit](glossary:commit) in this repo on 2026-05-08 (`a156d2a`) added 12 files, 724 lines: page definitions (56 lines), [DB schema](glossary:database-schema) (67; the first line is "a [static site](glossary:static-site) with no DB"), [API spec](glossary:api-specification) (45), component structure (193), architecture (87), export function names (79), design (16), and the agent-facing [runbook](glossary:runbook), done conditions, and `CLAUDE.md`. All of them are [design artifacts](glossary:design-artifact) that cover only "what to build and how". There was nothing on what the system must do (requirements), why it was built that way (decision reasons), or how to check it (test plan). For one static blog, this was enough.
 
-As an analogy, it is like having one form for each step of building a house: a plan for what to build, a list of what the owner wants, the blueprints, an inspection plan, a move-in procedure, and repair rules.
+## 2. How the documents grew
 
-![Six stage documents and two locations: the source in the repo's docs/specs/, the copy in Google Docs](/static/images/project-docs-00-overview/six-documents.svg)
+![Order in which the documents grew: 2026-05 blog docs, 10-17 course SDLC, 10-18 four model documents, 11-16 six stage documents](/static/images/project-docs-01-growing-docs/growth.svg)
 
-_Six stage documents and two locations: the source in the repo's docs/specs/, the copy in Google Docs_
+_Order in which the documents grew: 2026-05 blog docs, 10-17 course SDLC, 10-18 four model documents, 11-16 six stage documents_
 
-In formal terms, these are **stage documents**, one produced at each stage of the software development life cycle (SDLC).
+coffee-shop is a Software Engineering team assignment started on 2026-09-15. Its documents piled up in a flat structure, one assignment at a time.
 
-| Stage          | Document                         | What it does                                                            | Standard             |
-| -------------- | -------------------------------- | ----------------------------------------------------------------------- | -------------------- |
-| 0 Planning     | Project plan (SPMP)              | Scope, schedule, cost, risks, decided and open items                    | IEEE 16326           |
-| 1 Requirements | Requirements specification (SRS) | Requirements numbered `DR`·`FR`·`NFR`                                   | ISO/IEC/IEEE 29148   |
-| 2 Design       | Design specification (SDD)       | Architecture, components, data, screens, design rationale               | IEEE 1016            |
-| 2 Design       | Test plan (STP)                  | Unit, integration, UI, and end-to-end tests, CI, acceptance criteria    | ISO/IEC/IEEE 29119-3 |
-| 4 Deployment   | Installation plan (SIP)          | Environments, deployment procedure, installation tests                  | MIL-STD-498 SIP      |
-| 5 Maintenance  | Maintenance plan (SMP)           | Routine tasks, change requests, operating procedures, incident response | IEEE 14764           |
+| Date  | Documents added                                                                                                                                                                                                   |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 09-22 | [Use cases](glossary:use-case), [class diagram](glossary:class-diagram)                                                                                                                                           |
+| 09-28 | Requirements definition                                                                                                                                                                                           |
+| 10-06 | Screen list, [wireframes](glossary:wireframe), [sequence diagrams](glossary:sequence-diagram)                                                                                                                     |
+| 10-10 | External interfaces, [domain requirements](glossary:domain-requirement) ([explained here](/en/blog/cs-fundamentals/software-engineering/software-engineering-ch4-requirements-analysis/#412-domain-requirements)) |
+| 11-08 | System architecture, [non-functional requirements](glossary:non-functional-requirement) design                                                                                                                    |
 
-The blank forms are in the Google Drive [\_templates folder](https://drive.google.com/drive/folders/1IGzofOw3S0r05xmIvWutLiGDJcKNEoIG), one per document. Anyone with the link can view them.
+Just before the migration, `docs/` held 41 files (5 directly under it, 8 in `backend/`, 5 in `frontend/`, 9 [sequence diagrams](glossary:sequence-diagram), 14 [wireframes](glossary:wireframe)), and which file was a requirement and which was a design had to be guessed from the name.
 
-| Form                                                                                                                                | Sections |
+On 2026-10-17, a "project procedure" file appeared in the [agent](glossary:ai-coding-agent) memory. It was set up when starting the stairno.com hub documents, and its basis was chapters 3–6 of Software Engineering. The [SDLC](glossary:sdlc) stages were planning, requirements, design, implementation, deployment, and maintenance, with one output per stage. The plan came from [chapter 3 project planning](/en/blog/cs-fundamentals/software-engineering/software-engineering-ch3-project-planning/), and the [SRS](glossary:srs) from [chapter 4 requirements specification](/en/blog/cs-fundamentals/software-engineering/software-engineering-ch4-requirements-analysis/#433-step-3-requirements-specification-software-requirements-specification-srs). The next day, 10-18, I wrote four documents for account.stairno.com with this procedure: `plan.md` at 179 lines, `srs.md` at 382, `sdd.md` at 534, and `test-deploy.md` at 507, for 1,602 lines in total. These four later became the model for the template. That day the source of truth also moved from [Google Docs](glossary:google-docs) to the repo's [Markdown](glossary:markdown); the story is in [Project Docs 4](/en/blog/side-projects/project-docs/project-docs-04-docs-sync/).
+
+In the early hours of 2026-11-16, when I turned this procedure into an [agent](glossary:ai-coding-agent) [skill](glossary:skill), the documents went from four to six. The plan got the name [SPMP](glossary:spmp), and `test-deploy.md`, where testing and deployment had been mixed, was split into the [STP](glossary:stp), [SIP](glossary:sip), and [SMP](glossary:smp).
+
+## 3. Fitting conventions and standards
+
+![A standard for each document: SPMP is IEEE 16326, SRS is 29148, SDD is 1016, STP is 29119-3, SIP is MIL-STD-498, SMP is 14764](/static/images/project-docs-03-standards/standards-map.svg)
+
+_A standard for each document: SPMP is IEEE 16326, SRS is 29148, SDD is 1016, STP is 29119-3, SIP is MIL-STD-498, SMP is 14764_
+
+Until then, my document names were ones I had made up (`plan/`, `experiments/`, `test-deploy.md`). When I started writing the [skill](glossary:skill) on the night of 2026-11-15, I drew on the four model documents and the [IEEE](glossary:ieee) standards together. A few hours later, early on 11-16, I decided to switch names and notation to convention. A convention is a practice the industry widely uses without an official document (a [de facto standard](glossary:de-facto-standard)); a standard is a document an organization such as [IEEE](glossary:ieee) or [ISO](glossary:iso) published under a number. Names and notation are convention; the section layout of a document comes from the standard.
+
+There were two reasons. A convention probably exists for a reason, and I would only find out what is good about it by writing by convention once. So this was an experiment, not a conviction: only documents started from now on follow it, and projects I had already worked on stay as they are (the [skill](glossary:skill) says "Projects started before 2026-11-16 keep their original structure and names"). There is no record of weighing the concrete benefits of standards for submission or collaboration (not recorded).
+
+| Document              | Standard                                                           | Taken from the standard                                                                                                                     |
+| --------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| [SPMP](glossary:spmp) | [IEEE 16326](glossary:isoiecieee-16326) (formerly 1058)            | Project identification, scope, schedule, cost, organization and risk                                                                        |
+| [SRS](glossary:srs)   | [ISO/IEC/IEEE 29148](glossary:isoiecieee-29148) (formerly 830)     | [Stakeholders](glossary:stakeholder), 1.4 assumptions, constraints and dependencies, [singular](glossary:singular-requirement) requirements |
+| [SDD](glossary:sdd)   | [IEEE 1016](glossary:ieee-1016)                                    | [Viewpoint](glossary:viewpoint) notation per section, [design rationale](glossary:design-rationale)                                         |
+| [STP](glossary:stp)   | [ISO/IEC/IEEE 29119-3](glossary:isoiecieee-29119-3) (formerly 829) | [Test strategy](glossary:test-strategy), tests per level, [acceptance criteria](glossary:acceptance-criteria)                               |
+| [SIP](glossary:sip)   | [MIL-STD-498](glossary:mil-std-498) [SIP](glossary:sip)            | Environments, installation procedure, installation tests                                                                                    |
+| [SMP](glossary:smp)   | [IEEE 14764](glossary:isoiecieee-14764)                            | Routine tasks, [change requests](glossary:change-request), operating procedures                                                             |
+
+One section exists because of a standard. The model [SRS](glossary:srs) had no "assumptions, constraints, dependencies" section, but 29148 does, so it became [SRS](glossary:srs) section 1.4. On 2026-11-17 I turned 29148's [singular](glossary:singular-requirement) principle into a rule: one [functional requirement](glossary:functional-requirement) carries one function (view and edit, add and delete are separate [FRs](glossary:functional-requirement)), and one [non-functional requirement](glossary:non-functional-requirement) carries one measurable condition, so the [SRS](glossary:srs) verification column checks one thing. The reason for choosing [MIL-STD-498](glossary:mil-std-498) for the [SIP](glossary:sip) is not recorded; I accepted the option as it was proposed in a table when making the [skill](glossary:skill).
+
+## 4. Fixing the template up front
+
+A standard fixes the section layout but not the table columns or file names. If the [agent](glossary:ai-coding-agent) invented those for each document, projects would drift apart. So the day I made the [skill](glossary:skill), I put a 54-file set of templates into `TEMPLATES.md`. File names are English [kebab-case](glossary:kebab-case) with the section number first. New files always start from the template, so any project has the same thing in the same place.
+
+```text
+docs/specs/srs/
+├── README.md
+├── 1-overview.md
+├── 2-domain.md
+├── 3-functional/
+│   └── 1-<area>.md
+├── 4-nonfunctional.md
+├── 5-use-cases.md
+├── 6-interfaces.md
+└── 7-decisions.md
+```
+
+The source of the templates is the `project-docs` [skill](glossary:skill) in my personal settings repo (private). A [skill](glossary:skill) is an instruction file an [AI coding agent](glossary:ai-coding-agent) opens only for a specific task; [how skills are loaded](/en/blog/side-projects/devblog/devblog-04-agent-environment/#3-pulling-out-what-is-needed) is covered in DevBlog part 4. `TEMPLATES.md` in the [skill](glossary:skill) is the file-level template, and the six Docs in the [Google Drive](glossary:google-drive) [\_templates folder](https://drive.google.com/drive/folders/1IGzofOw3S0r05xmIvWutLiGDJcKNEoIG) are that template moved into [Google Docs](glossary:google-docs) (written in Korean; anyone with the link can view). A guidance line under each section says what to write there, and the [SDD](glossary:sdd) template carries the [viewpoints](glossary:viewpoint) in brackets.
+
+| Template                                                                                                                            | Sections |
 | ----------------------------------------------------------------------------------------------------------------------------------- | -------- |
 | [Template 0 Project Plan (SPMP)](https://docs.google.com/document/d/1krgejhmgwRLsYXfd2TJgXEqMhvJKZprKGatUZQd99pw/edit)              | 8        |
 | [Template 1 Requirements Specification (SRS)](https://docs.google.com/document/d/1VXckKbYnksH5i7iGqAfJvSB0SY8HjJrn4AUtCvz_F-w/edit) | 7        |
@@ -47,90 +89,100 @@ The blank forms are in the Google Drive [\_templates folder](https://drive.googl
 | [Template 4 Installation Plan (SIP)](https://docs.google.com/document/d/1N2hN0rvu53D0B-ykT9gZRpB21ePDK8LVi5GDoScCQ_Y/edit)          | 5        |
 | [Template 5 Maintenance Plan (SMP)](https://docs.google.com/document/d/1h269PVHiCWLTNp5dTdgtYddYSOoo_QgVcPOMbVCQZt0/edit)           | 4        |
 
-The Docs themselves are titled and written in Korean.
+## 5. Decision records inside the SDD
 
-The source of the forms is the `project-docs` skill in my personal settings repo (private). A skill is an instruction file an AI coding agent opens only for a specific task; [how skills are loaded](/en/blog/side-projects/devblog/devblog-04-agent-environment/#3-pulling-out-what-is-needed) is covered in DevBlog part 4. The `TEMPLATES.md` inside the skill is the file-level form, and the six Docs in Drive are that form moved into Google Docs.
+![Two conventions for recording decisions: ADRs with one file per decision, and a dated design rationale list inside the SDD](/static/images/project-docs-02-decision-records/adr-vs-rationale.svg)
 
-## 2. Why I made it
+_Two conventions for recording decisions: ADRs with one file per decision, and a dated design rationale list inside the SDD_
 
-As an analogy, I used to keep a different kind of notebook for each subject, and as the notebooks piled up I could no longer find where I had written what, so I settled on one format.
+On 2026-10-26, the Woowangthon team repo got a `docs/adr/` folder from teammate TaeTaeJin's first [PR](glossary:pull-request) ([#1](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/1)). An [ADR](glossary:adr) (Michael Nygard, 2011) keeps one decision as one short file. The rules: only decisions that are expensive to reverse, one decision per page, and three statuses (`유효` valid, `유효 (일부 대체 …)` valid but partly superseded, `대체됨 (→ NNN)` superseded). That same day I filled in the "reason" column of the tech stack [ADR](glossary:adr), and on 11-03 I posted a rule that merged [ADRs](glossary:adr) are not edited and supersession is marked with a status line ([#20](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/20)), plus four cluster [ADRs](glossary:adr) ([#21](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/21)). The details are in [the ADR rules in Woowangthon part 1](/en/blog/hackathon/woowangthon/woowangthon-01-docs-and-prs/#4-adr-rules). What stayed with me was that not only the choice but also the rejected options and their reasons remain; as of 2026-11-28 there are 18 [ADRs](glossary:adr).
 
-In formal terms, there were four problems, and each became one part of the current template.
+Still, I decided not to keep an [ADR](glossary:adr) folder in my own projects. On 2026-10-27 at noon, the line "no [ADR](glossary:adr) folder or page" went into my rules first, with decisions and rejected alternatives written as a dated list at the end of the [SDD](glossary:sdd). In the same [commit](glossary:commit) I moved the [ADR](glossary:adr) 001 and 002 pages I had made in [Notion](glossary:notion) for Woowangthon to the trash and moved their content into that list. No sentence explaining why I decided this survives (not recorded); the only trace is that the model [SDD](glossary:sdd) was already in that format.
 
-| Problem                                                                  | Answer in the current template                                                           | Part                                                                            |
-| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| The documents needed kept growing as development went on                 | One document per stage; a new project starts by copying the template                     | [Part 1](/en/blog/side-projects/project-docs/project-docs-01-growing-docs/)     |
-| What was decided and why, and what was rejected, was scattered           | Dated decision records inside the SDD, SPMP, and SRS                                     | [Part 2](/en/blog/side-projects/project-docs/project-docs-02-decision-records/) |
-| Section layout and names could differ every time I wrote a document      | Section layout from IEEE/ISO standards, a template of 54 files                           | [Part 3](/en/blog/side-projects/project-docs/project-docs-03-standards/)        |
-| Two computers, people and agents, the repo and Google Docs drifted apart | The repo is the source of truth; Google Docs is a one-way copy overwritten on every push | [Part 4](/en/blog/side-projects/project-docs/project-docs-04-docs-sync/)        |
+Three weeks later, early on 2026-11-16, when moving this rule into the [skill](glossary:skill), I found there are two conventions. An [ADR](glossary:adr) (including [MADR](glossary:madr)) is one file per decision at `docs/adr/NNNN-<title>.md`; [IEEE 1016](glossary:ieee-1016) [design rationale](glossary:design-rationale) is one entry per decision in a section inside the [SDD](glossary:sdd). I chose the [IEEE](glossary:ieee) side. In my repos, documents are split into one file per section anyway ([Project Docs 4](/en/blog/side-projects/project-docs/project-docs-04-docs-sync/)), so [design rationale](glossary:design-rationale) is also a single file, `sdd/11-rationale.md`, and finding a decision means opening one file (a section was added on 2026-11-28, so the current template has `sdd/12-rationale.md`, but SDDs made earlier are not renumbered). That reason was one line in the [skill](glossary:skill)'s first [commit](glossary:commit) and was dropped on 11-20 when I trimmed the [skill](glossary:skill). There is no record naming the Woowangthon experience as a reason for dropping [ADR](glossary:adr) files. Still, the rule that a changed decision is written anew rather than edited is the same idea as in the Woowangthon [ADR](glossary:adr) README.
 
-## 3. How I use it
+Decisions go to three places by scope. [ADR](glossary:adr) is by name about architecture decisions, so project decisions such as scope, schedule, and cost went to the [SPMP](glossary:spmp).
 
-As an analogy, it is a factory where each step needs an inspection stamp before work moves to the next step.
+| Place                                                             | Decisions it holds                                       | coffee-shop entries |
+| ----------------------------------------------------------------- | -------------------------------------------------------- | ------------------- |
+| [SPMP](glossary:spmp) 8 Decided and open items                    | Scope, schedule, cost, product, business, way of working | 13                  |
+| [SRS](glossary:srs) 7 Decided and open                            | Requirement-level policies, limits, dropped features     | Not counted         |
+| [SDD](glossary:sdd) [design rationale](glossary:design-rationale) | Technology choices                                       | 32                  |
 
-The formal term is **stage gate**. The next stage starts only after each stage document is finalized, and code is written only after the SRS and SDD are finalized. Implementation follows TDD.
-
-1. A new project starts by picking which documents to write. For a small tool or a static site, the plan and SRS are merged into one document and the API and DB sections say "not applicable". If there is login, payment, or a DB, all six are written.
-2. Requirements come from an interview. Even in a personal project, I play the client and the agent asks the questions.
-3. After copying the template, I write the first word. Section names, numbers, and table columns stay the same across projects.
-
-The files sit in the repo like this.
+Every entry has the same shape.
 
 ```text
-docs/specs/
-├── README.md            # full file list and ID ranges
-├── spmp/                # 1-identification.md … 8-decisions.md
-├── srs/                 # 3-functional/ has one file per area
-├── sdd/                 # 4-components/, 5-modules/ have one file per component and module
-├── stp/
-├── sip/
-└── smp/
+- YYYY-MM-DD: <what was decided>. Rejected: <option> (<why it lost>), <option> (<why it lost>). Reason: <scalability, maintainability, dependencies, testability, cost>. (<who decided>)
 ```
 
-Requirements get numbers (`FR-12`). Test names, PR descriptions, and the SDD's feature subsections point to each other by these numbers. To find one requirement, I don't read the whole document; I open just that line with `grep -rn "FR-12" docs/specs`.
+A real entry from the coffee-shop [SDD](glossary:sdd):
 
-## 4. Where it is used now
+```text
+- 2026-11-17: Keep SQLite as the production DB. Turn on WAL mode and make a backup file once a day with `sqlite3 .backup`, keeping 7 (NFR-25). Rejected: RDS (more cost and setup, and concurrent write load is small at demo scale). Reason: cost, dependencies. Revisit if the NFR-15 concurrent order test hits a lock error. (decided by the coffee-shop lead session, delegated by the team leader)
+```
 
-This template is used for projects started or migrated on or after 2026-11-16. Projects started before that keep their original structure. The numbers are in the table at the bottom.
+Its terms: [SQLite](glossary:sqlite), [WAL](glossary:wal), [backup](glossary:backup), [RDS](glossary:amazon-rds), [NFR](glossary:non-functional-requirement). There are five rules.
 
-- **coffee-shop**: a Software Engineering team assignment ([coffee-shop series](/en/blog/side-projects/coffee-shop/coffee-shop-00-overview/)). The first project whose 41 flat-structure documents were moved into this template. The story is in [Part 1](/en/blog/side-projects/project-docs/project-docs-01-growing-docs/).
-- **design-system**, **open-calls**: personal projects (private repos) using the same template since 2026-11-19.
-- **account.stairno.com**: the project the template was modeled on. But what served as the model were four documents written before this template, so it still has the old structure.
+1. Every option seriously considered goes under "Rejected" with its reason. If options were compared in chat, that comparison ends in this entry.
+2. When a decision changes, the old entry is not edited. A new dated entry states what it supersedes.
+3. Open items record what is open, why it is not decided now, and the signal or date to look again.
+4. Reasons are written as scalability, maintainability, dependencies, testability, and cost. "Because I'm used to it" is not a reason.
+5. Write it in the turn the decision is made. Don't batch them up later.
 
-## 5. Series contents
+## 6. Moving coffee-shop in one day
 
-| Post                                                                                                                             | Content                                                                                   |
-| -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Project Docs 0. Six Documents for Every Project (this post)                                                                      | What, why, and how                                                                        |
-| [Project Docs 1. I Thought a Schema and an API Spec Would Do](/en/blog/side-projects/project-docs/project-docs-01-growing-docs/) | From 12 blog documents to six stage documents, migration via docs/old                     |
-| [Project Docs 2. Why I Didn't Split Out ADRs](/en/blog/side-projects/project-docs/project-docs-02-decision-records/)             | Woowangthon ADRs, SDD design rationale, decision entry format                             |
-| [Project Docs 3. A Template Built on Conventions and Standards](/en/blog/side-projects/project-docs/project-docs-03-standards/)  | Conventions and standards, IEEE/ISO mapping, renamed items, the template decided up front |
-| [Project Docs 4. Source in the Repo, Copy in Google Docs](/en/blog/side-projects/project-docs/project-docs-04-docs-sync/)        | One file per section, one-way sync, keyless authentication                                |
+![Migrating via docs/old: #59 move old docs and lay the frame, #60·#62 fill in SRS and SDD, #64 sync, #68 delete old docs](/static/images/project-docs-01-growing-docs/migration.svg)
 
-## By the numbers
+_Migrating via docs/old: #59 move old docs and lay the frame, #60·#62 fill in SRS and SDD, #64 sync, #68 delete old docs_
 
-As of 2026-11-28. Sources are `git ls-tree` and `grep -c` in each repo, and `wc` on the skill files.
+On 2026-11-17 I moved coffee-shop into the new template in one day: isolate the existing documents in `docs/old/` as source material, copy the template and fill in the new documents, then delete the old folder. How they were rewritten is in the coffee-shop series under [rewriting as stage documents](/en/blog/side-projects/coffee-shop/coffee-shop-00-overview/#november-17-rewriting-as-stage-documents).
 
-| Item                                                | Value                                            |
-| --------------------------------------------------- | ------------------------------------------------ |
-| Stage documents                                     | 6 (4 in the 2026-11-15 night draft)              |
-| `TEMPLATES.md`                                      | 941 lines (862 in the first commit)              |
-| Skill `SKILL.md`                                    | 157 lines (240 in the first commit)              |
-| Commits that changed the skill folder               | 13 (2026-11-16 to 11-28)                         |
-| coffee-shop `docs/specs/` files                     | 73 (41 in `docs/` before the migration)          |
-| coffee-shop decision entries                        | 32 in SDD design rationale, 13 in SPMP section 8 |
-| design-system `docs/specs/` files, design rationale | 14, 8 entries                                    |
-| open-calls `docs/specs/` files, design rationale    | 39, 47 entries                                   |
-| Repos using Google Docs sync                        | 3                                                |
+| [PR](glossary:pull-request)                             | What it did                                                                | Size                   |
+| ------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------- |
+| [#59](https://github.com/seren-wib/coffee-shop/pull/59) | Moved the existing `docs/` to `docs/old/` and laid the `docs/specs/` frame | +557 / −10, 94 files   |
+| [#60](https://github.com/seren-wib/coffee-shop/pull/60) | Rewrote the [SRS](glossary:srs)                                            | +554 / −35             |
+| [#62](https://github.com/seren-wib/coffee-shop/pull/62) | Rewrote the [SDD](glossary:sdd)                                            | +2,292 / −51           |
+| [#64](https://github.com/seren-wib/coffee-shop/pull/64) | [Google Docs](glossary:google-docs) sync [CI](glossary:ci)                 | +173 / −7              |
+| [#68](https://github.com/seren-wib/coffee-shop/pull/68) | Deleted `docs/old/`                                                        | +49 / −2,345, 66 files |
 
-## Glossary
+Writing the [SRS](glossary:srs) first is a rule, because the [requirement IDs](glossary:requirement-id) are the keys that connect the other documents. The rewritten [SRS](glossary:srs) held 24 [domain requirements](glossary:domain-requirement), 57 [functional requirements](glossary:functional-requirement), 35 [non-functional requirements](glossary:non-functional-requirement), and 14 [use cases](glossary:use-case), and the [SDD](glossary:sdd) was written with these numbers attached. The reason for deleting the old documents, given in one line in #68: the stage documents replace the old files, and [git](glossary:git) history keeps them. So the new documents have no lines like "see draft no. N" and nothing points to `docs/old/`, and deleting it breaks no links. The same day this order became the [skill](glossary:skill)'s migration rule.
 
-| Term                                                                                                                                                                               | Meaning                                                                                 |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| SDLC                                                                                                                                                                               | All stages of software development, from planning to maintenance                        |
-| Stage document                                                                                                                                                                     | A document produced at each SDLC stage. Here, SPMP·SRS·SDD·STP·SIP·SMP                  |
-| [SRS](/en/blog/cs-fundamentals/software-engineering/software-engineering-ch4-requirements-analysis/#433-step-3-requirements-specification-software-requirements-specification-srs) | Requirements specification. What the system must do                                     |
-| SDD                                                                                                                                                                                | Design specification. How the requirements are implemented                              |
-| Stage gate                                                                                                                                                                         | The rule that the next stage starts only after the previous stage's output is finalized |
-| Requirement ID                                                                                                                                                                     | `DR-n`, `FR-n`, `NFR-n`. The key tests and PRs use to point to requirements             |
-| Skill                                                                                                                                                                              | An instruction file an AI agent opens only for a specific task                          |
+Early on 2026-11-28 the template was revised after two pieces of [feedback from the professor](/en/blog/side-projects/coffee-shop/coffee-shop-00-overview/#professor-feedback-129-130) on the coffee-shop [SDD](glossary:sdd): the parts in the [wireframes](glossary:wireframe) had no numbers, and the class and method specs were mixed in with the [component design](glossary:component-design).
+
+- **Screen part IDs**: every UI part gets an ID like `SCR-01-01`, and the [wireframes](glossary:wireframe) show the same ID. Section numbers can shift, but IDs don't.
+- **Class and module spec section**: one file per module records each public function's [signature](glossary:function-signature), return values and exceptions, and [requirement IDs](glossary:requirement-id), and once written it is checked by script against the list of `def` and `class` in the code.
+
+In coffee-shop this went in through [#129](https://github.com/seren-wib/coffee-shop/pull/129) (+1,059 / −50) and [#130](https://github.com/seren-wib/coffee-shop/pull/130). A repo that already has an [SDD](glossary:sdd) gets the new section at the end, so the class spec is section 12 and [design rationale](glossary:design-rationale) stays at section 11.
+
+## 7. How I use it now
+
+Documents work as a [stage gate](glossary:stage-gate): the next stage starts only after each stage document is finalized, and code is written only after the [SRS](glossary:srs) and [SDD](glossary:sdd) are finalized. Implementation follows [TDD](glossary:tdd).
+
+1. Pick which documents to write. For a small tool or a [static site](glossary:static-site), the plan and [SRS](glossary:srs) are merged into one document and the API and DB sections say "not applicable". With login, payment, or a DB, all six are written.
+2. Requirements come from an interview. Even in a personal project, I play the client and the [agent](glossary:ai-coding-agent) asks the questions.
+3. After copying the template, I write the first word. The repo's `docs/specs/<document>/` is the source, and [Google Docs](glossary:google-docs) is a one-way copy.
+
+Requirement numbers (`FR-12`) are the keys that test names, [PR](glossary:pull-request) descriptions, and the [SDD](glossary:sdd)'s feature subsections use to point at each other. To find one, I open just that line with `grep -rn "FR-12" docs/specs`; the [grep](glossary:grep) result is the trace from requirement to design to test.
+
+This template is used for projects started or migrated on or after 2026-11-16. coffee-shop ([coffee-shop series](/en/blog/side-projects/coffee-shop/coffee-shop-00-overview/)) was the first one moved, and design-system and open-calls (private repos) use it since 11-19. account.stairno.com was the model, but its documents predate the template, so it still has the old structure.
+
+### By the numbers
+
+As of 2026-11-28. Sources are `git ls-tree` and `grep -c` in each repo, and `wc` on the [skill](glossary:skill) files.
+
+| Item                                                                                 | Value                                                                                                          |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Stage documents                                                                      | 6 (4 in the 2026-11-15 night draft)                                                                            |
+| `TEMPLATES.md`                                                                       | 941 lines (862 in the first [commit](glossary:commit)), 6 [commits](glossary:commit)                           |
+| [Skill](glossary:skill) `SKILL.md`                                                   | 157 lines (240 in the first [commit](glossary:commit))                                                         |
+| [Commits](glossary:commit) that changed the [skill](glossary:skill) folder           | 13 (2026-11-16 to 11-28)                                                                                       |
+| coffee-shop `docs/specs/` files                                                      | 73 (41 in `docs/` before the migration)                                                                        |
+| coffee-shop decision entries                                                         | 32 in [SDD](glossary:sdd) [design rationale](glossary:design-rationale), 13 in [SPMP](glossary:spmp) section 8 |
+| design-system `docs/specs/` files, [design rationale](glossary:design-rationale)     | 14, 8 entries                                                                                                  |
+| open-calls `docs/specs/` files, [design rationale](glossary:design-rationale)        | 39, 47 entries                                                                                                 |
+| account.stairno.com [SDD](glossary:sdd) [decision records](glossary:decision-record) | 25 entries                                                                                                     |
+| Repos using [Google Docs](glossary:google-docs) sync                                 | 3                                                                                                              |
+
+## 8. Reflection
+
+My first idea wasn't wrong: a [schema](glossary:schema) and an [API spec](glossary:api-specification) were enough for one static blog, but once people grew, decisions piled up, and deployment and operations came in, documents that only said "what to build" could not answer "why was it built this way" or "how do we check it".

@@ -8,135 +8,135 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
 
 # 3.1 Computer Organization and Data Processing
 
-**Computer organization → memory hierarchy → how data is processed → the stored-program concept**
+**Computer organization → [memory hierarchy](glossary:memory-hierarchy) → how data is processed → the stored-program concept**
 
 ## 3.1.1 Computer Architecture
 
-**1. Computer Organization and the CPU**
+**1. Computer Organization and the [CPU](glossary:cpu)**
 
 - Components of a computer
 
-  | Component       | Role                                                 |
-  | --------------- | ---------------------------------------------------- |
-  | **CPU**         | Interprets and executes instructions, processes data |
-  | **Main memory** | Holds the running program and its data               |
-  | **I/O devices** | Exchange data with the outside world                 |
-  | **Bus**         | Carries information between components               |
+  | Component                               | Role                                                 |
+  | --------------------------------------- | ---------------------------------------------------- |
+  | **[CPU](glossary:cpu)**                 | Interprets and executes instructions, processes data |
+  | **[Main memory](glossary:main-memory)** | Holds the running program and its data               |
+  | **I/O devices**                         | Exchange data with the outside world                 |
+  | **[Bus](glossary:bus)**                 | Carries information between components               |
 
-- CPU
+- [CPU](glossary:cpu)
   - Key roles: **executing instructions, processing data, controlling operations**
 
-  | Part             | Role                                                                         |
-  | ---------------- | ---------------------------------------------------------------------------- |
-  | **Control Unit** | Decodes instructions, generates signals that control the order of operations |
-  | **ALU**          | Performs arithmetic, logic, comparison and bit-shift operations              |
-  | **Register**     | Temporarily holds values in immediate use and intermediate results           |
-  - **Example**: for c = a + b, the **control unit** fetches the values and orders an addition, the **registers** hold a and b, and the **ALU** adds them and puts the result back in a register.
+  | Part                                      | Role                                                                                            |
+  | ----------------------------------------- | ----------------------------------------------------------------------------------------------- |
+  | **[Control Unit](glossary:control-unit)** | [Decodes](glossary:decode) instructions, generates signals that control the order of operations |
+  | **[ALU](glossary:alu)**                   | Performs arithmetic, logic, comparison and bit-[shift](glossary:logical-shift) operations       |
+  | **[Register](glossary:register)**         | Temporarily holds values in immediate use and intermediate results                              |
+  - **Example**: for c = a + b, the **[control unit](glossary:control-unit)** fetches the values and orders an addition, the **[registers](glossary:register)** hold a and b, and the **[ALU](glossary:alu)** adds them and puts the result back in a [register](glossary:register).
 
-- Registers
-  - Why they are used: much faster than main memory
-  - **General-purpose registers**: used for many things, such as variable values and calculation results
-  - **Special-purpose registers**: have a fixed role. PC and IR are examples.
+- [Registers](glossary:register)
+  - Why they are used: much faster than [main memory](glossary:main-memory)
+  - **[General-purpose registers](glossary:general-purpose-register)**: used for many things, such as variable values and calculation results
+  - **Special-purpose [registers](glossary:register)**: have a fixed role. [PC](glossary:program-counter) and [IR](glossary:instruction-register) are examples.
 
-    | Special-purpose register     | What it holds                                                  |
-    | ---------------------------- | -------------------------------------------------------------- |
-    | **PC(Program Counter)**      | **Address of the next instruction** to fetch                   |
-    | **IR(Instruction Register)** | **The instruction itself** currently being decoded or executed |
-    - The CPU fetches the instruction at the address in PC, puts it in IR, and decodes it.
-    - PC normally moves to the next instruction's address, but a branch can change it to another address.
+    | Special-purpose [register](glossary:register)                                                  | What it holds                                                  |
+    | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+    | **[PC](glossary:program-counter)([Program Counter](glossary:program-counter))**                | **Address of the next instruction** to [fetch](glossary:fetch) |
+    | **[IR](glossary:instruction-register)([Instruction Register](glossary:instruction-register))** | **The instruction itself** currently being decoded or executed |
+    - The [CPU](glossary:cpu) fetches the instruction at the address in [PC](glossary:program-counter), puts it in [IR](glossary:instruction-register), and decodes it.
+    - [PC](glossary:program-counter) normally moves to the next instruction's address, but a [branch](glossary:branch) can change it to another address.
 
 **2. The Memory Hierarchy**
 
 - Hierarchy table
   - Speed, capacity and cost per bit trade off against each other → several kinds of memory are organized in layers
-  - Closer to the CPU means faster, smaller and more expensive; farther means slower, larger and cheaper → frequently used data stays close to the CPU
+  - Closer to the [CPU](glossary:cpu) means faster, smaller and more expensive; farther means slower, larger and cheaper → frequently used data stays close to the [CPU](glossary:cpu)
 
-  | Level             | Distance from CPU | Speed           | Capacity   | Cost per bit   |
-  | ----------------- | ----------------- | --------------- | ---------- | -------------- |
-  | Register          | Closest           | Fastest         | Smallest   | Most expensive |
-  | Cache memory      | Very close        | Very fast       | Small      | Expensive      |
-  | Main memory       | Middle            | Fast            | Large      | Moderate       |
-  | Secondary storage | Far               | Relatively slow | Very large | Cheap          |
+  | Level                               | Distance from [CPU](glossary:cpu) | Speed           | Capacity   | Cost per bit   |
+  | ----------------------------------- | --------------------------------- | --------------- | ---------- | -------------- |
+  | [Register](glossary:register)       | Closest                           | Fastest         | Smallest   | Most expensive |
+  | [Cache memory](glossary:cache)      | Very close                        | Very fast       | Small      | Expensive      |
+  | [Main memory](glossary:main-memory) | Middle                            | Fast            | Large      | Moderate       |
+  | Secondary storage                   | Far                               | Relatively slow | Very large | Cheap          |
 
-- **Cache Memory**: high-speed memory inside the CPU chip
+- **Cache Memory**: high-speed memory inside the [CPU](glossary:cpu) chip
   - Temporarily stores **copies** of instructions and data likely to be used often
-  - Reduces main-memory accesses, easing the speed gap between the CPU and main memory
+  - Reduces main-memory accesses, easing the speed gap between the [CPU](glossary:cpu) and [main memory](glossary:main-memory)
 
-- Cache hit / miss: when the CPU needs data, it checks the cache first
-  - **Cache Hit**: it is in the cache → use it right away
-  - **Cache Miss**: it is not → fetch it from a lower-level cache or main memory
+- [Cache hit](glossary:cache-hit) / [miss](glossary:cache-miss): when the [CPU](glossary:cpu) needs data, it checks the [cache](glossary:cache) first
+  - **Cache Hit**: it is in the [cache](glossary:cache) → use it right away
+  - **[Cache Miss](glossary:cache-miss)**: it is not → [fetch](glossary:fetch) it from a lower-level [cache](glossary:cache) or [main memory](glossary:main-memory)
 
-- **Locality**: the tendency to reuse recently used or nearby data. This is why caches work
-  - **Temporal locality**: data used recently will be used again soon. e.g. a loop counter i
-  - **Spatial locality**: when one location is used, nearby locations are used soon. e.g. scanning an array in order
-  - Arrays are stored contiguously → reading arr[0] also brings nearby elements into the cache → arr[1], arr[2] are hits
+- **[Locality](glossary:locality-of-reference)**: the tendency to reuse recently used or nearby data. This is why [caches](glossary:cache) work
+  - **[Temporal locality](glossary:temporal-locality)**: data used recently will be used again soon. e.g. a loop counter i
+  - **[Spatial locality](glossary:spatial-locality)**: when one location is used, nearby locations are used soon. e.g. scanning an array in order
+  - Arrays are stored contiguously → reading arr[0] also brings nearby elements into the [cache](glossary:cache) → arr[1], arr[2] are [hits](glossary:cache-hit)
   - Even with the same number of operations, run time changes with the memory access pattern
 
-- L1 / L2 / L3
+- [L1](glossary:l1-cache) / [L2](glossary:l2-cache) / [L3](glossary:l3-cache)
 
-  | Level | Location / traits               | Speed           | Capacity       |
-  | ----- | ------------------------------- | --------------- | -------------- |
-  | L1    | Closest to each core            | Fastest         | Smallest       |
-  | L2    | Usually close to each core      | Fast            | Larger than L1 |
-  | L3    | Usually shared by several cores | Relatively slow | Largest        |
-  - L1 → L2 → L3 → DRAM gets slower and larger (actual layout depends on the CPU design)
+  | Level                   | Location / traits               | Speed           | Capacity                            |
+  | ----------------------- | ------------------------------- | --------------- | ----------------------------------- |
+  | [L1](glossary:l1-cache) | Closest to each core            | Fastest         | Smallest                            |
+  | [L2](glossary:l2-cache) | Usually close to each core      | Fast            | Larger than [L1](glossary:l1-cache) |
+  | [L3](glossary:l3-cache) | Usually shared by several cores | Relatively slow | Largest                             |
+  - [L1](glossary:l1-cache) → [L2](glossary:l2-cache) → [L3](glossary:l3-cache) → [DRAM](glossary:dram) gets slower and larger (actual layout depends on the [CPU](glossary:cpu) design)
 
 **3. How Data Is Processed**
 
-- Basic flow of a data operation: to compute, the CPU must bring the data inside the CPU
-  1. **Check the cache**: on a cache hit use it right away; on a cache miss fetch it from main memory (DRAM)
-  2. **Load into registers**: the ALU computes only with register values
-  3. **Compute in the ALU**: the control unit decides the operation, the ALU computes with register data
-  4. **Store the result**: it goes into a register first, then to cache and main memory if needed
-  - Data path: **main memory ↔ cache ↔ register ↔ ALU**
+- Basic flow of a data operation: to compute, the [CPU](glossary:cpu) must bring the data inside the [CPU](glossary:cpu)
+  1. **Check the [cache](glossary:cache)**: on a [cache hit](glossary:cache-hit) use it right away; on a [cache miss](glossary:cache-miss) [fetch](glossary:fetch) it from [main memory](glossary:main-memory) ([DRAM](glossary:dram))
+  2. **Load into [registers](glossary:register)**: the [ALU](glossary:alu) computes only with [register](glossary:register) values
+  3. **Compute in the [ALU](glossary:alu)**: the [control unit](glossary:control-unit) decides the operation, the [ALU](glossary:alu) computes with [register](glossary:register) data
+  4. **Store the result**: it goes into a [register](glossary:register) first, then to [cache](glossary:cache) and [main memory](glossary:main-memory) if needed
+  - Data path: **[main memory](glossary:main-memory) ↔ [cache](glossary:cache) ↔ [register](glossary:register) ↔ [ALU](glossary:alu)**
 
-- **Bus**: a shared communication path that carries information between the CPU, memory and I/O devices. Data, addresses and control signals all travel on it.
-  - Address bus (which slot), data bus (the value), control bus (read/write signal)
+- **[Bus](glossary:bus)**: a shared communication path that carries information between the [CPU](glossary:cpu), memory and I/O devices. Data, addresses and control signals all travel on it.
+  - [Address bus](glossary:address-bus) (which slot), [data bus](glossary:data-bus) (the value), [control bus](glossary:control-bus) (read/write signal)
 
-- **Memory read: CPU -bus(read signal, address)-> DRAM -bus(data)-> CPU**
-- **Memory write: CPU -bus(write signal, address, data)-> DRAM**
-  - A read gets data back from DRAM; a write ends once the CPU has sent everything
+- **Memory read: [CPU](glossary:cpu) -[bus](glossary:bus)(read signal, address)-> [DRAM](glossary:dram) -[bus](glossary:bus)(data)-> [CPU](glossary:cpu)**
+- **Memory write: [CPU](glossary:cpu) -[bus](glossary:bus)(write signal, address, data)-> [DRAM](glossary:dram)**
+  - A read gets data back from [DRAM](glossary:dram); a write ends once the [CPU](glossary:cpu) has sent everything
 
-- **Von Neumann Architecture**: an architecture where programs and data are stored in the same main memory and the CPU fetches and processes them sequentially
-  - **Von Neumann Bottleneck**: **when memory access is slow compared to CPU speed, the CPU spends time waiting for data**
+- **Von Neumann Architecture**: an architecture where programs and data are stored in the same [main memory](glossary:main-memory) and the [CPU](glossary:cpu) fetches and processes them sequentially
+  - **Von Neumann Bottleneck**: **when memory access is slow compared to [CPU](glossary:cpu) speed, the [CPU](glossary:cpu) spends time waiting for data**
 
 # 3.2 Machine Language
 
-**The CPU decodes and executes instructions expressed as bit patterns**
+**The [CPU](glossary:cpu) decodes and executes instructions expressed as bit patterns**
 
 ## 3.2.1 Machine Language and Machine Instructions
 
-- **Machine Language**: instructions the CPU can understand and execute directly
-- **Machine Instruction**: one basic task the CPU performs
-- **Structure of a machine instruction**: **what** to do + **which data** to do it on
+- **Machine Language**: instructions the [CPU](glossary:cpu) can understand and execute directly
+- **Machine Instruction**: one basic task the [CPU](glossary:cpu) performs
+- **Structure of a [machine instruction](glossary:machine-instruction)**: **what** to do + **which data** to do it on
 
-  | Part        | Meaning                                         | Example                               |
-  | ----------- | ----------------------------------------------- | ------------------------------------- |
-  | **Opcode**  | Kind of operation to perform                    | Data move, store, operation, branch   |
-  | **Operand** | Information about the target of the instruction | Data, register number, memory address |
-  - e.g. `ADD R3, R1, R2` → ADD: addition (opcode), R1·R2: input operands, R3: destination register for the result
+  | Part                            | Meaning                                         | Example                                                    |
+  | ------------------------------- | ----------------------------------------------- | ---------------------------------------------------------- |
+  | **[Opcode](glossary:opcode)**   | Kind of operation to perform                    | Data move, store, operation, [branch](glossary:branch)     |
+  | **[Operand](glossary:operand)** | Information about the target of the instruction | Data, [register](glossary:register) number, memory address |
+  - e.g. `ADD R3, R1, R2` → ADD: addition ([opcode](glossary:opcode)), R1·R2: input [operands](glossary:operand), R3: destination [register](glossary:register) for the result
 
 ## 3.2.2 Kinds of Machine Instructions
 
 - **Data Transfer instructions**
   - The original data does not disappear; the value is **copied**
-  - **LOAD**: memory → register (`LOAD R1, [A]`)
-  - **STORE**: register → memory (`STORE R1, [C]`)
-  - **MOVE(MOV)**: copy between registers (`MOV R2, R1`: R1's value into R2)
-  - I/O instructions: exchange data with keyboard, disk and network devices. Handling differs by ISA and system
+  - **LOAD**: memory → [register](glossary:register) (`LOAD R1, [A]`)
+  - **STORE**: [register](glossary:register) → memory (`STORE R1, [C]`)
+  - **MOVE(MOV)**: copy between [registers](glossary:register) (`MOV R2, R1`: R1's value into R2)
+  - I/O instructions: exchange data with keyboard, disk and network devices. Handling differs by [ISA](glossary:isa) and system
 
 - **Arithmetic / Logic instructions**
   - ADD / SUB, MUL / DIV: the four arithmetic operations (`ADD R3, R1, R2`: R3 ← R1 + R2)
-  - AND / OR / XOR: bitwise logic operations
+  - [AND](glossary:bitwise-operation) / OR / [XOR](glossary:bitwise-operation): [bitwise](glossary:bitwise-operation) logic operations
   - SHIFT: move bits left/right
   - ROTATE: put shifted-out bits back in on the other side
 
 - **Control instructions**: change the program's execution order
-  - **Conditional Branch**: change the next instruction based on a condition. Implements C's if, while, for
-  - **Unconditional Jump**: move to a given location without a condition. Function calls, loops and branches
+  - **Conditional [Branch](glossary:branch)**: change the next instruction based on a condition. Implements C's if, while, for
+  - **Unconditional Jump**: move to a given location without a condition. Function calls, loops and [branches](glossary:branch)
   - End program execution (HALT)
 
-- Addition example C = A + B: Memory A/B → Registers → ADD → Register → Memory C
+- Addition example C = A + B: Memory A/B → [Registers](glossary:register) → ADD → [Register](glossary:register) → Memory C
 
   | Step             | Instruction      |
   | ---------------- | ---------------- |
@@ -146,128 +146,128 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
   | R3 into memory C | `STORE R3, [C]`  |
   | Stop             | `HALT`           |
 
-- Division example C = A / B: Memory A, B → Registers → **zero check** → DIV → Register → Memory C
+- Division example C = A / B: Memory A, B → [Registers](glossary:register) → **zero check** → DIV → [Register](glossary:register) → Memory C
 
-  | Step                               | Instruction         |
-  | ---------------------------------- | ------------------- |
-  | Memory A into R1                   | `LOAD R1, [A]`      |
-  | Memory B into R2                   | `LOAD R2, [B]`      |
-  | If R2 is 0, jump to error handling | `JUMP R2, DIV_ZERO` |
-  | R1 / R2 → R3                       | `DIV R3, R1, R2`    |
-  | R3 into memory C                   | `STORE R3, [C]`     |
-  | Stop                               | `HALT`              |
+  | Step                                                  | Instruction         |
+  | ----------------------------------------------------- | ------------------- |
+  | Memory A into R1                                      | `LOAD R1, [A]`      |
+  | Memory B into R2                                      | `LOAD R2, [B]`      |
+  | If R2 is 0, [jump](glossary:branch) to error handling | `JUMP R2, DIV_ZERO` |
+  | R1 / R2 → R3                                          | `DIV R3, R1, R2`    |
+  | R3 into memory C                                      | `STORE R3, [C]`     |
+  | Stop                                                  | `HALT`              |
 
-- Even one C statement runs as several machine instructions
+- Even one C statement runs as several [machine instructions](glossary:machine-instruction)
 
 ## 3.2.3 RISC and CISC
 
-- **ISA (Instruction Set Architecture)**: the contract between the CPU and programs
-- Two approaches to CPU instruction design
-  - **RISC (Reduced Instruction Set Computer)**: centered on simple, regular instructions
-  - **CISC (Complex Instruction Set Computer)**: supports varied, compound instructions
+- **[ISA](glossary:isa) ([Instruction Set Architecture](glossary:isa))**: the contract between the [CPU](glossary:cpu) and programs
+- Two approaches to [CPU](glossary:cpu) instruction design
+  - **[RISC](glossary:risc) (Reduced Instruction Set Computer)**: centered on simple, regular instructions
+  - **[CISC](glossary:cisc) (Complex Instruction Set Computer)**: supports varied, compound instructions
 
-- **ARM architecture**: a RISC-family ISA developed by Arm. Focuses on energy efficiency; the leading modern RISC family
+- **[ARM](glossary:arm) architecture**: a [RISC](glossary:risc)-family [ISA](glossary:isa) developed by Arm. Focuses on energy efficiency; the leading modern [RISC](glossary:risc) family
 
 ## 3.2.4 A Virtual Machine Language
 
 - Virtual computer setup
-  - Main memory of 256 cells, addresses 00 ~ FF
-  - 16 general-purpose registers, numbered 0 ~ F. Plus PC and the instruction register (IR)
+  - [Main memory](glossary:main-memory) of 256 cells, addresses 00 ~ FF
+  - 16 [general-purpose registers](glossary:general-purpose-register), numbered 0 ~ F. Plus [PC](glossary:program-counter) and the [instruction register](glossary:instruction-register) ([IR](glossary:instruction-register))
   - Instruction length 16 bits = 2 bytes = 4 hex digits
 
 - Instruction structure
   - **One hex digit = 4 bits**
-  - **op-code**: the first 4 bits, which instruction it is (16 possible instructions)
-  - **operand**: the remaining 12 bits = 4 bits (register number) + 8 bits (memory address/value)
+  - **[op-code](glossary:opcode)**: the first 4 bits, which instruction it is (16 possible instructions)
+  - **[operand](glossary:operand)**: the remaining 12 bits = 4 bits ([register](glossary:register) number) + 8 bits (memory address/value)
 
-  | Bit position | 15 ~ 12        | 11 ~ 8      | 7 ~ 0          |
-  | ------------ | -------------- | ----------- | -------------- |
-  | Field        | op-code        | Register    | Address/value  |
-  | **35A7**     | 0011 (3) STORE | 0101 (5) R5 | 1010 0111 (A7) |
+  | Bit position | 15 ~ 12                    | 11 ~ 8                        | 7 ~ 0          |
+  | ------------ | -------------------------- | ----------------------------- | -------------- |
+  | Field        | [op-code](glossary:opcode) | [Register](glossary:register) | Address/value  |
+  | **35A7**     | 0011 (3) STORE             | 0101 (5) R5                   | 1010 0111 (A7) |
 
-  | Instruction | Form                 | Meaning                                          |
-  | ----------- | -------------------- | ------------------------------------------------ |
-  | 1RXY        | LOAD R, MEM          | R ← value at address XY                          |
-  | 2RXY        | LOAD R, VAL          | R ← value XY (1 byte)                            |
-  | 3RXY        | STORE R, MEM         | Address XY ← value of R                          |
-  | 40RS        | MOVE R, S            | S ← value of R                                   |
-  | 5RST        | ADD R, S, T          | R ← S + T (two's complement addition)            |
-  | 6RST        | ADDF R, S, T         | R ← S + T (floating-point addition)              |
-  | 7RST        | OR R, S, T           | R ← S OR T                                       |
-  | 8RST        | AND R, S, T          | R ← S AND T                                      |
-  | 9RST        | XOR R, S, T          | R ← S XOR T                                      |
-  | AR0X        | ROT R, X             | Rotate R right by X bits                         |
-  | BRXY        | JUMP R, ADDR         | Branch to address XY if R = R0                   |
-  | B0XY        | Unconditional branch | Branch to address XY (always true since R0 = R0) |
-  | C000        | HALT                 | Stop                                             |
+  | Instruction | Form                                      | Meaning                                                             |
+  | ----------- | ----------------------------------------- | ------------------------------------------------------------------- |
+  | 1RXY        | LOAD R, MEM                               | R ← value at address XY                                             |
+  | 2RXY        | LOAD R, VAL                               | R ← value XY (1 byte)                                               |
+  | 3RXY        | STORE R, MEM                              | Address XY ← value of R                                             |
+  | 40RS        | MOVE R, S                                 | S ← value of R                                                      |
+  | 5RST        | ADD R, S, T                               | R ← S + T ([two's complement](glossary:twos-complement) addition)   |
+  | 6RST        | ADDF R, S, T                              | R ← S + T ([floating-point](glossary:floating-point) addition)      |
+  | 7RST        | OR R, S, T                                | R ← S OR T                                                          |
+  | 8RST        | [AND](glossary:bitwise-operation) R, S, T | R ← S [AND](glossary:bitwise-operation) T                           |
+  | 9RST        | [XOR](glossary:bitwise-operation) R, S, T | R ← S [XOR](glossary:bitwise-operation) T                           |
+  | AR0X        | ROT R, X                                  | [Rotate](glossary:rotate) R right by X bits                         |
+  | BRXY        | JUMP R, ADDR                              | [Branch](glossary:branch) to address XY if R = R0                   |
+  | B0XY        | Unconditional [branch](glossary:branch)   | [Branch](glossary:branch) to address XY (always true since R0 = R0) |
+  | C000        | HALT                                      | Stop                                                                |
 
 - Decoding examples
-  - **35A7**: 3 = STORE, 5 = register 5, A7 = address → store the contents of register 5 at address A7
-  - **B34C**: if register 3 equals register 0, branch to address 4C
-  - **B04C**: branch to address 4C unconditionally
-  - When a branch is taken, PC is set to the given address instead of incrementing
+  - **35A7**: 3 = STORE, 5 = [register](glossary:register) 5, A7 = address → store the contents of [register](glossary:register) 5 at address A7
+  - **B34C**: if [register](glossary:register) 3 equals [register](glossary:register) 0, [branch](glossary:branch) to address 4C
+  - **B04C**: [branch](glossary:branch) to address 4C unconditionally
+  - When a [branch](glossary:branch) is taken, [PC](glossary:program-counter) is set to the given address instead of incrementing
 
 - Usage example: c = a + b
 
-  | Machine instruction | Description                                                                |
-  | ------------------- | -------------------------------------------------------------------------- |
-  | 156C                | LOAD the value at address 6C into register 5                               |
-  | 166D                | LOAD the value at address 6D into register 6                               |
-  | 5056                | Register 5 + register 6 (two's complement addition) → register 0           |
-  | 306E                | **STORE register 0's value at address 6E** (STORE always writes to memory) |
-  | C000                | Stop                                                                       |
+  | [Machine instruction](glossary:machine-instruction) | Description                                                                                                                                                 |
+  | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | 156C                                                | LOAD the value at address 6C into [register](glossary:register) 5                                                                                           |
+  | 166D                                                | LOAD the value at address 6D into [register](glossary:register) 6                                                                                           |
+  | 5056                                                | [Register](glossary:register) 5 + [register](glossary:register) 6 ([two's complement](glossary:twos-complement) addition) → [register](glossary:register) 0 |
+  | 306E                                                | **STORE [register](glossary:register) 0's value at address 6E** (STORE always writes to memory)                                                             |
+  | C000                                                | Stop                                                                                                                                                        |
 
-- **Decoding order: check the opcode → split the fields → interpret registers/addresses → trace the data flow**
+- **Decoding order: check the [opcode](glossary:opcode) → split the fields → interpret [registers](glossary:register)/addresses → trace the data flow**
 
 # 3.3 Program Execution
 
-**A program is loaded into main memory, then runs by fetching, decoding and executing the instruction PC points to, one at a time**
+**A program is loaded into [main memory](glossary:main-memory), then runs by fetching, decoding and executing the instruction [PC](glossary:program-counter) points to, one at a time**
 
 ![Registers used to run a program](/static/images/computer-systems-ch3-computer-organization/program-registers.svg)
 
 - ① Run request → the OS loads it into RAM
-- ② **Machine cycle**: fetch → decode → execute, repeated (until HALT)
-  - **Fetch**: the instruction at the address in **PC** → **IR**, and PC immediately goes +2 (an instruction is 2 B and a cell is 1 B, so two cells)
-  - **Decode**: the control unit reads the op-code at the front of IR and decides what to do (e.g. `1` → LOAD)
-  - **Execute**: the actual action (data move, operation, store, branch)
-- ③ Values to compute and their results live in **general-purpose registers** (RAM ↔ register via LOAD and STORE)
-- ④ Whether the result is zero, negative, carried out or overflowed is recorded in the **status register** flags (Z·N·C·V)
-- ⑤ **Branch**: JUMP reads the flags and changes PC to another address → `if`, `while` and function calls are all built on this
-  - Controlling program flow = deciding where to send PC
+- ② **[Machine cycle](glossary:machine-cycle)**: [fetch](glossary:fetch) → [decode](glossary:decode) → execute, repeated (until HALT)
+  - **[Fetch](glossary:fetch)**: the instruction at the address in **[PC](glossary:program-counter)** → **[IR](glossary:instruction-register)**, and [PC](glossary:program-counter) immediately goes +2 (an instruction is 2 B and a cell is 1 B, so two cells)
+  - **[Decode](glossary:decode)**: the [control unit](glossary:control-unit) reads the [op-code](glossary:opcode) at the front of [IR](glossary:instruction-register) and decides what to do (e.g. `1` → LOAD)
+  - **Execute**: the actual action (data move, operation, store, [branch](glossary:branch))
+- ③ Values to compute and their results live in **[general-purpose registers](glossary:general-purpose-register)** (RAM ↔ [register](glossary:register) via LOAD and STORE)
+- ④ Whether the result is zero, negative, carried out or overflowed is recorded in the **[status register](glossary:status-register)** flags (Z·N·C·V)
+- ⑤ **[Branch](glossary:branch)**: JUMP reads the flags and changes [PC](glossary:program-counter) to another address → `if`, `while` and function calls are all built on this
+  - Controlling program flow = deciding where to send [PC](glossary:program-counter)
 
 - Example: `[6C] + [6D] → [6E]`
 
-| PC at start | Instruction | After fetch | Decode           | Execute        |
-| ----------- | ----------- | ----------- | ---------------- | -------------- |
-| `A0`        | `156C`      | `PC=A2`     | `LOAD R5, [6C]`  | `R5 ← [6C]`    |
-| `A2`        | `166D`      | `PC=A4`     | `LOAD R6, [6D]`  | `R6 ← [6D]`    |
-| `A4`        | `5056`      | `PC=A6`     | `ADD R0, R5, R6` | `R0 ← R5 + R6` |
-| `A6`        | `306E`      | `PC=A8`     | `STORE R0, [6E]` | `[6E] ← R0`    |
-| `A8`        | `C000`      | `PC=AA`     | `HALT`           | Program ends   |
+| [PC](glossary:program-counter) at start | Instruction | After [fetch](glossary:fetch) | [Decode](glossary:decode) | Execute        |
+| --------------------------------------- | ----------- | ----------------------------- | ------------------------- | -------------- |
+| `A0`                                    | `156C`      | `PC=A2`                       | `LOAD R5, [6C]`           | `R5 ← [6C]`    |
+| `A2`                                    | `166D`      | `PC=A4`                       | `LOAD R6, [6D]`           | `R6 ← [6D]`    |
+| `A4`                                    | `5056`      | `PC=A6`                       | `ADD R0, R5, R6`          | `R0 ← R5 + R6` |
+| `A6`                                    | `306E`      | `PC=A8`                       | `STORE R0, [6E]`          | `[6E] ← R0`    |
+| `A8`                                    | `C000`      | `PC=AA`                       | `HALT`                    | Program ends   |
 
 # 3.4 Arithmetic and Logic Instructions
 
-**CPU operations are bit-pattern transformations done by the ALU within a fixed number of bits + recording status flags**
+**[CPU](glossary:cpu) operations are bit-pattern transformations done by the [ALU](glossary:alu) within a fixed number of bits + recording status flags**
 
 - Kinds of operation instructions
 
-  | Kind                      | Typical instructions              | Main use                                  |
-  | ------------------------- | --------------------------------- | ----------------------------------------- |
-  | **Logic operations**      | `AND`, `OR`, `XOR`, `NOT`         | Test, set, flip specific bits             |
-  | **Shift operations**      | `SHL`, `SHR`, `SAR`, `ROL`, `ROR` | Moving bits, bit manipulation             |
-  | **Arithmetic operations** | `ADD`, `SUB`, `MUL`, `DIV`        | Integer and real-number calculation       |
-  | **Comparison operations** | `CMP`, `TEST`                     | Check results before a conditional branch |
+  | Kind                      | Typical instructions              | Main use                                                     |
+  | ------------------------- | --------------------------------- | ------------------------------------------------------------ |
+  | **Logic operations**      | `AND`, `OR`, `XOR`, `NOT`         | Test, set, flip specific bits                                |
+  | **Shift operations**      | `SHL`, `SHR`, `SAR`, `ROL`, `ROR` | Moving bits, bit manipulation                                |
+  | **Arithmetic operations** | `ADD`, `SUB`, `MUL`, `DIV`        | Integer and real-number calculation                          |
+  | **Comparison operations** | `CMP`, `TEST`                     | Check results before a conditional [branch](glossary:branch) |
 
 ## 3.4.1 Logic Operations
 
-- **Logical Operation**: an operation done independently on each bit position. Used to **manipulate bit states** rather than compute magnitudes
+- **[Logical Operation](glossary:bitwise-operation)**: an operation done independently on each bit position. Used to **manipulate bit states** rather than compute magnitudes
 
-  | Operation     | Result is 1 when          | Use in bit masking                                                | Example (`x = 01011001`)                               |
-  | ------------- | ------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------ |
-  | **AND (`&`)** | Both bits are 1           | **Keep (extract) only the wanted bits** / clear the rest to 0     | `01011001 & 00001111 = 00001001` (extract low 4 bits)  |
-  | **OR (`\|`)** | At least one is 1         | **Set specific bits to 1**                                        | `01011001 \| 10000000 = 11011001` (set the top bit)    |
-  | **XOR (`^`)** | The bits differ           | **Flip specific bits** (only where the mask is 1), compare values | `01011001 ^ 00000001 = 01011000` (flip the lowest bit) |
-  | **NOT (`~`)** | Opposite of the input bit | **Flip every bit**                                                | `~01011001 = 10100110`                                 |
+  | Operation                                   | Result is 1 when          | Use in [bit masking](glossary:bit-masking)                                                | Example (`x = 01011001`)                               |
+  | ------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+  | **[AND](glossary:bitwise-operation) (`&`)** | Both bits are 1           | **Keep (extract) only the wanted bits** / clear the rest to 0                             | `01011001 & 00001111 = 00001001` (extract low 4 bits)  |
+  | **OR (`\|`)**                               | At least one is 1         | **Set specific bits to 1**                                                                | `01011001 \| 10000000 = 11011001` (set the top bit)    |
+  | **[XOR](glossary:bitwise-operation) (`^`)** | The bits differ           | **Flip specific bits** (only where the [mask](glossary:bit-masking) is 1), compare values | `01011001 ^ 00000001 = 01011000` (flip the lowest bit) |
+  | **NOT (`~`)**                               | Opposite of the input bit | **Flip every bit**                                                                        | `~01011001 = 10100110`                                 |
 
 - **Checking bit states**: check whether a specific bit is 0 or 1, like a switch (using `AND`)
   - Odd/even check: test the rightmost bit (LSB) with `n & 1` → `1` means odd (`0111 & 0001 = 0001`), `0` means even (`0110 & 0001 = 0000`)
@@ -275,20 +275,20 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
 
 ## 3.4.2 Shift and Rotate Operations
 
-- **Shift and Rotate**: move bits left/right. A plain shift drops the bits pushed out and fills the empty spots; a rotate puts the pushed-out bits back in at the other end
+- **Shift and [Rotate](glossary:rotate)**: move bits left/right. A plain [shift](glossary:logical-shift) drops the bits pushed out and fills the empty spots; a [rotate](glossary:rotate) puts the pushed-out bits back in at the other end
 
-| Kind                       | Direction / instruction | Filling empty bits                                | Effect and main use                                                                                       |
-| -------------------------- | ----------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| **Logical left shift**     | `SHL` (`<<`)            | Always inserts **0** on the right                 | **×2 effect** within range (bits beyond the width are lost → not always double)                           |
-| **Logical right shift**    | `SHR` (`>>`)            | Always inserts **0** on the left                  | **÷2 quotient** effect on **unsigned integers** (`54(00110110) >> 1 → 27(00011011)`)                      |
-| **Arithmetic right shift** | `SAR`                   | **Copies the top sign bit (MSB)** into the left   | Keeps the sign of **signed (two's complement) integers** + **÷2 effect** (`-12(11110100) → -6(11111010)`) |
-| **Rotate left/right**      | `ROL` / `ROR`           | **Puts the pushed-out bit back at the other end** | Rearranging bits, mixing bits in encryption, hash functions (`ROL`: MSB→LSB, `ROR`: LSB→MSB)              |
+| Kind                                                 | Direction / instruction | Filling empty bits                                | Effect and main use                                                                                                                   |
+| ---------------------------------------------------- | ----------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Logical left [shift](glossary:logical-shift)**     | `SHL` (`<<`)            | Always inserts **0** on the right                 | **×2 effect** within range (bits beyond the width are lost → not always double)                                                       |
+| **Logical right [shift](glossary:logical-shift)**    | `SHR` (`>>`)            | Always inserts **0** on the left                  | **÷2 quotient** effect on **unsigned integers** (`54(00110110) >> 1 → 27(00011011)`)                                                  |
+| **Arithmetic right [shift](glossary:logical-shift)** | `SAR`                   | **Copies the top sign bit (MSB)** into the left   | Keeps the sign of **signed ([two's complement](glossary:twos-complement)) integers** + **÷2 effect** (`-12(11110100) → -6(11111010)`) |
+| **[Rotate](glossary:rotate) left/right**             | `ROL` / `ROR`           | **Puts the pushed-out bit back at the other end** | Rearranging bits, mixing bits in encryption, hash functions (`ROL`: MSB→LSB, `ROR`: LSB→MSB)                                          |
 
 ## 3.4.3 Arithmetic Operations
 
 - **Integer arithmetic**: in the end a combination of binary addition, subtraction and shifts
-  - **Addition (`ADD`)**: the ALU computes each bit's sum and carry
-  - **Subtraction (`SUB`)**: instead of a separate subtraction circuit, **adds the two's complement and reuses the adder** (`A - B = A + (-B)`)
+  - **Addition (`ADD`)**: the [ALU](glossary:alu) computes each bit's sum and carry
+  - **Subtraction (`SUB`)**: instead of a separate subtraction circuit, **adds the [two's complement](glossary:twos-complement) and reuses the adder** (`A - B = A + (-B)`)
   - **Multiplication (`MUL`)**: **Shift + Add**, checking each bit, shifting left and adding (e.g. `13 × 5 = 13 × (4 + 1) = (13 << 2) + 13`)
   - **Division (`DIV`)**: **Shift + Subtract**, repeatedly subtracting the divisor to decide each quotient bit
 
@@ -326,13 +326,13 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
   quotient 0010 = 2, remainder 11 = 3
   ```
 
-- **Integer vs floating-point operations**
+- **Integer vs [floating-point](glossary:floating-point) operations**
 
-  | Aspect         | Integer operation (`29 + 13`)                   | Floating Point operation (`3.14 + 2.75`)                                                                             |
-  | -------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-  | Representation | Integer bit pattern                             | Sign, exponent, mantissa                                                                                             |
-  | Process        | Centered on binary addition (computed directly) | **Compare and align exponents (shift the smaller mantissa) → add/subtract mantissas → normalize the result → round** |
-  | Main problem   | Overflow                                        | Rounding error, loss of precision (why `0.1 + 0.2 == 0.3` may not be true)                                           |
+  | Aspect         | Integer operation (`29 + 13`)                   | [Floating Point](glossary:floating-point) operation (`3.14 + 2.75`)                                                                            |
+  | -------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+  | Representation | Integer bit pattern                             | Sign, exponent, mantissa                                                                                                                       |
+  | Process        | Centered on binary addition (computed directly) | **Compare and align exponents ([shift](glossary:logical-shift) the smaller mantissa) → add/subtract mantissas → normalize the result → round** |
+  | Main problem   | [Overflow](glossary:overflow)                   | Rounding error, loss of precision (why `0.1 + 0.2 == 0.3` may not be true)                                                                     |
 
 - Floating-point example (`1.5 + 0.75`)
 
@@ -349,135 +349,135 @@ summary: 'CPU and registers, memory hierarchy and cache, buses, stored-program c
 
 ## 3.4.4 Results and Status Information
 
-- The CPU doesn't know whether a value is signed or unsigned; it just adds bits → it records "did it overflow?" separately for each reading
+- The [CPU](glossary:cpu) doesn't know whether a value is signed or unsigned; it just adds bits → it records "did it [overflow](glossary:overflow)?" separately for each reading
 - **Carry**: the 1 that moves up to the next digit when adding
-- **CF (Carry Flag)**: did it overflow when read as an unsigned number (0~255)? 1 if a 1 pops out past the leftmost bit
-- **OF (Overflow Flag)**: did it overflow when read as a signed number (-128~127)? 1 if the sign flips in a way that makes no sense, like positive + positive = negative
+- **[CF](glossary:carry-flag) ([Carry Flag](glossary:carry-flag))**: did it [overflow](glossary:overflow) when read as an unsigned number (0~255)? 1 if a 1 pops out past the leftmost bit
+- **[OF](glossary:overflow-flag) ([Overflow Flag](glossary:overflow-flag))**: did it [overflow](glossary:overflow) when read as a signed number (-128~127)? 1 if the sign flips in a way that makes no sense, like positive + positive = negative
 
-  | Calculation | Result bits | Read as unsigned               | Read as signed                    | CF  | OF  |
-  | ----------- | ----------- | ------------------------------ | --------------------------------- | --- | --- |
-  | `1 + 1`     | `00000010`  | 2 → fine                       | 2 → fine                          | 0   | 0   |
-  | `255 + 1`   | `00000000`  | should be 256 but 0 → overflow | -1 + 1 = 0 → fine                 | 1   | 0   |
-  | `127 + 1`   | `10000000`  | 128 → fine                     | should be 128 but -128 → overflow | 0   | 1   |
-  | `128 + 128` | `00000000`  | 256 but 0 → overflow           | -128 + -128 = 0 → overflow        | 1   | 1   |
+  | Calculation | Result bits | Read as unsigned                                    | Read as signed                                         | [CF](glossary:carry-flag) | [OF](glossary:overflow-flag) |
+  | ----------- | ----------- | --------------------------------------------------- | ------------------------------------------------------ | ------------------------- | ---------------------------- |
+  | `1 + 1`     | `00000010`  | 2 → fine                                            | 2 → fine                                               | 0                         | 0                            |
+  | `255 + 1`   | `00000000`  | should be 256 but 0 → [overflow](glossary:overflow) | -1 + 1 = 0 → fine                                      | 1                         | 0                            |
+  | `127 + 1`   | `10000000`  | 128 → fine                                          | should be 128 but -128 → [overflow](glossary:overflow) | 0                         | 1                            |
+  | `128 + 128` | `00000000`  | 256 but 0 → [overflow](glossary:overflow)           | -128 + -128 = 0 → [overflow](glossary:overflow)        | 1                         | 1                            |
 
 # 3.5 I/O Control and Data Transfer
 
-**The I/O controller handles devices for the CPU, Handshaking and interfaces make transfers reliable, and Interrupt and DMA reduce the CPU's load**
+**The [I/O controller](glossary:io-controller) handles devices for the [CPU](glossary:cpu), [Handshaking](glossary:handshaking) and interfaces make transfers reliable, and [Interrupt](glossary:interrupt) and [DMA](glossary:dma) reduce the [CPU](glossary:cpu)'s load**
 
 ## 3.5.1 I/O Controllers and Peripheral Devices
 
 ![Path of an I/O request](/static/images/computer-systems-ch3-computer-organization/io-path.svg)
 
-- **I/O Controller**: hardware that relays communication between the CPU and peripheral devices.
+- **I/O Controller**: hardware that relays communication between the [CPU](glossary:cpu) and peripheral devices.
 
-- Why it is needed: each device differs in data format, speed and behavior → if the CPU handled all of it directly, control would get complicated
+- Why it is needed: each device differs in data format, speed and behavior → if the [CPU](glossary:cpu) handled all of it directly, control would get complicated
 
-- **I/O request path**: application program → operating system (file system) → device driver → I/O controller → peripheral device
+- **I/O request path**: application program → operating system (file system) → [device driver](glossary:device-driver) → [I/O controller](glossary:io-controller) → peripheral device
 
 - **Controller vs Device Driver**
 
-  | Aspect     | Controller                                             | Device Driver                                                              |
-  | ---------- | ------------------------------------------------------ | -------------------------------------------------------------------------- |
-  | What it is | **Hardware**                                           | **Software**                                                               |
-  | Location   | Motherboard, expansion card, inside the device         | Inside the operating system                                                |
-  | Role       | Actual data transfer with the device, state management | Turns OS I/O requests into control commands, accesses controller registers |
-  | Example    | USB Controller, SSD Controller                         | USB Driver, Printer Driver                                                 |
+  | Aspect     | Controller                                             | Device Driver                                                                                                             |
+  | ---------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+  | What it is | **Hardware**                                           | **Software**                                                                                                              |
+  | Location   | Motherboard, expansion card, inside the device         | Inside the operating system                                                                                               |
+  | Role       | Actual data transfer with the device, state management | Turns OS I/O requests into control commands, accesses [controller](glossary:io-controller) [registers](glossary:register) |
+  | Example    | [USB](glossary:usb) Controller, SSD Controller         | [USB](glossary:usb) Driver, Printer Driver                                                                                |
 
 ## 3.5.2 Communication Between the CPU and I/O Controllers
 
-- **System interconnect**: the communication path linking the CPU, memory and I/O controllers. The CPU reads and writes controller registers through it
-  - When needed, the controller reports state changes to the CPU with an Interrupt
+- **[System interconnect](glossary:system-interconnect)**: the communication path linking the [CPU](glossary:cpu), memory and [I/O controllers](glossary:io-controller). The [CPU](glossary:cpu) reads and writes [controller](glossary:io-controller) [registers](glossary:register) through it
+  - When needed, the [controller](glossary:io-controller) reports state changes to the [CPU](glossary:cpu) with an [Interrupt](glossary:interrupt)
 
 ## 3.5.3 Data Transfer Between Devices and Handshaking
 
-- **Handshaking**: two devices exchange control signals and status info to agree on when to send and when to receive. e.g. send data only when the printer is Ready
+- **[Handshaking](glossary:handshaking)**: two devices exchange control signals and status info to agree on when to send and when to receive. e.g. send data only when the printer is Ready
   - Purpose: confirm the receiver is ready, confirm delivery, coordinate timing between devices of different speeds, prevent data loss and errors
 
-  - How the CPU learns it is done: 3.5.5 (Polling, Interrupt)
+  - How the [CPU](glossary:cpu) learns it is done: 3.5.5 ([Polling](glossary:polling), [Interrupt](glossary:interrupt))
 
 ## 3.5.4 Serial and Parallel Communication and I/O Interfaces
 
 ![Parallel and serial communication](/static/images/computer-systems-ch3-computer-organization/parallel-serial.svg)
 
-- **Parallel communication**: sends several bits at once over several wires. e.g. 8 wires send 8 bits at a time
-  - **Skew** (bits that leave at the same time arrive at different times) can happen
-- **Serial communication**: sends bits one after another over a single path (Lane)
-  - **Lane**: one independent serial communication path. Using several together widens bandwidth
+- **[Parallel communication](glossary:parallel-communication)**: sends several bits at once over several wires. e.g. 8 wires send 8 bits at a time
+  - **[Skew](glossary:skew)** (bits that leave at the same time arrive at different times) can happen
+- **[Serial communication](glossary:serial-communication)**: sends bits one after another over a single path ([Lane](glossary:lane))
+  - **[Lane](glossary:lane)**: one independent [serial communication](glossary:serial-communication) path. Using several together widens bandwidth
 
-- **Data Rate**: the amount of data sent over a communication path per unit time. Unit: bps (Kbps = 10³, Mbps = 10⁶, Gbps = 10⁹ bps)
-  - **Maximum Data Rate**: the theoretical maximum transfer rate of the interface spec
-  - **Throughput**: the transfer rate actually achieved in a real system. **Maximum Data Rate ≥ Throughput**
+- **[Data Rate](glossary:data-rate)**: the amount of data sent over a communication path per unit time. Unit: bps (Kbps = 10³, Mbps = 10⁶, Gbps = 10⁹ bps)
+  - **[Maximum Data Rate](glossary:data-rate)**: the theoretical maximum transfer rate of the interface spec
+  - **[Throughput](glossary:throughput)**: the transfer rate actually achieved in a real system. **[Maximum Data Rate](glossary:data-rate) ≥ [Throughput](glossary:throughput)**
 
-- **USB (Universal Serial Bus)**: the main serial interface for connecting peripherals
+- **[USB](glossary:usb) (Universal Serial [Bus](glossary:bus))**: the main [serial](glossary:serial-communication) interface for connecting peripherals
 
-- **FireWire (IEEE 1394)**: a serial interface built for fast real-time transfer
-  - **Peer-to-Peer**: devices talk to each other directly. e.g. camcorder ↔ external storage
-  - Rarely used now, displaced by USB and Thunderbolt
+- **[FireWire](glossary:firewire) ([IEEE 1394](glossary:firewire))**: a [serial](glossary:serial-communication) interface built for fast real-time transfer
+  - **[Peer-to-Peer](glossary:p2p)**: devices talk to each other directly. e.g. camcorder ↔ external storage
+  - Rarely used now, displaced by [USB](glossary:usb) and [Thunderbolt](glossary:thunderbolt)
 
-- USB vs FireWire
+- [USB](glossary:usb) vs [FireWire](glossary:firewire)
 
-  | Aspect                    | USB                                       | FireWire                         |
-  | ------------------------- | ----------------------------------------- | -------------------------------- |
-  | Basic method              | Serial                                    | Serial                           |
-  | Who manages communication | **Host-centered**                         | **Peer-to-Peer**                 |
-  | Typical use               | Keyboards, mice, storage, webcams         | Older camcorders, pro audio gear |
-  | Key trait                 | Versatility, compatibility, Plug and Play | Real-time multimedia transfer    |
+  | Aspect                    | [USB](glossary:usb)                                                 | [FireWire](glossary:firewire)    |
+  | ------------------------- | ------------------------------------------------------------------- | -------------------------------- |
+  | Basic method              | Serial                                                              | Serial                           |
+  | Who manages communication | **Host-centered**                                                   | **[Peer-to-Peer](glossary:p2p)** |
+  | Typical use               | Keyboards, mice, storage, webcams                                   | Older camcorders, pro audio gear |
+  | Key trait                 | Versatility, compatibility, [Plug and Play](glossary:plug-and-play) | Real-time multimedia transfer    |
   - The key difference is not speed but **who starts and manages communication**
 
 ## 3.5.5 Polling and Interrupt
 
 ![Polling vs Interrupt](/static/images/computer-systems-ch3-computer-organization/polling-interrupt.svg)
 
-- Why it is needed: the CPU is fast but I/O devices are slow and their completion time varies → the CPU needs a way to know when they are done
+- Why it is needed: the [CPU](glossary:cpu) is fast but I/O devices are slow and their completion time varies → the [CPU](glossary:cpu) needs a way to know when they are done
 
-- **Polling vs Interrupt**
+- **[Polling](glossary:polling) vs [Interrupt](glossary:interrupt)**
 
-  | Aspect                     | Polling                                 | Interrupt                                 |
-  | -------------------------- | --------------------------------------- | ----------------------------------------- |
-  | How completion is detected | CPU repeatedly checks device state      | Device notifies the CPU                   |
-  | CPU waiting                | Spends CPU time on repeated checks      | Can do other work                         |
-  | Strength                   | Simple structure                        | High CPU utilization                      |
-  | Weakness                   | Wastes CPU time when the device is slow | Interrupt handling cost                   |
-  | Best for                   | Short, simple I/O                       | I/O that takes long or is hard to predict |
-  - Even with interrupts, the CPU still has to move bulk data itself → 3.5.6 DMA
+  | Aspect                      | [Polling](glossary:polling)                             | [Interrupt](glossary:interrupt)               |
+  | --------------------------- | ------------------------------------------------------- | --------------------------------------------- |
+  | How completion is detected  | [CPU](glossary:cpu) repeatedly checks device state      | Device notifies the [CPU](glossary:cpu)       |
+  | [CPU](glossary:cpu) waiting | Spends [CPU](glossary:cpu) time on repeated checks      | Can do other work                             |
+  | Strength                    | Simple structure                                        | High [CPU](glossary:cpu) utilization          |
+  | Weakness                    | Wastes [CPU](glossary:cpu) time when the device is slow | [Interrupt](glossary:interrupt) handling cost |
+  | Best for                    | Short, simple I/O                                       | I/O that takes long or is hard to predict     |
+  - Even with [interrupts](glossary:interrupt), the [CPU](glossary:cpu) still has to move bulk data itself → 3.5.6 [DMA](glossary:dma)
 
 - Full printing flow
   1. The user requests printing in an application
-  2. The OS's **Print Spooler** stores the job in the **Spool Queue**
+  2. The OS's **[Print Spooler](glossary:print-spooler)** stores the job in the **[Spool Queue](glossary:spooling)**
   3. The OS picks the first job in the queue
-  4. The CPU runs the Printer Driver and checks the controller's Status Register
-  5. If ready, it writes output data to the Data Register / Buffer
-  6. Writes the start-printing command to the Control Register
-  7. The controller passes data and commands to the printer, which prints
-  8. When printing ends, the controller updates the Status Register + raises an Interrupt
-  9. The OS handles completion and starts the next job in the Spool Queue
+  4. The [CPU](glossary:cpu) runs the Printer Driver and checks the [controller](glossary:io-controller)'s Status [Register](glossary:register)
+  5. If ready, it writes output data to the Data [Register](glossary:register) / Buffer
+  6. Writes the start-printing command to the Control [Register](glossary:register)
+  7. The [controller](glossary:io-controller) passes data and commands to the printer, which prints
+  8. When printing ends, the [controller](glossary:io-controller) updates the Status [Register](glossary:register) + raises an [Interrupt](glossary:interrupt)
+  9. The OS handles completion and starts the next job in the [Spool Queue](glossary:spooling)
 
 ## 3.5.6 DMA (Direct Memory Access)
 
 ![CPU direct transfer vs DMA transfer](/static/images/computer-systems-ch3-computer-organization/dma-transfer.svg)
 
-- CPU direct transfer vs DMA
+- [CPU](glossary:cpu) direct transfer vs [DMA](glossary:dma)
 
-  | Aspect         | CPU direct transfer         | DMA transfer                                    |
-  | -------------- | --------------------------- | ----------------------------------------------- |
-  | Data movement  | CPU stays involved          | Done by DMA                                     |
-  | CPU's role     | Reads and writes each piece | Sets up the transfer + handles the result       |
-  | Bulk transfers | Heavier CPU load            | CPU can run other instructions at the same time |
+  | Aspect                     | [CPU](glossary:cpu) direct transfer | [DMA](glossary:dma) transfer                                    |
+  | -------------------------- | ----------------------------------- | --------------------------------------------------------------- |
+  | Data movement              | [CPU](glossary:cpu) stays involved  | Done by [DMA](glossary:dma)                                     |
+  | [CPU](glossary:cpu)'s role | Reads and writes each piece         | Sets up the transfer + handles the result                       |
+  | Bulk transfers             | Heavier [CPU](glossary:cpu) load    | [CPU](glossary:cpu) can run other instructions at the same time |
 
 ## 3.5.7 Sharing System Resources and the Limits of DMA
 
-- DMA strengths: less repeated data movement by the CPU, lower CPU load for large I/O, the CPU runs other instructions during transfers, effective for bulk transfers in storage, networking and graphics
-- DMA limits: DMA also uses memory and the interconnect, large DMA transfers compete with the CPU for memory access, setup and completion handling add overhead, for very small transfers the setup cost can be larger
-  - DMA only reduces the CPU's data-moving load; it does not increase memory or interconnect bandwidth
+- [DMA](glossary:dma) strengths: less repeated data movement by the [CPU](glossary:cpu), lower [CPU](glossary:cpu) load for large I/O, the [CPU](glossary:cpu) runs other instructions during transfers, effective for bulk transfers in storage, networking and graphics
+- [DMA](glossary:dma) limits: [DMA](glossary:dma) also uses memory and the [interconnect](glossary:system-interconnect), large [DMA](glossary:dma) transfers compete with the [CPU](glossary:cpu) for memory access, setup and completion handling add overhead, for very small transfers the setup cost can be larger
+  - [DMA](glossary:dma) only reduces the [CPU](glossary:cpu)'s data-moving load; it does not increase memory or [interconnect](glossary:system-interconnect) bandwidth
 
-- **Von Neumann bottleneck**: limited data transfer capacity between the CPU and memory holds back overall performance. e.g. however fast the CPU is, it waits if data arrives late from memory
-  - Cause: the CPU fetches both instructions and data from memory to process them
-  - Using DMA does not remove the von Neumann bottleneck
+- **[Von Neumann bottleneck](glossary:von-neumann-bottleneck)**: limited data transfer capacity between the [CPU](glossary:cpu) and memory holds back overall performance. e.g. however fast the [CPU](glossary:cpu) is, it waits if data arrives late from memory
+  - Cause: the [CPU](glossary:cpu) fetches both instructions and data from memory to process them
+  - Using [DMA](glossary:dma) does not remove the [von Neumann bottleneck](glossary:von-neumann-bottleneck)
 
-  | Aspect                | DMA                             | Von Neumann bottleneck                            |
-  | --------------------- | ------------------------------- | ------------------------------------------------- |
-  | Core problem          | CPU's load from moving I/O data | Limited transfer performance between CPU ↔ memory |
-  | Main target           | I/O device ↔ memory             | CPU ↔ memory                                      |
-  | Solution / mitigation | Direct data transfer with DMA   | Cache, memory hierarchy, Prefetching              |
-  | Result                | Less CPU involvement            | Less CPU waiting on memory                        |
+  | Aspect                | [DMA](glossary:dma)                             | [Von Neumann bottleneck](glossary:von-neumann-bottleneck)                                 |
+  | --------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------- |
+  | Core problem          | [CPU](glossary:cpu)'s load from moving I/O data | Limited transfer performance between [CPU](glossary:cpu) ↔ memory                         |
+  | Main target           | I/O device ↔ memory                             | [CPU](glossary:cpu) ↔ memory                                                              |
+  | Solution / mitigation | Direct data transfer with [DMA](glossary:dma)   | Cache, [memory hierarchy](glossary:memory-hierarchy), [Prefetching](glossary:prefetching) |
+  | Result                | Less [CPU](glossary:cpu) involvement            | Less [CPU](glossary:cpu) waiting on memory                                                |

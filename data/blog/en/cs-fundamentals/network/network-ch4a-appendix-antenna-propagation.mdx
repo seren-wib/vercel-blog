@@ -21,7 +21,7 @@ summary: 'antenna basics, electromagnetic wave characteristics, radiation patter
 
 ## 9-1 Antenna basics
 
-- Definition: a device that converts between electrical signals and electromagnetic waves
+- Definition: a device that converts between electrical signals and [electromagnetic waves](glossary:electromagnetic-wave)
 
 ```
 [Transmitting antenna]
@@ -41,7 +41,7 @@ summary: 'antenna basics, electromagnetic wave characteristics, radiation patter
    Induces current → converted into an electrical signal
 ```
 
-**The electric and magnetic fields induce each other and spread through space. This is the essence of an electromagnetic wave**
+**The [electric](glossary:electric-field) and [magnetic fields](glossary:magnetic-field) induce each other and spread through space. This is the essence of an [electromagnetic wave](glossary:electromagnetic-wave)**
 
 ## 9-2 Characteristics of electromagnetic waves
 
@@ -65,57 +65,57 @@ R: distance
    Travels the shortest path, the way light travels in a straight line
    Stronger at higher frequencies
 
-2. Reflection
+2. [Reflection](glossary:reflection)
    Changes path when it hits a material
    Metal surfaces, walls, etc.
 
-3. Refraction
+3. [Refraction](glossary:refraction)
    Direction and speed change when entering a different medium
    Atmospheric layers, glass, etc.
 
-4. Diffraction
+4. [Diffraction](glossary:diffraction)
    Bends around the edges of obstacles
    Signals can reach even behind obstacles
 
-5. Scattering
+5. [Scattering](glossary:scattering)
    Scattered in all directions by obstacles
    Rain, fog, dust, etc.
 
-- Why communication is possible even over a mountain: even though high frequencies have strong linearity, the signal bends in behind obstacles thanks to the **diffraction characteristic**.
+- Why communication is possible even over a mountain: even though high frequencies have strong linearity, the signal bends in behind obstacles thanks to the **[diffraction](glossary:diffraction) characteristic**.
 
 ### 3. Fading
 
-- Because of reflection, scattering and diffraction of radio waves, one signal arrives over multiple paths. Each path has a different length, so arrival times differ → interference occurs.
-- This is called **multipath interference**
+- Because of [reflection](glossary:reflection), [scattering](glossary:scattering) and [diffraction](glossary:diffraction) of radio waves, one signal arrives over multiple paths. Each path has a different length, so arrival times differ → [interference](glossary:interference) occurs.
+- This is called **[multipath interference](glossary:multipath-interference)**
 
 ## 9-3 Antenna performance parameters
 
 - There are 3 main parameters
-  1. Radiation Pattern
-  2. Directivity & gain
-  3. Polarization
+  1. [Radiation Pattern](glossary:radiation-pattern)
+  2. [Directivity](glossary:directivity) & [gain](glossary:antenna-gain)
+  3. [Polarization](glossary:polarization)
 
 ### 1. Radiation Pattern
 
-- A graph showing in which direction and how much signal an antenna radiates
-- No antenna radiates uniformly in all directions. Some directions are strong, some are weak. The radiation pattern visualizes this
+- A graph showing in which direction and how much signal an [antenna](glossary:antenna) radiates
+- No [antenna](glossary:antenna) radiates uniformly in all directions. Some directions are strong, some are weak. The [radiation pattern](glossary:radiation-pattern) visualizes this
 
-| Term                         | Meaning                                                          |
-| ---------------------------- | ---------------------------------------------------------------- |
-| Main lobe                    | The main beam where maximum power is radiated                    |
-| Side lobe                    | Secondary beams formed between the main and back lobes           |
-| Back lobe                    | The beam formed in the direction directly opposite the main lobe |
-| Boresight                    | The reference direction the antenna points to (main lobe center) |
-| HPBW (Half Power Beam Width) | Beam width out to the points where power is half the max (-3dB)  |
-| FNBW (First Null Beam Width) | Beam width out to the points where power first drops to 0        |
+| Term                                          | Meaning                                                                                                    |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| [Main lobe](glossary:main-lobe)               | The main beam where maximum power is radiated                                                              |
+| [Side lobe](glossary:side-lobe)               | Secondary beams formed between the main and back lobes                                                     |
+| [Back lobe](glossary:back-lobe)               | The beam formed in the direction directly opposite the [main lobe](glossary:main-lobe)                     |
+| [Boresight](glossary:boresight)               | The reference direction the [antenna](glossary:antenna) points to ([main lobe](glossary:main-lobe) center) |
+| [HPBW](glossary:hpbw) (Half Power Beam Width) | Beam width out to the points where power is half the max (-3[dB](glossary:decibel))                        |
+| [FNBW](glossary:fnbw) (First Null Beam Width) | Beam width out to the points where power first drops to 0                                                  |
 
 ![radiation pattern](/static/images/network-ch4a-appendix-antenna-propagation/radiation-pattern.png)
 
 ### 2. Directivity and gain
 
-1. Directivity
+1. [Directivity](glossary:directivity)
 
-- The property of an antenna to concentrate radio waves in a particular direction
+- The property of an [antenna](glossary:antenna) to concentrate radio waves in a particular direction
 
 ```
 Physical definition
@@ -126,12 +126,12 @@ D = ─────────────────────────�
 Ratio of maximum radiation intensity to average radiation intensity
 ```
 
-**High directivity = concentrates the signal in one direction = the main lobe is narrow and long.**
+**High [directivity](glossary:directivity) = concentrates the signal in one direction = the [main lobe](glossary:main-lobe) is narrow and long.**
 
-- Omnidirectional antenna: dipole antenna, spreads out in all directions
-- Directional antenna: parabolic antenna, concentrates in one direction
+- [Omnidirectional antenna](glossary:omnidirectional-antenna): [dipole antenna](glossary:dipole-antenna), spreads out in all directions
+- [Directional antenna](glossary:directional-antenna): [parabolic antenna](glossary:parabolic-antenna), concentrates in one direction
 
-2. Antenna efficiency and gain
+2. [Antenna efficiency](glossary:antenna-efficiency) and [gain](glossary:antenna-gain)
 
 ```
 Antenna efficiency (η) = radiated power (Pr) / input power (Pi)
@@ -143,17 +143,17 @@ Antenna gain (G) = η × D
 Gain is expressed in dB
 ```
 
-**Meaning of gain: when radiating the same power in the same direction, how many times stronger it is than an omnidirectional antenna.**
+**Meaning of [gain](glossary:antenna-gain): when radiating the same power in the same direction, how many times stronger it is than an [omnidirectional antenna](glossary:omnidirectional-antenna).**
 
-- Trade-off between gain and beam width
-- High gain = narrow beam width = high directivity
-- Gain and beam width are always inversely proportional
+- Trade-off between [gain](glossary:antenna-gain) and beam width
+- High [gain](glossary:antenna-gain) = narrow beam width = high [directivity](glossary:directivity)
+- [Gain](glossary:antenna-gain) and beam width are always inversely proportional
 
 ### 3. Polarization
 
-- The direction in which the electric field (E) oscillates as an electromagnetic wave travels
-- If the polarization directions of the transmitting and receiving antennas differ, transmission/reception performance degrades.
+- The direction in which the [electric field](glossary:electric-field) (E) oscillates as an [electromagnetic wave](glossary:electromagnetic-wave) travels
+- If the [polarization](glossary:polarization) directions of the transmitting and receiving [antennas](glossary:antenna) differ, transmission/reception performance degrades.
 - If they are completely orthogonal, no signal can be exchanged
-- Types: vertical polarization, horizontal polarization
+- Types: [vertical polarization](glossary:vertical-polarization), [horizontal polarization](glossary:horizontal-polarization)
 
 ![polarization](/static/images/network-ch4a-appendix-antenna-propagation/polarization.png)

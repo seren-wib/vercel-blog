@@ -1,80 +1,42 @@
 ---
-title: 'DevBlog 1. Building the Code Playground'
+title: 'DevBlog 1. Running Code and Adding Comments'
 date: '2026-10-22'
 tags: ['DevBlog']
 draft: false
-summary: 'Adding SQL, HTML, JavaScript, Python, C and C++ runners to a static blog: choosing where each language runs, Web Workers, a sandboxed iframe, Pyodide, the Compiler Explorer API, CodeMirror, a CSS-only dropdown, time limits and output floods'
+level: 3
+summary: 'Adding six-language runners, a sort visualizer and giscus comments to a serverless blog'
 ---
 
-> How the **Playground** in the header came to run six languages from the browser. See the result at [Playground](/en/playground/).
+## 0. Introduction
 
-## 1. Goals and constraints
+I wanted this [static site](glossary:static-site) to do more than get read: a Playground that runs code, a visualizer that shows how a sort works, and comments on every post. I decided not to build a [server](glossary:server) to receive code or a database for comments.
 
-- A Playground menu in the header. Hovering it lists SQL, HTML, JavaScript, Python, C and C++; picking one opens a practice page
-- A large practice page, with the editor and the output side by side
-- The constraint: this blog is a **static site** on Vercel. There is no [server](/en/blog/dev/web/web-00-basics/#server) to receive code and run it, and I did not want to add one
-- So the question shrinks to one: **"where can this language run?"**
+In restaurant terms, this blog is a shop that sells only pre-made lunch boxes and has no kitchen. When a customer orders a dish, the shop cooks it on the spot, sends what it cannot cook to the shop next door, and borrows the neighbor's ledger as a guest book. The lunch-box shop is a [static site](glossary:static-site), cooking in the shop is running in the browser ([Web Worker](glossary:web-worker), [Pyodide](glossary:pyodide)), the shop next door is the [Compiler Explorer](glossary:compiler-explorer) [API](glossary:api), and the neighbor's ledger is [GitHub Discussions](glossary:github-discussions).
 
-## 2. Choosing where each language runs
+On [Vercel](glossary:vercel) I built runners for SQL, HTML, JavaScript, Python, C and C++ without a server, put a sort visualizer on top of them, and added a comment box with [giscus](glossary:giscus).
 
-| Language   | Runs in                             | Why                                                                                                                                                  |
-| ---------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SQL        | Browser (sql.js, SQLite WASM)       | Reuses the one already built for [Database Systems chapter 3](/en/blog/cs-fundamentals/database-systems/database-systems-ch3-sql/#0-try-it-yourself) |
-| JavaScript | Browser (Web Worker)                | The browser's own language                                                                                                                           |
-| HTML       | Browser (sandboxed iframe)          | The browser's own format                                                                                                                             |
-| Python     | Browser (Pyodide)                   | CPython compiled to WebAssembly. About 10 MB buys real Python                                                                                        |
-| C, C++     | External server (Compiler Explorer) | A compiler in the browser is tens of MB, so a public API compiles and runs the code                                                                  |
+## 1. Choosing where each language runs
 
-- I also checked another public runner for C/C++. The public Piston API now answers `401` without a key
-- Compiler Explorer (godbolt.org) compiles and runs with one [API](/en/blog/dev/web/web-00-basics/#api) call and allows calls from other sites (`Access-Control-Allow-Origin: *`)
-- The trade-off: C/C++ code is sent to godbolt, and a shared public server has rate limits. Fine for a practice blog
+The question shrinks to one: **"where can this language run?"**
 
-## 3. Page structure
+| Language   | Runs in                                                            | Why                                                                                                                                          |
+| ---------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| SQL        | Browser ([sql.js](glossary:sqljs), [SQLite](glossary:sqlite) WASM) | Reuses the one built for [Database Systems chapter 3](/en/blog/cs-fundamentals/database-systems/database-systems-ch3-sql/#0-try-it-yourself) |
+| JavaScript | Browser ([Web Worker](glossary:web-worker))                        | The browser's own language                                                                                                                   |
+| HTML       | Browser ([sandboxed](glossary:sandbox) [iframe](glossary:iframe))  | The browser's own format                                                                                                                     |
+| Python     | Browser ([Pyodide](glossary:pyodide))                              | [CPython](glossary:cpython) compiled to [WebAssembly](glossary:webassembly). About 10 MB                                                     |
+| C, C++     | External server ([Compiler Explorer](glossary:compiler-explorer))  | A compiler in the browser is tens of MB, so a public [API](glossary:api) compiles and runs the code                                          |
 
-- The language list lives in **one place**, `data/playground.ts`. The header menu, the card page, the practice page URLs and the sitemap all read this array
+- The public Piston [API](glossary:api) now answers `401` without a key, so I dropped it. Compiler Explorer (godbolt.org) compiles and runs with one [API](glossary:api) call and sends `Access-Control-Allow-Origin: *`, so [CORS](glossary:cors) does not block other sites
+- The trade-off: C/C++ code is sent to godbolt and there are rate limits. Fine for a practice blog
+- The language list lives in one place, `data/playground.ts`; the header menu, the card page, the practice-page URLs and the [sitemap](glossary:sitemap) all read that array. `generateStaticParams` builds 6 languages × 2 locales = 12 pages at build time
+- The header dropdown uses [CSS](glossary:css) only, no [JavaScript](glossary:javascript) (`group-hover`, `group-focus-within`, so Tab opens it too). The `pt-2` gap between link and list sits **on the list side** so hover does not break while the mouse moves down. The existing menu sits in an `overflow-x-auto` box that would clip the list, so Playground goes **outside** that box
 
-```ts:data/playground.ts
-export const playgroundLanguages: PlaygroundLanguage[] = [
-  { id: 'sql', name: 'SQL', runner: 'browser', engine: 'SQLite (sql.js)', ... },
-  { id: 'html', name: 'HTML', runner: 'browser', engine: 'Sandboxed iframe', ... },
-  // javascript, python, c, cpp
-]
-```
+## 2. The editor and the JavaScript Worker
 
-- `/[locale]/playground/`: one card per language, with a few lines of code and where it runs (In browser / Compiler Explorer)
-- `/[locale]/playground/[lang]/`: the practice page. `generateStaticParams` prebuilds 6 languages × 2 locales = 12 pages
-- On wide screens the editor and output sit side by side at 3 : 2; on narrow screens they stack. The editor takes 72% of the screen height
-
-## 4. The header dropdown
-
-- CSS only, no JavaScript: `group` on the parent, `group-hover:visible` and `group-focus-within:visible` on the list
-- `focus-within` also opens it when you Tab in with the keyboard
-- The `pt-2` gap between the link and the list sits **on the list**, so hover is not lost while the pointer moves down
-
-```tsx:components/PlaygroundMenu.tsx
-<div className="group relative hidden sm:block">
-  <Link href={localePath(locale, '/playground')}>Playground</Link>
-  <div className="invisible absolute top-full pt-2 opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
-    <ul>{/* SQL, HTML, ... */}</ul>
-  </div>
-</div>
-```
-
-- One trap: the existing menu links sit in an `overflow-x-auto` box so they can scroll on narrow screens. Inside it, the open list would be clipped by the box. So Playground sits **outside** that box, between About and the language switch
-
-## 5. The editor: CodeMirror 6
-
-- Syntax colors, line numbers, bracket matching and Tab indentation were all needed, so CodeMirror 6 instead of a textarea
-- **Following the site theme**: the highlight style lives in a `Compartment`, and only that slot is swapped when dark mode changes. The editor is not recreated, so the cursor and text stay
-- **Ctrl/⌘+Enter to run**: `Prec.highest` makes the shortcut win over the default keymap
-- **Compile errors**: godbolt's error messages come with line and column numbers. Passing them to `setDiagnostics` from `@codemirror/lint` underlines the lines in red
-- Code and stdin are saved in `localStorage`, so they survive a reload
-
-## 6. JavaScript: Web Worker
-
-- Running `eval` on the page means one `while (true) {}` freezes the whole tab. So **every run gets a new Worker**, and a stuck one is thrown away with `worker.terminate()`
-- `console.log` is replaced to send output to the page with `postMessage`
-- The code is wrapped in an `AsyncFunction` so top-level `await` works
+- Syntax highlighting ([Syntax highlighting](glossary:syntax-highlighting)), line numbers, bracket matching and Tab indentation are needed, so [CodeMirror](glossary:codemirror) 6 replaces a textarea. The highlight style lives in a `Compartment` and only that slot is swapped when dark mode changes, so the cursor and content stay
+- `Prec.highest` makes Ctrl/⌘+Enter run before the default keymap. godbolt errors carry line and column numbers, and passing them to `setDiagnostics` of `@codemirror/lint` draws a red underline on that line. Code and [stdin](glossary:stdin) are saved in [localStorage](glossary:localstorage)
+- Calling [eval](glossary:eval) in the page freezes the whole tab on `while (true) {}`. Each run creates a **new [Web Worker](glossary:web-worker)** and `worker.terminate()` throws it away. `console.log` is overridden to send output with [postMessage](glossary:postmessage), and the code is wrapped in an `AsyncFunction` to allow top-level `await`
 
 ```js:public/static/playground/js-worker.js
 console.log = function () { send('out', arguments) }
@@ -88,38 +50,27 @@ self.onmessage = (e) => {
 }
 ```
 
-- If it does not finish in 15 seconds, the Worker is killed and a time-limit line is printed
-- The Worker is not killed as soon as the main body ends, so output printed later by `setTimeout` still arrives. It is cleaned up on the next run, Stop or the time limit
+- After 15 seconds the [Worker](glossary:web-worker) is killed and a "time limit" line is printed. It is not killed the moment the body ends, to catch output printed later by [setTimeout](glossary:settimeout)
 
-## 7. HTML: sandboxed iframe
+## 3. HTML in a sandboxed iframe
 
-- The HTML goes into `<iframe srcdoc>` with `sandbox="allow-scripts allow-modals allow-forms allow-popups"`
-- `allow-same-origin` is **left out on purpose**. The iframe then gets an opaque [origin](/en/blog/dev/web/web-00-basics/#origin), so its scripts cannot touch the blog page or its storage
-- Console: a small script inserted right after `<head>` forwards `console.*` and errors with `parent.postMessage`. The page only accepts messages from that iframe
-- The preview is redrawn 0.6 seconds after typing stops
+- `<iframe srcdoc>` with `sandbox="allow-scripts allow-modals allow-forms allow-popups"`. `allow-same-origin` is **left out on purpose**, so the [iframe](glossary:iframe) gets an opaque [origin](glossary:same-origin-policy) and its scripts cannot touch the blog page or storage
+- A small script right after `<head>` sends `console.*` and errors with `parent.postMessage`. The page accepts messages only from that [iframe](glossary:iframe). The preview redraws 0.6 seconds after typing stops
+- Bug: changing only `srcdoc` sometimes left the first view blank (the same HTML in a new [iframe](glossary:iframe) rendered fine). Changing the [React](glossary:react) `key` on every update to **recreate the iframe** made it disappear
 
-### The blank preview bug
+## 4. Python with Pyodide
 
-- At first only the `srcdoc` value changed, and the first preview sometimes stayed blank. The same HTML in a new iframe rendered fine
-- Changing `srcdoc` on a live iframe was not reliable, so every update now changes the React `key` and **creates a new iframe**. The bug has not come back
-
-## 8. Python: Pyodide
-
-- Uses the npm `pyodide` package (314.0.7, Python 3.14). Its five runtime files (about 12 MB) are copied to `public/static/pyodide/` and served from this site
-- To keep 12 MB out of git, the copy is in `.gitignore` and the `predev` and `prebuild` scripts copy it from `node_modules` every time. Vercel runs `npm run build`, so it happens there too
+- The five runtime files (about 12 MB) of the [npm](glossary:npm) `pyodide` package (314.0.7, Python 3.14) are copied to `public/static/pyodide/` and served from this site. To keep 12 MB out of git the copy is in `.gitignore`, and the `predev` and `prebuild` scripts copy it from `node_modules`. Vercel runs `npm run build`, so it happens there too
 
 ```json:package.json
 "predev": "node ./scripts/copy-pyodide.mjs",
 "prebuild": "node ./scripts/copy-pyodide.mjs",
 ```
 
-- Pyodide runs inside a Worker so an infinite loop can be killed
-- Loading takes a few seconds, so the Worker is **reused between runs**. Each run gets a fresh globals dict, so variables from the last run do not leak. After Stop or the time limit kills it, the next run starts a new one
-- Opening the Python page starts loading right away, while you read the code
-- `input()`: the stdin box is handed over line by line before the run (`setStdin`)
-- Extra packages like numpy: `loadPackagesFromImports` reads the imports and fetches only what is needed from jsDelivr (`packageBaseUrl`)
+- It runs inside a [Worker](glossary:web-worker) so an [infinite loop](glossary:infinite-loop) can be killed. Loading takes a few seconds, so the Worker is **reused between runs** with a fresh globals dict each time, so no variables leak. After Stop or the time limit kills it, the next run starts a new one. Opening the Python page starts loading right away
+- `input()`: the [stdin](glossary:stdin) box is handed over line by line before the run (`setStdin`). For packages like numpy, `loadPackagesFromImports` reads the imports and fetches only what is needed from jsDelivr
 
-## 9. C, C++: the Compiler Explorer API
+## 5. C and C++ through the Compiler Explorer API
 
 ```ts:components/playground/runners.ts
 fetch(`https://godbolt.org/api/compiler/${compiler.id}/compile`, {
@@ -137,27 +88,126 @@ fetch(`https://godbolt.org/api/compiler/${compiler.id}/compile`, {
 })
 ```
 
-- Compiler ids come from the list at `/api/compilers/c`: `cg152` (GCC 15.2) for C, `g152` for C++
-- `-fdiagnostics-color=never`: without it, error messages arrive with terminal color codes
-- Fields used from the response: `buildResult` (compile errors and warnings with line numbers), `stdout` and `stderr`, `code` (exit code), `execTime`, `timedOut`
-- godbolt kills an infinite loop after about 20 seconds and returns `timedOut: true`
-- Input is typed into the stdin box before the run. It cannot go back and forth like a terminal
+- Compiler ids come from the `/api/compilers/c` list: `cg152` (GCC 15.2) for C and `g152` for C++. Without `-fdiagnostics-color=never` errors contain terminal color codes
+- The response fields used are `buildResult` (errors, warnings, line numbers), `stdout`/`stderr`, `code`, `execTime` and `timedOut`. godbolt kills an [infinite loop](glossary:infinite-loop) after about 20 seconds with `timedOut: true`. Input is typed into the [stdin](glossary:stdin) box before the run, so it cannot be exchanged interactively
 
-## 10. No CSP change
+## 6. Keeping the CSP and surviving output floods
 
-- This blog's CSP limits scripts mostly to `'self'`. It was done without opening any new hosts
-- Worker and Pyodide files: served from this site (`'self'`)
-- WebAssembly compilation: already allowed by the existing `'unsafe-eval'`
-- godbolt and jsDelivr packages: these are `fetch` calls under `connect-src`, which was already open
-- The `srcdoc` iframe inherits the parent's CSP. Inline scripts work and external scripts are blocked, which is why the preview notes that external scripts are not loaded
+- The [CSP](glossary:csp) stays unchanged. [Worker](glossary:web-worker) and [Pyodide](glossary:pyodide) files come from `'self'`, [WebAssembly](glossary:webassembly) compilation is allowed by the existing `'unsafe-eval'`, and godbolt and jsDelivr are `fetch` calls covered by the already open `connect-src`. `srcdoc` inherits the parent [CSP](glossary:csp), so inline scripts work and external ones are blocked, which is why the preview notice says external scripts are not loaded
+- `while True: print(1)` sends tens of thousands of lines per second, and updating [React](glossary:react) state per line freezes the page. Lines go into a buffer that is flushed once in [requestAnimationFrame](glossary:requestanimationframe); past 2000 lines the rest is dropped with a one-line notice
 
-## 11. When output floods
+## 7. Sort visualizer: letting the program keep a diary
 
-- `while True: print(1)` sends tens of thousands of lines a second. Updating React state per line freezes the page
-- Lines are buffered and applied once per `requestAnimationFrame`. Past 2000 lines the rest is dropped with a one-line note
+The visualizer at the top of the [heap sort](/en/blog/cs-fundamentals/data-structures/data-structures-heap-sort/#0-try-it) post **actually runs** the C and Python implementations and animates bars sized by value while they sort, with a random input every time. It reuses the Playground runners above.
 
-## 12. Summary
+| Approach                                     | Problem                                                                     |
+| -------------------------------------------- | --------------------------------------------------------------------------- |
+| Rewrite the sort in JavaScript and draw it   | The screen is not the C/Python result                                       |
+| Peek at the running program's memory         | No way to see the array from outside godbolt or [Pyodide](glossary:pyodide) |
+| **Print what the program did, line by line** | A few more [printf](glossary:printf) lines, but screen = real run           |
 
-- A blog without a server only needs to pick where each language runs. Only C/C++, which the browser cannot do, leaves the browser
-- Any code that must be stoppable runs inside a Worker
-- The next post builds the [sort visualizer](/en/blog/side-projects/devblog/devblog-02-sort-visualizer/) on top of these runners
+I took the third. The program writes one line per compare or swap, and the page reads that output ([Execution trace](glossary:execution-trace)) and replays it from the start. The format works for any sort.
+
+| Line           | Meaning                          |
+| -------------- | -------------------------------- |
+| `INIT v0 v1 …` | Input array                      |
+| `PHASE name`   | Phase start (shown in a caption) |
+| `CMP i j`      | Compared `a[i]` and `a[j]`       |
+| `SWAP i j`     | Swapped `a[i]` and `a[j]`        |
+| `SORTED i`     | `a[i]` is in its final place     |
+| `DONE v0 v1 …` | Result array                     |
+
+- With size 16 the output is about 150 lines
+- The random input is **made by the page and passed through [stdin](glossary:stdin)** (values 5 to 99, size 8 to 32), not by `srand` inside the program. C `rand()` and Python `random` give different numbers even with the same [seed](glossary:random-seed), and the page wants to give both the same array. The input is in the request body, so every request differs, and the input array can be shown on screen
+
+```ts:components/visualizer/SortVisualizer.tsx
+const input = randomInput(size)            // 5 ~ 99, size 8 ~ 32
+const stdin = `${size}\n${input.join(' ')}\n`
+```
+
+- `trace.ts` reads the output line by line, applies each swap to its own copy of the array and stores the whole array at that moment as one [frame](glossary:frame). With at most 32 values and a few hundred steps, copying whole arrays is cheap, so the slider jumps to any step
+- Check: the array the page rebuilt must equal `DONE` and be ascending. A forgotten `printf` makes the picture disagree with the real array, and that is reported under the bars, as are out-of-range indices and a missing `INIT` or `DONE`
+
+```ts:components/visualizer/trace.ts
+} else if (cmd === 'CMP' || cmd === 'SWAP') {
+  const [i, j] = nums
+  if (cmd === 'SWAP') [values[i], values[j]] = [values[j], values[i]]
+  push({ kind: cmd === 'CMP' ? 'cmp' : 'swap', i, j })
+}
+```
+
+## 8. Playback and lazy loading
+
+- Playback is just `index` incremented by [setTimeout](glossary:settimeout) (default 420 ms, 0.5× to 4×). Bar height is `value / max × 100%` with a `transition`. Compare is blue, swap is red, final place is black, the rest gray. Controls: play/pause, one step, slider, speed
+- The [MDX](glossary:mdx) component map is **shared by every post**, so importing the visualizer directly would ship [CodeMirror](glossary:codemirror) (hundreds of KB) to posts without one. Only a small wrapper, `SortVisualizerLazy`, wrapped with [next/dynamic](glossary:nextjs), is registered, so the real code is [lazy loaded](glossary:lazy-loading) only on posts that use it. A post needs one line, `<SortVisualizer algorithm="heap-sort" />`. Loading [Pyodide](glossary:pyodide) starts the moment the Python tab is clicked, so someone only reading never downloads 10 MB
+- Checked: with the same input `[42, 7, 93, 15, 61, 28, 77, 3, 50, 66]`, C (godbolt) and Python produced 75 lines of output with **no differing line**; two runs in a row gave different inputs; at 390 px width nothing scrolled horizontally
+- A new algorithm only needs its C and Python code and phase names in `components/visualizer/algorithms.ts`, as long as it follows the same output format. For [merge sort](glossary:merge-sort), which copies values, I plan to add a `SET i v` line
+
+## 9. Comments with giscus
+
+One post = one discussion. The blog started from the [tailwind-nextjs-starter-blog](https://github.com/timlrx/tailwind-nextjs-starter-blog) [template](glossary:template-repository), and the comment code was there from day one. Only the settings were missing.
+
+| Option     | Stored in                                         | Problem                                                                   |
+| ---------- | ------------------------------------------------- | ------------------------------------------------------------------------- |
+| Disqus     | Disqus servers                                    | Ads and tracking scripts. The data is theirs                              |
+| utterances | [GitHub Issues](glossary:github-issues)           | Comments mix into the issue list. No replies ([threads](glossary:thread)) |
+| **giscus** | [GitHub Discussions](glossary:github-discussions) | Visitors need a GitHub account                                            |
+
+Most readers are developers, so the GitHub login is no problem, and giscus borrows Discussions as storage without a server or database ([Disqus](glossary:disqus), [utterances](glossary:utterances)).
+
+- The template's `data/siteMetadata.js` already had `provider: 'giscus'` with four environment-variable slots, and the [CSP](glossary:csp) already allowed `giscus.app`. But the values were empty and Discussions was off, so nothing showed
+
+```js:data/siteMetadata.js
+comments: {
+  provider: 'giscus',
+  giscusConfig: {
+    repo: process.env.NEXT_PUBLIC_GISCUS_REPO,
+    repositoryId: process.env.NEXT_PUBLIC_GISCUS_REPOSITORY_ID,
+    category: process.env.NEXT_PUBLIC_GISCUS_CATEGORY,
+    categoryId: process.env.NEXT_PUBLIC_GISCUS_CATEGORY_ID,
+    mapping: 'pathname',
+    // ...
+  },
+},
+```
+
+- In the [repo](glossary:repository) Settings → Features I turned on Discussions (default categories appear at once). The [giscus app](glossary:github-app) is installed on **Only select repositories** with just the blog repo; All would open private repos too
+- The IDs come from giscus.app or one [GraphQL](glossary:graphql) call with [gh](glossary:github-cli). `id` is the repo ID (`R_...`) and each category has a `DIC_...`
+
+```bash
+gh api graphql -f query='{
+  repository(owner: "seren-wib", name: "vercel-blog") {
+    id
+    discussionCategories(first: 10) { nodes { name id } }
+  }
+}'
+```
+
+- I first used Announcements as recommended (only admins and the app can open discussions), but the welcome notice and per-post comment discussions got mixed, so I moved to **General**. The cost is that visitors can open discussions too, which I accept at this scale. Changing the category means moving existing discussions as well: giscus looks only inside the configured category, so otherwise that post's comments vanish and an empty discussion is created (Change category or `updateDiscussion`)
+
+## 10. Environment variables and loading
+
+| Name                               | Value                   |
+| ---------------------------------- | ----------------------- |
+| `NEXT_PUBLIC_GISCUS_REPO`          | `seren-wib/vercel-blog` |
+| `NEXT_PUBLIC_GISCUS_REPOSITORY_ID` | `R_...`                 |
+| `NEXT_PUBLIC_GISCUS_CATEGORY`      | `General`               |
+| `NEXT_PUBLIC_GISCUS_CATEGORY_ID`   | `DIC_...`               |
+
+- All four reach the browser anyway, so they are not secrets and go in as `plain`. `NEXT_PUBLIC_` values are baked in at [build time](glossary:build-time), so saving the [environment variables](glossary:environment-variable) alone changes nothing and **a Redeploy is required**
+- The template loaded giscus only after a "Load Comments" click, but the pliny giscus component already makes a `loading: "lazy"` [iframe](glossary:iframe) that loads only when scrolled near. Removing the button and state and rendering directly keeps the first load the same. The "Discuss on Twitter" and "View on GitHub" links under posts are gone too. On a long post the floating bubble at the bottom right jumps to `#comment`
+
+```tsx:components/Comments.tsx
+export default function Comments({ slug }: { slug: string }) {
+  if (!siteMetadata.comments?.provider) {
+    return null
+  }
+  return <CommentsComponent commentsConfig={siteMetadata.comments} slug={slug} />
+}
+```
+
+- With `mapping: 'pathname'` a discussion title is a path like `kr/blog/side-projects/devblog/...`. `/kr/` and `/en/` are different paths, so **Korean and English posts get separate comments**; I kept it because the readers differ (merging needs a `specific` mapping that passes a `term` without the prefix). Changing a [slug](glossary:slug) breaks the link to existing comments, so the discussion title must be edited in Discussions too
+
+## 11. Reflection
+
+Even a serverless blog works once you decide separately where code runs and where comments live.

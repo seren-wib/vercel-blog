@@ -3,95 +3,98 @@ title: 'Woowangthon 2. The Network Design That Flipped Four Times'
 date: '2026-11-06'
 tags: ['Woowangthon']
 draft: false
-summary: 'How the school PC cluster design changed four times before and after we got the PCs. Borrowing classroom PCs in their idle hours, Wi-Fi client isolation and a switch, the server connection moving from WebSocket to Tailscale, dedicated PCs and a wall LAN port. A premise an AI guessed that got written down as decided, and the status labels (Decided, Planned, Team to decide, With server owner, Unchecked)'
+level: 3
+summary: 'How the school PC cluster design changed four times around getting the PCs, and the status labels added after a guess was written down as a decision'
 ---
 
-> Part 2 of the series. This is how the cluster design changed before and after we got our hands on the school PCs. The big picture of the project is in [Woowangthon 0](/en/blog/hackathon/woowangthon/woowangthon-00-overview/).
+## 0. Introduction
 
-## In one line
+> Part 2 of the series. This is how the [cluster](glossary:cluster) design changed before and after we got our hands on the school PCs. The big picture of the project is in [Woowangthon 0](/en/blog/hackathon/woowangthon/woowangthon-00-overview/).
 
-The cluster design changed four big times in ten days. Most of the time the reason was that **a premise was wrong**. I thought they were classroom PCs, but they were dedicated PCs. I thought we had to get out over Wi-Fi, but there was a LAN port in the wall. One of those premises was never something I decided. The AI agent writing the build plan with me had filled a blank with a guess, and it was written down like a decision. After that I put a status label on every line of the build plan.
+The [cluster](glossary:cluster) design changed four big times in ten days. Most of the time the reason was that **a premise was wrong**. I thought they were classroom PCs, but they were dedicated PCs. I thought we had to get out over [Wi-Fi](glossary:wi-fi), but there was a [LAN port](glossary:ethernet) in the wall. One of those premises was never something I decided. The [AI agent](glossary:ai-agent) writing the build plan with me had filled a blank with a guess, and it was written down like a decision.
 
-## 1. First picture: borrow classroom PCs when they're idle
+In restaurant terms, this is the story of redrawing the kitchen layout four times before opening. First we meant to borrow the next-door kitchen while it was closed, and we linked the kitchens with a direct passage. We changed orders to come in by phone instead of through a middleman courier, and when we got the kitchens they turned out to be ours alone. Finally, so a note written from a guess wouldn't be mistaken for a decision, we stamped every note. Here the kitchens are [workers](glossary:worker-node), the direct passage is the [switch](glossary:network-switch), the courier is the agent that kept a [WebSocket](glossary:websocket) connection open, the phone is the server calling the [Kubernetes API](glossary:kubernetes-api-server) directly, and the stamp is the status label in the build plan.
+
+What I did was change the design four times, then put a status label on every line of the build plan.
+
+## 1. Borrowing classroom PCs when they're idle
 
 On October 26, the first picture rested on these premises.
 
 - The school lab PCs are only used during classes and sit idle the rest of the time
-- So we borrow those PCs during free hours and attach them to the cluster
-- A PC can turn off at any time, it sits behind the school firewall, and student code can't be trusted
+- So we borrow those PCs during free hours and attach them to the [cluster](glossary:cluster)
+- A PC can turn off at any time, it sits behind the school [firewall](glossary:firewall), and student code can't be trusted
 
-The design that came out of these premises is the ADR-002 proposal that got closed in [Part 1](/en/blog/hackathon/woowangthon/woowangthon-01-docs-and-prs/#1-three-docs-i-posted-alone-on-day-one). Static sites go to Cloudflare R2, only apps that need a server run on k3s on the lab PCs, and if there aren't enough PCs, the work moves to a cloud VM. An even earlier idea was to put the k3s leader on a cloud VM and have the school PCs join as workers only while they were on.
+The design that came out of these premises is the [ADR](glossary:adr)-002 proposal that got closed in [Part 1](/en/blog/hackathon/woowangthon/woowangthon-01-docs-and-prs/#1-three-docs-i-posted-alone-on-day-one). Static sites go to [R2](glossary:cloudflare-r2), only apps that need a server run on [k3s](glossary:k3s) on the lab PCs, and if there aren't enough PCs, the work moves to a cloud [VM](glossary:vm). An even earlier idea was to put the [k3s](glossary:k3s) leader on a cloud [VM](glossary:vm) and have the school PCs join as [workers](glossary:worker-node) only while they were on.
 
 The premise that the PCs belonged to someone else and could turn off at any time left marks all over the design.
 
-| What came from the premise             | Why                                                                                 |
-| -------------------------------------- | ----------------------------------------------------------------------------------- |
-| Boot from a live USB                   | We must not touch the internal disk of a PC used for classes                        |
-| 40% resource cap per node              | Students in class use the same PC                                                   |
-| Power-on detection, join only while on | The PCs turn off according to the class timetable                                   |
-| List of questions for the professor    | Classroom DHCP and static IPs, the classroom timetable, whether USB boot is allowed |
+| What came from the premise                | Why                                                                                                                                |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Boot from a [live USB](glossary:live-usb) | We must not touch the internal disk of a PC used for classes                                                                       |
+| 40% resource cap per node                 | Students in class use the same PC                                                                                                  |
+| Power-on detection, join only while on    | The PCs turn off according to the class timetable                                                                                  |
+| List of questions for the professor       | Classroom [DHCP](glossary:dhcp) and [static IPs](glossary:static-ip-address), the classroom timetable, whether USB boot is allowed |
 
 All four rows of this table disappear later.
 
-## 2. Second picture: a switch between the nodes
+## 2. Tying the nodes together with a switch
 
-On October 30 the team diagrams went up split into pages, and I dug into how to connect the nodes. The problem was the school Wi-Fi. School Wi-Fi has **client isolation** turned on. It stops devices on the same Wi-Fi from seeing each other. It's the same reason you can't see the laptop next to you on café Wi-Fi. Kubernetes nodes have to talk to each other constantly, so putting three PCs on school Wi-Fi alone doesn't make a cluster.
+On October 30 the team diagrams went up split into pages, and I dug into how to connect the nodes. The problem was the school [Wi-Fi](glossary:wi-fi). School [Wi-Fi](glossary:wi-fi) has [client isolation](glossary:client-isolation) turned on. It stops devices on the same [Wi-Fi](glossary:wi-fi) from seeing each other. [Kubernetes](glossary:kubernetes) nodes have to talk to each other constantly, so putting three PCs on school [Wi-Fi](glossary:wi-fi) alone doesn't make a [cluster](glossary:cluster).
 
 I compared three options.
 
-| Option            | How                                                                       | Catch                                                                                   |
-| ----------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| A Switch          | Tie the three PCs together with LAN cables on an unmanaged gigabit switch | We have to buy gear. If the switch goes off, the nodes lose each other                  |
-| B Club room Wi-Fi | Connect to the club's router Wi-Fi, which has no isolation                | Nobody knows when that router gets turned off. Slower and less stable than wired        |
-| C Tailscale       | Tie the nodes together over the Tailscale private network too             | When isolation blocks a direct connection, traffic goes through a relay server overseas |
+| Option                              | How                                                                                                                       | Catch                                                                                                 |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| A [Switch](glossary:network-switch) | Tie the three PCs together with [LAN cables](glossary:ethernet) on an unmanaged gigabit [switch](glossary:network-switch) | We have to buy gear. If the [switch](glossary:network-switch) goes off, the nodes lose each other     |
+| B Club room [Wi-Fi](glossary:wi-fi) | Connect to the club's router [Wi-Fi](glossary:wi-fi), which has no isolation                                              | Nobody knows when that router gets turned off. Slower and less stable than [wired](glossary:ethernet) |
+| C [Tailscale](glossary:tailscale)   | Tie the nodes together over the [Tailscale](glossary:tailscale) [private network](glossary:private-network) too           | When isolation blocks a direct connection, traffic goes through a relay server overseas               |
 
-Option C was tempting. We were going to install Tailscale for remote access anyway, so no extra gear. But node-to-node traffic is a different volume from remote access. Cluster signals, traffic between Pods on different workers, image pulls from the leader, and DB volume replication all take this path. Every DB write would have to wait for the copy on the other worker to go through an overseas relay and back. If the school internet dropped for even a moment, the nodes would lose sight of each other, and the leader would start rescheduling apps that were running fine onto other nodes.
+Option C was tempting. We were going to install [Tailscale](glossary:tailscale) for remote access anyway, so no extra gear. But node-to-node traffic is a different volume from remote access. [Cluster](glossary:cluster) signals, traffic between [Pods](glossary:pod) on different [workers](glossary:worker-node), image pulls from the leader, and DB volume [replication](glossary:volume-replication) all take this path. Every DB write would have to wait for the copy on the other [worker](glossary:worker-node) to go through an overseas relay and back. If the school internet dropped for even a moment, the nodes would lose sight of each other, and the leader would start rescheduling apps that were running fine onto other nodes.
 
-So on October 31 we went with option A, and I bought a switch and four LAN cables that same day. B and C stayed as backups to pull out only if the switch didn't work on site.
+So on October 31 we went with option A, and I bought a [switch](glossary:network-switch) and four [LAN cables](glossary:ethernet) that same day. B and C stayed as backups to pull out only if the [switch](glossary:network-switch) didn't work on site.
 
-That left the question of how to get to the internet. The build plan said this: "The switch is not connected to the school network. Each PC goes out to the internet over school Wi-Fi." That line went into the team's system definition document as is. Where that line came from is in section 4.
+That left the question of how to get to the internet. The build plan said this: "The [switch](glossary:network-switch) is not connected to the school network. Each PC goes out to the internet over school [Wi-Fi](glossary:wi-fi)." That line went into the team's system definition document as is. Where that line came from is in section 4.
 
-## 3. Third picture: how the server reaches the cluster
+## 3. Moving the server connection to Tailscale
 
-Once the school PC side was settled, the next problem was how the platform server on AWS would reach the school PCs. We don't open any inbound ports to the school, so the connection has to be made from inside the school going out.
+Once the school PC side was settled, the next problem was how the platform server on [AWS](glossary:aws) would reach the school PCs. We don't open any inbound [ports](glossary:port) to the school, so the connection has to be made from inside the school going out.
 
-The first version in the team diagram put an agent on the leader. The agent keeps a WebSocket connection open to the platform server, and the server sends instructions like "deploy this" over that connection. Metrics get pushed by the leader's Prometheus to a time-series DB on the server side (remote_write), and logs go out through a separate collector.
+The first version in the team diagram put an agent on the leader. The agent keeps a [WebSocket](glossary:websocket) connection open to the platform server, and the server sends instructions like "deploy this" over that connection. Metrics get pushed by the leader's [Prometheus](glossary:prometheus) to a [time-series DB](glossary:time-series-database) on the server side (remote_write), and logs go out through a separate collector.
 
-On November 1 I changed this on Discord. The reason was one thing we had already decided. **We had decided to install Tailscale on all three nodes for remote access.** Then the platform server can just join the same private network. If the server calls the leader's Kubernetes API directly over its private address, there's no need to write a new agent. For metrics, the server can query the leader's Prometheus directly, so there's no reason to stand up another time-series DB.
+On November 1 I changed this on Discord. The reason was one thing we had already decided. **We had decided to install [Tailscale](glossary:tailscale) on all three nodes for remote access.** Then the platform server can just join the same [private network](glossary:private-network). If the server calls the leader's [Kubernetes API](glossary:kubernetes-api-server) directly over its private address, there's no need to write a new agent. For metrics, the server can query the leader's [Prometheus](glossary:prometheus) directly, so there's no reason to stand up another [time-series DB](glossary:time-series-database).
 
-| Item                                 | First version in the diagram                                 | New version                                                                                                         |
-| ------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| Server → cluster instructions        | Leader agent keeps a WebSocket connection open to the server | The server calls the leader's Kubernetes API directly over Tailscale                                                |
-| Metrics                              | Leader → pushed to a time-series DB on the server side       | The server queries the leader's Prometheus directly. 2-week retention                                               |
-| Registry                             | Undecided (ECR in the docs)                                  | GHCR, public images ([Part 1](/en/blog/hackathon/woowangthon/woowangthon-01-docs-and-prs/#3-one-fact-in-ten-files)) |
-| Outbound connections from the school | 5                                                            | 4                                                                                                                   |
+| Item                                              | First version in the diagram                                                            | New version                                                                                                                          |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Server → [cluster](glossary:cluster) instructions | Leader agent keeps a [WebSocket](glossary:websocket) connection open to the server      | The server calls the leader's [Kubernetes API](glossary:kubernetes-api-server) directly over [Tailscale](glossary:tailscale)         |
+| Metrics                                           | Leader → pushed to a [time-series DB](glossary:time-series-database) on the server side | The server queries the leader's [Prometheus](glossary:prometheus) directly. 2-week retention                                         |
+| [Registry](glossary:container-registry)           | Undecided ([ECR](glossary:amazon-ecr) in the docs)                                      | [GHCR](glossary:ghcr), public images ([Part 1](/en/blog/hackathon/woowangthon/woowangthon-01-docs-and-prs/#3-one-fact-in-ten-files)) |
+| Outbound connections from the school              | 5                                                                                       | 4                                                                                                                                    |
 
-Since the server calls the Kubernetes API directly, I narrowed its permissions. The server can only touch resources inside student project spaces (`proj-<id>`) and create and delete those spaces, and it can only write Secrets, not read them. The point is that even if the server is compromised, it can't touch the system area or secret values. We also decided to keep all Kubernetes calls in one module in the server code. If we ever need to go back to the agent approach, only that module changes.
+Since the server calls the [Kubernetes API](glossary:kubernetes-api-server) directly, I narrowed its permissions. The server can only touch resources inside student [project spaces](glossary:kubernetes-namespace) (`proj-<id>`) and create and delete those spaces, and it can only write [Secrets](glossary:kubernetes-secret), not read them. The point is that even if the server is compromised, it can't touch the system area or secret values. We also decided to keep all [Kubernetes](glossary:kubernetes) calls in one module in the server code. If we ever need to go back to the agent approach, only that module changes.
 
-The next day I dropped backups. There was a plan to back up student volumes outside the cluster (R2) and snapshot the leader's state, but we return the PCs after the contest. Protecting against the PCs disappearing entirely has nothing to do with judging. I kept only the part where another worker takes over when one worker goes down, and marked the rest deferred.
+The next day I dropped backups. There was a plan to back up student volumes outside the [cluster](glossary:cluster) ([R2](glossary:cloudflare-r2)) and [snapshot](glossary:snapshot) the leader's state, but we return the PCs after the contest. Protecting against the PCs disappearing entirely has nothing to do with judging. I kept only the part where another [worker](glossary:worker-node) takes over when one [worker](glossary:worker-node) goes down, and marked the rest deferred.
 
-## 4. Fourth picture: the day we got the PCs
+## 4. The day we got dedicated PCs
 
 On November 3 we received the three school PCs. What I checked after getting them overturned several of the earlier premises in a single day.
 
-| What I checked                                                                                        | What went away                                                                                 |
-| ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Not classroom PCs but **PCs given to us separately for our own use**. They can stay on 24 hours a day | Power-on detection, the 40% resource cap, the classroom timetable question                     |
-| The OS is installed on the internal disk and survives reboots                                         | The live USB boot branch                                                                       |
-| The club room wall has a **wired school LAN port**                                                    | "Each PC goes out over Wi-Fi"                                                                  |
-| School Wi-Fi uses student ID login (802.1X)                                                           | The worry that a web login would make unattended operation impossible. Wi-Fi stays as a backup |
+| What I checked                                                                                        | What went away                                                                                                   |
+| ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Not classroom PCs but **PCs given to us separately for our own use**. They can stay on 24 hours a day | Power-on detection, the 40% resource cap, the classroom timetable question                                       |
+| The OS is installed on the internal disk and survives reboots                                         | The [live USB](glossary:live-usb) boot branch                                                                    |
+| The club room wall has a **[wired](glossary:ethernet) school [LAN port](glossary:ethernet)**          | "Each PC goes out over [Wi-Fi](glossary:wi-fi)"                                                                  |
+| School [Wi-Fi](glossary:wi-fi) uses student ID login ([802.1X](glossary:ieee-8021x))                  | The worry that a web login would make unattended operation impossible. [Wi-Fi](glossary:wi-fi) stays as a backup |
 
-The specs were also much better than I expected. i7-13700K (24 threads), 125GiB of memory, 1TB NVMe, RTX 3080. That's more than enough for two student projects. Because of that I could pick replicating DB volumes across two workers (Longhorn with 2 replicas) without a second thought.
+The specs were also much better than I expected. i7-13700K (24 threads), 125GiB of memory, 1TB [NVMe](glossary:nvme), RTX 3080. That's more than enough for two student projects. Because of that I could pick [replicating](glossary:volume-replication) DB volumes across two [workers](glossary:worker-node) ([Longhorn](glossary:longhorn) with 2 replicas) without a second thought.
 
 ### A premise nobody decided
 
-When I brought up the wall LAN port, the AI agent (Claude Code) writing the build plan with me took it as a design change. "The switch is not connected to the school network" was the original design, after all. But I had planned to plug the switch into the wall port from the start. I had never decided that line.
+When I brought up the wall [LAN port](glossary:ethernet), the [AI agent](glossary:ai-agent) ([Claude Code](glossary:claude-code)) writing the build plan with me took it as a design change. "The [switch](glossary:network-switch) is not connected to the school network" was the original design, after all. But I had planned to plug the [switch](glossary:network-switch) into the wall [port](glossary:port) from the start. I had never decided that line.
 
-Tracing it back, this is what happened. The agent filled in a blank from the premise "school Wi-Fi has isolation." Nodes tied together on an isolated private network, with internet going out separately. That's the shape I used when I built a VM cluster for my [Cloud Computing assignment](/en/blog/cs-fundamentals/cloud-computing/cloud-computing-hw2-kvm-vm-cluster/#0-lab-environment). It was a plausible guess, and it was written in the build plan in the same tone as every other decision. After that, both I and the team read it as a decision. It went into the team's system definition document as is.
+Tracing it back, this is what happened. The [AI agent](glossary:ai-agent) filled in a blank from the premise "school [Wi-Fi](glossary:wi-fi) has isolation." Nodes tied together on an isolated [private network](glossary:private-network), with internet going out separately. That's the shape I used when I built a [VM](glossary:vm) [cluster](glossary:cluster) for my [Cloud Computing assignment](/en/blog/cs-fundamentals/cloud-computing/cloud-computing-hw2-kvm-vm-cluster/#0-lab-environment). It was a plausible guess, and it was written in the build plan in the same tone as every other decision. After that, both I and the team read it as a decision. It went into the team's system definition document as is.
 
-The problem wasn't so much the wrong guess itself. It was that the guess couldn't be told apart from a decision.
-
-## 5. A status on every line
+## 5. Putting a status on every line
 
 So I added a status to every line of the premise table at the top of the build plan.
 
@@ -105,42 +108,35 @@ So I added a status to every line of the premise table at the top of the build p
 
 Here's what a few lines of the build plan look like now.
 
-| Item                    | Details                                                                                                   | Status         |
-| ----------------------- | --------------------------------------------------------------------------------------------------------- | -------------- |
-| Node-to-node connection | Switch. The static addresses the nodes use with each other sit on the same LAN card as the school address | Decided        |
-| Public tunnel           | Cloudflare Tunnel. Stage 3 checks whether the school network lets the tunnel port (7844) through          | Planned        |
-| Log storage             | Being proposed again after the objection that the last few lines aren't enough to see an incident at dawn | Team to decide |
-| Restoring the PCs       | Roll back with a disk image. Need to ask the person who lent them whether restoring is a return condition | Planned        |
+| Item                    | Details                                                                                                                                                                            | Status         |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| Node-to-node connection | [Switch](glossary:network-switch). The [static addresses](glossary:static-ip-address) the nodes use with each other sit on the same [LAN card](glossary:nic) as the school address | Decided        |
+| Public tunnel           | [Cloudflare Tunnel](glossary:cloudflare-tunnel). Stage 3 checks whether the school network lets the tunnel [port](glossary:port) (7844) through                                    | Planned        |
+| Log storage             | Being proposed again after the objection that the last few lines aren't enough to see an incident at dawn                                                                          | Team to decide |
+| Restoring the PCs       | Roll back with a [disk image](glossary:disk-image). Need to ask the person who lent them whether restoring is a return condition                                                   | Planned        |
 
-There's one rule. **Anything not seen on site is Unchecked.** It doesn't matter whether the agent filled the blank or I did. Thanks to these labels, when things changed in the two days after we got the PCs (whether the wall port gives internet, whether there's a Wi-Fi card), I could see right away which parts they touched.
+There's one rule. **Anything not seen on site is Unchecked.** It doesn't matter whether the [AI agent](glossary:ai-agent) filled the blank or I did. Thanks to these labels, when things changed in the two days after we got the PCs (whether the wall [port](glossary:port) gives internet, whether there's a [Wi-Fi](glossary:wi-fi) card), I could see right away which parts they touched.
 
-The build plan is on its 85th version now. Most of those are chains of fixes that followed one premise like this changing.
+The build plan is on its 85th version now. Most of those are chains of fixes that followed one premise like this changing. The team's system definition document still has "each PC over [Wi-Fi](glossary:wi-fi)." I plan to fix it in one [PR](glossary:pull-request) after collecting all the on-site values.
 
 ## 6. What the wall port changed
 
-Plugging the switch into the wall port brings the internet in over a cable, which makes things easier. But it brings new problems in with it.
+Plugging the [switch](glossary:network-switch) into the wall [port](glossary:port) brings the internet in over a cable, which makes things easier. But it brings new problems in with it.
 
-- **Wired has no isolation.** Other devices on the school network can reach our PCs' SSH and Kubernetes ports directly. So the firewall rejects incoming connections by default and only allows the switch network and the private network (stage 3)
-- **Node addresses stay separate from school addresses.** The address the school gives us can change. We add a second static address for node-to-node traffic (`192.168.77.x`) on the same LAN card and have k3s use that address. This address gets no gateway. If it had one, the route to the internet would leak out that way
-- **Exactly one cable to the wall.** With two, you get a loop that can take down the whole club room network
-- **The switch becomes the second single point of failure.** After the leader. If the switch loses power for a moment, the nodes lose each other and the internet goes with them
+- **[Wired](glossary:ethernet) has no isolation.** Other devices on the school network can reach our PCs' [SSH](glossary:ssh) and [Kubernetes](glossary:kubernetes) [ports](glossary:port) directly. So the [firewall](glossary:firewall) rejects incoming connections by default and only allows the [switch](glossary:network-switch) network and the [private network](glossary:private-network) (stage 3)
+- **Node addresses stay separate from school addresses.** The address the school gives us can change. We add a second [static address](glossary:static-ip-address) for node-to-node traffic (`192.168.77.x`) on the same [LAN card](glossary:nic) and have [k3s](glossary:k3s) use that address. This address gets no [gateway](glossary:gateway). If it had one, the route to the internet would leak out that way
+- **Exactly one cable to the wall.** With two, you get a [loop](glossary:switching-loop) that can take down the whole club room network
+- **The [switch](glossary:network-switch) becomes the second [single point of failure](glossary:single-point-of-failure).** After the leader. If the [switch](glossary:network-switch) loses power for a moment, the nodes lose each other and the internet goes with them
 
 ## 7. What didn't change
 
 Through four flips, some things stayed the same from start to finish.
 
-- One leader + two workers. We accept that new deploys stop if the leader goes down (with only three PCs we can't run three leaders)
-- Zero inbound ports to the school. Every connection to the outside is made from inside the school going out
+- One leader + two [workers](glossary:worker-node). We accept that new deploys stop if the leader goes down (with only three PCs we can't run three leaders)
+- Zero inbound [ports](glossary:port) to the school. Every connection to the outside is made from inside the school going out
 - Student code is built outside the school. The school PCs only run it
-- Prometheus collects metrics and Grafana shows them
+- [Prometheus](glossary:prometheus) collects metrics and [Grafana](glossary:grafana) shows them
 
-## 8. Wrap-up
+## 8. Reflection
 
-| Version | Date   | Trigger                                       | What changed                                                                           |
-| ------- | ------ | --------------------------------------------- | -------------------------------------------------------------------------------------- |
-| 1       | Oct 26 | Start                                         | Borrow classroom PCs in their idle hours                                               |
-| 2       | Oct 31 | Wi-Fi client isolation                        | A switch between the nodes. Bought the switch                                          |
-| 3       | Nov 1  | Tailscale for remote access was already there | Server connection moved from an agent to direct calls over Tailscale                   |
-| 4       | Nov 3  | We got the PCs                                | Dedicated PCs on 24 hours, OS on the internal disk, internet through the wall LAN port |
-
-The team's system definition document still has version 2's "each PC over Wi-Fi." I plan to fix it in one PR after collecting all the on-site values. The next post is about what I did the day after we got the PCs, before installing anything.
+The problem wasn't so much the wrong guess itself. It was that the guess couldn't be told apart from a decision.

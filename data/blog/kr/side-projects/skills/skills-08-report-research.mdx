@@ -5,151 +5,120 @@ tags: ['Skills']
 draft: false
 aiGenerated: true
 summary: 'fetch로 안 열리는 블로그와 커뮤니티 글을 브라우저로 읽고 출처를 남기는 조사 스킬'
+level: 2
 ---
 
-> 스킬 연재 8편. 스킬이 무엇이고 왜 지침 파일에서 뺐는지는 [CH0. 스킬 개요](/kr/blog/side-projects/skills/skills-00-overview/)에 있다.
+## 0. 들어가며
 
-## 한 줄 요약
+> [Skill](glossary:skill) 연재 8편. [Skill](glossary:skill)이 무엇이고 왜 지침 파일에서 뺐는지는 [CH0. 스킬 개요](/kr/blog/side-projects/skills/skills-00-overview/)에 있다.
 
-`report-research`는 보고서나 과제 자료를 모을 때 검색 API와 fetch 대신 Playwright 브라우저로 블로그, 카페, Q&A 게시판을 직접 열어 읽는 스킬이다. 읽은 글마다 URL, 작성자, 작성일을 남기고 본문은 요약만 한다. 2026-11-27 저녁 14분 사이 커밋 4개로 만들어졌고, 지금은 `SKILL.md` 하나와 사이트별 메모 파일 6개다.
+보고서나 과제 자료를 AI에게 시키면 같은 주제로는 누가 돌려도 같은 페이지만 나오고, 네이버 블로그처럼 [fetch](glossary:fetch)로는 아예 안 열리는 글도 있다. 그래서 브라우저로 직접 열어 읽는 조사 방법을 만들었다.
 
-## 1. 왜 브라우저인가
+식당으로 비유하면 같은 주문을 받은 주방마다 같은 납품 목록만 보고 같은 재료를 받아 오는 상황이다. 가게에 직접 가서 먹어 봐야 아는 후기는 아무도 안 본다. 납품 목록이 search API, 목록에 적힌 것만 받아 오는 심부름이 [fetch](glossary:fetch), 가게에 직접 가서 먹어 보는 게 [Playwright](glossary:playwright) 브라우저의 [Rendering](glossary:rendering), 가게마다 어느 자리에 뭐가 있는지 적어 둔 쪽지가 사이트별 메모 파일([CSS selector](glossary:css-selector))이다.
 
-비유하면 같은 숙제를 받은 학생 모두가 도서관 검색대에 같은 단어를 치고, 맨 위에 뜬 같은 책 몇 권만 인용하는 상황이다. 서가에 직접 가서 펼쳐 봐야 보이는 후기와 시행착오는 아무도 안 읽는다.
+만든 것은 `report-research` [Skill](glossary:skill)이다. 검색 API와 [fetch](glossary:fetch) 대신 [Playwright](glossary:playwright) 브라우저로 블로그, 카페, Q&A 게시판을 직접 열어 읽는다. 읽은 글마다 URL, 작성자, 작성일을 남기고 본문은 요약만 한다. 2026-11-27 저녁 14분 사이 [Commit](glossary:commit) 4개로 만들어졌고, 2026-11-28 기준으로 `SKILL.md` 하나(66줄, 6,395 B)와 사이트별 메모 파일 6개다.
+
+## 1. 왜 브라우저로 읽나
 
 ![같은 질문이 search API와 fetch 경로로 가면 같은 몇 페이지에서 끝나고, Playwright 브라우저 경로로 가면 1차 경험과 출처 표가 남는다](/static/images/skills-08-report-research/paths.svg)
 
-_같은 질문이 search API와 fetch 경로로 가면 같은 몇 페이지에서 끝나고, 브라우저 경로로 가면 1차 경험과 출처 표가 남는다_
+_같은 질문이 search API와 [fetch](glossary:fetch) 경로로 가면 같은 몇 페이지에서 끝나고, 브라우저 경로로 가면 1차 경험과 출처 표가 남는다_
 
-검색대는 **search API**, 책을 펼쳐 보는 손은 **브라우저 렌더링**이다. AI 조사 도구는 대부분 search API로 URL을 받고 fetch로 HTML을 가져온다. 그래서 같은 주제면 누가 돌려도 비슷한 페이지가 나온다. 스킬 첫 줄의 "Why"가 바로 이 문제다.
+AI 조사 도구는 대부분 search API로 URL을 받고 [fetch](glossary:fetch)로 [HTML](glossary:html)을 가져온다. 그래서 같은 주제면 누가 돌려도 비슷한 페이지가 나온다. [Skill](glossary:skill) 첫 줄의 "Why"가 바로 이 문제다.
 
-fetch가 못 읽는 경우도 많다. 네이버 블로그는 바깥 문서에 본문이 없고 iframe 안에 따로 로드된다. 측정해 보니 바깥 문서의 `document.body.innerText`는 0자였다. 스크립트로 그리는 검색 결과(브런치)도 정적 HTML에는 없다. 브라우저는 이걸 사람이 보는 그대로 렌더링하니까, 사람이 읽을 수 있는 글은 같은 방식으로 읽을 수 있다.
+[fetch](glossary:fetch)가 못 읽는 경우도 많다. 네이버 블로그는 바깥 문서에 본문이 없고 [iframe](glossary:iframe) 안에 따로 로드된다. 측정해 보니 바깥 문서의 `document.body.innerText`는 0자였다. 스크립트로 그리는 검색 결과(브런치)도 정적 [HTML](glossary:html)에는 없다. 브라우저는 이걸 사람이 보는 그대로 [render](glossary:rendering)하니까, 사람이 읽을 수 있는 글은 같은 방식으로 읽을 수 있다.
 
-학술 자료는 이 스킬 몫이 아니다. 논문은 [CH7. paper-search](/kr/blog/side-projects/skills/skills-07-paper-search/)가 맡고, 보고서에 논문과 실무 경험이 둘 다 필요하면 두 스킬을 같이 쓴다. 모은 자료로 보고서를 쓰는 형식은 [CH2. docs-style](/kr/blog/side-projects/skills/skills-02-docs-style/)을 따른다.
+학술 자료는 이 [Skill](glossary:skill) 몫이 아니다. 논문은 [CH7. paper-search](/kr/blog/side-projects/skills/skills-07-paper-search/)가 맡고, 보고서에 논문과 실무 경험이 둘 다 필요하면 두 [Skill](glossary:skill)을 같이 쓴다. 모은 자료로 보고서를 쓰는 형식은 [CH2. docs-style](/kr/blog/side-projects/skills/skills-02-docs-style/)을 따른다.
 
 ## 2. 14분 동안 바뀐 규칙
 
-비유하면 처음엔 동네 도서관 이용 안내문으로 시작했다가, 해외 자료실을 추가하고, 마지막에 열람실별 안내를 따로 뽑아 벽에 붙였다.
+[Skill](glossary:skill) 범위(scope)가 한국 사이트에서 "[fetch](glossary:fetch)로 안 열리는 모든 곳"으로 넓어지고, 사이트별 지식이 본문에서 분리됐다. [dotfiles](glossary:dotfiles) 레포 기록은 다음과 같다. 크기는 각 [Commit](glossary:commit) 시점 `SKILL.md`의 `wc -c -l` 값이다.
 
-용어로는 **스킬 범위(scope)**가 한국 사이트에서 "fetch로 안 열리는 모든 곳"으로 넓어지고, 사이트별 지식이 **본문에서 분리**됐다. dotfiles 레포 기록은 다음과 같다. 크기는 각 커밋 시점 `SKILL.md`의 `wc -c -l` 값이다.
+| 시각(11-27) | [Commit](glossary:commit) | 바뀐 것                                                                               | `SKILL.md`   |
+| ----------- | ------------------------- | ------------------------------------------------------------------------------------- | ------------ |
+| 20:20       | `1d437de`                 | `kr-web-search`로 추가. 네이버 블로그, 카페, 지식iN, 브런치, 티스토리                 | 77줄 6,607 B |
+| 20:25       | `0dab803`                 | `report-research`로 이름 변경. [Stack Overflow](glossary:stack-overflow), Reddit 추가 | 88줄 8,609 B |
+| 20:29       | `4af55ba`                 | 사이트별 메모를 `sites/<host>.md` 6개로 분리. 규정 페이지와 로그인 전용 소스 제외     | 53줄 5,834 B |
+| 20:34       | `9a5ee10`                 | 잰 시간 표 추가                                                                       | 66줄 6,395 B |
 
-| 시각(11-27) | 커밋      | 바뀐 것                                                                           | `SKILL.md`   |
-| ----------- | --------- | --------------------------------------------------------------------------------- | ------------ |
-| 20:20       | `1d437de` | `kr-web-search`로 추가. 네이버 블로그, 카페, 지식iN, 브런치, 티스토리             | 77줄 6,607 B |
-| 20:25       | `0dab803` | `report-research`로 이름 변경. Stack Overflow, Reddit 추가                        | 88줄 8,609 B |
-| 20:29       | `4af55ba` | 사이트별 메모를 `sites/<host>.md` 6개로 분리. 규정 페이지와 로그인 전용 소스 제외 | 53줄 5,834 B |
-| 20:34       | `9a5ee10` | 잰 시간 표 추가                                                                   | 66줄 6,395 B |
+이름을 바꾼 이유는 [Commit](glossary:commit) 메시지에 따로 없다. 같은 [Commit](glossary:commit)에서 해외 사이트가 범위에 들어왔으니 "kr"이 맞지 않게 된 시점과 겹친다. 세 번째 [Commit](glossary:commit)에서는 description의 사이트 목록이 "예시이지 한계가 아니다"로 바뀌었다. 목록에 없는 사이트도 그 자리에서 브라우저로 읽고, 다시 쓸 것 같으면 메모 파일을 하나 더 만든다.
 
-이름을 바꾼 이유는 커밋 메시지에 따로 없다. 같은 커밋에서 해외 사이트가 범위에 들어왔으니 "kr"이 맞지 않게 된 시점과 겹친다. 세 번째 커밋에서는 description의 사이트 목록이 "예시이지 한계가 아니다"로 바뀌었다. 목록에 없는 사이트도 그 자리에서 브라우저로 읽고, 다시 쓸 것 같으면 메모 파일을 하나 더 만든다.
+세 번째 [Commit](glossary:commit)으로 본문은 88줄에서 53줄로 줄었다. 사이트별 [CSS selector](glossary:css-selector)와 코드가 빠져나가서다. [Skill](glossary:skill) 본문은 [Skill](glossary:skill)이 열릴 때마다 통째로 읽히니, 지금 읽을 사이트 하나의 메모만 따로 여는 편이 싸다. [스킬을 필요할 때만 여는 이유](/kr/blog/side-projects/devblog/devblog-04-agent-environment/#3-필요할-때-꺼내기)와 같은 원리를 [Skill](glossary:skill) 안에서 한 번 더 쓴 셈이다.
 
-세 번째 커밋으로 본문은 88줄에서 53줄로 줄었다. 사이트별 셀렉터와 코드가 빠져나가서다. 스킬 본문은 스킬이 열릴 때마다 통째로 읽히니, 지금 읽을 사이트 하나의 메모만 따로 여는 편이 싸다. [스킬을 필요할 때만 여는 이유](/kr/blog/side-projects/devblog/devblog-04-agent-environment/#3-필요할-때-꺼내기)와 같은 원리를 스킬 안에서 한 번 더 쓴 셈이다.
-
-Reddit은 두 단계로 빠졌다. 두 번째 커밋 때 Playwright로 연 서브레딧 페이지가 16.5초 뒤 "Prove your humanity" 확인 페이지를 띄웠고, 우회하지 않고 멈췄다. 세 번째 커밋에서 거의 모든 글이 로그인을 요구하는 사이트라 아예 범위에서 뺐다. 처음엔 내 로그인이 필요한 글이면 Claude in Chrome으로 넘기는 길이 있었는데, 이것도 같이 없앴다. 지금은 로그인 없이 열리는 글만 읽는다.
+Reddit은 두 단계로 빠졌다. 두 번째 [Commit](glossary:commit) 때 [Playwright](glossary:playwright)로 연 서브레딧 페이지가 16.5초 뒤 "Prove your humanity" 확인 페이지를 띄웠고, 우회하지 않고 멈췄다. 세 번째 [Commit](glossary:commit)에서 거의 모든 글이 로그인을 요구하는 사이트라 아예 범위에서 뺐다. 처음엔 내 로그인이 필요한 글이면 [Claude in Chrome](glossary:claude-in-chrome)으로 넘기는 길이 있었는데, 이것도 같이 없앴다. 지금은 로그인 없이 열리는 글만 읽는다.
 
 ## 3. 넘지 않는 선
 
-비유하면 열람실 규칙이다. 누구나 들어올 수 있는 방에서만 읽고, 회원증이 필요한 방은 들어가지 않고, 출입 금지 표지가 붙으면 돌아선다. 책에 낙서하지 않고, 베껴 가지 않고 메모만 한다.
+[Skill](glossary:skill)의 규칙 절을 줄이면 이렇다. 읽는 범위와 동작을 제한한다.
 
-용어로는 접근 범위와 동작 제한이다. 스킬의 규칙 절을 줄이면 이렇다.
+| 규칙                                           | 실제 동작                                                                                                                                        |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 바로 브라우저로                                | [fetch](glossary:fetch), [WebFetch](glossary:fetch), API, 모바일 URL 바꾸기, 소스 파싱을 먼저 시도하지 않는다                                    |
+| 규정 페이지 안 열기                            | 조사 중에 [robots.txt](glossary:robotstxt), 약관, API 문서를 열지 않는다. [Token](glossary:token)만 쓰고 사람이 브라우저로 읽는 범위는 안 바뀐다 |
+| 필요한 것만 읽기                               | 답이 되는 몇 편만 연다. 모든 스레드와 "답글 더 보기"를 펼치지 않는다                                                                             |
+| 로그인 전용 소스 제외                          | 로그인이나 가입 안내가 본문 대신 뜨면 건너뛰고 건수만 센다. ID, 비밀번호, 코드는 입력하지 않는다                                                 |
+| [bot check](glossary:bot-detection) 우회 금지  | [CAPTCHA](glossary:captcha), 차단 페이지가 뜨면 그 host는 멈춘다. 재시도, 브라우저나 [user agent](glossary:user-agent) 바꾸기 없음               |
+| 읽기만                                         | 댓글, 추천, 공감, 이웃 추가, 카페 가입, 글쓰기 없음                                                                                              |
+| host당 [rate limiting](glossary:rate-limiting) | 탭 하나, 같은 host는 페이지 로드 사이 2~3초 이상, 한 번에 host당 20편 안팎                                                                       |
+| 출처, 복사 아님                                | 글마다 URL, 닉네임, 날짜, 제목. 요약은 내 말로, 인용은 글당 짧은 한 문장까지                                                                     |
 
-| 규칙                  | 실제 동작                                                                                               |
-| --------------------- | ------------------------------------------------------------------------------------------------------- |
-| 바로 브라우저로       | fetch, WebFetch, API, 모바일 URL 바꾸기, 소스 파싱을 먼저 시도하지 않는다                               |
-| 규정 페이지 안 열기   | 조사 중에 robots.txt, 약관, API 문서를 열지 않는다. 토큰만 쓰고 사람이 브라우저로 읽는 범위는 안 바뀐다 |
-| 필요한 것만 읽기      | 답이 되는 몇 편만 연다. 모든 스레드와 "답글 더 보기"를 펼치지 않는다                                    |
-| 로그인 전용 소스 제외 | 로그인이나 가입 안내가 본문 대신 뜨면 건너뛰고 건수만 센다. ID, 비밀번호, 코드는 입력하지 않는다        |
-| bot check 우회 금지   | CAPTCHA, 자동입력 방지, 차단 페이지가 뜨면 그 host는 멈춘다. 재시도, 브라우저나 user agent 바꾸기 없음  |
-| 읽기만                | 댓글, 추천, 공감, 이웃 추가, 카페 가입, 글쓰기 없음                                                     |
-| host당 천천히         | 탭 하나, 같은 host는 페이지 로드 사이 2~3초 이상, 한 번에 host당 20편 안팎                              |
-| 출처, 복사 아님       | 글마다 URL, 닉네임, 날짜, 제목. 요약은 내 말로, 인용은 글당 짧은 한 문장까지                            |
-
-규칙이 처음부터 이랬던 건 아니다. 첫 버전에는 "각 사이트의 약관과 robots 규칙을 존중한다"는 줄이 있었고, 두 번째 버전에서 robots.txt와 API 문서 확인을 "먼저 하지 않는 것" 목록에 넣었다. 세 번째 버전에서 별도 규칙으로 나왔다. 대신 그 자리를 로그인 전용 소스 제외, 우회 금지, host당 속도 제한이 메운다. 사람이 로그인 없이 열어 볼 수 있는 글을, 사람 속도로, 읽기만 한다는 선이다.
+규칙이 처음부터 이랬던 건 아니다. 첫 버전에는 "각 사이트의 약관과 robots 규칙을 존중한다"는 줄이 있었고, 두 번째 버전에서 [robots.txt](glossary:robotstxt)와 API 문서 확인을 "먼저 하지 않는 것" 목록에 넣었다. 세 번째 버전에서 별도 규칙으로 나왔다. 대신 그 자리를 로그인 전용 소스 제외, 우회 금지, host당 [rate limiting](glossary:rate-limiting)이 메운다. 사람이 로그인 없이 열어 볼 수 있는 글을, 사람 속도로, 읽기만 한다는 선이다.
 
 ## 4. 사이트별 메모
 
-비유하면 열람실마다 "책이 어느 칸에 꽂혀 있는지" 적은 쪽지를 따로 둔 것이다.
-
 ![네이버 블로그는 top document의 innerText가 0자이고, 본문은 iframe mainFrame 안의 .se-main-container에 있다](/static/images/skills-08-report-research/naver-iframe.svg)
 
-_네이버 블로그는 top document가 비어 있고 본문은 iframe `mainFrame` 안에 있다_
+_네이버 블로그는 top document가 비어 있고 본문은 [iframe](glossary:iframe) `mainFrame` 안에 있다_
 
-쪽지는 `sites/<host>.md`, 칸은 **CSS selector**다. 파일마다 검증 날짜, 검색 URL, 본문과 메타데이터 셀렉터, 테스트 한 줄(글자 수와 초)이 들어간다. 2026-11-27 맥에서 Playwright MCP로 확인한 내용이다.
+사이트별 지식은 `sites/<host>.md`에 있고, 칸을 고르는 식은 [CSS selector](glossary:css-selector)다. 파일은 6개, 81줄, 5,577 B이고 파일마다 검증 날짜, 검색 URL, 본문과 메타데이터 [CSS selector](glossary:css-selector), 테스트 한 줄(글자 수와 초)이 들어간다. 2026-11-27 맥에서 [Playwright](glossary:playwright) [MCP](glossary:mcp)로 확인한 내용이다.
 
-| 파일                   | 크기    | 핵심                                                                                     |
-| ---------------------- | ------- | ---------------------------------------------------------------------------------------- |
-| `blog.naver.com.md`    | 1,573 B | 본문은 iframe `mainFrame`. 읽기 코드가 들어 있는 유일한 파일                             |
-| `cafe.naver.com.md`    | 922 B   | 본문은 iframe `cafe_main`. 검색 탭 링크의 `art=` 토큰으로 열면 비회원도 읽힌 글이 있었다 |
-| `kin.naver.com.md`     | 771 B   | iframe 없음. `kin.naver.com` 자체 검색을 쓴다(통합검색 지식iN 탭엔 링크가 없었다)        |
-| `brunch.co.kr.md`      | 569 B   | 검색 결과가 스크립트로 그려져 2초쯤 기다린다                                             |
-| `tistory.com.md`       | 826 B   | 스킨마다 본문 칸이 달라 후보 4개 중 글이 있는 첫 칸. 검색은 Daum                         |
-| `stackoverflow.com.md` | 916 B   | 작성일은 `time[itemprop="dateCreated"]`. 그냥 `time`은 마지막 활동일이 잡힌다            |
+| 파일                   | 크기    | 핵심                                                                                                        |
+| ---------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| `blog.naver.com.md`    | 1,573 B | 본문은 [iframe](glossary:iframe) `mainFrame`. 읽기 코드가 들어 있는 유일한 파일                             |
+| `cafe.naver.com.md`    | 922 B   | 본문은 [iframe](glossary:iframe) `cafe_main`. 검색 탭 링크의 `art=` 토큰으로 열면 비회원도 읽힌 글이 있었다 |
+| `kin.naver.com.md`     | 771 B   | [iframe](glossary:iframe) 없음. `kin.naver.com` 자체 검색을 쓴다(통합검색 지식iN 탭엔 링크가 없었다)        |
+| `brunch.co.kr.md`      | 569 B   | 검색 결과가 스크립트로 그려져 2초쯤 기다린다                                                                |
+| `tistory.com.md`       | 826 B   | 스킨마다 본문 칸이 달라 후보 4개 중 글이 있는 첫 칸. 검색은 Daum                                            |
+| `stackoverflow.com.md` | 916 B   | 작성일은 `time[itemprop="dateCreated"]`. 그냥 `time`은 마지막 활동일이 잡힌다                               |
 
-브라우저는 Playwright MCP 하나다. 클릭, 입력, 스크롤은 `page.human`으로 하는데, 이건 [CH10. demo-recording](/kr/blog/side-projects/skills/skills-10-demo-recording/)에서도 쓰는 사람 같은 마우스와 타이핑 도우미다. 읽기에는 필요 없다. `page.goto`로 열고 `page.evaluate`(iframe이면 `page.frame({ name }).evaluate`)로 DOM에서 제목, 작성자, 날짜, 본문 길이만 돌려받는다. 페이지 전체를 대화에 붙이지 않으니 토큰이 덜 든다.
+브라우저는 [Playwright](glossary:playwright) [MCP](glossary:mcp) 하나다. 클릭, 입력, 스크롤은 `page.human`으로 하는데, 이건 [CH10. demo-recording](/kr/blog/side-projects/skills/skills-10-demo-recording/)에서도 쓰는 사람 같은 마우스와 타이핑 도우미다. 읽기에는 필요 없다. `page.goto`로 열고 `page.evaluate`([iframe](glossary:iframe)이면 `page.frame({ name }).evaluate`)로 [DOM](glossary:dom)에서 제목, 작성자, 날짜, 본문 길이만 돌려받는다. 페이지 전체를 대화에 붙이지 않으니 [Token](glossary:token)이 덜 든다.
 
-검색 입구에서 Google은 뺐다. 티스토리 글을 찾으려고 `site:tistory.com`을 쳤더니 첫 쿼리에서 `/sorry` 429 봇 페이지가 떴다. 규칙대로 거기서 멈췄고, 티스토리 검색은 Daum 블로그 탭으로 바꿨다.
+검색 입구에서 Google은 뺐다. 티스토리 글을 찾으려고 `site:tistory.com`을 쳤더니 첫 쿼리에서 `/sorry` [429](glossary:http-status-code) 봇 페이지가 떴다. 규칙대로 거기서 멈췄고, 티스토리 검색은 Daum 블로그 탭으로 바꿨다.
 
 ## 5. 조사 한 번의 흐름
 
-비유하면 질문을 고르고, 목록을 뽑고, 읽을 책을 고르고, 메모하며 읽고, 참고문헌을 붙여 내는 순서다.
-
 ![query, search, pick, read, report 다섯 단계. 로그인 안내는 그 글만 건너뛰고, CAPTCHA는 그 host에서 멈춘다](/static/images/skills-08-report-research/flow.svg)
 
-_다섯 단계와 두 갈래: 로그인 안내는 그 글만 건너뛰고, bot check는 그 host에서 멈춘다_
+_다섯 단계와 두 갈래: 로그인 안내는 그 글만 건너뛰고, [bot check](glossary:bot-detection)는 그 host에서 멈춘다_
 
 1. **query**: 3~5개. 읽을 사이트의 언어로, 경험 단어(후기, 경험, 실무, 회고, 단점 / experience, in production, lessons learned)를 붙인다.
-2. **search**: 사이트 자체 검색 페이지를 브라우저로 열고 결과 DOM에서 글 URL을 모은다.
+2. **search**: 사이트 자체 검색 페이지를 브라우저로 열고 결과 [DOM](glossary:dom)에서 글 URL을 모은다.
 3. **pick**: 1차 경험으로 보이는 5~15편. 체험단, 협찬, 원고료 표시 글, 복붙 뉴스, AI가 쓴 듯한 글, 로그인 전용 결과는 뺀다.
 4. **read**: 글마다 URL, 제목, 작성자, 날짜, 길이, 3~5줄 요약, 짧은 인용 하나(선택), 종류(경험, 의견, 답변, 광고)를 적는다.
-5. **report**: 주제별로 묶은 발견, 특히 공식 문서나 API 결과와 어긋나는 경험을 먼저 쓰고, 출처 표를 붙인다. 연 글 수, 쓴 글 수, 건너뛴 글과 이유, 막힌 host, 실제 걸린 wall-clock 시간도 적는다.
+5. **report**: 주제별로 묶은 발견, 특히 공식 문서나 API 결과와 어긋나는 경험을 먼저 쓰고, 출처 표를 붙인다. 연 글 수, 쓴 글 수, 건너뛴 글과 이유, 막힌 host, 실제 걸린 [wall-clock](glossary:wall-clock-time) 시간도 적는다.
 
 출처 표 머리는 `# | 제목 | 작성자 | 작성일 | 사이트 | 종류 | 링크`로 정해져 있다. 이 표가 그대로 보고서 참고문헌이 된다.
 
 ## 6. 잰 시간
 
-비유하면 열람실마다 책 한 권 꺼내 펼치는 데 몇 초 걸리는지 재 둔 것이다.
-
-용어로는 **페이지 로드부터 DOM 추출까지의 시간**이다. 2026-11-27 맥, Playwright MCP, 한 번씩 잰 값이다.
+페이지 로드부터 [DOM](glossary:dom) 추출까지의 시간이다. 2026-11-27 맥, [Playwright](glossary:playwright) [MCP](glossary:mcp), 한 번씩 잰 값이다.
 
 | 단계                                                            | 시간      |
 | --------------------------------------------------------------- | --------- |
 | 검색 페이지 + 글 URL (네이버 블로그, 카페, 지식iN)              | 0.4~0.7초 |
 | 검색 페이지 (브런치, Daum)                                      | 2.4~2.5초 |
 | 글 한 편 (브런치, 지식iN, 네이버 블로그, 티스토리, 네이버 카페) | 0.7~3.6초 |
-| Stack Overflow 질문 하나와 답변                                 | 5.3초     |
+| [Stack Overflow](glossary:stack-overflow) 질문 하나와 답변      | 5.3초     |
 
-10편을 host당 2~3초 간격으로 읽으면 브라우저 시간은 1분 남짓이라는 게 스킬의 추정이다. 처음부터 끝까지 잰 값은 아니다. 그래서 스킬은 보고서마다 그 조사의 실제 wall-clock 시간을 따로 적게 한다.
+10편을 host당 2~3초 간격으로 읽으면 브라우저 시간은 1분 남짓이라는 게 [Skill](glossary:skill)의 추정이다. 처음부터 끝까지 잰 값은 아니다. 그래서 [Skill](glossary:skill)은 보고서마다 그 조사의 실제 [wall-clock](glossary:wall-clock-time) 시간을 따로 적게 한다.
 
 ## 7. 아직 못 한 것
 
-- 지식iN에서 채택된 답과 날짜, 브런치 글 날짜는 간단한 셀렉터로 못 찾았다. 필요해지면 그때 `browser_snapshot` 한 번으로 찾아 메모 파일에 넣기로 했다.
-- 측정은 전부 맥에서 했다. 윈도우에서 스킬 링크가 걸리는지는 할 일로 남아 있다.
-- 지식iN 테스트 질문은 본문이 6자였다. 셀렉터는 맞게 잡혔지만 긴 질문으로는 아직 안 쟀다.
-- 이 스킬로 만든 보고서가 실제로 제출된 기록은 아직 없다.
+- 지식iN에서 채택된 답과 날짜, 브런치 글 날짜는 간단한 [CSS selector](glossary:css-selector)로 못 찾았다. 필요해지면 그때 `browser_snapshot` 한 번으로 찾아 메모 파일에 넣기로 했다.
+- 측정은 전부 맥에서 했다. 윈도우에서 [Skill](glossary:skill) 링크가 걸리는지는 할 일로 남아 있다.
+- 지식iN 테스트 질문은 본문이 6자였다. [CSS selector](glossary:css-selector)는 맞게 잡혔지만 긴 질문으로는 아직 안 쟀다.
+- 이 [Skill](glossary:skill)로 만든 보고서가 실제로 제출된 기록은 아직 없다.
 
-## 숫자로 보기
+## 8. 느낀 점
 
-2026-11-28 기준.
-
-| 항목                | 값                              |
-| ------------------- | ------------------------------- |
-| 커밋 수             | 4 (2026-11-27 20:20~20:34)      |
-| `SKILL.md`          | 66줄, 6,395 B                   |
-| `sites/` 메모 파일  | 6개, 81줄, 5,577 B              |
-| 본문 크기 변화      | 6,607 → 8,609 → 5,834 → 6,395 B |
-| 검증된 사이트       | 6                               |
-| 범위에서 뺀 사이트  | 1 (Reddit)                      |
-| 검색 입구에서 뺀 곳 | 1 (Google)                      |
-
-## 용어 정리
-
-| 용어                                                      | 뜻                                                                            |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| [스킬](/kr/blog/side-projects/skills/skills-00-overview/) | 특정 일을 할 때만 여는 지침 묶음. 평소엔 이름과 설명만 보인다                 |
-| search API                                                | 검색어를 보내면 결과 URL 목록을 돌려주는 서비스                               |
-| fetch                                                     | URL 하나의 HTML을 받아 오는 요청. 스크립트를 실행하지 않는다                  |
-| Playwright                                                | 브라우저를 코드로 조작하는 라이브러리. 여기선 MCP 서버로 붙인다               |
-| iframe                                                    | 페이지 안에 다른 문서를 넣는 HTML 요소. 바깥 문서에서는 안의 글자가 안 보인다 |
-| DOM                                                       | 브라우저가 렌더링한 페이지의 트리 구조. 셀렉터로 원하는 요소를 찾는다         |
-| CSS selector                                              | DOM에서 요소를 고르는 식. `.se-main-container` 같은 것                        |
-| bot check                                                 | 사람인지 확인하는 페이지. CAPTCHA, 429 차단 페이지 등                         |
-| wall-clock 시간                                           | 시작부터 끝까지 실제로 흐른 시간                                              |
+읽은 글마다 URL, 작성자, 작성일을 남기고 본문은 요약만 하는 조사 [Skill](glossary:skill)을 14분 사이 [Commit](glossary:commit) 4개로 만들었다.

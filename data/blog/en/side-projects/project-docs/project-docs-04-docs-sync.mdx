@@ -4,118 +4,109 @@ date: '2026-11-28'
 tags: ['Project Docs']
 draft: false
 aiGenerated: true
-summary: 'Keeping stage documents in the repo as one file per section and copying them one way into Google Docs on every push.'
+level: 3
+summary: 'Stage documents live in the repo as one file per section and are copied one way into Google Docs on every push.'
 ---
 
-> Part 4 of the series. The full picture of the template is in [Project Docs 0](/en/blog/side-projects/project-docs/project-docs-00-overview/).
+> Part 4 of the series. The full template picture is in [Project Docs 0](/en/blog/side-projects/project-docs/project-docs-00-overview/).
 
-## In one line
+## 0. Introduction
 
-At first, Google Docs was the source. Within a day, Markdown in the repo became the source, and a month later the setup became one file per section, committed, with GitHub Actions overwriting Google Docs on every push to `main`. People read in Google Docs and only leave comments. Edits always happen in the repo.
+Stage documents such as the plan, the [SRS](glossary:srs) and the [SDD](glossary:sdd) are read by teammates and the professor in [Google Docs](glossary:google-docs), while the source that code and tests point to has to live in the [Repository](glossary:repository). Syncing by hand always drifts, so I picked one source and let a machine make the copy.
 
-## 1. When Google Docs was the source
+In restaurant terms, I first wrote the menu straight onto the dining-room board and kept only notes in a notebook. Then I switched to editing only the kitchen's recipe book and letting a copy clerk, holding a one-time pass, paste a fresh copy into the same spot on the board. The recipe book is the repo's [Markdown](glossary:markdown) as the [Single source of truth](glossary:single-source-of-truth), the copy clerk is a [GitHub Actions](glossary:github-actions) [Workflow](glossary:workflow), the one-time pass is the [Short-lived token](glossary:short-lived-token) that [OIDC](glossary:oidc) and [Workload Identity Federation](glossary:workload-identity-federation) hand out, and the board is Google Docs.
 
-As an analogy, at first I wrote directly on the bulletin board and only kept memos in my notebook.
+What I did: on October 17 I started with Google Docs as the source and flipped to repo Markdown within a day. On November 16 I split each document into one file per section and committed them. On November 17 I first attached a Workflow to [Coffee Shop](/en/blog/side-projects/coffee-shop/coffee-shop-00-overview/) that overwrites the same six Docs on every [Push](glossary:push) to `main`. This post covers that flow and what I fixed after the first run.
 
-In technical terms, in the 2026-10-17 process the **source of truth** was Google Docs. The repo held only a README, CONTRIBUTING and short notes, and deliverables like the plan, SRS and SDD were all written in Google Docs.
+## 1. Moving the source from Google Docs to the repo
 
-The next day, 10-18, I reversed that order. The source is local Markdown, and Google Docs is synced once at the end of a stage or before showing it to someone. The reason is left in parentheses in the rules file. On account.stairno.com, syncing Google Docs on every PR was too slow. The Google Docs connector the agent uses can only edit by specifying a position inside the document, so even changing one line meant reading hundreds of KB per document.
+On 2026-10-17 the procedure made Google Docs the source. The repo held only the README, CONTRIBUTING and short notes, and the plan, SRS and SDD were all written in Google Docs.
 
-At that point account.stairno.com kept its four documents in `docs/specs/` but did not commit them, via `.gitignore`. Why I did that is not in the records (not recorded).
+The next day, 10-18, I flipped it. The source is local Markdown, and Google Docs is synced once when a stage ends or before showing it to others. The reason survives in a parenthetical in the rules file. Syncing Google Docs on every [Pull request](glossary:pull-request) in account.stairno.com was too slow. The Google Docs connector the agent uses can only edit by specifying a position inside the document, so every edit meant reading hundreds of KB for one document. At that point the four documents sat in `docs/specs/` but were not committed because of `.gitignore`; the reason is not recorded.
 
 ## 2. One file per section
 
-As an analogy, I tore a thick notebook into loose pages, one per chapter, and put them in a binder. To fix one page, you don't have to open the whole notebook.
+In the early hours of 2026-11-16 I replaced the four uncommitted single files with committed per-section files. This is [Docs as code](glossary:docs-as-code). Two reasons:
 
-In technical terms, this is **docs-as-code** with the documents split into **per-section files** and committed. Early on 2026-11-16, for two reasons, I changed four uncommitted single files into committed per-section files.
+- **Two computers**: I alternate between a Windows desktop and a MacBook. If a document is not committed, one machine does not know what the other changed. Once committed, documents ride the same [two-computer structure that syncs through Git](/en/blog/side-projects/devblog/devblog-04-agent-environment/#7-two-computers-three-agents).
+- **How much the agent reads**: with one file per document the agent reads the whole thing to see one section. With one file per section it reads the file list in `docs/specs/README.md` and opens only what it needs.
 
-- **Two computers**: I switch between a Windows desktop and a MacBook. If the documents aren't committed, one side doesn't know what was changed on the other. Once committed, the documents ride the same [setup where two computers sync through git](/en/blog/side-projects/devblog/devblog-04-agent-environment/#7-two-computers-three-agents).
-- **How much the agent reads**: if a document is one file, the agent reads the whole document to see one section. With one file per section, it looks up file names in `docs/specs/README.md` and opens only the files it needs.
+I also weighed security. A private repo has one account, me, so I commit as is. In a public repo I remove unfixed security holes, admin addresses, internal hosts, operating procedures and anything a client asked to keep private, and write `(Google Docs only)` in their place. Secrets and personal data go in no repo.
 
-I also checked whether committing is safe. In private repos I'm the only account, so I commit as is. In public repos I leave out unfixed security holes, admin addresses, internal hosts, operating procedures, and anything a client asked to keep private, and write `(Google Docs에만 있음)` ("only in Google Docs") in their place. Secrets and personal data go into no repo at all.
-
-## 3. Sync direction
-
-As an analogy, you decide to edit only one of the notebook and the bulletin board, and let a machine copy it to the other. If you edit both, the contents will split someday.
+## 3. Choosing the sync direction
 
 ![Why the sync direction was chosen: the rejected option is Google Docs first, the chosen one is automatic one-way from the repo source](/static/images/project-docs-04-docs-sync/why-one-way.svg)
 
 _Why the sync direction was chosen: the rejected option is Google Docs first, the chosen one is automatic one-way from the repo source_
 
-In technical terms, this is **one-way sync**. The same day, I also considered writing in Google Docs first and moving it to the repo. Looking only at syncing between Mac and Windows, that seemed natural, and there was also the worry that the two would drift apart as documents grew. But I rejected Google Docs first for four reasons.
+The same day I also considered writing in Google Docs first and moving to the repo. Looking only at syncing between Mac and Windows, it seemed natural. I rejected it for four reasons and chose [One-way sync](glossary:one-way-sync).
 
-| Reason for rejecting      | Details                                                                          |
-| ------------------------- | -------------------------------------------------------------------------------- |
-| Must read the whole thing | The agent has to read an entire Doc to see one section                           |
-| Position-based API        | The Docs API edits by position (index) in the document, so it's slow and brittle |
-| Breaks the PR rule        | Code and the design change for that code can't be bundled in one PR              |
-| Drift just flips sides    | As long as a person copies, whichever side is first, they drift apart someday    |
+| Reason rejected                             | Detail                                                                                          |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Must read the whole thing                   | The agent has to read an entire Doc to see one section                                          |
+| Position-based API                          | The Docs [API](glossary:api) edits by position (index) inside the document, slow and fragile    |
+| Breaks the [PR](glossary:pull-request) rule | Code and the design change for that code cannot go in one [Pull request](glossary:pull-request) |
+| Drift only changes sides                    | As long as a person copies, the two eventually drift whichever side comes first                 |
 
-There are also three costs paid in exchange. It needs auth setup, every overwrite detaches Google Docs comments from their anchors, and table formatting gets simpler. So one rule was added. People don't edit Google Docs; they only leave comments. Comments are answered by fixing the repo, and open comments are handled first, before the merge that regenerates that Doc.
+There are three costs too. Auth setup is needed, each overwrite detaches Google Docs comment anchors, and table formatting gets simpler. So a rule came with it: people do not edit Google Docs, they only comment. I answer a comment by fixing the repo, and open comments are handled before the [Merge](glossary:merge) that rebuilds that Doc.
 
-## 4. What one push does
-
-As an analogy, when you fix the original and drop it in the submission box, the person in charge of copying gets an on-the-spot pass and pins a fresh copy in the same spot on the bulletin board.
+## 4. What the Workflow does
 
 ![From the repo to Google Docs, one way: push, GitHub Actions, OIDC and WIF, Google Doc](/static/images/project-docs-04-docs-sync/sync-flow.svg)
 
 _From the repo to Google Docs, one way: push, GitHub Actions, OIDC and WIF, Google Doc_
 
-In technical terms, this is the **GitHub Actions** workflow `docs-sync.yml`. How it runs on coffee-shop is in the coffee-shop series under [what the workflow does](/en/blog/side-projects/coffee-shop/coffee-shop-02-docs-sync/#2-what-the-workflow-does). It runs on a push to `main` when any of `docs/specs/`, `docs/images/` or `.github/google-docs.json` changed.
+`docs-sync.yml` runs when a Push to `main` changes any of `docs/specs/`, `docs/images/` or `.github/google-docs.json`. It can also be run manually (`workflow_dispatch`).
 
-1. Render Mermaid code blocks to PNG. Install `fonts-noto-cjk` first so Korean text doesn't break.
-2. For each document folder, concatenate the section files in the order listed in its `README.md` into one HTML file. Only the file list table is dropped; other tables stay.
-3. Stamp the commit SHA at the top. Open the Doc and you can see which commit it was built from.
-4. Write image sizes in px. Google Docs ignores `%` widths and `max-width`, so images are fit to the body width (max 624×864 px) while keeping the aspect ratio.
-5. Overwrite the same Doc ID with Drive API `files.update`. No new file is created, so the link doesn't change.
+1. Render [Mermaid](glossary:mermaid) code blocks to [PNG](glossary:png) with `mmdc` (mermaid-cli 11.4.2). Install `fonts-noto-cjk` first so Korean text does not break.
+2. Google Docs cannot show [SVG](glossary:svg), so SVGs at that commit are fetched as PNG through `images.weserv.nl` (possible because the repo is public).
+3. For each document folder, join the section files in the order listed in `README.md` into one [HTML](glossary:html) file. Only the file-list table is dropped; other tables stay. Images go in as [Data URIs](glossary:data-uri).
+4. Stamp the [Commit hash](glossary:commit-hash) (commit SHA) at the top, so opening a Doc shows which commit built it.
+5. Overwrite the same Doc ID with the [Google Drive API](glossary:google-drive-api) [PATCH](glossary:patch) `/upload/drive/v3/files/<id>`. No new file is created, so the share link never changes. Drive converts the `text/html` body into Google Docs format.
 
-This flow is also why diagrams are drawn in Mermaid. GitHub renders Mermaid directly, changes show up in the diff, and the workflow can turn it into an image. I dropped draw.io SVG because a diff doesn't show what changed.
+Drawing diagrams in Mermaid follows from this flow too. [GitHub](glossary:github) renders it directly, a [Diff](glossary:diff) shows the change, and the Workflow can turn it into an image. I dropped draw.io SVG because a Diff does not show what changed.
 
-The six Docs are created first with my own account. The service account the workflow uses has no Drive storage quota, so it can't create new Docs. The pairs of document name and Doc ID are written in `.github/google-docs.json`.
+The six Docs (SPMP, SRS, SDD, STP, SIP, SMP) are created first under my account, because the [Service account](glossary:service-account) the Workflow uses has no Drive storage quota and cannot create new Docs. The pairing of document name and Doc ID is in `.github/google-docs.json`.
 
 ## 5. Keyless auth
 
-As an analogy, instead of copying the office key and handing it over, you verify your identity every time you enter and get a single-use pass on the spot.
+The first version put the service account's JSON key in a repo [Secret](glossary:secret). If the key leaks, Drive write access leaks with it. On 2026-11-17, the day I first attached this to Coffee Shop, I switched to WIF and deleted the key I had made. The rules record only the outcome, "never create a JSON key again", with no sentence explaining why. That day's work looks like it happened in a Mac session, so I could not find it in the Windows-side records.
 
-In technical terms, this is **OIDC** and **Workload Identity Federation (WIF)**. Google Cloud checks the OIDC token that GitHub Actions issues for each run, and if the condition matches, it hands out a short-lived token for the service account. The condition is whether the repo owner is `seren-wib`. So any repo of mine uses the same setup, and there's no need to put secrets in each repo.
+It works like this. [Google Cloud](glossary:google-cloud) verifies the OIDC token that GitHub Actions issues on every run and, if the condition holds, hands out a Short-lived token for the Service account. The condition is that the repo owner is `seren-wib`. So any repo of mine uses the same setup, and no repo needs a Secret. The Secret count is 0.
 
-The first version put the service account's JSON key in a repo secret. On 2026-11-17, the day I first attached it to coffee-shop, I switched to WIF and deleted the key I had made. The rules keep only the result, "Don't create a JSON key again," and no sentence states why I switched (not recorded). That day's work seems to have been done in a Mac session, so I couldn't find it in the Windows session records.
+## 6. Fixing images after the first run
 
-The same day, the first run on coffee-shop updated six Google Docs. That afternoon, four commits fixed five things in the build script within 65 minutes: converting SVG to PNG, skipping template links, the Drive folder location and image px sizes, installing a Korean font, and an 864 px cap on image height.
+The same day the first run updated six Google Docs. Opening them showed the images were the problem, and I fixed it with three Pull requests.
 
-## 6. Wrap-up
+![Image fitting diagram. The page body is 624 px wide and 864 px tall. A 1600 px wide PNG overflowed before #65, #65 capped only the width, and #69 fits both directions with scale = min(624/w, 864/h, 1)](/static/images/coffee-shop-02-docs-sync/image-fit.svg)
 
-| When       | Source                                | Google Docs                                 |
-| ---------- | ------------------------------------- | ------------------------------------------- |
-| 2026-10-17 | Google Docs                           | Source                                      |
-| 2026-10-18 | Local Markdown (not committed)        | Synced once by hand at end of stage         |
-| 2026-11-16 | Repo `docs/specs/`, per-section files | Workflow written to overwrite on every push |
-| 2026-11-17 | Same                                  | First run, auth moved to keyless WIF        |
+| PR  | Symptom                                                                        | Fix                                                                                                           |
+| --- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| #65 | A 1600 px wide PNG overflowed the body                                         | Read the real size from the PNG header (IHDR) and write `width=min(w, 624)` and a proportional `height` in px |
+| #66 | In run 44027929044, all Korean text in 15 Mermaid PNGs of the SDD became boxes | Install `fonts-noto-cjk` before rendering Mermaid. The 15 draw.io SVGs were fine all along                    |
+| #69 | The tall `create_order` flowchart, 468×1168 pt, overflowed the 648 pt body     | Cap the height at 864 px too: `scale = min(624/w, 864/h, 1)`                                                  |
 
-Picking a single source made the question "which one is right?" go away. The repo is right, and Google Docs states at the top which repo commit it was built from.
+I did not use `%` widths in #65 because Google Docs ignores `%` width and `max-width` when importing HTML and only accepts px. So I read width and height from the IHDR chunk within the first 24 bytes of the PNG. I checked #69's math with 3 tests: 1248×400 becomes 624×200, 600×2000 becomes 259×864, and 300×100 stays as is. To reuse this script in other projects I keep the original in the dotfiles project-docs skill and a copy in the repo.
 
-## By the numbers
+#66 and #69 changed `docs-sync.yml` and `.github/scripts/build-docs.mjs`, and both are outside the trigger paths (`paths`). A Merge alone did not run the Workflow again, so I ran it manually once right after each.
 
-As of 2026-11-28. Sources: `gh run list --workflow docs-sync.yml`, and `wc -l` on each repo's `.github/` files.
+## 7. Results and limits
 
-| Item                               | Value                             |
-| ---------------------------------- | --------------------------------- |
-| Repos using the sync               | 3                                 |
-| coffee-shop docs-sync runs         | 23 succeeded, 10 cancelled        |
-| `build-docs.mjs` / `docs-sync.yml` | 87 lines / 96 lines (coffee-shop) |
-| Maximum image size                 | 624 × 864 px                      |
-| Google auth keys kept in repos     | 0                                 |
+As of 2026-11-28. Sources: `gh run list --workflow docs-sync.yml` and `wc -l` on each repo's `.github/` files.
 
-## Glossary
+| Item                               | Value                                                                  |
+| ---------------------------------- | ---------------------------------------------------------------------- |
+| Repos using the sync               | 3                                                                      |
+| Coffee Shop docs-sync total runs   | 33 (11-17 to 11-28): 31 by push (21 succeeded, 10 cancelled), 2 manual |
+| `build-docs.mjs` / `docs-sync.yml` | 87 lines / 96 lines (Coffee Shop)                                      |
+| Local build result (#64)           | 6 documents, 15 SDD figures (PNG), 2.0 MB of HTML                      |
+| Max image size                     | 624 × 864 px                                                           |
+| Google auth keys in repos          | 0                                                                      |
 
-| Term                                                                                                               | Meaning                                                                              |
-| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| source of truth                                                                                                    | The single original treated as correct when copies disagree                          |
-| docs-as-code                                                                                                       | Keeping documents in the repo like code and changing them through PRs and reviews    |
-| one-way sync                                                                                                       | Sync that copies only from source to copy and accepts no changes from the copy       |
-| GitHub Actions                                                                                                     | GitHub's CI service that runs workflows in response to repo events                   |
-| Mermaid                                                                                                            | A syntax for drawing diagrams from code block text                                   |
-| service account                                                                                                    | A Google Cloud account used by a program rather than a person                        |
-| OIDC                                                                                                               | An auth standard that issues a token proving identity for each run                   |
-| Workload Identity Federation                                                                                       | A feature that exchanges an external OIDC token for a short-lived Google Cloud token |
-| [symlinks and git sync](/en/blog/side-projects/devblog/devblog-04-agent-environment/#7-two-computers-three-agents) | How two computers share a single settings repo                                       |
+The 10 cancelled runs are not failures. With `concurrency: docs-sync` and `cancel-in-progress: true`, when document Pull requests are Merged back to back, earlier runs are cut off and only the last commit is uploaded. Since it overwrites anyway, there is no reason to keep intermediate results.
+
+Limit: the assignment submission is built separately from this Doc. It needs a cover, page breaks and keeping a figure's heading on the same page, but page-break CSS is ignored by HTML upload. The final submissions (SRS 86 pages, design specification 129 pages) were built separately from the same Markdown, with page breaks inserted through the Docs API. The synced Doc is for seeing what `main` says right now.
+
+## 8. Reflection
+
+Once the source was one place, the question "which side is right" disappeared.

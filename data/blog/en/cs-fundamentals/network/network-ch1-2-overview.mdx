@@ -6,7 +6,6 @@ draft: false
 summary: 'Network overview, protocols (OSI/TCP-IP), network layer, IP addressing/subnetting, routing (RIP/OSPF), transport layer (TCP/UDP), wireless networks (Ad-Hoc/WMN/WSN)'
 ---
 
-- [0. Glossary](#0-glossary)
 - [1. Network overview](#1-network-overview)
   - [1. Components](#1-components)
   - [2. Router vs switch](#2-router-vs-switch)
@@ -48,10 +47,6 @@ summary: 'Network overview, protocols (OSI/TCP-IP), network layer, IP addressing
   - [3. WMN (Wireless Mesh Network) — mesh backbone.](#3-wmn-wireless-mesh-network--mesh-backbone)
   - [4. WSN (Wireless Sensor Network) — sensor collection network.](#4-wsn-wireless-sensor-network--sensor-collection-network)
 
-# 0. Glossary
-
-- hop: the unit counted each time data passes through a router. Each single "jump to the next node" is 1 hop
-
 # 1. Network overview
 
 A system that lays down a communication network for **information sharing** and lets terminals exchange data over it.
@@ -63,41 +58,41 @@ A system that lays down a communication network for **information sharing** and 
    - Servers, PCs, smartphones
 2. Switching equipment
    - Intermediate equipment that relays data between terminals
-   - Routers, switches
+   - [Routers](glossary:router), [switches](glossary:switch)
 3. Management equipment
    - Systems that protect the internal network
-   - Firewalls
+   - [Firewalls](glossary:firewall)
 
 ## 2. Router vs switch
 
-- A router connects different networks and decides the path by looking at the IP address (routing).
-- A switch groups terminals together within the same network and does not make path decisions.
+- A [router](glossary:router) connects different networks and decides the path by looking at the [IP address](glossary:ip-address) ([routing](glossary:routing)).
+- A [switch](glossary:switch) groups terminals together within the same network and does not make path decisions.
 
-That's why the router is a network layer device and the switch is a data link layer device (continued in 2. Network protocols)
+That's why the [router](glossary:router) is a [network layer](glossary:network-layer) device and the [switch](glossary:switch) is a [data link layer](glossary:data-link-layer) device (continued in 2. Network [protocols](glossary:protocol))
 
 ## 3. History
 
-Started with the U.S. Department of Defense's ARPANET ('71) → TCP/IP designated as the standard protocol ('82) → OSI reference model published ('84) → ARPANET renamed the 'Internet' ('85) → Berners-Lee standardized web pages with the WWW ('90) → now mobile, security, cloud, IoT.
+Started with the U.S. Department of Defense's [ARPANET](glossary:arpanet) ('71) → [TCP/IP](glossary:tcpip) designated as the standard protocol ('82) → [OSI](glossary:osi-model) reference model published ('84) → [ARPANET](glossary:arpanet) renamed the 'Internet' ('85) → Berners-Lee standardized web pages with the [WWW](glossary:www) ('90) → now mobile, security, cloud, [IoT](glossary:iot).
 
-TCP/IP became a standard before OSI.
+[TCP/IP](glossary:tcpip) became a standard before [OSI](glossary:osi-model).
 
-In reality, the OSI model got preserved as theory, and TCP/IP is what actually runs.
+In reality, the [OSI model](glossary:osi-model) got preserved as theory, and [TCP/IP](glossary:tcpip) is what actually runs.
 
 ## 4. How it works
 
-1. The PC writes the server's IP on a "give me this data" request message and throws it to a nearby router
-2. The router reads the destination IP, looks up a path and passes it to the next router
-3. The routers repeat this as a relay
-4. The server receives the request, builds the data, changes the destination to "the IP of the PC that asked", and throws it back to a router
+1. The PC writes the server's [IP](glossary:ip-address) on a "give me this data" request message and throws it to a nearby [router](glossary:router)
+2. The [router](glossary:router) reads the destination [IP](glossary:ip-address), looks up a path and passes it to the next [router](glossary:router)
+3. The [routers](glossary:router) repeat this as a relay
+4. The server receives the request, builds the data, changes the destination to "the [IP](glossary:ip-address) of the PC that asked", and throws it back to a [router](glossary:router)
 5. Relayed in the reverse direction → the PC receives it and displays it on screen.
 
-- At every hop the router reads the destination address anew and looks up the path again
+- At every [hop](glossary:hop) the [router](glossary:router) reads the destination address anew and looks up the path again
 - It doesn't know the whole path in advance before sending
-- This only works because the address (IP) is inside the data
+- This only works because the address ([IP](glossary:ip-address)) is inside the data
 
 ## 5. Physical setup
 
-Terminals inside a building are connected to switches with UTP
+Terminals inside a building are connected to [switches](glossary:switch) with [UTP](glossary:utp)
 
 # 2. Network protocols
 
@@ -107,7 +102,7 @@ Communication rules: where and in what format to write the address in the data, 
 
 ## 2. Why layering is needed
 
-A network is not a single device but a system of combined devices, so to standardize this huge set of protocols effectively, a layered model based on network operation is needed
+A network is not a single device but a system of combined devices, so to standardize this huge set of [protocols](glossary:protocol) effectively, a layered model based on network operation is needed
 
 ### Advantages of layering
 
@@ -116,36 +111,36 @@ A network is not a single device but a system of combined devices, so to standar
 
 ## 3. OSI 7 layers
 
-The OSI model, released by ISO in '84, which splits functions into 7 layers like a layer cake
+The [OSI model](glossary:osi-model), released by ISO in '84, which splits functions into 7 layers like a layer cake
 
-- 7. Application — services the user uses directly. HTTP, FTP.
-- 6. Presentation — data format conversion such as encryption, compression, encoding.
-- 5. Session — manages when to open, close and maintain connections.
-- 4. Transport — connects the ports of the two end terminals, guarantees reliability. TCP/UDP.
-- 3. Network — finds paths across different networks. IP addresses, routers.
-- 2. Data Link — delivery between adjacent devices within the same network. MAC addresses, switches.
-- 1. Physical — turns bits into electrical signals or light and sends them down the wire. Cables, hubs.
+- 7. [Application](glossary:application-layer) — services the user uses directly. [HTTP](glossary:http), [FTP](glossary:ftp).
+- 6. [Presentation](glossary:presentation-layer) — data format conversion such as encryption, compression, encoding.
+- 5. [Session](glossary:session-layer) — manages when to open, close and maintain connections.
+- 4. [Transport](glossary:transport-layer) — connects the [ports](glossary:port) of the two end terminals, guarantees reliability. [TCP](glossary:tcp)/[UDP](glossary:udp).
+- 3. Network — finds paths across different networks. [IP addresses](glossary:ip-address), [routers](glossary:router).
+- 2. Data Link — delivery between adjacent devices within the same network. [MAC addresses](glossary:mac-address), [switches](glossary:switch).
+- 1. [Physical](glossary:physical-layer) — turns bits into electrical signals or light and sends them down the wire. Cables, hubs.
 
 ### Encapsulation
 
-- Sender: data starts at the top (application) and goes down one step at a time, with each layer adding its own header.
-- Receiver: the exact opposite; it receives at the bottom (physical) and goes up one step at a time, with each layer removing and reading its own header.
+- Sender: data starts at the top ([application](glossary:application-layer)) and goes down one step at a time, with each layer adding its own header.
+- Receiver: the exact opposite; it receives at the bottom ([physical](glossary:physical-layer)) and goes up one step at a time, with each layer removing and reading its own header.
 
 ## 4. TCP/IP model
 
 - The layer model actually applied to the Internet
-- It merges the 7 OSI layers into 4 to fit reality
+- It merges the 7 [OSI](glossary:osi-model) layers into 4 to fit reality
 
-- Application layer = OSI application + presentation + session (the top 3 layers rolled into one).
-- Transport layer = OSI transport as is (TCP, UDP).
-- Internet layer = OSI network (IP, ICMP, ARP).
-- Network access layer = OSI data link + physical (LAN card, drivers).
+- [Application layer](glossary:application-layer) = [OSI](glossary:osi-model) [application](glossary:application-layer) + [presentation](glossary:presentation-layer) + [session](glossary:session-layer) (the top 3 layers rolled into one).
+- [Transport layer](glossary:transport-layer) = [OSI](glossary:osi-model) [transport](glossary:transport-layer) as is ([TCP](glossary:tcp), [UDP](glossary:udp)).
+- [Internet layer](glossary:internet-layer) = [OSI](glossary:osi-model) network ([IP](glossary:ip-address), [ICMP](glossary:icmp), [ARP](glossary:arp)).
+- [Network access layer](glossary:network-access-layer) = [OSI](glossary:osi-model) [data link](glossary:data-link-layer) + [physical](glossary:physical-layer) ([LAN](glossary:lan) card, drivers).
 
 # 3. Network layer
 
 ## 1. Role
 
-Handles routing. The layer that finds a suitable path to send data from the sender to the receiver
+Handles [routing](glossary:routing). The layer that finds a suitable path to send data from the sender to the receiver
 
 ## 2. Addressing scheme
 
@@ -157,18 +152,18 @@ Written as 4 decimal numbers between 0 and 255 (0.0.0.0 ~ 255.255.255.255).
 
 ### MAC address
 
-A unique hardware number burned into each network adapter (LAN card)
+A unique hardware number burned into each network adapter ([LAN](glossary:lan) card)
 
 48 bits, written in hexadecimal (ex: 00-21-85-53-50-66)
 
 ### IP and MAC complement each other.
 
-ARP (Address Resolution Protocol) in the TCP/IP internet layer is exactly the protocol that finds out "what is the MAC of the one holding this IP"
+[ARP](glossary:arp) (Address Resolution Protocol) in the [TCP/IP](glossary:tcpip) [internet layer](glossary:internet-layer) is exactly the protocol that finds out "what is the [MAC](glossary:mac-address) of the one holding this [IP](glossary:ip-address)"
 
 #### Example
 
-- When going PC(A) → router R1 → router R2 → server(S), the IP stays fixed from start to finish: source=A, destination=S.
-- The MAC is rewritten at every hop (2 routers, number of routers +1), so it changes 3 times in total.
+- When going PC(A) → [router](glossary:router) R1 → [router](glossary:router) R2 → server(S), the [IP](glossary:ip-address) stays fixed from start to finish: source=A, destination=S.
+- The [MAC](glossary:mac-address) is rewritten at every [hop](glossary:hop) (2 [routers](glossary:router), number of [routers](glossary:router) +1), so it changes 3 times in total.
 
 ```
 Segment 1 (A → R1)
@@ -194,46 +189,46 @@ Segment 3 (R2 → S)
 
 ### 2. What does it look like?
 
-- IPv4 is 32 bits.
-- Cutting it into 4 pieces of 8 bits (= 1 byte) each gives the **octets**
-- The notation that converts them to decimal for easy reading and joins them with dots is **DDN** (Dotted-Decimal Notation)
+- [IPv4](glossary:ipv4) is 32 bits.
+- Cutting it into 4 pieces of 8 bits (= 1 byte) each gives the **[octets](glossary:octet)**
+- The notation that converts them to decimal for easy reading and joins them with dots is **[DDN](glossary:dotted-decimal-notation)** ([Dotted-Decimal Notation](glossary:dotted-decimal-notation))
 - Each octet is 8 bits, so the range is 0~255. Hence 0.0.0.0 ~ 255.255.255.255.
 
 ## 2. Structure
 
-The boundary between Network ID and Host ID differs by class. And the class is determined by the leading bit pattern
+The boundary between [Network ID](glossary:network-address) and [Host ID](glossary:host-id) differs by class. And the class is determined by the leading bit pattern
 
-1. Network ID (which neighborhood)
-2. Host ID (which house number in that neighborhood)
+1. [Network ID](glossary:network-address) (which neighborhood)
+2. [Host ID](glossary:host-id) (which house number in that neighborhood)
 
 ## 3. Classes
 
-| Class | Leading bits | NetID bits | HostID bits | 1st octet range | Number of hosts    |
-| ----- | ------------ | ---------- | ----------- | --------------- | ------------------ |
-| A     | 0            | 8          | 24          | 0~127           | 2²⁴−2 = 16,777,214 |
-| B     | 10           | 16         | 16          | 128~191         | 2¹⁶−2 = 65,534     |
-| C     | 110          | 24         | 8           | 192~223         | 2⁸−2 = 254         |
+| Class | Leading bits | [NetID](glossary:network-address) bits | [HostID](glossary:host-id) bits | 1st octet range | Number of hosts    |
+| ----- | ------------ | -------------------------------------- | ------------------------------- | --------------- | ------------------ |
+| A     | 0            | 8                                      | 24                              | 0~127           | 2²⁴−2 = 16,777,214 |
+| B     | 10           | 16                                     | 16                              | 128~191         | 2¹⁶−2 = 65,534     |
+| C     | 110          | 24                                     | 8                               | 192~223         | 2⁸−2 = 254         |
 
-**Why subtract 2 from the number of hosts**: if the Host ID is all 0s, it's the address pointing to "the network ID itself", so it can't be used; if it's all 1s, it's the "broadcast (send to the whole network)" address, so that can't be used either. So 2 are subtracted.
+**Why subtract 2 from the number of hosts**: if the [Host ID](glossary:host-id) is all 0s, it's the address pointing to "the network ID itself", so it can't be used; if it's all 1s, it's the "[broadcast](glossary:broadcast) (send to the whole network)" address, so that can't be used either. So 2 are subtracted.
 
 ## 4. Why split into NetID / HostID at all
 
-1. To use the limited IP addresses efficiently
-2. Because grouping makes routing faster
+1. To use the limited [IP addresses](glossary:ip-address) efficiently
+2. Because grouping makes [routing](glossary:routing) faster
 
 ## 5. Subnetting
 
-- Dividing an IP address range into 2 or more smaller networks
-- Why split: using one big network as a whole wastes a lot of IPs, and broadcast traffic spreads across the entire single block, which is inefficient
+- Dividing an [IP address](glossary:ip-address) range into 2 or more smaller networks
+- Why split: using one big network as a whole wastes a lot of IPs, and [broadcast](glossary:broadcast) traffic spreads across the entire single block, which is inefficient
 
 ### How to split an IP address
 
-Take a few bits from the front of the Host ID and use them as the "subnet number"
+Take a few bits from the front of the [Host ID](glossary:host-id) and use them as the "subnet number"
 Borrowing N bits splits it into 2ᴺ pieces.
 
 #### Example
 
-Say we split a class C (197.90.21.0) into 4. 4 = 2², so borrow the first 2 bits. The first 2 bits of the last octet (Host ID) have 4 combinations:
+Say we split a class C (197.90.21.0) into 4. 4 = 2², so borrow the first 2 bits. The first 2 bits of the last octet ([Host ID](glossary:host-id)) have 4 combinations:
 
 ```
 00 000000 →   0   → 197.90.21.0
@@ -244,8 +239,8 @@ Say we split a class C (197.90.21.0) into 4. 4 = 2², so borrow the first 2 bits
 
 ## 6. Subnet mask
 
-- A value that marks how much of the 32 bits is the Network ID
-- Rule: 1 in Network ID positions, 0 in Host ID positions
+- A value that marks how much of the 32 bits is the [Network ID](glossary:network-address)
+- Rule: 1 in [Network ID](glossary:network-address) positions, 0 in [Host ID](glossary:host-id) positions
 
 ![Subnet-mask](/static/images/network-ch1-2-overview/subnet-mask.png)
 
@@ -253,7 +248,7 @@ Say we split a class C (197.90.21.0) into 4. 4 = 2², so borrow the first 2 bits
 
 **Problem: which subnet does 192.168.4.67/26 belong to?**
 
-**Rule: AND the IP and the mask bit by bit and you get the Network ID**
+**Rule: [AND](glossary:bitwise-operation) the [IP](glossary:ip-address) and the [mask](glossary:subnet-mask) bit by bit and you get the [Network ID](glossary:network-address)**
 
 ```
 IP   192.168.4.67   11000000 10101000 00000100 01000011
@@ -279,46 +274,46 @@ Usable hosts: .65 ~ .126 = 62
 
 ### IPv6
 
-- Developed to solve the IP shortage problem and problems with the existing IP protocol
-- Currently the IP shortage is being handled with methods such as private (virtual) IPs
-- Extends the 32-bit IPv4 address to 128 bits, greatly increasing the number of addresses
+- Developed to solve the [IP](glossary:ip-address) shortage problem and problems with the existing [IP](glossary:ip-address) protocol
+- Currently the [IP](glossary:ip-address) shortage is being handled with methods such as private (virtual) IPs
+- Extends the 32-bit [IPv4](glossary:ipv4) address to 128 bits, greatly increasing the number of addresses
 - Address notation: 4 hexadecimal digits form one group, and 8 groups make up one address
-- Designed to maximize compatibility with existing IPv4
+- Designed to maximize compatibility with existing [IPv4](glossary:ipv4)
 
 # 5. Routing
 
 ## 1. Definition
 
-**Routing is deciding the fastest, most efficient path to send data, and the device that does it is the router**
+**[Routing](glossary:routing) is deciding the fastest, most efficient path to send data, and the device that does it is the [router](glossary:router)**
 
 Static vs dynamic is split by **who registers that path information**
 
 ## 2. Static vs dynamic
 
-| Category          | Static Routing                                                   | Dynamic Routing                                                   |
+| Category          | [Static Routing](glossary:static-routing)                        | [Dynamic Routing](glossary:dynamic-routing)                       |
 | ----------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Path registration | Entered by hand by the administrator                             | Exchanged automatically between routers                           |
+| Path registration | Entered by hand by the administrator                             | Exchanged automatically between [routers](glossary:router)        |
 | Pros              | Simple, zero overhead, predictable, better for security          | Adapts automatically to network changes and failures, can reroute |
 | Cons              | Management hell as the network grows, manual response on failure | Protocol overhead (bandwidth, CPU), complex configuration         |
 | Best for          | Small networks with fixed paths                                  | Large networks that change often                                  |
 
 ## 3. Routing table
 
-Whether static or dynamic, a router looks at the "routing table" to decide which router to send to next.
+Whether static or dynamic, a [router](glossary:router) looks at the "[routing table](glossary:routing-table)" to decide which [router](glossary:router) to send to next.
 
-The router matches the incoming packet's destination IP against the table's (NetID + mask) (the AND operation from earlier) and pushes it out the port leading to the matching neighborhood.
+The [router](glossary:router) matches the incoming packet's destination [IP](glossary:ip-address) against the table's ([NetID](glossary:network-address) + [mask](glossary:subnet-mask)) (the [AND](glossary:bitwise-operation) operation from earlier) and pushes it out the port leading to the matching neighborhood.
 
 ### Components
 
 - Destination network ID (which neighborhood)
-- Subnet mask (where that neighborhood's boundary is)
-- Interface or next hop address (so which port / to whom to throw it)
+- [Subnet mask](glossary:subnet-mask) (where that neighborhood's boundary is)
+- Interface or [next hop](glossary:next-hop) address (so which port / to whom to throw it)
 
 ## 4. Dynamic protocols — RIP vs OSPF
 
 ### Factors in path selection
 
-- How many routers does it pass through?
+- How many [routers](glossary:router) does it pass through?
 - How long does it take to send the data to the destination?
 - How much data can be sent at once?
 - Which path can be used reliably?
@@ -326,38 +321,38 @@ The router matches the incoming packet's destination IP against the table's (Net
 
 ### RIP vs OSPF
 
-| Category         | RIP                                          | OSPF                                                               |
-| ---------------- | -------------------------------------------- | ------------------------------------------------------------------ |
-| Method           | Distance-Vector                              | Link-State                                                         |
-| Path criterion   | Minimum hop count (number of routers passed) | Minimum cost                                                       |
-| Cost calculation | Considers hop count only                     | Based on link state: bandwidth, round-trip time, reliability, etc. |
-| Exchange scope   | Exchanges only with neighboring routers      | Shares path information of all routers within the area             |
-| Path computation | Simple distance-vector method                | Computes cost with a shortest-path algorithm                       |
-| Limitations      | Max 15 hops, 16 hops = unreachable           | Heavy and complex, with computational burden                       |
+| Category         | [RIP](glossary:rip)                                                             | [OSPF](glossary:ospf)                                                     |
+| ---------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Method           | [Distance-Vector](glossary:distance-vector-routing)                             | [Link-State](glossary:link-state-routing)                                 |
+| Path criterion   | Minimum [hop](glossary:hop) count (number of [routers](glossary:router) passed) | Minimum cost                                                              |
+| Cost calculation | Considers [hop](glossary:hop) count only                                        | Based on link state: bandwidth, round-trip time, reliability, etc.        |
+| Exchange scope   | Exchanges only with neighboring [routers](glossary:router)                      | Shares path information of all [routers](glossary:router) within the area |
+| Path computation | Simple distance-vector method                                                   | Computes cost with a shortest-path algorithm                              |
+| Limitations      | Max 15 hops, 16 hops = unreachable                                              | Heavy and complex, with computational burden                              |
 
 #### Note
 
-BGP (Border Gateway Protocol) is the protocol that connects ASes (autonomous systems) and runs the Internet backbone
+[BGP](glossary:bgp) (Border Gateway Protocol) is the protocol that connects ASes ([autonomous systems](glossary:autonomous-system)) and runs the Internet backbone
 
-IGRP is a Cisco proprietary protocol and is hardly used anymore.
+[IGRP](glossary:igrp) is a Cisco proprietary protocol and is hardly used anymore.
 
 # 6. Transport layer (TCP, UDP)
 
-If the network layer so far was about "which computer to send to", **the transport layer, on top of it, handles "which program on that computer to deliver to"**, and what points to that program is the **port**
+If the [network layer](glossary:network-layer) so far was about "which computer to send to", **the [transport layer](glossary:transport-layer), on top of it, handles "which program on that computer to deliver to"**, and what points to that program is the **port**
 
 ## 1. Main functions
 
-- Flow control: adjusts the sending rate to the rate the receiver can handle (so the receiver doesn't blow up)
-- Error control: checks for missing or corrupted data and recovers it
-- Congestion control: looks at network congestion and decides whether to send (so the network doesn't blow up)
+- [Flow control](glossary:flow-control): adjusts the sending rate to the rate the receiver can handle (so the receiver doesn't blow up)
+- [Error control](glossary:error-control): checks for missing or corrupted data and recovers it
+- [Congestion control](glossary:congestion-control): looks at network congestion and decides whether to send (so the network doesn't blow up)
 
 ## 2. Main protocols: TCP (connection-oriented), UDP (connectionless)
 
 ## 3. TCP(Transmission Control Protocol)
 
 - Supports connection-oriented service (guarantees reliability, heavy, ex: a phone call (connect, then talk))
-  - Connection-oriented means: once the sending and receiving ports first establish a logical connection, data keeps flowing as a stream without breaking that connection
-- Cuts the data from the application layer into blocks called **segments** and hands them to the IP layer
+  - Connection-oriented means: once the sending and receiving [ports](glossary:port) first establish a logical connection, data keeps flowing as a stream without breaking that connection
+- Cuts the data from the [application layer](glossary:application-layer) into blocks called **[segments](glossary:segment)** and hands them to the [IP](glossary:ip-address) layer
 - The sending and receiving terminals are connected through a 3-phase process
 
 ```
@@ -369,12 +364,12 @@ establishment  maintenance     release
 
 ### 1. Connection establishment
 
-- Connects through the **Three-Way Handshake**
+- Connects through the **[Three-Way Handshake](glossary:three-way-handshake)**
 
 #### Three-Way Handshake process
 
-- A SYN packet consists of | Src | Dst | **Seq** | **Ack** | Flag |.
-  - A SYN-ACK packet looks the same. The difference is that the receiving terminal sends it.
+- A [SYN](glossary:syn) packet consists of | Src | Dst | **Seq** | **Ack** | Flag |.
+  - A [SYN](glossary:syn)-[ACK](glossary:ack) packet looks the same. The difference is that the receiving terminal sends it.
 
 ```
 Example
@@ -397,21 +392,21 @@ A's Seq is 1201 in ③ because in ② B said "give me 1201 next", so A matches i
 
 * After ①→②: A confirms "B received my signal" (A→B direction verified).
 * After ②→③: B confirms "A received my signal" (B→A direction verified).
-* So both directions must be confirmed before preparation for two-way (full-duplex) communication is complete
-  - What if ③ doesn't happen? B doesn't get A's final confirmation, so it retransmits the SYN-ACK after a timeout.
+* So both directions must be confirmed before preparation for two-way ([full-duplex](glossary:full-duplex)) communication is complete
+  - What if ③ doesn't happen? B doesn't get A's final confirmation, so it retransmits the [SYN](glossary:syn)-[ACK](glossary:ack) after a timeout.
 
 ### 2. Connection maintenance
 
 #### Common foundation
 
-- Meaning of the ACK number: ACK N means "I got everything up to N−1, so give me N next"
+- Meaning of the [ACK](glossary:ack) number: [ACK](glossary:ack) N means "I got everything up to N−1, so give me N next"
 
-- Sliding window (W). The number of segments that can be fired off at once without waiting for an ACK.
+- [Sliding window](glossary:sliding-window) (W). The number of [segments](glossary:segment) that can be fired off at once without waiting for an [ACK](glossary:ack).
   - With W=3, up to 3 can be sent in a row at once, and the window slides as ACKs come in
 
 #### 1. Error control
 
-ACK-retransmission (Go-Back-N)
+[ACK](glossary:ack)-retransmission ([Go-Back-N](glossary:go-back-n-arq))
 
 ```
 send DATA1,2,3  →  receive ACK2,ACK3,ACK4   ("got everything up to DATA 3")
@@ -428,36 +423,36 @@ sender: sees the second ACK5, "5 has a hole" → retransmits DATA5
 
 #### 2. Flow control (the receiver sets the speed)
 
-- The receiver writes its free buffer size (= window size W) in the ACK packet and sends it. The sender doesn't fire more than that value.
-- When the receiver's buffer fills up, it reduces W, writes it in the ACK packet and sends it → the sender slows down
+- The receiver writes its free buffer size (= window size W) in the [ACK](glossary:ack) packet and sends it. The sender doesn't fire more than that value.
+- When the receiver's buffer fills up, it reduces W, writes it in the [ACK](glossary:ack) packet and sends it → the sender slows down
 
 #### 3. Congestion control (the network sets the speed)
 
 Gauges network congestion by how promptly ACKs arrive and adjusts W
 
-Below is the order of congestion control
+Below is the order of [congestion control](glossary:congestion-control)
 
 ##### 1. Algorithm: Slow Start
 
-Starts with a small W and grows it **exponentially (doubling)** with each ACK received. Quickly probing how much the network will accept.
+Starts with a small W and grows it **exponentially (doubling)** with each [ACK](glossary:ack) received. Quickly probing how much the network will accept.
 
 ##### 2. Algorithm: reaching the threshold
 
-While growing exponentially, once it reaches the threshold it switches to Congestion Avoidance and grows carefully **linearly (+1 at a time)**.
+While growing exponentially, once it reaches the threshold it [switches](glossary:switch) to [Congestion Avoidance](glossary:congestion-avoidance) and grows carefully **linearly (+1 at a time)**.
 
 ##### 3. Timeout occurs (= packet loss = congestion signal)
 
-W is dropped sharply and the threshold is also reset to about half. Then Slow Start again
+W is dropped sharply and the threshold is also reset to about half. Then [Slow Start](glossary:slow-start) again
 
 ##### 4. Final W = min(flow control window, congestion control window)
 
-The sender holds two windows — the flow control window set by the receiver, and the congestion control window set by the network.
+The sender holds two windows — the [flow control](glossary:flow-control) window set by the receiver, and the [congestion control](glossary:congestion-control) window set by the network.
 
 The actual W is the smaller of the two. Why: to blow up neither the receiver nor the network, it has to follow the tighter constraint
 
 ### 3. Connection release
 
-Done with the **Four-Way Handshake**
+Done with the **[Four-Way Handshake](glossary:four-way-handshake)**
 
 ```
 ① FIN  sender→receiver   "I'm done sending, let's disconnect"
@@ -467,65 +462,65 @@ Done with the **Four-Way Handshake**
 ```
 
 - Why 4 times
-  - When A says "I'm done (FIN)", B immediately sends "got it (ACK)" first — but B may still have data left to send, so FIN and ACK have to be sent separately, which makes it 4 steps
+  - When A says "I'm done ([FIN](glossary:fin))", B immediately sends "got it ([ACK](glossary:ack))" first — but B may still have data left to send, so [FIN](glossary:fin) and [ACK](glossary:ack) have to be sent separately, which makes it 4 steps
 
 ## 4. UDP
 
 - Connectionless
-- If TCP is a phone call, UDP is a loudspeaker broadcast
-- The header structure is much simpler, and it does no error control, flow control or congestion control at all.
+- If [TCP](glossary:tcp) is a phone call, [UDP](glossary:udp) is a loudspeaker [broadcast](glossary:broadcast)
+- The header structure is much simpler, and it does no [error control](glossary:error-control), [flow control](glossary:flow-control) or [congestion control](glossary:congestion-control) at all.
 - So reliability is low, but it is fast and light
-- Uses: video streaming, DNS, NTP (time servers), control signals.
+- Uses: video streaming, [DNS](glossary:dns), [NTP](glossary:ntp) (time servers), control signals.
 
 ## 5. TCP vs UDP
 
-| Item                              | TCP                                | UDP                             |
-| --------------------------------- | ---------------------------------- | ------------------------------- |
-| Service                           | Connection-oriented                | Connectionless                  |
-| Receive order                     | Guaranteed to match the send order | May be reordered                |
-| Error / flow / congestion control | Yes                                | Almost none                     |
-| Speed / overhead                  | Slow and heavy                     | Fast and light                  |
-| Uses                              | Web, file transfer                 | Streaming, DNS, control signals |
+| Item                                                             | [TCP](glossary:tcp)                | [UDP](glossary:udp)                             |
+| ---------------------------------------------------------------- | ---------------------------------- | ----------------------------------------------- |
+| Service                                                          | Connection-oriented                | Connectionless                                  |
+| Receive order                                                    | Guaranteed to match the send order | May be reordered                                |
+| Error / flow / [congestion control](glossary:congestion-control) | Yes                                | Almost none                                     |
+| Speed / overhead                                                 | Slow and heavy                     | Fast and light                                  |
+| Uses                                                             | Web, file transfer                 | Streaming, [DNS](glossary:dns), control signals |
 
 # 7. Wireless networks
 
 ## 1. Two axes of network classification
 
 1. By transmission path: wired vs wireless
-2. By size: LAN (building, campus) &lt; MAN (city) &lt; WAN (wide area, country)
+2. By size: [LAN](glossary:lan) (building, campus) &lt; [MAN](glossary:man) (city) &lt; [WAN](glossary:wan) (wide area, country)
 
-Wireless network is the general term for networks that communicate by radio waves, and the types are Ad-Hoc / WMN / WSN.
+Wireless network is the general term for networks that communicate by radio waves, and the types are [Ad-Hoc](glossary:ad-hoc-network) / [WMN](glossary:wireless-mesh-network) / [WSN](glossary:wireless-sensor-network).
 
 ## 2. AD-Hoc Network (terminal to terminal, without infrastructure)
 
-- Made up only of mobile communication devices, without infrastructure (routers, APs)
+- Made up only of mobile communication devices, without [infrastructure](glossary:infrastructure-network) ([routers](glossary:router), APs)
 - There is no distinction between nodes and terminals. Every terminal acts as a relay at the same time. So data can be delivered even to a distant terminal via the neighboring terminals → overcomes communication range limits.
 - Everything is wireless, so communication is guaranteed even while moving.
 
 ### The opposite of an AD-Hoc network: Infrastructure network
 
-Centered on APs and base stations, so terminals must always go through an AP to communicate — home and office WiFi is this
+Centered on APs and base stations, so terminals must always go through an [AP](glossary:access-point) to communicate — home and office [WiFi](glossary:wi-fi) is this
 
 ### Ad-Hoc routing — Table-Driven vs On-Demand (trade-off)
 
-| Category       | Table-Driven (Proactive)                               | On-Demand (Reactive)                    |
-| -------------- | ------------------------------------------------------ | --------------------------------------- |
-| Path discovery | Periodically maintains all path information in advance | Searches for a path only when needed    |
-| Pros           | Paths are ready, so transmission delay is small        | Low routing overhead                    |
-| Cons           | Large overhead from periodic broadcasts                | Initial delay when searching for a path |
+| Category       | [Table-Driven](glossary:table-driven-routing) ([Proactive](glossary:table-driven-routing)) | [On-Demand](glossary:on-demand-routing) ([Reactive](glossary:on-demand-routing)) |
+| -------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| Path discovery | Periodically maintains all path information in advance                                     | Searches for a path only when needed                                             |
+| Pros           | Paths are ready, so transmission delay is small                                            | Low [routing](glossary:routing) overhead                                         |
+| Cons           | Large overhead from periodic [broadcasts](glossary:broadcast)                              | Initial delay when searching for a path                                          |
 
-If nodes move often, the topology changes frequently and communication is sporadic, On-Demand
+If nodes move often, the topology changes frequently and communication is sporadic, [On-Demand](glossary:on-demand-routing)
 
-Conversely, if communication is frequent and immediacy matters, Table-Driven, which lays paths down in advance, is better
+Conversely, if communication is frequent and immediacy matters, [Table-Driven](glossary:table-driven-routing), which lays paths down in advance, is better
 
 ## 3. WMN (Wireless Mesh Network) — mesh backbone.
 
-- Only the main AP (gateway) is connected to the Internet by wire, and the rest of the wireless routers become mesh nodes and spread the network by connecting to each other wirelessly over multiple hops
-- The approach used when rolling out citywide WiFi
+- Only the main [AP](glossary:access-point) (gateway) is connected to the Internet by wire, and the rest of the wireless [routers](glossary:router) become mesh nodes and spread the network by connecting to each other wirelessly over multiple hops
+- The approach used when rolling out citywide [WiFi](glossary:wi-fi)
 
 ## 4. WSN (Wireless Sensor Network) — sensor collection network.
 
-- Sensor nodes capable of wireless communication measure phenomena like temperature, sound and pressure and send them to the **main node (Sink Node)**.
-- A structure where the Sink Node aggregates and interprets the data, connects to the Internet and sends it out
+- Sensor nodes capable of wireless communication measure phenomena like temperature, sound and pressure and send them to the **main node ([Sink Node](glossary:sink-node))**.
+- A structure where the [Sink Node](glossary:sink-node) aggregates and interprets the data, connects to the Internet and sends it out
 - Applications: enemy intrusion alerts, detecting air pollution, wildfires and landslides.
-- Technologies: ZigBee, 6LoWPAN (IPv6 over Low-power WPAN), IoT.
+- Technologies: [ZigBee](glossary:zigbee), [6LoWPAN](glossary:6lowpan) ([IPv6](glossary:ipv6) over Low-power WPAN), [IoT](glossary:iot).

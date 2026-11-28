@@ -35,7 +35,7 @@ summary: 'twisted pair, coaxial cable, optical fiber, guided media, unguided med
 ## 7-1 전송매체 설계요소
 
 - 1단계에서 짚은 4가지 요소
-- Bandwidth, transmission impairments(attenuation), interference, number of receivers
+- [Bandwidth](glossary:bandwidth), [transmission impairments](glossary:transmission-impairment)([attenuation](glossary:attenuation)), [interference](glossary:interference), number of receivers
 
 ## 7-2 전체 매체 분류
 
@@ -54,7 +54,7 @@ summary: 'twisted pair, coaxial cable, optical fiber, guided media, unguided med
   Infrared:                ━━    (10¹²~10¹⁴)
 ```
 
-**핵심 패턴: 주파수가 높을수록 -> 더 많은 데이터 가능 -> 더 비싼 매체\***
+**핵심 패턴: [Frequency](glossary:frequency)가 높을수록 -> 더 많은 데이터 가능 -> 더 비싼 매체\***
 
 # 8. Guided Media
 
@@ -74,10 +74,10 @@ summary: 'twisted pair, coaxial cable, optical fiber, guided media, unguided med
 - 가장 저렴하고 단순한 매체
 - 가장 널리 사용(전화선, 랜선)
 - 건물 내부 통신에 주로 사용
-- 다른 매체보다 bandwidth작음
+- 다른 매체보다 [bandwidth](glossary:bandwidth)작음
 - 거리 제한 있음(보통 100m)
-- 왜 꼬냐? -> 전자기 간섭 상쇄를 위해서. 외부 노이즈가 두 선에 동일하게 영향을 주면 차이로 빼서 상쇄된다
-  - Crosstalk(혼선)도 같은 원리로 줄인다 . ch3 5단계에서 배운 그 crosstalk.
+- 왜 꼬냐? -> [Electromagnetic interference](glossary:electromagnetic-interference) 상쇄를 위해서. 외부 노이즈가 두 선에 동일하게 영향을 주면 차이로 빼서 상쇄된다
+  - [Crosstalk](glossary:crosstalk)도 같은 원리로 줄인다 . ch3 5단계에서 배운 그 [crosstalk](glossary:crosstalk).
 
 ```
 평행한 두 선:
@@ -91,36 +91,36 @@ summary: 'twisted pair, coaxial cable, optical fiber, guided media, unguided med
 
 ### UTP vs STP
 
-차폐(shielding)유무에 따른 분류
-|항목|UTP (Unshielded)|STP (Shielded)|
+[Shielding](glossary:shielding) 유무에 따른 분류
+|항목|[UTP](glossary:utp) (Unshielded)|[STP](glossary:stp) (Shielded)|
 |---|----------------|---------------|
-|차폐|없음|금속 차폐 있음|
+|[Shielding](glossary:shielding)|없음|금속 [Shielding](glossary:shielding) 있음|
 |가격|저렴|비쌈|
-|간섭 저항|약함|강함|
+|[Interference](glossary:interference) 저항|약함|강함|
 |데이터율|낮음|높음|
 |용도|일반 전화선, 랜선|고속 통신, 산업용|
 
-- 차폐가 있으면 외부 전자기간섭(EMI)가 차폐막에서 막혀서 신호가 보호된다.
+- [Shielding](glossary:shielding)이 있으면 외부 [Electromagnetic interference](glossary:electromagnetic-interference)가 [Shielding](glossary:shielding) 막에서 막혀서 신호가 보호된다.
 
 ### Cat 등급 표
 
-| 카테고리           | Bandwidth | 주 용도         |
-| ------------------ | --------- | --------------- |
-| Cat 5e (Class D)   | 100 MHz   | 100 Mbps 이더넷 |
-| Cat 6 (Class E)    | 250 MHz   | 1 Gbps 이더넷   |
-| Cat 6A (Class E_A) | 500 MHz   | 10 Gbps 이더넷  |
-| Cat 7 (Class F)    | 600 MHz   | 10 Gbps+        |
-| Cat 7A (Class F_A) | 1000 MHz  | 더 고속         |
+| 카테고리                            | [Bandwidth](glossary:bandwidth) | 주 용도                                |
+| ----------------------------------- | ------------------------------- | -------------------------------------- |
+| [Cat 5e](glossary:cat-5e) (Class D) | 100 MHz                         | 100 Mbps [Ethernet](glossary:ethernet) |
+| [Cat 6](glossary:cat-6) (Class E)   | 250 MHz                         | 1 Gbps [Ethernet](glossary:ethernet)   |
+| Cat 6A (Class E_A)                  | 500 MHz                         | 10 Gbps [Ethernet](glossary:ethernet)  |
+| [Cat 7](glossary:cat-7) (Class F)   | 600 MHz                         | 10 Gbps+                               |
+| Cat 7A (Class F_A)                  | 1000 MHz                        | 더 고속                                |
 
 ### 용어
 
-- Insertion loss: 신호가 케이블 통과하면서 잃는 손실 (낮을수록 좋음)
-- NEXT (Near-End Crosstalk): 송신측 끝에서 측정한 혼선 (높을수록 좋음, 다른 선이 멀리 떨어진 거니까)
-- ACR (Attenuation-to-Crosstalk Ratio): 감쇄 대비 혼선 비율 (높을수록 좋음)
+- [Insertion loss](glossary:insertion-loss): 신호가 케이블 통과하면서 잃는 손실 (낮을수록 좋음)
+- [NEXT](glossary:next) (Near-End [Crosstalk](glossary:crosstalk)): 송신측 끝에서 측정한 [Crosstalk](glossary:crosstalk) (높을수록 좋음, 다른 선이 멀리 떨어진 거니까)
+- [ACR](glossary:acr) ([Attenuation](glossary:attenuation)-to-[Crosstalk](glossary:crosstalk) Ratio): [Attenuation](glossary:attenuation) 대비 [Crosstalk](glossary:crosstalk) 비율 (높을수록 좋음)
 
 ## 8-2 Coaxial Cable(동축 케이블)
 
-**"동축(coaxial)"**이란 이름은 내부 도체와 외부 도체가 **같은 축(co-axial)**을 공유한다는 뜻
+**"[Coaxial cable](glossary:coaxial-cable)"**이란 이름은 내부 도체와 외부 도체가 **같은 축(co-axial)**을 공유한다는 뜻
 ![coaxial cable](/static/images/network-ch4-transmission-media/coaxial-cable.png)
 
 ```
@@ -133,27 +133,27 @@ Inner conductor (내부 도체, 신호선)
 
 ### 특징
 
-- Twisted pair보다 긴 거리 가능
-- 더 많은 장치 공유 가능 (multi-point에 유리)
-- 더 넓은 bandwidth (~500MHz)
-- 외부 간섭에 강함 (자체 차폐)
-- Twisted pair보다 비쌈
-- Optical fiber보다 느림
+- [Twisted pair](glossary:twisted-pair)보다 긴 거리 가능
+- 더 많은 장치 공유 가능 ([multi-point](glossary:multipoint)에 유리)
+- 더 넓은 [bandwidth](glossary:bandwidth) (~500MHz)
+- 외부 [Interference](glossary:interference)에 강함 (자체 [Shielding](glossary:shielding))
+- [Twisted pair](glossary:twisted-pair)보다 비쌈
+- [Optical fiber](glossary:optical-fiber)보다 느림
 
 ### 전송 특성
 
-- Analog: 몇 km마다 amplifier(증폭기, 고주파일수록 더 자주)
-- Digital: 1km마다 repeater(고속일수록 더 자주)
+- Analog: 몇 km마다 [amplifier](glossary:amplifier)(고주파일수록 더 자주)
+- Digital: 1km마다 [repeater](glossary:repeater)(고속일수록 더 자주)
 
 ### 용도
 
 - 옛날 TV 케이블 (안테나 → TV)
 - 케이블 인터넷 (모뎀 → 벽)
 - 장거리 전화 (옛날)
-- 이더넷 LAN (10BASE2, 10BASE5 — 옛날 표준)
+- [Ethernet](glossary:ethernet) LAN ([10BASE2](glossary:10base2), [10BASE5](glossary:10base5) — 옛날 표준)
 
-주파수 특성이 twisted pair보다 우수하지만 퍼포먼스가 attenuation과 noise로 인해 제한된다.
-요즘 LAN은 다 twisted pair로 갔지만, 케이블 tv/인터넷 분야에서는 여전히 현역이다
+[Frequency](glossary:frequency) 특성이 [twisted pair](glossary:twisted-pair)보다 우수하지만 퍼포먼스가 [attenuation](glossary:attenuation)과 noise로 인해 제한된다.
+요즘 LAN은 다 [twisted pair](glossary:twisted-pair)로 갔지만, 케이블 tv/인터넷 분야에서는 여전히 현역이다
 
 ## 8-3 Optical Fiber(광섬유)
 
@@ -206,11 +206,11 @@ cladding (낮은 굴절률)
    Input pulse: ▌    Output pulse: ▌ (그대로)
 ```
 
-| 모드                   | Core 굵기 | 전송 거리 | 비용 | 데이터율  | 용도                     |
-| ---------------------- | --------- | --------- | ---- | --------- | ------------------------ |
-| Step-index Multimode   | 두꺼움    | 짧음      | 저렴 | 낮음      | 짧은 거리 LAN            |
-| Graded-index Multimode | 두꺼움    | 중간      | 중간 | 중간      | 중거리                   |
-| Single Mode            | 가늘음    | 매우 김   | 비쌈 | 매우 높음 | 장거리 백본, 해저 케이블 |
+| 모드                                                                              | [Core](glossary:core) 굵기 | 전송 거리 | 비용 | 데이터율  | 용도                                                                              |
+| --------------------------------------------------------------------------------- | -------------------------- | --------- | ---- | --------- | --------------------------------------------------------------------------------- |
+| [Step-index](glossary:step-index-fiber) [Multimode](glossary:multimode-fiber)     | 두꺼움                     | 짧음      | 저렴 | 낮음      | 짧은 거리 LAN                                                                     |
+| [Graded-index](glossary:graded-index-fiber) [Multimode](glossary:multimode-fiber) | 두꺼움                     | 중간      | 중간 | 중간      | 중거리                                                                            |
+| [Single Mode](glossary:single-mode-fiber)                                         | 가늘음                     | 매우 김   | 비쌈 | 매우 높음 | 장거리 [Backbone](glossary:backbone), [Submarine cable](glossary:submarine-cable) |
 
 ### 특징
 
@@ -227,15 +227,15 @@ cladding (낮은 굴절률)
 
 ### 용도
 
-- 인터넷 백본망
-- 해저 케이블 (대륙 간 통신)
+- 인터넷 [Backbone](glossary:backbone) 망
+- [Submarine cable](glossary:submarine-cable) (대륙 간 통신)
 - 통신사 핵심망
 - 데이터센터 내부 고속 연결
-- FTTH (Fiber To The Home, 가정용 광인터넷)
+- [FTTH](glossary:ftth) (Fiber To The Home, 가정용 광인터넷)
 
 ## 8-4 Guided Media 종합 비교
 
-attenuation(감쇄) 비교
+[attenuation](glossary:attenuation) 비교
 
 ```
 주파수 ↑일수록 감쇄가 어떻게 변하나?
@@ -250,24 +250,24 @@ Optical fiber: 거의 평탄하게 낮음     (10¹⁵Hz도 가능)
 
 ### 매체별 전송 특성 비교 (Point-to-Point)
 
-| 매체                     | 주파수 범위 | 감쇄             | 지연     | Repeater 간격 |
-| ------------------------ | ----------- | ---------------- | -------- | ------------- |
-| Twisted pair (loading)   | 0~3.5 kHz   | 0.2 dB/km @ 1kHz | 50 μs/km | 2 km          |
-| Twisted pair (multipair) | 0~1 MHz     | 0.7 dB/km @ 1kHz | 5 μs/km  | 2 km          |
-| Coaxial cable            | 0~500 MHz   | 7 dB/km @ 10MHz  | 4 μs/km  | 1~9 km        |
-| Optical fiber            | 186~370 THz | 0.2~0.5 dB/km    | 5 μs/km  | 40 km         |
+| 매체                                              | [Frequency](glossary:frequency) 범위 | [Attenuation](glossary:attenuation) | 지연     | [Repeater](glossary:repeater) 간격 |
+| ------------------------------------------------- | ------------------------------------ | ----------------------------------- | -------- | ---------------------------------- |
+| [Twisted pair](glossary:twisted-pair) (loading)   | 0~3.5 kHz                            | 0.2 dB/km @ 1kHz                    | 50 μs/km | 2 km                               |
+| [Twisted pair](glossary:twisted-pair) (multipair) | 0~1 MHz                              | 0.7 dB/km @ 1kHz                    | 5 μs/km  | 2 km                               |
+| [Coaxial](glossary:coaxial-cable) cable           | 0~500 MHz                            | 7 dB/km @ 10MHz                     | 4 μs/km  | 1~9 km                             |
+| [Optical fiber](glossary:optical-fiber)           | 186~370 THz                          | 0.2~0.5 dB/km                       | 5 μs/km  | 40 km                              |
 
 # 9. Unguided Media(무선)
 
 ## 9-1 Unguided Media 개념
 
-주파수 대역별 특성
+[Frequency](glossary:frequency) 대역별 특성
 |----|-----|----|
-|대역|주파수|특성|용도|
+|대역|[Frequency](glossary:frequency)|특성|용도|
 |----|-----|---|---|
-|Radio|30 MHz ~ 1 GHz|무지향성(omnidirectional)|AM/FM 라디오, TV|
-|Microwave|1 GHz ~ 40 GHz|지향성(directional) 가능|위성, 마이크로파 중계|
-|Infrared|3×10¹¹ ~ 2×10¹⁴ Hz|직진성, 짧은 거리|리모컨, 근거리 통신|
+|[Radio](glossary:radio-wave)|30 MHz ~ 1 GHz|[Omnidirectional antenna](glossary:omnidirectional-antenna)|AM/FM 라디오, TV|
+|[Microwave](glossary:microwave)|1 GHz ~ 40 GHz|[Directional antenna](glossary:directional-antenna) 가능|위성, [Microwave](glossary:microwave) 중계|
+|[Infrared](glossary:infrared)|3×10¹¹ ~ 2×10¹⁴ Hz|직진성, 짧은 거리|리모컨, 근거리 통신|
 
 ### 용어
 
@@ -286,7 +286,7 @@ Directional (지향성):
 
 ## 9-2 Satellite Microwave
 
-위성은 **microwave relay station(중계기)**
+위성은 **[microwave](glossary:microwave) relay station(중계기)**
 
 ```
 [지상국 A]                  [지상국 B]
@@ -328,16 +328,16 @@ Downlink: 위성 → 지상 (3.7 ~ 4.2 GHz, "4 GHz 대역")
 
 ### 위성 통신 응용
 
-| 응용                      | 설명                                              |
-| ------------------------- | ------------------------------------------------- |
-| Long-distance telephone   | 국제 전화의 옛 주력 (지금은 광케이블에 자리 양보) |
-| Private business networks | 기업 전용 통신망                                  |
-| TV distribution           | DBS (Direct Broadcast Satellite, 위성방송)        |
-| Global positioning        | GPS (Navstar)                                     |
+| 응용                      | 설명                                                       |
+| ------------------------- | ---------------------------------------------------------- |
+| Long-distance telephone   | 국제 전화의 옛 주력 (지금은 광케이블에 자리 양보)          |
+| Private business networks | 기업 전용 통신망                                           |
+| TV distribution           | [DBS](glossary:dbs) (Direct Broadcast Satellite, 위성방송) |
+| Global positioning        | [GPS](glossary:gps) (Navstar)                              |
 
 ### VSAT — Very Small Aperture Terminal
 
-소형 위성 안테나를 이용한 사용자 단말. 작은 가게나 개별 점포에서도 위성 통신을 쓸 수 있게 해주는 시스템
+소형 위성 안테나를 이용한 사용자 단말. 작은 가게나 개별 점포에서도 [Satellite communication](glossary:satellite-communication)을 쓸 수 있게 해주는 시스템
 
 ```
 [Ku-band 위성]
@@ -351,12 +351,12 @@ Downlink: 위성 → 지상 (3.7 ~ 4.2 GHz, "4 GHz 대역")
 
 # 10. 핵심 정리
 
-| 항목      | Twisted Pair | Coaxial      | Optical Fiber  | Wireless    |
-| --------- | ------------ | ------------ | -------------- | ----------- |
-| 비용      | ★ (저렴)     | ★★           | ★★★ (비쌈)     | 다양        |
-| Bandwidth | 작음         | 중간         | 매우 큼        | 다양        |
-| 거리      | 짧음 (2km)   | 중간 (1-9km) | 매우 김 (40km) | 다양        |
-| 간섭 저항 | 약함         | 중간         | 매우 강함      | 약함        |
-| 보안      | 약함         | 중간         | 강함           | 매우 약함   |
-| 설치      | 쉬움         | 보통         | 어려움         | 안테나 필요 |
-| 주 용도   | 전화선, LAN  | TV, 옛 LAN   | 백본, 장거리   | 무선통신    |
+| 항목                                       | [Twisted Pair](glossary:twisted-pair) | [Coaxial](glossary:coaxial-cable) | [Optical Fiber](glossary:optical-fiber) | Wireless    |
+| ------------------------------------------ | ------------------------------------- | --------------------------------- | --------------------------------------- | ----------- |
+| 비용                                       | ★ (저렴)                              | ★★                                | ★★★ (비쌈)                              | 다양        |
+| [Bandwidth](glossary:bandwidth)            | 작음                                  | 중간                              | 매우 큼                                 | 다양        |
+| 거리                                       | 짧음 (2km)                            | 중간 (1-9km)                      | 매우 김 (40km)                          | 다양        |
+| [Interference](glossary:interference) 저항 | 약함                                  | 중간                              | 매우 강함                               | 약함        |
+| 보안                                       | 약함                                  | 중간                              | 강함                                    | 매우 약함   |
+| 설치                                       | 쉬움                                  | 보통                              | 어려움                                  | 안테나 필요 |
+| 주 용도                                    | 전화선, LAN                           | TV, 옛 LAN                        | [Backbone](glossary:backbone), 장거리   | 무선통신    |

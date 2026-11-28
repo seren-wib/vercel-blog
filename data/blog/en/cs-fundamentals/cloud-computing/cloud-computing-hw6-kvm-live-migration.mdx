@@ -6,13 +6,13 @@ draft: false
 summary: 'Installing KVM and libvirt on the Ubuntu host, text-mode install of Rocky Linux 10.2 aarch64 with virt-install (ttyAMA0, pci=nomsi, AAVMF without Secure Boot), virsh list·shutdown·start·reboot·destroy·console, cloning with virt-clone and undefine, building a live migration setup from two Rocky VMs on KVM (servera·serverb: /etc/hosts, SSH keys, storage pool), creating CirrOS with --virt-type qemu, and moving the running VM with virsh migrate --live --copy-storage-all while the test.sh Count keeps going, exercises (virtual memory layout of hellocloud.c seen with pmap, memory ballooning)'
 ---
 
-This homework follows the KVM labs in chapters 11 and 12 of the textbook. The first half is the basic lab: install KVM, create a Rocky Linux VM, manage it with `virsh`, and clone it. The second half is live migration: build two Rocky VMs that act as KVM hosts, then move a CirrOS VM running inside one of them to the other without stopping it.
+This homework follows the [KVM](glossary:kvm) labs in chapters 11 and 12 of the textbook. The first half is the basic lab: install [KVM](glossary:kvm), create a [Rocky Linux](glossary:rocky-linux) [VM](glossary:vm), manage it with `virsh`, and clone it. The second half is [live migration](glossary:live-migration): build two [Rocky](glossary:rocky-linux) VMs that act as [KVM](glossary:kvm) hosts, then move a [CirrOS](glossary:cirros) [VM](glossary:vm) running inside one of them to the other without stopping it.
 
 # 0. Lab Environment
 
-I used the same Ubuntu host as since HW2 (Ubuntu 24.04 aarch64 on UTM on an Apple M3 Mac). Because the host is aarch64, I used the aarch64 builds of the Rocky Linux ISO and the CirrOS image, and I noted under each figure where commands differ from the slides.
+I used the same [Ubuntu](glossary:ubuntu) host as since HW2 ([Ubuntu](glossary:ubuntu) 24.04 [aarch64](glossary:arm64) on [UTM](glossary:utm) on an Apple M3 Mac). Because the host is [aarch64](glossary:arm64), I used the [aarch64](glossary:arm64) builds of the [Rocky Linux](glossary:rocky-linux) ISO and the [CirrOS](glossary:cirros) image, and I noted under each figure where commands differ from the slides.
 
-For live migration, instead of two VirtualBox VMs as in the slides, I created two Rocky VMs on the Ubuntu host's KVM. Each of them becomes a KVM host, and CirrOS is a VM nested one level further inside.
+For [live migration](glossary:live-migration), instead of two VirtualBox VMs as in the slides, I created two [Rocky](glossary:rocky-linux) VMs on the [Ubuntu](glossary:ubuntu) host's [KVM](glossary:kvm). Each of them becomes a [KVM](glossary:kvm) host, and [CirrOS](glossary:cirros) is a [VM](glossary:vm) nested one level further inside.
 
 ```text
 Ubuntu host (KVM)
@@ -24,11 +24,11 @@ Ubuntu host (KVM)
 
 ## Installing KVM
 
-First I checked with `kvm-ok` from `cpu-checker` that `/dev/kvm` exists and KVM acceleration is available. Nested virtualization is enabled in UTM, so KVM works inside the Ubuntu host too.
+First I checked with `kvm-ok` from `cpu-checker` that `/dev/kvm` exists and [KVM](glossary:kvm) acceleration is available. [Nested virtualization](glossary:nested-virtualization) is enabled in [UTM](glossary:utm), so [KVM](glossary:kvm) works inside the [Ubuntu](glossary:ubuntu) host too.
 
 ![kvm-ok](/static/images/cloud-computing-hw6-kvm-live-migration/01.webp)
 
-_kvm-ok after installing cpu-checker — /dev/kvm exists and KVM acceleration can be used_
+_kvm-ok after installing cpu-checker — /dev/kvm exists and [KVM](glossary:kvm) acceleration can be used_
 
 ```bash
 sudo apt install -y qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients bridge-utils virt-manager virtinst
@@ -38,13 +38,13 @@ systemctl status libvirtd --no-pager | head -5
 
 ![Installing KVM packages](/static/images/cloud-computing-hw6-kvm-live-migration/02.webp)
 
-_Installing the KVM packages, enabling libvirtd and checking its status_
+_Installing the [KVM](glossary:kvm) packages, enabling libvirtd and checking its status_
 
 ![Image directory and bridge](/static/images/cloud-computing-hw6-kvm-live-migration/03.webp)
 
-_Creating the image directory VM/instances, preparing the Rocky ISO, checking the virbr0 bridge with nmcli c_
+_Creating the image directory VM/instances, preparing the [Rocky](glossary:rocky-linux) ISO, checking the virbr0 [bridge](glossary:network-bridge) with nmcli c_
 
-To let a regular user use the bridge network, I put `allow all` in `/etc/qemu/bridge.conf` and set the setuid bit on `qemu-bridge-helper`. The libvirt connection URI was set to the user session (`qemu:///session`).
+To let a regular user use the [bridge](glossary:network-bridge) network, I put `allow all` in `/etc/qemu/bridge.conf` and set the [setuid](glossary:setuid) bit on `qemu-bridge-helper`. The [libvirt](glossary:libvirt) connection URI was set to the user session (`qemu:///session`).
 
 ```bash
 sudo mkdir -p /etc/qemu; echo "allow all" | sudo tee /etc/qemu/bridge.conf
@@ -55,7 +55,7 @@ sudo systemctl restart libvirtd
 
 ![bridge.conf and qemu-bridge-helper](/static/images/cloud-computing-hw6-kvm-live-migration/04.webp)
 
-_/etc/qemu/bridge.conf, setuid on qemu-bridge-helper, LIBVIRT_DEFAULT_URI=qemu:///session, and restarting libvirtd_
+_/etc/qemu/bridge.conf, [setuid](glossary:setuid) on qemu-bridge-helper, LIBVIRT_DEFAULT_URI=qemu:///session, and restarting libvirtd_
 
 ## Installing a Rocky VM on KVM
 
@@ -70,12 +70,12 @@ nvram.template=/usr/share/AAVMF/AAVMF_VARS.fd \
   --osinfo detect=on,require=off
 ```
 
-Compared with the command on slide 8, four things changed because of aarch64.
+Compared with the command on slide 8, four things changed because of [aarch64](glossary:arm64).
 
-- The ISO is the aarch64 build.
-- The serial console is `ttyAMA0` instead of `ttyS0`.
-- MSI interrupts are not delivered under nested virtualization, so I added `pci=nomsi`.
-- The default UEFI firmware (Secure Boot) won't run the installed GRUB, so I specified firmware without Secure Boot with `--boot`.
+- The ISO is the [aarch64](glossary:arm64) build.
+- The [serial console](glossary:serial-console) is `ttyAMA0` instead of `ttyS0`.
+- [MSI](glossary:msi) interrupts are not delivered under [nested virtualization](glossary:nested-virtualization), so I added `pci=nomsi`.
+- The default [UEFI](glossary:uefi) firmware ([Secure Boot](glossary:secure-boot)) won't run the installed [GRUB](glossary:grub), so I specified firmware without [Secure Boot](glossary:secure-boot) with `--boot`.
 
 The last two are settings I found in HW2 while fixing the [Rocky boot hang under nested virtualization](/en/blog/cs-fundamentals/cloud-computing/cloud-computing-hw2-kvm-vm-cluster/#appendix-rocky-boot-hang-under-nested-virtualization). I split the `--boot` value over three lines with `\` so the paths don't break in the middle. The continuation lines are not indented, because the shell would otherwise split the option value at the spaces.
 
@@ -105,7 +105,7 @@ _Rocky Linux 10.2 login (test) after reboot, leaving the console with Ctrl+]_
 
 ![Host ip -br addr](/static/images/cloud-computing-hw6-kvm-live-migration/11.webp)
 
-_ip -br addr on the host — the virtual bridge virbr0 is 192.168.122.1/24 (host IPv6 addresses masked)_
+_ip -br addr on the host — the virtual [bridge](glossary:network-bridge) virbr0 is 192.168.122.1/24 (host IPv6 addresses masked)_
 
 ## Common virsh Commands
 
@@ -118,23 +118,23 @@ virsh destroy rocky10-1
 virsh console rocky10-1
 ```
 
-`shutdown` asks the guest OS to shut down cleanly, while `destroy` cuts the power immediately. Despite its name, `destroy` does not delete the definition or the disk.
+`shutdown` asks the [guest OS](glossary:guest-os) to shut down cleanly, while `destroy` cuts the power immediately. Despite its name, `destroy` does not delete the definition or the disk.
 
 ![virsh shutdown, start](/static/images/cloud-computing-hw6-kvm-live-migration/12.webp)
 
-_virsh list --all, virsh shutdown (shut off confirmed), virsh start_
+_virsh list --all, [virsh](glossary:virsh) shutdown (shut off confirmed), [virsh](glossary:virsh) start_
 
 ![virsh reboot, destroy](/static/images/cloud-computing-hw6-kvm-live-migration/13.webp)
 
-_virsh reboot, virsh destroy (forced power off)_
+_virsh reboot, [virsh](glossary:virsh) destroy (forced power off)_
 
 ![virsh console](/static/images/cloud-computing-hw6-kvm-live-migration/14.webp)
 
-_Connecting with virsh console and logging in_
+_Connecting with [virsh](glossary:virsh) console and logging in_
 
 ## Cloning with KVM
 
-Cloning is done while the original is shut off. `virt-clone` copies the disk image and the UEFI variable file (`_VARS.fd`) and creates a new definition.
+Cloning is done while the original is shut off. `virt-clone` copies the disk image and the [UEFI](glossary:uefi) variable file (`_VARS.fd`) and creates a new definition.
 
 ```bash
 virsh shutdown rocky10-1
@@ -156,7 +156,7 @@ I followed "Creating VMs and setting up the lab environment" (pages 11–38) in 
 
 ## Installing Virtualization Packages and Cloning
 
-On the Rocky VM that serves as the original for servera and serverb (rocky-base), I installed the virtualization packages and turned on libvirtd. The two hosts must reach each other during migration, so in this lab environment I disabled firewalld and set SELinux to Permissive.
+On the [Rocky](glossary:rocky-linux) [VM](glossary:vm) that serves as the original for servera and serverb (rocky-base), I installed the virtualization packages and turned on libvirtd. The two hosts must reach each other during migration, so in this lab environment I disabled [firewalld](glossary:firewalld) and set [SELinux](glossary:selinux) to Permissive.
 
 ```bash
 dnf install -y qemu-kvm libvirt python3-libvirt virt-install
@@ -167,7 +167,7 @@ setenforce 0; getenforce
 
 ![Virtualization packages](/static/images/cloud-computing-hw6-kvm-live-migration/17.webp)
 
-_Confirming qemu-kvm, libvirt, python3-libvirt, virt-install are installed on the original Rocky_
+_Confirming qemu-kvm, [libvirt](glossary:libvirt), python3-libvirt, [virt-install](glossary:virt-install) are installed on the original Rocky_
 
 ![libvirtd](/static/images/cloud-computing-hw6-kvm-live-migration/18.webp)
 
@@ -175,9 +175,9 @@ _libvirtd enable·start·status_
 
 ![firewalld, SELinux](/static/images/cloud-computing-hw6-kvm-live-migration/19.webp)
 
-_Disabling and stopping firewalld, setenforce 0_
+_Disabling and stopping [firewalld](glossary:firewalld), setenforce 0_
 
-With the original shut off, I created two clones with `virt-clone` on the Ubuntu host. This corresponds to the VirtualBox clone in the slides.
+With the original shut off, I created two clones with `virt-clone` on the [Ubuntu](glossary:ubuntu) host. This corresponds to the VirtualBox clone in the slides.
 
 ```bash
 virt-clone --original rocky-base --name servera --auto-clone
@@ -186,11 +186,11 @@ virt-clone --original rocky-base --name serverb --auto-clone
 
 ![Cloning servera and serverb](/static/images/cloud-computing-hw6-kvm-live-migration/20.webp)
 
-_Cloning the original into servera and serverb with virt-clone (the VirtualBox clone in the slides)_
+_Cloning the original into servera and serverb with [virt-clone](glossary:virt-clone) (the VirtualBox clone in the slides)_
 
 ## Configuring the VMs
 
-On each VM I checked its address on the second network (the Ubuntu host's virbr2, 192.168.56.0/24), 192.168.56.101 and 192.168.56.102, added both names to `/etc/hosts`, and changed the hostname. The name from before cloning was still set, so the prompt shows `root@main` and `root@work1` until the rename.
+On each [VM](glossary:vm) I checked its address on the second network (the [Ubuntu](glossary:ubuntu) host's virbr2, 192.168.56.0/24), 192.168.56.101 and 192.168.56.102, added both names to `/etc/hosts`, and changed the hostname. The name from before cloning was still set, so the prompt shows `root@main` and `root@work1` until the rename.
 
 ```bash
 printf "192.168.56.101 servera.cloud.org servera\n192.168.56.102 serverb.cloud.org serverb\n" >> /etc/hosts
@@ -205,7 +205,7 @@ _servera — checking IP 192.168.56.101, /etc/hosts, hostname servera_
 
 _serverb — IP 192.168.56.102, /etc/hosts, hostname serverb_
 
-`virsh migrate` connects from servera to serverb's libvirt over SSH (`qemu+ssh://`), so servera's root must be able to log in to serverb as root without a password. I generated a key on servera and copied it to serverb.
+`virsh migrate` connects from servera to serverb's [libvirt](glossary:libvirt) over [SSH](glossary:ssh) (`qemu+ssh://`), so servera's root must be able to log in to serverb as root without a password. I generated a key on servera and copied it to serverb.
 
 ```bash
 ssh-keygen -t ed25519 -f /root/.ssh/cloudkey -N "" -q
@@ -216,7 +216,7 @@ ssh-copy-id -i ~/.ssh/cloudkey yoosung@serverb
 
 _Generating the key cloudkey as root on servera and copying it to serverb with ssh-copy-id_
 
-`ssh-copy-id` puts the key into the regular user's account, so on serverb I moved that key into root's `authorized_keys`. The user's file also holds the key the Ubuntu host uses to log in, so instead of moving the whole file I appended only servera's key line.
+`ssh-copy-id` puts the key into the regular user's account, so on serverb I moved that key into root's `authorized_keys`. The user's file also holds the key the [Ubuntu](glossary:ubuntu) host uses to log in, so instead of moving the whole file I appended only servera's key line.
 
 ```bash
 grep root@servera /home/yoosung/.ssh/authorized_keys >> /root/.ssh/authorized_keys
@@ -225,7 +225,7 @@ chown root:root .ssh/authorized_keys; chmod 600 .ssh/authorized_keys
 
 ![authorized_keys](/static/images/cloud-computing-hw6-kvm-live-migration/24.webp)
 
-_serverb — registering servera's key in root's authorized_keys, owner root, mode 600_
+_serverb — registering servera's key in root's [authorized_keys](glossary:ssh-key), owner root, mode 600_
 
 ```text:~/.ssh/config
 Host serverb
@@ -237,11 +237,11 @@ Host serverb
 
 ![ssh serverb](/static/images/cloud-computing-hw6-kvm-live-migration/25.webp)
 
-_ssh serverb after writing ~/.ssh/config on servera — logged in to serverb as root without a password_
+_ssh serverb after writing [~/.ssh/config](glossary:ssh-config) on servera — logged in to serverb as root without a password_
 
 ## Creating a KVM VM and Live Migration
 
-This migration copies the disk as well, without shared storage, so the receiving side (serverb) also needs a storage pool at the same path.
+This migration copies the disk as well, without shared storage, so the receiving side (serverb) also needs a [storage pool](glossary:storage-pool) at the same path.
 
 ```bash
 virsh pool-define-as --name default --type dir --target /var/lib/libvirt/images/
@@ -250,7 +250,7 @@ virsh pool-autostart default; virsh pool-build default; virsh pool-start default
 
 ![Storage pool](/static/images/cloud-computing-hw6-kvm-live-migration/26.webp)
 
-_Creating the image storage pool default on serverb_
+_Creating the image [storage pool](glossary:storage-pool) default on serverb_
 
 ```bash
 wget -q --show-progress https://download.cirros-cloud.net/0.5.2/cirros-0.5.2-aarch64-disk.img
@@ -259,9 +259,9 @@ mv cirros-0.5.2-aarch64-disk.img /var/lib/libvirt/images/
 
 ![CirrOS image](/static/images/cloud-computing-hw6-kvm-live-migration/27.webp)
 
-_Downloading the CirrOS 0.5.2 image (aarch64 build) on servera and moving it to /var/lib/libvirt/images/_
+_Downloading the [CirrOS](glossary:cirros) 0.5.2 image ([aarch64](glossary:arm64) build) on servera and moving it to /var/lib/libvirt/images/_
 
-There is no `/dev/kvm` inside the Rocky VMs, so as on slide 32 I used `--virt-type qemu` (software emulation). Unlike the slides, I added `--osinfo linux2022` so the disk attaches as virtio, and `--cpu cortex-a57` for emulation speed.
+There is no `/dev/kvm` inside the [Rocky](glossary:rocky-linux) VMs, so as on slide 32 I used `--virt-type qemu` ([software emulation](glossary:software-emulation)). Unlike the slides, I added `--osinfo linux2022` so the disk attaches as [virtio](glossary:virtio), and `--cpu cortex-a57` for [emulation](glossary:software-emulation) speed.
 
 ```bash
 virt-install --name cirros --ram 512 \
@@ -272,13 +272,13 @@ virt-install --name cirros --ram 512 \
 
 ![Creating CirrOS](/static/images/cloud-computing-hw6-kvm-live-migration/28.webp)
 
-_Creating the CirrOS VM — --virt-type qemu, --osinfo linux2022 (virtio disk), --cpu cortex-a57_
+_Creating the [CirrOS](glossary:cirros) [VM](glossary:vm) — --virt-type [qemu](glossary:qemu), --osinfo linux2022 ([virtio](glossary:virtio) disk), --cpu cortex-a57_
 
 ![CirrOS login](/static/images/cloud-computing-hw6-kvm-live-migration/29.webp)
 
 _virsh console cirros — logging in as cirros after boot_
 
-To see whether a process survives the migration, I wrote a script inside CirrOS that increments and prints a Count every second.
+To see whether a process survives the migration, I wrote a script inside [CirrOS](glossary:cirros) that increments and prints a Count every second.
 
 ```sh:test.sh
 #!/bin/sh
@@ -295,9 +295,9 @@ done
 
 ![Writing test.sh](/static/images/cloud-computing-hw6-kvm-live-migration/30.webp)
 
-_Writing the job file test.sh inside CirrOS (Count goes up every second) and making it executable_
+_Writing the job file test.sh inside [CirrOS](glossary:cirros) (Count goes up every second) and making it executable_
 
-With `./test.sh` running, I left only the console with `Ctrl+]`. The VM and the script keep running.
+With `./test.sh` running, I left only the console with `Ctrl+]`. The [VM](glossary:vm) and the script keep running.
 
 ![Running test.sh](/static/images/cloud-computing-hw6-kvm-live-migration/31.webp)
 
@@ -307,33 +307,33 @@ _Leaving only the console with Ctrl+] while ./test.sh runs (Count 1–6, 02:46:2
 virsh migrate --verbose --copy-storage-all --persistent --live cirros qemu+ssh://root@serverb/system
 ```
 
-- `--live`: moves the VM without shutting it down, copying memory while it runs.
+- `--live`: moves the [VM](glossary:vm) without shutting it down, copying memory while it runs.
 - `--copy-storage-all`: there is no shared storage, so the disk image is copied too.
 - `--persistent`: keeps the definition permanently on serverb.
 
 ![virsh migrate](/static/images/cloud-computing-hw6-kvm-live-migration/32.webp)
 
-_virsh migrate — Migration 100%; the VM no longer runs on servera (only the definition remains, shut off)_
+_virsh migrate — Migration 100%; the [VM](glossary:vm) no longer runs on servera (only the definition remains, shut off)_
 
 ![Count continuing on serverb](/static/images/cloud-computing-hw6-kvm-live-migration/33.webp)
 
 _cirros running on serverb; on the console the same test.sh keeps printing from Count 238 — the process was not terminated and moved to serverb_
 
-The test.sh started on servera before migration was not terminated, and its Count continued on serverb. Since the Count did not reset to 1, the VM was moved to another host while keeping its running state (live migration). With `--copy-storage-all`, the disk image was copied along without shared storage.
+The test.sh started on servera before migration was not terminated, and its Count continued on serverb. Since the Count did not reset to 1, the [VM](glossary:vm) was moved to another host while keeping its running state ([live migration](glossary:live-migration)). With `--copy-storage-all`, the disk image was copied along without shared storage.
 
 Finally I removed the leftover definition on servera and powered off cirros on serverb.
 
 ![Cleanup](/static/images/cloud-computing-hw6-kvm-live-migration/34.webp)
 
-_Cleanup — virsh undefine cirros on servera, virsh destroy cirros on serverb_
+_Cleanup — [virsh](glossary:virsh) undefine cirros on servera, [virsh](glossary:virsh) destroy cirros on serverb_
 
 # 3. Exercises
 
 ## Ch11-5. hellocloud.c and the Virtual Memory Layout
 
-> Write and run hellocloud.c, and use pmap and similar tools to draw the layout of its virtual memory.
+> Write and run hellocloud.c, and use [pmap](glossary:pmap) and similar tools to draw the [layout](glossary:memory-layout) of its [virtual memory](glossary:virtual-memory).
 
-I made one variable for each memory region: an initialized global, an uninitialized global, a string constant, a local variable and a malloc block. The program prints their addresses and waits for Enter, and while it waits I checked the layout from another terminal with `pmap` and `/proc/<pid>/maps`.
+I made one variable for each memory region: an initialized global, an uninitialized global, a string constant, a local variable and a [malloc](glossary:malloc) block. The program prints their addresses and waits for Enter, and while it waits I checked the [layout](glossary:memory-layout) from another terminal with `pmap` and `/proc/<pid>/maps`.
 
 ```c:hellocloud.c
 #include <stdio.h>
@@ -366,7 +366,7 @@ int main(void)
 
 ![Running hellocloud](/static/images/cloud-computing-hw6-kvm-live-migration/35.webp)
 
-_Built with gcc -o hellocloud hellocloud.c and run — the address of each region (pid 13757)_
+_Built with [gcc](glossary:gcc) -o hellocloud hellocloud.c and run — the address of each region (pid 13757)_
 
 ![pmap](/static/images/cloud-computing-hw6-kvm-live-migration/36.webp)
 
@@ -374,32 +374,32 @@ _pmap — start address, size, permissions and backing file of each mapping_
 
 ![/proc/pid/maps](/static/images/cloud-computing-hw6-kvm-live-migration/37.webp)
 
-_/proc/13757/maps — names for the regions pmap shows as [ anon ]: [heap], [vvar], [vdso], [stack]_
+_/proc/13757/maps — names for the regions [pmap](glossary:pmap) shows as [ anon ]: [heap], [vvar], [vdso], [stack]_
 
 ![Virtual memory layout](/static/images/cloud-computing-hw6-kvm-live-migration/38.webp)
 
-_Virtual memory layout of hellocloud (higher addresses at the top)_
+_Virtual memory [layout](glossary:memory-layout) of hellocloud (higher addresses at the top)_
 
 - `main` (0x…909d8) and the string `msg` (0x…90b38) sit in the executable's first mapping (r-x). Code and read-only data landed on the same page.
-- `g_init` (.data) and `g_uninit` (.bss) sit next to each other on one page of the executable's writable mapping (rw-). The r-- page below it is the region made read-only after relocation (RELRO).
-- `malloc(4096)` came from the [heap] (132K) right above the executable. The heap grows toward higher addresses with brk. A request of 128 KiB or more gets its own mapping in the mmap area instead of the heap.
-- `printf` is in the libc.so.6 code in the mmap area, and the dynamic linker ld-linux-aarch64.so.1 and the kernel-provided [vvar]·[vdso] are in this area too.
-- The local variable `local` is in the [stack] (132K) at the top of the user address space, and the stack grows toward lower addresses.
-- ASLR changes the addresses on every run, but the order and permissions of the regions stay the same.
+- `g_init` ([.data](glossary:data-segment)) and `g_uninit` ([.bss](glossary:bss)) sit next to each other on one page of the executable's writable mapping (rw-). The r-- page below it is the region made read-only after relocation ([RELRO](glossary:relro)).
+- `malloc(4096)` came from the [heap] (132K) right above the executable. The [heap](glossary:heap) grows toward higher addresses with [brk](glossary:brk). A request of 128 KiB or more gets its own mapping in the [mmap](glossary:mmap) area instead of the [heap](glossary:heap).
+- `printf` is in the libc.so.6 code in the [mmap](glossary:mmap) area, and the [dynamic linker](glossary:dynamic-linker) ld-linux-aarch64.so.1 and the kernel-provided [vvar]·[vdso] are in this area too.
+- The local variable `local` is in the [stack] (132K) at the top of the user address space, and the [stack](glossary:stack) grows toward lower addresses.
+- [ASLR](glossary:aslr) changes the addresses on every run, but the order and permissions of the regions stay the same.
 
 ## Ch11-9. Memory Ballooning
 
-> Research the memory ballooning technique and explain it.
+> Research the memory [ballooning](glossary:memory-ballooning) technique and explain it.
 
-Memory ballooning is a technique that lets the hypervisor reclaim memory from a running virtual machine or give it back. A balloon driver lives inside the guest OS (`virtio_balloon` on KVM). The hypervisor tells the driver a target size, and the driver inflates or deflates a balloon inside the guest's memory.
+Memory [ballooning](glossary:memory-ballooning) is a technique that lets the [hypervisor](glossary:hypervisor) reclaim memory from a running [virtual machine](glossary:vm) or give it back. A balloon driver lives inside the [guest OS](glossary:guest-os) (`virtio_balloon` on [KVM](glossary:kvm)). The [hypervisor](glossary:hypervisor) tells the driver a target size, and the driver inflates or deflates a balloon inside the [guest](glossary:guest-os)'s memory.
 
-- **Why it is needed**: the hypervisor cannot tell which of the guest's pages are actually in use (the semantic gap). If the hypervisor picks guest pages and swaps them out itself when host memory runs low, it may evict pages the guest kernel uses often, and performance can drop sharply. Ballooning lets the guest OS choose which pages to give up.
-- **Reclaim (inflate)**: when the hypervisor lowers the target size, the balloon driver allocates pages from the guest kernel, holds on to them and reports their physical page numbers to the hypervisor. From the guest's point of view the driver is using that memory, so no other process touches those pages. The hypervisor can then hand the pages to another virtual machine. If the guest has no free memory, the guest OS drops caches or pages out to its own swap by itself.
-- **Return (deflate)**: when the target size goes back up, the driver releases the pages it held back to the guest kernel, and the guest uses that memory again.
-- **Effect**: memory size can change without stopping the virtual machine, so memory overcommit (the memory given to all virtual machines adds up to more than the physical memory) can be run safely. On KVM, changing the current memory (`currentMemory`) with `virsh setmem <vm> <size>` within the configured maximum (`memory`) drives the balloon driver.
-- **Limits**: the guest needs the balloon driver installed and the guest OS has to cooperate. Reclaim is tied to the guest's page reclaim speed, so it is not instant, and inflating too far can cause swapping or OOM inside the guest. Memory cannot grow past the maximum. That is why real systems use ballooning together with KSM (sharing pages with identical content) and hypervisor swapping.
+- **Why it is needed**: the [hypervisor](glossary:hypervisor) cannot tell which of the [guest](glossary:guest-os)'s pages are actually in use (the semantic gap). If the [hypervisor](glossary:hypervisor) picks [guest](glossary:guest-os) pages and swaps them out itself when host memory runs low, it may evict pages the [guest](glossary:guest-os) kernel uses often, and performance can drop sharply. Ballooning lets the [guest OS](glossary:guest-os) choose which pages to give up.
+- **Reclaim (inflate)**: when the [hypervisor](glossary:hypervisor) lowers the target size, the balloon driver allocates pages from the [guest](glossary:guest-os) kernel, holds on to them and reports their physical page numbers to the [hypervisor](glossary:hypervisor). From the [guest](glossary:guest-os)'s point of view the driver is using that memory, so no other process touches those pages. The [hypervisor](glossary:hypervisor) can then hand the pages to another [virtual machine](glossary:vm). If the [guest](glossary:guest-os) has no free memory, the [guest OS](glossary:guest-os) drops caches or pages out to its own [swap](glossary:swap-space) by itself.
+- **Return (deflate)**: when the target size goes back up, the driver releases the pages it held back to the [guest](glossary:guest-os) kernel, and the [guest](glossary:guest-os) uses that memory again.
+- **Effect**: memory size can change without stopping the [virtual machine](glossary:vm), so memory [overcommit](glossary:memory-overcommit) (the memory given to all [virtual machines](glossary:vm) adds up to more than the physical memory) can be run safely. On [KVM](glossary:kvm), changing the current memory (`currentMemory`) with `virsh setmem <vm> <size>` within the configured maximum (`memory`) drives the balloon driver.
+- **Limits**: the [guest](glossary:guest-os) needs the balloon driver installed and the [guest OS](glossary:guest-os) has to cooperate. Reclaim is tied to the [guest](glossary:guest-os)'s page reclaim speed, so it is not instant, and inflating too far can cause [swapping](glossary:swap-space) or [OOM](glossary:oom) inside the [guest](glossary:guest-os). Memory cannot grow past the maximum. That is why real systems use [ballooning](glossary:memory-ballooning) together with [KSM](glossary:ksm) (sharing pages with identical content) and [hypervisor](glossary:hypervisor) [swapping](glossary:swap-space).
 
 References
 
 - C. A. Waldspurger, "Memory Resource Management in VMware ESX Server," Proc. 5th Symposium on Operating Systems Design and Implementation (OSDI '02), USENIX, 2002.
-- libvirt, "Domain XML format — Memory balloon device," https://libvirt.org/formatdomain.html#memory-balloon-device
+- [libvirt](glossary:libvirt), "Domain XML format — Memory balloon device," https://libvirt.org/formatdomain.html#memory-balloon-device

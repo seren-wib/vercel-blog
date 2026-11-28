@@ -6,14 +6,14 @@ draft: false
 summary: 'Kolla-Ansible all-in-one으로 오픈스택 배포(stable/2026.2, aarch64 이미지, veth 쌍 외부 인터페이스, enable_haproxy no), 대시보드로 cirros·mycirros 인스턴스 생성, openstack CLI로 server create·stop·start와 nova_libvirt virsh console, Rocky VM 안 3단 중첩 배포가 timeout 연쇄로 실패한 기록(healthcheck, ovs-vsctl, keepalived, uwsgi, Docker API), cirros pci=nomsi, glance CORS, 네트워크 네임스페이스·veth·브리지·라우팅·IP 포워딩·masquerade로 p67 구성, 연습문제(오픈스택 서비스와 역할, Spotify 사례로 본 컨테이너의 장점, netns3를 더한 그림 15.12 구성)'
 ---
 
-교재 13~15장 실습이다. 앞부분은 Kolla-Ansible로 오픈스택을 한 노드에 배포하고 대시보드와 명령행 도구로 인스턴스를 만드는 실습이고, 뒷부분은 리눅스 네트워크 네임스페이스로 컨테이너 네트워크(슬라이드 p67 구성)를 손으로 짜는 실습이다. 오픈스택은 처음에 슬라이드처럼 Rocky 가상머신 안에 설치하다가 배포를 8번, 6시간 넘게 돌리고 접었다. 그 과정은 [5장](#5-실습-중-생긴-문제)에 따로 정리했다.
+교재 13~15장 실습이다. 앞부분은 [Kolla-Ansible](glossary:kolla-ansible)로 [OpenStack](glossary:openstack)을 한 노드에 배포하고 [Horizon](glossary:horizon)과 명령행 도구로 [Instance](glossary:instance)를 만드는 실습이고, 뒷부분은 리눅스 [Network namespace](glossary:network-namespace)로 [Container](glossary:container) 네트워크(슬라이드 p67 구성)를 손으로 짜는 실습이다. [OpenStack](glossary:openstack)은 처음에 슬라이드처럼 [Rocky](glossary:rocky-linux) [VM](glossary:vm) 안에 설치하다가 배포를 8번, 6시간 넘게 돌리고 접었다. 그 과정은 [5장](#5-실습-중-생긴-문제)에 따로 정리했다.
 
 # 0. 실습 환경
 
-HW2부터 쓰던 Ubuntu 호스트(Apple M3 맥의 UTM 위 Ubuntu 24.04 aarch64, 메모리 9.7GiB, 6 vCPU)에서 했다. 호스트가 aarch64라서 이미지는 전부 aarch64판을 썼고, 슬라이드와 명령이 달라진 곳은 해당 그림 아래에 적었다.
+HW2부터 쓰던 [Ubuntu](glossary:ubuntu) 호스트(Apple M3 맥의 [UTM](glossary:utm) 위 [Ubuntu](glossary:ubuntu) 24.04 [aarch64](glossary:arm64), 메모리 9.7GiB, 6 [vCPU](glossary:vcpu))에서 했다. 호스트가 [aarch64](glossary:arm64)라서 이미지는 전부 [aarch64](glossary:arm64)판을 썼고, 슬라이드와 명령이 달라진 곳은 해당 그림 아래에 적었다.
 
-- **오픈스택**: 가상머신을 한 단 더 만들지 않고 Ubuntu 호스트에 바로 설치했다. Rocky 가상머신 안에 설치하면 맥 → UTM → Ubuntu → KVM → Rocky의 3단 중첩이 되어 배포가 시간 초과로 끝나지 않았기 때문이다.
-- **리눅스 컨테이너**: 호스트의 KVM 위에 Rocky Linux 10.2 aarch64 가상머신 `lxc.cloud.org`를 만들어 했다.
+- **[OpenStack](glossary:openstack)**: [VM](glossary:vm)을 한 단 더 만들지 않고 [Ubuntu](glossary:ubuntu) 호스트에 바로 설치했다. [Rocky](glossary:rocky-linux) [VM](glossary:vm) 안에 설치하면 맥 → [UTM](glossary:utm) → [Ubuntu](glossary:ubuntu) → [KVM](glossary:kvm) → [Rocky](glossary:rocky-linux)의 3단 [Nested virtualization](glossary:nested-virtualization)이 되어 배포가 시간 초과로 끝나지 않았기 때문이다.
+- **리눅스 [Container](glossary:container)**: 호스트의 [KVM](glossary:kvm) 위에 [Rocky Linux](glossary:rocky-linux) 10.2 [aarch64](glossary:arm64) [VM](glossary:vm) `lxc.cloud.org`를 만들어 했다.
 
 ```text
 Ubuntu 호스트 yoosung-vm (enp0s1 192.168.64.4 = 내부 VIP, 대시보드 http://192.168.64.4)
@@ -23,23 +23,23 @@ Ubuntu 호스트 yoosung-vm (enp0s1 192.168.64.4 = 내부 VIP, 대시보드 http
 └─ KVM ─ lxc.cloud.org (Rocky 10.2)  ← 네트워크 네임스페이스 실습
 ```
 
-| 슬라이드                                       | 이 환경                                                                |
-| ---------------------------------------------- | ---------------------------------------------------------------------- |
-| x86 PC → VirtualBox → Rocky Linux (2단)        | M3 맥 → UTM → Ubuntu 호스트에 바로 설치 (2단)                          |
-| 랜카드 2개 enp0s3·enp0s8                       | 랜카드 enp0s1 하나 + 외부 네트워크용 veth 쌍 veth0↔veth1               |
-| firewalld·SELinux·chronyd 설정                 | 호스트 libvirt 중지, ufw·timedatectl 확인                              |
-| `dnf install`                                  | `apt-get install` (같은 패키지의 Ubuntu 이름)                          |
-| kolla-ansible `stable/2026.1`, rocky 이미지    | `stable/2026.2`, ubuntu 이미지 + 태그 접미사 `-aarch64`                |
-| 내부 VIP 별도 주소 + haproxy                   | `enable_haproxy: "no"`, VIP = 호스트 IP                                |
-| cirros-0.5.1-x86_64                            | cirros-0.5.1-aarch64, 인스턴스용은 커널 인자에 `pci=nomsi`를 넣은 사본 |
-| 대시보드 VNC 콘솔                              | "로그" 탭 (aarch64 cirros는 시리얼로 출력)                             |
-| 컨테이너 실습 외부 인터페이스 enp0s3 10.0.2.15 | enp1s0 192.168.122.16 (libvirt NAT)                                    |
+| 슬라이드                                                                 | 이 환경                                                                                                            |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| x86 PC → VirtualBox → [Rocky Linux](glossary:rocky-linux) (2단)          | M3 맥 → [UTM](glossary:utm) → [Ubuntu](glossary:ubuntu) 호스트에 바로 설치 (2단)                                   |
+| 랜카드 2개 enp0s3·enp0s8                                                 | 랜카드 enp0s1 하나 + 외부 네트워크용 [veth](glossary:veth) 쌍 veth0↔veth1                                          |
+| [firewalld](glossary:firewalld)·[SELinux](glossary:selinux)·chronyd 설정 | 호스트 [libvirt](glossary:libvirt) 중지, [ufw](glossary:ufw)·timedatectl 확인                                      |
+| `dnf install`                                                            | `apt-get install` (같은 패키지의 [Ubuntu](glossary:ubuntu) 이름)                                                   |
+| kolla-ansible `stable/2026.1`, rocky 이미지                              | `stable/2026.2`, ubuntu 이미지 + 태그 접미사 `-aarch64`                                                            |
+| 내부 [VIP](glossary:virtual-ip) 별도 주소 + [haproxy](glossary:haproxy)  | `enable_haproxy: "no"`, [VIP](glossary:virtual-ip) = 호스트 IP                                                     |
+| cirros-0.5.1-x86_64                                                      | cirros-0.5.1-aarch64, [Instance](glossary:instance)용은 커널 인자에 `pci=nomsi`를 넣은 사본                        |
+| [Horizon](glossary:horizon) [VNC](glossary:vnc) 콘솔                     | "로그" 탭 ([aarch64](glossary:arm64) [cirros](glossary:cirros)는 [Serial console](glossary:serial-console)로 출력) |
+| [Container](glossary:container) 실습 외부 인터페이스 enp0s3 10.0.2.15    | enp1s0 192.168.122.16 ([libvirt](glossary:libvirt) [NAT](glossary:nat))                                            |
 
 # 1. 오픈스택 설치 준비
 
 ## 외부 네트워크용 인터페이스
 
-슬라이드는 랜카드 두 개 중 enp0s8을 neutron 외부 네트워크에 통째로 넘긴다. 이 호스트는 랜카드가 enp0s1 하나뿐이고 이걸 넘기면 호스트 접속이 끊기므로, NetworkManager로 veth 쌍을 만들어 한쪽(veth1)을 외부 인터페이스로 썼다.
+슬라이드는 랜카드 두 개 중 enp0s8을 [neutron](glossary:neutron) 외부 네트워크에 통째로 넘긴다. 이 호스트는 랜카드가 enp0s1 하나뿐이고 이걸 넘기면 호스트 접속이 끊기므로, [NetworkManager](glossary:networkmanager)로 [veth](glossary:veth) 쌍을 만들어 한쪽(veth1)을 외부 인터페이스로 썼다.
 
 ```bash
 ip -br addr | grep -v vnet
@@ -50,11 +50,11 @@ ip -br link show type veth
 
 ![veth 쌍 생성](/static/images/cloud-computing-hw7-openstack-linux-container/01.webp)
 
-_호스트 인터페이스와 외부 네트워크용 veth 쌍 생성. 슬라이드의 enp0s8 자리를 veth1이 대신함_
+_호스트 인터페이스와 외부 네트워크용 [veth](glossary:veth) 쌍 생성. 슬라이드의 enp0s8 자리를 veth1이 대신함_
 
 ## 호스트 준비
 
-Kolla는 libvirt를 `nova_libvirt` 컨테이너로 띄우는데, HW6 때 호스트에 깐 libvirt가 살아 있으면 prechecks에서 막힌다. 호스트의 libvirt 유닛을 전부 끄고, 방화벽과 시간 동기화를 확인했다. 유닛 이름은 glob으로 주면 disable이 안 돼서 하나씩 적었다.
+[Kolla](glossary:kolla-ansible)는 [libvirt](glossary:libvirt)를 `nova_libvirt` [Container](glossary:container)로 띄우는데, HW6 때 호스트에 깐 [libvirt](glossary:libvirt)가 살아 있으면 prechecks에서 막힌다. 호스트의 [libvirt](glossary:libvirt) 유닛을 전부 끄고, 방화벽과 시간 동기화를 확인했다. 유닛 이름은 glob으로 주면 disable이 안 돼서 하나씩 적었다.
 
 ```bash
 sudo systemctl disable --now libvirt-guests.service libvirtd.service virtlockd.service virtlogd.service \
@@ -67,7 +67,7 @@ timedatectl | grep -E 'synchronized|NTP'
 
 ![호스트 준비](/static/images/cloud-computing-hw7-openstack-linux-container/02.webp)
 
-_호스트의 libvirt 서비스 중지, 방화벽 비활성 확인, 시간 동기화 확인. 슬라이드 16~17쪽에 해당_
+_호스트의 [libvirt](glossary:libvirt) 서비스 중지, 방화벽 비활성 확인, 시간 동기화 확인. 슬라이드 16~17쪽에 해당_
 
 ```bash
 sudo apt-get update
@@ -76,7 +76,7 @@ sudo apt-get install -y git python3-dev python3-venv libffi-dev gcc libssl-dev w
 
 ![의존 패키지 설치](/static/images/cloud-computing-hw7-openstack-linux-container/03.webp)
 
-_의존 패키지 설치. 슬라이드의 dnf 대신 apt-get으로 같은 패키지 설치_
+_의존 패키지 설치. 슬라이드의 [dnf](glossary:dnf) 대신 [apt-get](glossary:apt)으로 같은 패키지 설치_
 
 ## cirros 이미지와 Kolla-Ansible
 
@@ -90,9 +90,9 @@ pip install -U pip
 
 ![cirros와 가상환경](/static/images/cloud-computing-hw7-openstack-linux-container/04.webp)
 
-_cirros 이미지 다운로드와 파이썬 가상환경 생성. 호스트가 aarch64라 cirros-0.5.1-aarch64-disk.img 사용_
+_[cirros](glossary:cirros) 이미지 다운로드와 [Python virtual environment](glossary:python-virtual-environment) 생성. 호스트가 [aarch64](glossary:arm64)라 cirros-0.5.1-aarch64-disk.img 사용_
 
-슬라이드는 `stable/2026.1`을 쓰지만 quay.io의 Kolla 이미지를 조회해 보니 2026.1의 aarch64 태그는 Debian·Ubuntu뿐이고 Rocky aarch64는 2026.2부터 있었다. 그래서 `stable/2026.2`를 받았다.
+슬라이드는 `stable/2026.1`을 쓰지만 quay.io의 [Kolla](glossary:kolla-ansible) [Container image](glossary:container-image)를 조회해 보니 2026.1의 [aarch64](glossary:arm64) 태그는 Debian·[Ubuntu](glossary:ubuntu)뿐이고 [Rocky](glossary:rocky-linux) [aarch64](glossary:arm64)는 2026.2부터 있었다. 그래서 `stable/2026.2`를 받았다.
 
 ```bash
 pip install git+https://opendev.org/openstack/kolla-ansible@stable/2026.2
@@ -106,13 +106,13 @@ kolla-genpwd
 
 ![Kolla-Ansible 설치](/static/images/cloud-computing-hw7-openstack-linux-container/05.webp)
 
-_Kolla-Ansible 설치와 /etc/kolla 설정 파일 복사_
+_[Kolla-Ansible](glossary:kolla-ansible) 설치와 /etc/kolla 설정 파일 복사_
 
 ![install-deps](/static/images/cloud-computing-hw7-openstack-linux-container/06.webp)
 
-_kolla-ansible install-deps로 Ansible Galaxy 의존성 설치_
+_kolla-ansible install-deps로 [Ansible Galaxy](glossary:ansible) 의존성 설치_
 
-`kolla-genpwd`가 `passwords.yml`에 서비스 비밀번호를 채운다. 대시보드 관리자 비밀번호는 `keystone_admin_password` 값인데, 출력할 때는 값을 가렸다.
+`kolla-genpwd`가 `passwords.yml`에 서비스 비밀번호를 채운다. [Horizon](glossary:horizon) 관리자 비밀번호는 `keystone_admin_password` 값인데, 출력할 때는 값을 가렸다.
 
 ```bash
 grep keystone_admin_password passwords.yml | sed 's/: .*/: ********/'
@@ -126,10 +126,10 @@ _kolla-genpwd로 비밀번호 생성. 관리자 비밀번호 값은 가려서 �
 
 슬라이드 대비 바뀐 값은 다섯 개다.
 
-- `kolla_base_distro: "ubuntu"`: 호스트가 Ubuntu라 컨테이너 이미지도 Ubuntu판을 썼다.
+- `kolla_base_distro: "ubuntu"`: 호스트가 [Ubuntu](glossary:ubuntu)라 [Container image](glossary:container-image)도 [Ubuntu](glossary:ubuntu)판을 썼다.
 - `network_interface: "enp0s1"`, `neutron_external_interface: "veth1"`
-- `enable_haproxy: "no"`, `kolla_internal_vip_address: "192.168.64.4"`: 노드가 하나라 로드밸런서(haproxy·keepalived)를 끄고 VIP를 호스트 IP로 뒀다.
-- `openstack_tag_suffix: "-aarch64"`: 기본값 `""`이면 `2026.2-ubuntu-noble` 태그를 받는데, 이 태그에는 arm64 매니페스트가 없다.
+- `enable_haproxy: "no"`, `kolla_internal_vip_address: "192.168.64.4"`: 노드가 하나라 로드밸런서([haproxy](glossary:haproxy)·[keepalived](glossary:keepalived))를 끄고 [VIP](glossary:virtual-ip)를 호스트 IP로 뒀다.
+- `openstack_tag_suffix: "-aarch64"`: 기본값 `""`이면 `2026.2-ubuntu-noble` 태그를 받는데, 이 태그에는 [arm64](glossary:arm64) 매니페스트가 없다.
 
 ```bash
 sed -i -e 's/^#kolla_base_distro:.*/kolla_base_distro: "ubuntu"/' \
@@ -140,7 +140,7 @@ sed -i -e 's/^#kolla_base_distro:.*/kolla_base_distro: "ubuntu"/' \
 echo 'openstack_tag_suffix: "-aarch64"' >> globals.yml
 ```
 
-대시보드에서 이미지를 업로드하려면 glance가 대시보드 주소를 CORS로 허용해야 한다.
+[Horizon](glossary:horizon)에서 이미지를 업로드하려면 [glance](glossary:glance)가 [Horizon](glossary:horizon) 주소를 [CORS](glossary:cors)로 허용해야 한다.
 
 ```ini:/etc/kolla/config/glance.conf
 [cors]
@@ -150,7 +150,7 @@ allow_headers = Content-Type,X-Auth-Token,X-CSRFToken,X-Image-Meta-Checksum,Cont
 
 ![globals.yml](/static/images/cloud-computing-hw7-openstack-linux-container/08.webp)
 
-_globals.yml 설정과 glance CORS 설정. `http://localhost:8080`은 대시보드 접속 뒤에 추가했다([문제 4](#문제-4-대시보드-이미지-업로드가-cors로-막힘))_
+_globals.yml 설정과 [glance](glossary:glance) [CORS](glossary:cors) 설정. `http://localhost:8080`은 [Horizon](glossary:horizon) 접속 뒤에 추가했다([문제 4](#문제-4-대시보드-이미지-업로드가-cors로-막힘))_
 
 # 2. 오픈스택 배포
 
@@ -164,11 +164,11 @@ grep -A1 'PLAY RECAP' /root/deploy.log | tail -2
 
 ![bootstrap-servers](/static/images/cloud-computing-hw7-openstack-linux-container/09.webp)
 
-_bootstrap-servers 성공(failed=0). Docker 설치 등 호스트 준비_
+_bootstrap-servers 성공(failed=0). [Docker](glossary:docker) 설치 등 호스트 준비_
 
 ![prechecks](/static/images/cloud-computing-hw7-openstack-linux-container/10.webp)
 
-_prechecks 성공(failed=0). 가상환경에 Docker SDK와 dbus-python이 없어 `pip install docker dbus-python`을 먼저 실행함_
+_prechecks 성공(failed=0). [Python virtual environment](glossary:python-virtual-environment)에 [Docker](glossary:docker) SDK와 dbus-python이 없어 `pip install docker dbus-python`을 먼저 실행함_
 
 배포는 13분 22초 걸렸고 ok=375, failed=0으로 끝났다. 실패하면 출력에 서비스 비밀번호가 평문으로 섞여 나올 수 있어서 로그는 파일로 받고 결과 요약만 출력했다.
 
@@ -189,13 +189,13 @@ openstack service list
 
 ![post-deploy](/static/images/cloud-computing-hw7-openstack-linux-container/12.webp)
 
-_오픈스택 클라이언트 설치, post-deploy로 clouds.yaml 생성, OS_CLOUD=kolla-admin 설정_
+_[OpenStack](glossary:openstack) 클라이언트 설치, post-deploy로 clouds.yaml 생성, OS_CLOUD=kolla-admin 설정_
 
 ![service list](/static/images/cloud-computing-hw7-openstack-linux-container/13.webp)
 
 _openstack service list. 7개 서비스 등록 확인_
 
-`init-runonce`는 외부 네트워크, 내부 네트워크, cirros 이미지, 키 페어, flavor를 한 번에 만드는 예제 스크립트다. 외부 네트워크 대역은 환경 변수로 줬다.
+`init-runonce`는 외부 네트워크, 내부 네트워크, [cirros](glossary:cirros) 이미지, 키 페어, [flavor](glossary:flavor)를 한 번에 만드는 예제 스크립트다. 외부 네트워크 대역은 환경 변수로 줬다.
 
 ```bash
 EXT_NET_CIDR='192.168.56.0/24' EXT_NET_RANGE='start=192.168.56.150,end=192.168.56.199' \
@@ -205,21 +205,21 @@ openstack flavor list
 
 ![init-runonce](/static/images/cloud-computing-hw7-openstack-linux-container/14.webp)
 
-_init-runonce로 외부 네트워크(public1), 내부 네트워크(demo-net), cirros 이미지, 키 페어, flavor 생성_
+_init-runonce로 외부 네트워크(public1), 내부 네트워크(demo-net), [cirros](glossary:cirros) 이미지, 키 페어, [flavor](glossary:flavor) 생성_
 
 ![flavor list](/static/images/cloud-computing-hw7-openstack-linux-container/15.webp)
 
-_openstack flavor list_
+_openstack [flavor](glossary:flavor) list_
 
 # 3. 대시보드로 인스턴스 생성
 
-대시보드는 맥 브라우저에서 SSH 터널(`localhost:8080` → `192.168.64.4:80`)로 접속했다. 사용자 이름은 admin, 비밀번호는 `passwords.yml`의 `keystone_admin_password`다.
+[Horizon](glossary:horizon)은 맥 브라우저에서 [SSH tunnel](glossary:ssh-tunnel)(`localhost:8080` → `192.168.64.4:80`)로 접속했다. 사용자 이름은 admin, 비밀번호는 `passwords.yml`의 `keystone_admin_password`다.
 
-인스턴스에 쓴 cirros는 원본이 아니라 커널 인자에 `pci=nomsi`를 넣은 사본이다. 원본은 부팅 중 디스크 인식 단계에서 멈췄다([문제 2](#문제-2-cirros가-virtio_blk에서-멈춤)).
+[Instance](glossary:instance)에 쓴 [cirros](glossary:cirros)는 원본이 아니라 커널 인자에 `pci=nomsi`를 넣은 사본이다. 원본은 부팅 중 디스크 인식 단계에서 멈췄다([문제 2](#문제-2-cirros가-virtio_blk에서-멈춤)).
 
 ![로그인](/static/images/cloud-computing-hw7-openstack-linux-container/16.webp)
 
-_대시보드 로그인 화면_
+_[Horizon](glossary:horizon) 로그인 화면_
 
 ![개요](/static/images/cloud-computing-hw7-openstack-linux-container/17.webp)
 
@@ -229,23 +229,23 @@ _로그인 후 개요 화면_
 
 ![이미지 실행](/static/images/cloud-computing-hw7-openstack-linux-container/18.webp)
 
-_이미지 목록에서 cirros 이미지의 "실행"(Launch)_
+_이미지 목록에서 [cirros](glossary:cirros) 이미지의 "실행"(Launch)_
 
 ![세부 정보](/static/images/cloud-computing-hw7-openstack-linux-container/19.webp)
 
-_인스턴스 이름 stackvm-1과 설명 입력_
+_[Instance](glossary:instance) 이름 stackvm-1과 설명 입력_
 
 ![소스](/static/images/cloud-computing-hw7-openstack-linux-container/20.webp)
 
-_소스: cirros 이미지가 할당됨_
+_소스: [cirros](glossary:cirros) 이미지가 할당됨_
 
 ![Flavor](/static/images/cloud-computing-hw7-openstack-linux-container/21.webp)
 
-_Flavor: m1.tiny 선택_
+_[Flavor](glossary:flavor): m1.tiny 선택_
 
 ![네트워크](/static/images/cloud-computing-hw7-openstack-linux-container/22.webp)
 
-_네트워크: demo-net 선택 후 "인스턴스 시작"_
+_네트워크: demo-net 선택 후 "[Instance](glossary:instance) 시작"_
 
 ![stackvm-1](/static/images/cloud-computing-hw7-openstack-linux-container/23.webp)
 
@@ -255,7 +255,7 @@ _stackvm-1 생성 완료(Active, Running)_
 
 ![이미지 생성](/static/images/cloud-computing-hw7-openstack-linux-container/24.webp)
 
-_이미지 생성: 이름 mycirros, 파일 업로드, 포맷 QCOW2, 공유_
+_이미지 생성: 이름 mycirros, 파일 업로드, 포맷 [QCOW2](glossary:qcow2), 공유_
 
 ![mycirros](/static/images/cloud-computing-hw7-openstack-linux-container/25.webp)
 
@@ -263,7 +263,7 @@ _mycirros 등록 완료(Active)_
 
 ![stackvm-2](/static/images/cloud-computing-hw7-openstack-linux-container/26.webp)
 
-_mycirros로 인스턴스 stackvm-2 생성_
+_mycirros로 [Instance](glossary:instance) stackvm-2 생성_
 
 ![소스 mycirros](/static/images/cloud-computing-hw7-openstack-linux-container/27.webp)
 
@@ -271,7 +271,7 @@ _소스: mycirros_
 
 ![Flavor m1.tiny](/static/images/cloud-computing-hw7-openstack-linux-container/28.webp)
 
-_Flavor: m1.tiny_
+_[Flavor](glossary:flavor): m1.tiny_
 
 ![네트워크 demo-net](/static/images/cloud-computing-hw7-openstack-linux-container/29.webp)
 
@@ -279,11 +279,11 @@ _네트워크: demo-net_
 
 ![인스턴스 2개](/static/images/cloud-computing-hw7-openstack-linux-container/30.webp)
 
-_인스턴스 2개 실행 중_
+_[Instance](glossary:instance) 2개 실행 중_
 
 ![콘솔 로그](/static/images/cloud-computing-hw7-openstack-linux-container/31.webp)
 
-_stackvm-2의 콘솔 출력. 로그인 프롬프트까지 부팅됨. aarch64 cirros는 화면(VGA)이 아니라 시리얼로 출력해서 "콘솔" 탭이 아닌 "로그" 탭으로 확인함_
+_stackvm-2의 콘솔 출력. 로그인 프롬프트까지 부팅됨. [aarch64](glossary:arm64) [cirros](glossary:cirros)는 화면([VGA](glossary:vga))이 아니라 [Serial console](glossary:serial-console)로 출력해서 "콘솔" 탭이 아닌 "로그" 탭으로 확인함_
 
 # 4. 명령행 도구로 접근
 
@@ -318,13 +318,13 @@ _openstack server create로 stackvm-3 생성(BUILD)_
 
 ![인스턴스 3개](/static/images/cloud-computing-hw7-openstack-linux-container/35.webp)
 
-_인스턴스 3개 ACTIVE_
+_[Instance](glossary:instance) 3개 ACTIVE_
 
 ![stop·start](/static/images/cloud-computing-hw7-openstack-linux-container/36.webp)
 
 _server stop으로 SHUTOFF, server start로 다시 ACTIVE_
 
-인스턴스는 결국 `nova_libvirt` 컨테이너 안 libvirt의 도메인이다. 컨테이너 안에서 `virsh`로 보면 세 개가 보이고, `virsh console`로 시리얼 콘솔에 붙을 수 있다.
+[Instance](glossary:instance)는 결국 `nova_libvirt` [Container](glossary:container) 안 [libvirt](glossary:libvirt)의 도메인이다. [Container](glossary:container) 안에서 `virsh`로 보면 세 개가 보이고, `virsh console`로 [Serial console](glossary:serial-console)에 붙을 수 있다.
 
 ```bash
 docker exec nova_libvirt virsh list
@@ -333,59 +333,59 @@ docker exec -it nova_libvirt virsh console instance-00000005
 
 ![virsh list](/static/images/cloud-computing-hw7-openstack-linux-container/37.webp)
 
-_nova_libvirt 컨테이너의 virsh list. 인스턴스 3개가 libvirt 도메인으로 실행 중_
+_nova_libvirt [Container](glossary:container)의 [virsh](glossary:virsh) list. [Instance](glossary:instance) 3개가 [libvirt](glossary:libvirt) 도메인으로 실행 중_
 
 ![virsh console](/static/images/cloud-computing-hw7-openstack-linux-container/38.webp)
 
-_virsh console로 stackvm-1(instance-00000005)에 접속해 로그인, hello.txt 작성·확인_
+_[virsh](glossary:virsh) console로 stackvm-1(instance-00000005)에 접속해 로그인, hello.txt 작성·확인_
 
 # 5. 실습 중 생긴 문제
 
 ## 문제 1. Rocky 가상머신 안 배포가 끝나지 않음
 
-처음에는 슬라이드대로 Rocky 가상머신(`openstack`, 8GiB, 4 vCPU)을 만들어 그 안에 all-in-one으로 설치했다. 슬라이드는 x86 PC → VirtualBox → Rocky의 2단인데, 이 환경에서는 맥 → UTM → Ubuntu → KVM → Rocky의 3단 중첩이 된다. 그 위에서 Kolla가 컨테이너 수십 개를 띄운다.
+처음에는 슬라이드대로 [Rocky](glossary:rocky-linux) [VM](glossary:vm)(`openstack`, 8GiB, 4 [vCPU](glossary:vcpu))을 만들어 그 안에 all-in-one으로 설치했다. 슬라이드는 x86 PC → VirtualBox → [Rocky](glossary:rocky-linux)의 2단인데, 이 환경에서는 맥 → [UTM](glossary:utm) → [Ubuntu](glossary:ubuntu) → [KVM](glossary:kvm) → [Rocky](glossary:rocky-linux)의 3단 [Nested virtualization](glossary:nested-virtualization)이 된다. 그 위에서 [Kolla](glossary:kolla-ansible)가 [Container](glossary:container) 수십 개를 띄운다.
 
 bootstrap-servers와 prechecks까지는 통과했다. deploy를 시작한 지 37분 뒤 측정값은 이랬다.
 
-| 측정                                   | 값                          |
-| -------------------------------------- | --------------------------- |
-| Rocky load average (vCPU 4)            | 28~33, I/O wait 0           |
-| Ubuntu 호스트 CPU steal                | 55~59%                      |
-| 맥의 VM 프로세스 CPU                   | 285%                        |
-| `/bin/true` 50회 실행 (Ubuntu / Rocky) | 0.013초 / 0.908초 (약 70배) |
-| `python3 -c pass` (Rocky)              | 2.9초                       |
+| 측정                                                                                          | 값                                    |
+| --------------------------------------------------------------------------------------------- | ------------------------------------- |
+| [Rocky](glossary:rocky-linux) [load average](glossary:load-average) ([vCPU](glossary:vcpu) 4) | 28~33, [I/O wait](glossary:io-wait) 0 |
+| [Ubuntu](glossary:ubuntu) 호스트 [CPU steal](glossary:cpu-steal)                              | 55~59%                                |
+| 맥의 [VM](glossary:vm) 프로세스 CPU                                                           | 285%                                  |
+| `/bin/true` 50회 실행 ([Ubuntu](glossary:ubuntu) / [Rocky](glossary:rocky-linux))             | 0.013초 / 0.908초 (약 70배)           |
+| `python3 -c pass` ([Rocky](glossary:rocky-linux))                                             | 2.9초                                 |
 
-디스크도 네트워크도 아니고, 프로세스를 하나 만들 때마다 세 겹의 가상화를 거치는 비용이 병목이었다. 그다음부터는 Kolla의 timeout 기본값이 하나씩 깨졌다.
+디스크도 네트워크도 아니고, 프로세스를 하나 만들 때마다 세 겹의 가상화를 거치는 비용이 병목이었다. 그다음부터는 [Kolla](glossary:kolla-ansible)의 [timeout](glossary:timeout) 기본값이 하나씩 깨졌다.
 
-| 회차 | 시간        | 결과                   | 깨진 곳과 조치                                                                                                                                                 |
-| ---- | ----------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | 12:29~13:20 | rabbitmq에서 25분 정지 | 30초마다 도는 healthcheck `rabbitmq-diagnostics ping`이 끝나지 않고 22개 누적 → `enable_container_healthchecks: "no"`                                          |
-| 2    | 13:28~13:55 | 실패(ok=33)            | 1차 때 만든 컨테이너는 healthcheck 설정 그대로라 다시 누적, `docker ps` 40초 → `kolla-ansible destroy`(3분 26초)                                               |
-| 3    | 14:00~14:37 | 실패(ok=204)           | keystone bootstrap이 4분 59.8초 만에 rc=1. 같은 명령을 손으로 돌리면 37초에 성공                                                                               |
-| 4    | 14:37~15:43 | 실패(ok=232)           | `ovs-vsctl -t 5`가 5초 안에 못 끝나 SIGALRM → openvswitch·ovn-controller 역할에 `timeout: 60`                                                                  |
-| 5    | 15:46~16:25 | 실패(ok=287)           | nova API 503. keepalived 상태 검사(2초 간격, 2번 실패면 FAULT)가 제때 안 끝나 49번 FAULT, 그때마다 VIP가 20~40초씩 빠짐 → interval 10, timeout 60, fall 6      |
-| 6    | 16:28~16:52 | 실패(ok=281)           | FAULT 0회인데 같은 503. 5차 때 VIP가 없던 순간 뜬 nova_api uwsgi가 `no python application found` 상태로 남음 → `docker restart nova_api nova_metadata`         |
-| 7    | 16:56~17:49 | 실패(ok=343)           | neutron 재시작 핸들러에서 Docker API ReadTimeout(기본 120초). load average 128~144, `docker ps -q` 하나에 3분 41초 → `docker_client_timeout: 600`, worker 수 1 |
-| 8    | 17:56~18:46 | 중단                   | 설정이 바뀌어 컨테이너 대부분이 재시작 중, load average 113                                                                                                    |
+| 회차 | 시간        | 결과                                        | 깨진 곳과 조치                                                                                                                                                                                                                               |
+| ---- | ----------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | 12:29~13:20 | [rabbitmq](glossary:rabbitmq)에서 25분 정지 | 30초마다 도는 [healthcheck](glossary:health-check) `rabbitmq-diagnostics ping`이 끝나지 않고 22개 누적 → `enable_container_healthchecks: "no"`                                                                                               |
+| 2    | 13:28~13:55 | 실패(ok=33)                                 | 1차 때 만든 [Container](glossary:container)는 [healthcheck](glossary:health-check) 설정 그대로라 다시 누적, `docker ps` 40초 → `kolla-ansible destroy`(3분 26초)                                                                             |
+| 3    | 14:00~14:37 | 실패(ok=204)                                | [keystone](glossary:keystone) bootstrap이 4분 59.8초 만에 rc=1. 같은 명령을 손으로 돌리면 37초에 성공                                                                                                                                        |
+| 4    | 14:37~15:43 | 실패(ok=232)                                | `ovs-vsctl -t 5`가 5초 안에 못 끝나 SIGALRM → [openvswitch](glossary:open-vswitch)·ovn-controller 역할에 `timeout: 60`                                                                                                                       |
+| 5    | 15:46~16:25 | 실패(ok=287)                                | [nova](glossary:nova) API 503. [keepalived](glossary:keepalived) 상태 검사(2초 간격, 2번 실패면 FAULT)가 제때 안 끝나 49번 FAULT, 그때마다 [VIP](glossary:virtual-ip)가 20~40초씩 빠짐 → interval 10, [timeout](glossary:timeout) 60, fall 6 |
+| 6    | 16:28~16:52 | 실패(ok=281)                                | FAULT 0회인데 같은 503. 5차 때 [VIP](glossary:virtual-ip)가 없던 순간 뜬 nova_api [uwsgi](glossary:uwsgi)가 `no python application found` 상태로 남음 → `docker restart nova_api nova_metadata`                                              |
+| 7    | 16:56~17:49 | 실패(ok=343)                                | [neutron](glossary:neutron) 재시작 핸들러에서 [Docker API](glossary:docker) ReadTimeout(기본 120초). [load average](glossary:load-average) 128~144, `docker ps -q` 하나에 3분 41초 → `docker_client_timeout: 600`, worker 수 1               |
+| 8    | 17:56~18:46 | 중단                                        | 설정이 바뀌어 [Container](glossary:container) 대부분이 재시작 중, [load average](glossary:load-average) 113                                                                                                                                  |
 
 7차에서 ok=343까지 갔으니 몇 번 더 돌리면 배포 자체는 끝났을지도 모른다. 그래도 거기서 멈춘 이유는 두 가지다.
 
-- Rocky 안에는 `/dev/kvm`이 없어서 nova가 인스턴스를 TCG(소프트웨어 에뮬레이션)로 띄워야 한다. 프로세스 생성이 70배 느린 곳에서 그 위에 또 에뮬레이션이면 인스턴스 실습이 될지 알 수 없었다.
-- 과제가 요구하는 건 "오픈스택 구축 결과"이고, 슬라이드의 Rocky 가상머신은 구축 수단이다.
+- [Rocky](glossary:rocky-linux) 안에는 `/dev/kvm`이 없어서 [nova](glossary:nova)가 [Instance](glossary:instance)를 [TCG](glossary:tcg)(소프트웨어 에뮬레이션)로 띄워야 한다. 프로세스 생성이 70배 느린 곳에서 그 위에 또 에뮬레이션이면 [Instance](glossary:instance) 실습이 될지 알 수 없었다.
+- 과제가 요구하는 건 "[OpenStack](glossary:openstack) 구축 결과"이고, 슬라이드의 [Rocky](glossary:rocky-linux) [VM](glossary:vm)은 구축 수단이다.
 
-그래서 Rocky 가상머신을 지우고 한 단을 걷어내, Ubuntu 호스트에 바로 설치했다. Ubuntu에는 `/dev/kvm`이 있어서 nova가 KVM을 그대로 쓴다. 같은 Kolla 버전으로 첫 배포가 13분 22초 만에 failed=0으로 끝났다.
+그래서 [Rocky](glossary:rocky-linux) [VM](glossary:vm)을 지우고 한 단을 걷어내, [Ubuntu](glossary:ubuntu) 호스트에 바로 설치했다. [Ubuntu](glossary:ubuntu)에는 `/dev/kvm`이 있어서 [nova](glossary:nova)가 [KVM](glossary:kvm)을 그대로 쓴다. 같은 [Kolla](glossary:kolla-ansible) 버전으로 첫 배포가 13분 22초 만에 failed=0으로 끝났다.
 
 남은 교훈은 셋이다.
 
-- 중첩이 한 단 늘 때마다 "이 정도면 충분하다"는 timeout 기본값이 차례로 깨진다. healthcheck 30초 → `ovs-vsctl` 5초 → keepalived 2초 → Docker API 120초 순이었다.
-- Kolla deploy는 설정이 바뀌지 않은 컨테이너를 재시작하지 않는다. 기동 순간에 실패한 서비스(앱을 못 올린 uwsgi)는 배포를 다시 돌려도 그대로라 손으로 재시작해야 한다.
+- [Nested virtualization](glossary:nested-virtualization)이 한 단 늘 때마다 "이 정도면 충분하다"는 [timeout](glossary:timeout) 기본값이 차례로 깨진다. [healthcheck](glossary:health-check) 30초 → `ovs-vsctl` 5초 → [keepalived](glossary:keepalived) 2초 → [Docker API](glossary:docker) 120초 순이었다.
+- [Kolla](glossary:kolla-ansible) deploy는 설정이 바뀌지 않은 [Container](glossary:container)를 재시작하지 않는다. 기동 순간에 실패한 서비스(앱을 못 올린 [uwsgi](glossary:uwsgi))는 배포를 다시 돌려도 그대로라 손으로 재시작해야 한다.
 - 실패 메시지에는 명령줄이 그대로 찍히고, 그 명령줄에 서비스 비밀번호가 평문으로 들어 있다. 로그는 파일로 받고 화면에는 PLAY RECAP만 띄웠다.
 
 ## 문제 2. cirros가 virtio_blk에서 멈춤
 
-Ubuntu 호스트에서 만든 첫 인스턴스가 부팅 중 `virtio_blk` 메시지 직후 멈췄다. CPU는 100%였고 게스트 시계는 9초에서 더 가지 않았다. cirros 0.6.3도 같았다.
+[Ubuntu](glossary:ubuntu) 호스트에서 만든 첫 [Instance](glossary:instance)가 부팅 중 `virtio_blk` 메시지 직후 멈췄다. CPU는 100%였고 게스트 시계는 9초에서 더 가지 않았다. [cirros](glossary:cirros) 0.6.3도 같았다.
 
-[HW6](/kr/blog/cs-fundamentals/cloud-computing/cloud-computing-hw6-kvm-live-migration/#kvm에-rocky-가상머신-설치)에서 Rocky aarch64를 KVM에 설치할 때 겪은 중첩 가상화의 MSI 인터럽트 문제와 같은 증상이다. 그때처럼 커널 인자에 `pci=nomsi`를 넣으면 MSI 대신 기존 인터럽트 방식을 쓴다. cirros aarch64는 EFI 파티션의 GRUB으로 부팅하므로, 이미지를 복사해 `qemu-nbd`로 블록 장치에 연결하고 EFI 파티션을 마운트해 `EFI/ubuntu/grub.cfg`의 커널 줄 끝에 `pci=nomsi`를 붙였다.
+[HW6](/kr/blog/cs-fundamentals/cloud-computing/cloud-computing-hw6-kvm-live-migration/#kvm에-rocky-가상머신-설치)에서 [Rocky](glossary:rocky-linux) [aarch64](glossary:arm64)를 [KVM](glossary:kvm)에 설치할 때 겪은 [Nested virtualization](glossary:nested-virtualization)의 [MSI](glossary:msi) 인터럽트 문제와 같은 증상이다. 그때처럼 커널 인자에 `pci=nomsi`를 넣으면 [MSI](glossary:msi) 대신 기존 인터럽트 방식을 쓴다. [cirros](glossary:cirros) [aarch64](glossary:arm64)는 [EFI system partition](glossary:efi-system-partition)의 [GRUB](glossary:grub)으로 부팅하므로, 이미지를 복사해 `qemu-nbd`로 블록 장치에 연결하고 [EFI system partition](glossary:efi-system-partition)을 마운트해 `EFI/ubuntu/grub.cfg`의 커널 줄 끝에 `pci=nomsi`를 붙였다.
 
 ```bash
 modprobe nbd max_part=16
@@ -394,7 +394,7 @@ qemu-nbd --connect /dev/nbd0 /root/cirros-nomsi.img
 lsblk -o NAME,SIZE,FSTYPE,LABEL /dev/nbd0
 ```
 
-EFI 파티션(vfat)을 마운트해 `grub.cfg`를 고친 뒤 연결을 끊고, 이미지를 다시 등록했다.
+[EFI system partition](glossary:efi-system-partition)(vfat)을 마운트해 `grub.cfg`를 고친 뒤 연결을 끊고, 이미지를 다시 등록했다.
 
 ```bash
 qemu-nbd --disconnect /dev/nbd0
@@ -402,11 +402,11 @@ openstack image delete cirros
 openstack image create --disk-format qcow2 --container-format bare --public --file /root/cirros-nomsi.img cirros
 ```
 
-이 이미지로 바꾸니 60초 안에 로그인 프롬프트가 떴다. 대시보드에서 올린 mycirros도 같은 파일이다.
+이 이미지로 바꾸니 60초 안에 로그인 프롬프트가 떴다. [Horizon](glossary:horizon)에서 올린 mycirros도 같은 파일이다.
 
 ## 문제 3. prechecks에서 docker·dbus 모듈이 없음
 
-prechecks가 `import docker`, `import dbus` 확인에서 실패했다. Kolla-Ansible이 가상환경의 파이썬으로 Docker와 systemd를 다루는데, 가상환경에 두 패키지가 없었다. `dbus-python`은 빌드가 필요해서 헤더 패키지를 먼저 깔았다.
+prechecks가 `import docker`, `import dbus` 확인에서 실패했다. [Kolla-Ansible](glossary:kolla-ansible)이 [Python virtual environment](glossary:python-virtual-environment)의 파이썬으로 [Docker](glossary:docker)와 systemd를 다루는데, [Python virtual environment](glossary:python-virtual-environment)에 두 패키지가 없었다. `dbus-python`은 빌드가 필요해서 헤더 패키지를 먼저 깔았다.
 
 ```bash
 apt-get install -y libdbus-1-dev libglib2.0-dev pkg-config
@@ -415,7 +415,7 @@ pip install docker dbus-python
 
 ## 문제 4. 대시보드 이미지 업로드가 CORS로 막힘
 
-대시보드에서 mycirros를 올리면 브라우저가 glance로 파일을 직접 보내는데, 그 요청이 CORS로 막혔다. 맥에서 SSH 터널로 접속해 origin이 `http://localhost:8080`이었고, glance가 허용한 origin은 `http://192.168.64.4`뿐이었다. `glance.conf`의 `allowed_origin`에 터널 주소를 더하고 glance만 다시 설정했다(34초).
+[Horizon](glossary:horizon)에서 mycirros를 올리면 브라우저가 [glance](glossary:glance)로 파일을 직접 보내는데, 그 요청이 [CORS](glossary:cors)로 막혔다. 맥에서 [SSH tunnel](glossary:ssh-tunnel)로 접속해 [origin](glossary:origin)이 `http://localhost:8080`이었고, [glance](glossary:glance)가 허용한 [origin](glossary:origin)은 `http://192.168.64.4`뿐이었다. `glance.conf`의 `allowed_origin`에 터널 주소를 더하고 [glance](glossary:glance)만 다시 설정했다(34초).
 
 ```bash
 kolla-ansible reconfigure -i ./all-in-one -t glance
@@ -423,11 +423,11 @@ kolla-ansible reconfigure -i ./all-in-one -t glance
 
 ## 문제 5. VNC 콘솔이 비어 있음
 
-대시보드 "콘솔" 탭에는 "Display output is not active"만 떴다. aarch64 cirros는 화면(VGA)이 아니라 시리얼 포트로 출력하기 때문이다. 대시보드에서는 "로그" 탭으로 시리얼 출력을 봤고, 콘솔 입력은 `virsh console`로 했다.
+[Horizon](glossary:horizon) "콘솔" 탭에는 "Display output is not active"만 떴다. [aarch64](glossary:arm64) [cirros](glossary:cirros)는 화면([VGA](glossary:vga))이 아니라 시리얼 포트로 출력하기 때문이다. [Horizon](glossary:horizon)에서는 "로그" 탭으로 [Serial console](glossary:serial-console) 출력을 봤고, 콘솔 입력은 `virsh console`로 했다.
 
 # 6. 리눅스 컨테이너 네트워크
 
-Rocky Linux 10 가상머신을 복제해 `lxc.cloud.org`를 만들고, 슬라이드 Ch15 네트워크 네임스페이스 실습(29~75쪽)을 따라 p67 그림의 구성을 만들었다. 루트 네트워크 네임스페이스에 브리지 br0(10.0.100.1)를 두고, 네임스페이스 netns1·netns2를 veth로 붙인 뒤, NAT로 외부에 내보내는 구성이다.
+[Rocky Linux](glossary:rocky-linux) 10 [VM](glossary:vm)을 복제해 `lxc.cloud.org`를 만들고, 슬라이드 Ch15 [Network namespace](glossary:network-namespace) 실습(29~75쪽)을 따라 p67 그림의 구성을 만들었다. 루트 [Network namespace](glossary:network-namespace)에 [Linux bridge](glossary:linux-bridge) br0(10.0.100.1)를 두고, [Network namespace](glossary:network-namespace) netns1·netns2를 [veth](glossary:veth)로 붙인 뒤, [NAT](glossary:nat)로 외부에 내보내는 구성이다.
 
 ```text
 루트 네트워크 네임스페이스 (lxc.cloud.org)
@@ -440,7 +440,7 @@ Rocky Linux 10 가상머신을 복제해 `lxc.cloud.org`를 만들고, 슬라이
 
 ![루트 인터페이스](/static/images/cloud-computing-hw7-openstack-linux-container/39.webp)
 
-_복제한 가상머신 lxc.cloud.org(Rocky Linux 10.2)의 루트 네트워크 네임스페이스 인터페이스. lo, enp1s0, enp2s0_
+_복제한 [VM](glossary:vm) lxc.cloud.org([Rocky Linux](glossary:rocky-linux) 10.2)의 루트 [Network namespace](glossary:network-namespace) 인터페이스. [lo](glossary:loopback), enp1s0, enp2s0_
 
 ```bash
 ip netns add netns1
@@ -451,13 +451,13 @@ ip netns exec netns1 ip link set dev lo up
 
 ![netns1](/static/images/cloud-computing-hw7-openstack-linux-container/40.webp)
 
-_ip netns add netns1. 새 네임스페이스에는 꺼진 lo만 있어 127.0.0.1로도 통신 불가_
+_ip netns add netns1. 새 [Network namespace](glossary:network-namespace)에는 꺼진 [lo](glossary:loopback)만 있어 127.0.0.1로도 통신 불가_
 
 ![lo up](/static/images/cloud-computing-hw7-openstack-linux-container/41.webp)
 
-_netns1의 lo 활성화 후 127.0.0.1 ping 성공_
+_netns1의 [lo](glossary:loopback) 활성화 후 127.0.0.1 [ping](glossary:ping) 성공_
 
-네임스페이스 안에서 nginx를 띄우면 네트워크만 분리된다는 게 보인다.
+[Network namespace](glossary:network-namespace) 안에서 [nginx](glossary:nginx)를 띄우면 네트워크만 분리된다는 게 보인다.
 
 ```bash
 dnf install -y nginx
@@ -471,11 +471,11 @@ ip netns exec netns1 ss -nat | grep LISTEN
 
 ![nginx 설치](/static/images/cloud-computing-hw7-openstack-linux-container/42.webp)
 
-_nginx 저장소 등록·설치. 실행 전이라 루트와 netns1 모두 80번 포트 접속 실패_
+_[nginx](glossary:nginx) 저장소 등록·설치. 실행 전이라 루트와 netns1 모두 80번 포트 접속 실패_
 
 ![nginx in netns1](/static/images/cloud-computing-hw7-openstack-linux-container/43.webp)
 
-_netns1 안에서 nginx 실행. 프로세스는 루트에서도 보이지만(PID 네임스페이스는 공유) 응답과 LISTEN 0.0.0.0:80은 netns1에만 있음_
+_netns1 안에서 [nginx](glossary:nginx) 실행. 프로세스는 루트에서도 보이지만(PID 네임스페이스는 공유) 응답과 LISTEN 0.0.0.0:80은 netns1에만 있음_
 
 ## veth로 네임스페이스 연결
 
@@ -491,11 +491,11 @@ ping -c 2 10.0.100.1
 
 ![veth 생성](/static/images/cloud-computing-hw7-openstack-linux-container/44.webp)
 
-_veth 쌍(veth1–veth2) 생성, veth1을 netns1로 옮기고 10.0.100.1/10.0.100.2 할당_
+_[veth](glossary:veth) 쌍(veth1–veth2) 생성, veth1을 netns1로 옮기고 10.0.100.1/10.0.100.2 할당_
 
 ![루트 ↔ netns1](/static/images/cloud-computing-hw7-openstack-linux-container/45.webp)
 
-_두 끝을 활성화한 뒤 루트 ↔ netns1 ping 성공_
+_두 끝을 활성화한 뒤 루트 ↔ netns1 [ping](glossary:ping) 성공_
 
 ```bash
 ip netns add netns2
@@ -507,11 +507,11 @@ ip netns exec netns1 ping -c 2 10.0.100.2
 
 ![netns1 ↔ netns2](/static/images/cloud-computing-hw7-openstack-linux-container/46.webp)
 
-_veth2를 새 네임스페이스 netns2로 옮겨 다시 주소 할당. netns1 ↔ netns2 ping 성공_
+_veth2를 새 [Network namespace](glossary:network-namespace) netns2로 옮겨 다시 주소 할당. netns1 ↔ netns2 [ping](glossary:ping) 성공_
 
 ## 브리지로 연결
 
-veth 쌍은 두 끝만 잇는다. 네임스페이스가 늘어나면 루트에 브리지를 두고 각 네임스페이스의 veth 반대편 끝(brif)을 브리지에 꽂는다.
+[veth](glossary:veth) 쌍은 두 끝만 잇는다. [Network namespace](glossary:network-namespace)가 늘어나면 루트에 [Linux bridge](glossary:linux-bridge)를 두고 각 [Network namespace](glossary:network-namespace)의 [veth](glossary:veth) 반대편 끝(brif)을 [Linux bridge](glossary:linux-bridge)에 꽂는다.
 
 ```bash
 ip netns exec netns1 ip link delete veth1
@@ -529,11 +529,11 @@ ip netns exec netns2 ip link set dev veth2 up
 
 ![br0 생성](/static/images/cloud-computing-hw7-openstack-linux-container/47.webp)
 
-_기존 veth 삭제, 브리지 br0 생성·활성화, veth 쌍 brif1–veth1, brif2–veth2 생성_
+_기존 [veth](glossary:veth) 삭제, [Linux bridge](glossary:linux-bridge) br0 생성·활성화, [veth](glossary:veth) 쌍 brif1–veth1, brif2–veth2 생성_
 
 ![LOWERLAYERDOWN](/static/images/cloud-computing-hw7-openstack-linux-container/48.webp)
 
-_veth1·veth2를 각 네임스페이스로 옮겨 10.0.100.101/102 할당. 반대편 brif가 꺼져 있어 LOWERLAYERDOWN_
+_veth1·veth2를 각 [Network namespace](glossary:network-namespace)로 옮겨 10.0.100.101/102 할당. 반대편 brif가 꺼져 있어 LOWERLAYERDOWN_
 
 ```bash
 ip link set brif1 master br0
@@ -549,11 +549,11 @@ _brif1·brif2를 br0에 연결하고 활성화. veth1·veth2가 UP으로 바뀜_
 
 ![브리지 ping](/static/images/cloud-computing-hw7-openstack-linux-container/50.webp)
 
-_br0를 거쳐 netns1 ↔ netns2 ping 성공_
+_br0를 거쳐 netns1 ↔ netns2 [ping](glossary:ping) 성공_
 
 ## 루트 네트워크 네임스페이스와 연결
 
-이 상태에서는 네임스페이스끼리만 통한다. 루트와 외부로는 경로가 없다.
+이 상태에서는 [Network namespace](glossary:network-namespace)끼리만 통한다. 루트와 외부로는 경로가 없다.
 
 ![외부 불가](/static/images/cloud-computing-hw7-openstack-linux-container/51.webp)
 
@@ -563,7 +563,7 @@ _루트에서는 외부(8.8.8.8) 통신이 되지만 netns1·netns2에서는 Net
 
 _루트 → 10.0.100.101/102, netns → 루트(enp1s0 192.168.122.16) 모두 실패_
 
-br0에 같은 대역의 주소를 주면 루트 라우팅 테이블에 10.0.100.0/24 → br0 경로가 생겨 루트 → netns가 된다. 반대 방향은 각 네임스페이스에 루트 대역(192.168.122.0/24)으로 가는 경로를 넣어야 한다.
+br0에 같은 대역의 주소를 주면 루트 [Routing table](glossary:routing-table)에 10.0.100.0/24 → br0 경로가 생겨 루트 → netns가 된다. 반대 방향은 각 [Network namespace](glossary:network-namespace)에 루트 대역(192.168.122.0/24)으로 가는 경로를 넣어야 한다.
 
 ```bash
 ip addr add 10.0.100.1/24 brd 10.0.100.255 dev br0
@@ -575,11 +575,11 @@ ip netns exec netns1 ping -c 2 192.168.122.16
 
 ![br0 주소](/static/images/cloud-computing-hw7-openstack-linux-container/53.webp)
 
-_라우팅 테이블 확인 후 br0에 10.0.100.1/24 할당. 10.0.100.0/24가 br0로 가는 경로 추가됨_
+_[Routing table](glossary:routing-table) 확인 후 br0에 10.0.100.1/24 할당. 10.0.100.0/24가 br0로 가는 경로 추가됨_
 
 ![루트 → netns](/static/images/cloud-computing-hw7-openstack-linux-container/54.webp)
 
-_루트 → br0(10.0.100.1), netns1(.101), netns2(.102) ping 성공_
+_루트 → br0(10.0.100.1), netns1(.101), netns2(.102) [ping](glossary:ping) 성공_
 
 ![netns1 경로](/static/images/cloud-computing-hw7-openstack-linux-container/55.webp)
 
@@ -591,11 +591,11 @@ _netns2에도 같은 경로 추가_
 
 ![netns → 루트](/static/images/cloud-computing-hw7-openstack-linux-container/57.webp)
 
-_netns1·netns2 → 루트(192.168.122.16) ping 성공, 외부(8.8.8.8)는 여전히 불가_
+_netns1·netns2 → 루트(192.168.122.16) [ping](glossary:ping) 성공, 외부(8.8.8.8)는 여전히 불가_
 
 ## NAT로 외부 통신
 
-외부로 나가려면 세 가지가 더 필요하다. 네임스페이스의 default 경로를 br0로, 루트의 IP 포워딩, 그리고 10.0.100.0/24 출발지를 enp1s0 주소로 바꾸는 masquerade다.
+외부로 나가려면 세 가지가 더 필요하다. [Network namespace](glossary:network-namespace)의 [Default gateway](glossary:default-gateway)를 br0로, 루트의 [IP forwarding](glossary:ip-forwarding), 그리고 10.0.100.0/24 출발지를 enp1s0 주소로 바꾸는 [masquerade](glossary:masquerade)다.
 
 ```bash
 ip netns exec netns1 ip route add default via 10.0.100.1
@@ -609,21 +609,21 @@ ip netns exec netns1 ping -c 2 8.8.8.8
 
 ![default gateway](/static/images/cloud-computing-hw7-openstack-linux-container/58.webp)
 
-_루트의 default gateway(192.168.122.1, enp1s0) 확인, netns1·netns2에는 default 경로가 없음_
+_루트의 [default gateway](glossary:default-gateway)(192.168.122.1, enp1s0) 확인, netns1·netns2에는 [Default gateway](glossary:default-gateway)가 없음_
 
 ![default via br0](/static/images/cloud-computing-hw7-openstack-linux-container/59.webp)
 
-_netns1·netns2에 default via 10.0.100.1(br0) 추가_
+_netns1·netns2에 [default via](glossary:default-gateway) 10.0.100.1(br0) 추가_
 
 ![포워딩·masquerade](/static/images/cloud-computing-hw7-openstack-linux-container/60.webp)
 
-_IP 포워딩 활성화, firewalld에 masquerade와 10.0.100.0/24 출발지 masquerade 규칙 추가 후 reload_
+_[IP forwarding](glossary:ip-forwarding) 활성화, [firewalld](glossary:firewalld)에 [masquerade](glossary:masquerade)와 10.0.100.0/24 출발지 [masquerade](glossary:masquerade) 규칙 추가 후 reload_
 
 ![8.8.8.8](/static/images/cloud-computing-hw7-openstack-linux-container/61.webp)
 
-_netns1·netns2 → 8.8.8.8 ping 성공_
+_netns1·netns2 → 8.8.8.8 [ping](glossary:ping) 성공_
 
-IP로는 나가는데 이름 해석이 안 된다. `ip netns exec`는 `/etc/netns/<이름>/`에 있는 파일을 그 네임스페이스의 `/etc` 위에 겹쳐 보여 주므로, 거기에 `resolv.conf`를 두면 된다.
+IP로는 나가는데 [DNS](glossary:dns)가 안 된다. `ip netns exec`는 `/etc/netns/<이름>/`에 있는 파일을 그 [Network namespace](glossary:network-namespace)의 `/etc` 위에 겹쳐 보여 주므로, 거기에 `resolv.conf`를 두면 된다.
 
 ```bash
 mkdir -p /etc/netns/netns1 /etc/netns/netns2
@@ -634,43 +634,43 @@ ip netns exec netns1 ping -c 2 google.com
 
 ![DNS](/static/images/cloud-computing-hw7-openstack-linux-container/62.webp)
 
-_이름 해석이 안 돼 google.com ping 실패 → /etc/netns/netns1·netns2/resolv.conf에 nameserver 8.8.8.8 지정_
+_[DNS](glossary:dns)가 안 돼 google.com [ping](glossary:ping) 실패 → /etc/netns/netns1·netns2/[resolv.conf](glossary:resolvconf)에 nameserver 8.8.8.8 지정_
 
 ![google.com](/static/images/cloud-computing-hw7-openstack-linux-container/63.webp)
 
-_netns1·netns2 → google.com ping 성공. p67 구성 완료_
+_netns1·netns2 → google.com [ping](glossary:ping) 성공. p67 구성 완료_
 
 # 7. 연습문제
 
 ## Ch13-5. 오픈스택의 서비스와 역할
 
-위에서 배포한 오픈스택의 `openstack service list`에 등록된 서비스는 7개다. 대시보드(horizon)는 API 엔드포인트가 없는 웹 화면이라 목록에는 없지만 함께 배포해 썼다.
+위에서 배포한 [OpenStack](glossary:openstack)의 `openstack service list`에 등록된 서비스는 7개다. [Horizon](glossary:horizon)은 API 엔드포인트가 없는 웹 화면이라 목록에는 없지만 함께 배포해 썼다.
 
-| 서비스(프로젝트) | Type           | 역할                                                                                                                                                               |
-| ---------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| keystone         | identity       | 인증과 권한. 사용자·프로젝트·역할을 관리하고 토큰을 발급하며, 다른 서비스들의 API 주소 목록(서비스 카탈로그)을 제공한다. 모든 요청은 keystone 토큰을 확인받는다.   |
-| nova             | compute        | 인스턴스의 생성·시작·정지·삭제. 스케줄러가 인스턴스를 놓을 컴퓨트 노드를 고르고, 컴퓨트 노드의 하이퍼바이저(이 실습에서는 nova_libvirt 컨테이너의 KVM)를 제어한다. |
-| glance           | image          | 가상머신 이미지 저장소. cirros·mycirros 같은 디스크 이미지를 등록·보관하고, 인스턴스를 만들 때 nova에 이미지를 내준다.                                             |
-| neutron          | network        | 가상 네트워크. 네트워크·서브넷·라우터·포트·보안 그룹·floating IP를 만들고, Open vSwitch로 인스턴스를 demo-net과 외부 네트워크 public1에 연결한다.                  |
-| placement        | placement      | 자원 재고 관리. 컴퓨트 노드별 vCPU·메모리·디스크의 총량과 사용량을 기록하고, nova 스케줄러가 flavor에 맞는 자원이 남은 노드를 찾을 때 후보를 제공한다.             |
-| heat             | orchestration  | 오케스트레이션. HOT 템플릿(YAML)에 서버·네트워크·볼륨 같은 자원 묶음(스택)을 선언하면 순서에 맞게 생성·변경·삭제한다.                                              |
-| heat-cfn         | cloudformation | heat의 AWS CloudFormation 호환 API. CloudFormation 형식 템플릿과 인스턴스 안의 cfn 도구 요청을 받는다.                                                             |
-| horizon          | (대시보드)     | 웹 대시보드. 위 서비스들의 API를 호출해 이미지 등록, 인스턴스 생성 같은 작업을 브라우저에서 하게 해 준다.                                                          |
+| 서비스(프로젝트)                | Type                            | 역할                                                                                                                                                                                                                                                                     |
+| ------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [keystone](glossary:keystone)   | identity                        | 인증과 권한. 사용자·프로젝트·역할을 관리하고 [Token](glossary:token)을 발급하며, 다른 서비스들의 API 주소 목록([Service catalog](glossary:service-catalog))을 제공한다. 모든 요청은 [keystone](glossary:keystone) [Token](glossary:token)을 확인받는다.                  |
+| [nova](glossary:nova)           | compute                         | [Instance](glossary:instance)의 생성·시작·정지·삭제. 스케줄러가 [Instance](glossary:instance)를 놓을 컴퓨트 노드를 고르고, 컴퓨트 노드의 [Hypervisor](glossary:hypervisor)(이 실습에서는 nova_libvirt [Container](glossary:container)의 [KVM](glossary:kvm))를 제어한다. |
+| [glance](glossary:glance)       | image                           | [VM](glossary:vm) 이미지 저장소. [cirros](glossary:cirros)·mycirros 같은 디스크 이미지를 등록·보관하고, [Instance](glossary:instance)를 만들 때 [nova](glossary:nova)에 이미지를 내준다.                                                                                 |
+| [neutron](glossary:neutron)     | network                         | 가상 네트워크. 네트워크·서브넷·라우터·포트·[Security group](glossary:security-group)·[floating IP](glossary:floating-ip)를 만들고, [Open vSwitch](glossary:open-vswitch)로 [Instance](glossary:instance)를 demo-net과 외부 네트워크 public1에 연결한다.                  |
+| [placement](glossary:placement) | [placement](glossary:placement) | 자원 재고 관리. 컴퓨트 노드별 [vCPU](glossary:vcpu)·메모리·디스크의 총량과 사용량을 기록하고, [nova](glossary:nova) 스케줄러가 [flavor](glossary:flavor)에 맞는 자원이 남은 노드를 찾을 때 후보를 제공한다.                                                              |
+| [heat](glossary:heat)           | orchestration                   | 오케스트레이션. [HOT](glossary:hot)(YAML)에 서버·네트워크·볼륨 같은 자원 묶음(스택)을 선언하면 순서에 맞게 생성·변경·삭제한다.                                                                                                                                           |
+| heat-cfn                        | cloudformation                  | [heat](glossary:heat)의 AWS [CloudFormation](glossary:aws-cloudformation) 호환 API. [CloudFormation](glossary:aws-cloudformation) 형식 템플릿과 [Instance](glossary:instance) 안의 cfn 도구 요청을 받는다.                                                               |
+| [horizon](glossary:horizon)     | (대시보드)                      | 웹 대시보드. 위 서비스들의 API를 호출해 이미지 등록, [Instance](glossary:instance) 생성 같은 작업을 브라우저에서 하게 해 준다.                                                                                                                                           |
 
-이 밖에 MariaDB(각 서비스의 데이터베이스), RabbitMQ(nova·neutron 내부 구성요소 사이의 메시지 큐), Memcached(토큰 캐시)는 오픈스택 서비스가 아니라 서비스들이 함께 쓰는 기반 구성요소다.
+이 밖에 [MariaDB](glossary:mariadb)(각 서비스의 데이터베이스), [RabbitMQ](glossary:rabbitmq)([nova](glossary:nova)·[neutron](glossary:neutron) 내부 구성요소 사이의 [Message queue](glossary:message-queue)), [Memcached](glossary:memcached)([Token](glossary:token) 캐시)는 [OpenStack](glossary:openstack) 서비스가 아니라 서비스들이 함께 쓰는 기반 구성요소다.
 
 ## Ch14-3. 컨테이너 기반 서비스가 더 효율적인 사례
 
-사례로 Spotify의 Kubernetes 전환을 골랐다. Spotify는 컨테이너를 자체 개발한 오케스트레이션 도구 Helios로 운영하다가 Kubernetes로 옮겼다. CNCF 사례 보고서에 따르면 전환 후 Kubernetes의 bin-packing과 멀티 테넌시 덕분에 CPU 사용률이 평균 2~3배 높아졌고, 새 서비스를 만들어 배포 가능한 용량을 잡는 데 걸리던 시간이 거의 한 시간에서 몇 초~몇 분으로 줄었다. 같은 일을 가상머신 단위로 했다면 서비스마다 OS 한 벌을 띄워야 해서 이 정도 밀도와 속도가 나오지 않는다.
+사례로 Spotify의 [Kubernetes](glossary:kubernetes) 전환을 골랐다. Spotify는 [Container](glossary:container)를 자체 개발한 [Container orchestration](glossary:container-orchestration) 도구 Helios로 운영하다가 [Kubernetes](glossary:kubernetes)로 옮겼다. CNCF 사례 보고서에 따르면 전환 후 [Kubernetes](glossary:kubernetes)의 [bin-packing](glossary:bin-packing)과 [Multi-tenancy](glossary:multi-tenancy) 덕분에 CPU 사용률이 평균 2~3배 높아졌고, 새 서비스를 만들어 배포 가능한 용량을 잡는 데 걸리던 시간이 거의 한 시간에서 몇 초~몇 분으로 줄었다. 같은 일을 [VM](glossary:vm) 단위로 했다면 서비스마다 OS 한 벌을 띄워야 해서 이 정도 밀도와 속도가 나오지 않는다.
 
-컨테이너 기반이 더 좋은 이유는 네 가지다.
+[Container](glossary:container) 기반이 더 좋은 이유는 네 가지다.
 
-- **밀도(자원 효율)**: 컨테이너는 호스트 커널을 공유하고 프로세스 단위로 격리(네임스페이스)·제한(cgroup)만 하므로, 가상머신처럼 게스트 OS의 커널·메모리·부팅 디스크를 서비스마다 따로 두지 않는다. 그래서 한 노드에 더 많은 서비스를 빽빽하게 배치(bin-packing)할 수 있고, Spotify의 CPU 사용률 2~3배 향상이 이 효과다.
-- **성능 오버헤드**: IBM Research의 Felter 등(2015)은 같은 하드웨어에서 KVM 가상머신과 Docker 컨테이너를 비교해, 컨테이너가 거의 모든 측정에서 가상머신과 같거나 더 나은 성능을 냈다고 보고했다. 가상머신은 I/O가 하이퍼바이저를 한 번 더 거치기 때문이며, I/O 집약적인 작업에서는 둘 다 튜닝이 필요하다고 덧붙였다.
-- **시작 시간과 배포 속도**: 컨테이너는 OS 부팅 없이 프로세스를 띄우므로 초 단위로 시작된다. 마이크로서비스가 수백 개인 서비스에서는 배포·확장·롤백이 잦은데, 이 속도가 Spotify의 서비스 생성 시간 단축으로 이어졌다.
-- **이식성과 일관성**: 애플리케이션과 라이브러리를 이미지 하나로 묶어 개발·테스트·운영 환경에서 같은 이미지를 쓴다. 가상머신 이미지보다 작아 레지스트리에서 내려받고 버전을 관리하기 쉽다.
+- **밀도(자원 효율)**: [Container](glossary:container)는 호스트 커널을 공유하고 프로세스 단위로 격리([Network namespace](glossary:network-namespace))·제한([cgroup](glossary:cgroup))만 하므로, [VM](glossary:vm)처럼 게스트 OS의 커널·메모리·부팅 디스크를 서비스마다 따로 두지 않는다. 그래서 한 노드에 더 많은 서비스를 빽빽하게 배치([bin-packing](glossary:bin-packing))할 수 있고, Spotify의 CPU 사용률 2~3배 향상이 이 효과다.
+- **성능 오버헤드**: IBM Research의 Felter 등(2015)은 같은 하드웨어에서 [KVM](glossary:kvm) [VM](glossary:vm)과 [Docker](glossary:docker) [Container](glossary:container)를 비교해, [Container](glossary:container)가 거의 모든 측정에서 [VM](glossary:vm)과 같거나 더 나은 성능을 냈다고 보고했다. [VM](glossary:vm)은 I/O가 [Hypervisor](glossary:hypervisor)를 한 번 더 거치기 때문이며, I/O 집약적인 작업에서는 둘 다 튜닝이 필요하다고 덧붙였다.
+- **시작 시간과 배포 속도**: [Container](glossary:container)는 OS 부팅 없이 프로세스를 띄우므로 초 단위로 시작된다. [Microservices](glossary:microservices)가 수백 개인 서비스에서는 배포·확장·롤백이 잦은데, 이 속도가 Spotify의 서비스 생성 시간 단축으로 이어졌다.
+- **이식성과 일관성**: 애플리케이션과 라이브러리를 [Container image](glossary:container-image)[Container image](glossary:container-image) 하나로 묶어 개발·테스트·운영 환경에서 같은 [Container image](glossary:container-image)를 쓴다. [VM](glossary:vm) 이미지보다 작아 [Container registry](glossary:container-registry)에서 내려받고 버전을 관리하기 쉽다.
 
-다만 컨테이너는 커널을 공유하므로 격리 수준이 가상머신보다 낮다. 서로 신뢰할 수 없는 사용자를 한 호스트에 올리거나 다른 OS 커널이 필요한 경우에는 가상머신이 낫고, 그래서 실제로는 가상머신 위에 컨테이너를 올리는 구성이 흔하다.
+다만 [Container](glossary:container)는 커널을 공유하므로 격리 수준이 [VM](glossary:vm)보다 낮다. 서로 신뢰할 수 없는 사용자를 한 호스트에 올리거나 다른 OS 커널이 필요한 경우에는 [VM](glossary:vm)이 낫고, 그래서 실제로는 [VM](glossary:vm) 위에 [Container](glossary:container)를 올리는 구성이 흔하다.
 
 출처
 
@@ -679,7 +679,7 @@ _netns1·netns2 → google.com ping 성공. p67 구성 완료_
 
 ## Ch15-9. 그림 15.12와 같은 네트워크 환경 구성
 
-6장에서 만든 구성(br0 + netns1·netns2 + NAT)에 세 번째 네임스페이스 netns3를 같은 방식으로 붙였다.
+6장에서 만든 구성(br0 + netns1·netns2 + [NAT](glossary:nat))에 세 번째 [Network namespace](glossary:network-namespace) netns3를 같은 방식으로 붙였다.
 
 ```bash
 ip netns add netns3
@@ -696,11 +696,11 @@ mkdir -p /etc/netns/netns3; echo 'nameserver 8.8.8.8' > /etc/netns/netns3/resolv
 
 ![netns3](/static/images/cloud-computing-hw7-openstack-linux-container/64.webp)
 
-_네임스페이스 netns1·netns2·netns3와 br0에 연결된 brif1·brif2·brif3_
+_[Network namespace](glossary:network-namespace) netns1·netns2·netns3와 br0에 연결된 brif1·brif2·brif3_
 
 ![netns3 구성](/static/images/cloud-computing-hw7-openstack-linux-container/65.webp)
 
-_netns3 구성. veth3 10.0.100.103/24 UP, default via 10.0.100.1_
+_netns3 구성. veth3 10.0.100.103/24 UP, [default via](glossary:default-gateway) 10.0.100.1_
 
 네 경우를 반복문으로 한 번에 확인했다.
 
@@ -713,7 +713,7 @@ done; done
 
 ![네임스페이스 사이](/static/images/cloud-computing-hw7-openstack-linux-container/66.webp)
 
-_(a) netns1·netns2·netns3 사이 6방향 ping 모두 2 received_
+_(a) netns1·netns2·netns3 사이 6방향 [ping](glossary:ping) 모두 2 received_
 
 ![루트와 네임스페이스](/static/images/cloud-computing-hw7-openstack-linux-container/67.webp)
 
@@ -723,4 +723,4 @@ _(b) 각 netns → 루트(192.168.122.16), (c) 루트 → 각 netns 모두 2 rec
 
 _(d) netns1·netns2·netns3 → google.com 모두 0% packet loss_
 
-네 경우 모두 통신이 된다. 같은 브리지에 붙은 네임스페이스끼리는 br0가 L2로 전달하고, 루트 ↔ netns는 br0의 10.0.100.1이 같은 대역에 있어서 된다. netns → 외부는 default 경로로 br0에 온 패킷을 루트가 IP 포워딩하고, firewalld masquerade로 출발지 주소를 enp1s0 주소로 바꿔 내보내기 때문이다.
+네 경우 모두 통신이 된다. 같은 [Linux bridge](glossary:linux-bridge)에 붙은 [Network namespace](glossary:network-namespace)끼리는 br0가 [L2](glossary:link-layer)로 전달하고, 루트 ↔ netns는 br0의 10.0.100.1이 같은 대역에 있어서 된다. netns → 외부는 [Default gateway](glossary:default-gateway)로 br0에 온 패킷을 루트가 IP 포워딩하고, [firewalld](glossary:firewalld) [masquerade](glossary:masquerade)로 출발지 주소를 enp1s0 주소로 바꿔 내보내기 때문이다.

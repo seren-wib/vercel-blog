@@ -35,7 +35,7 @@ summary: 'twisted pair, coaxial cable, optical fiber, guided media, unguided med
 ## 7-1 Transmission media design factors
 
 - The 4 factors covered in step 1
-- Bandwidth, transmission impairments(attenuation), interference, number of receivers
+- [Bandwidth](glossary:bandwidth), [transmission impairments](glossary:transmission-impairment)([attenuation](glossary:attenuation)), [interference](glossary:interference), number of receivers
 
 ## 7-2 Overall media classification
 
@@ -54,7 +54,7 @@ Frequency (Hz)  10²  10⁴   10⁶   10⁸   10¹⁰  10¹²  10¹⁴
   Infrared:                ━━    (10¹²~10¹⁴)
 ```
 
-**Key pattern: higher frequency -> more data possible -> more expensive medium\***
+**Key pattern: higher [frequency](glossary:frequency) -> more data possible -> more expensive medium\***
 
 # 8. Guided Media
 
@@ -74,10 +74,10 @@ Frequency (Hz)  10²  10⁴   10⁶   10⁸   10¹⁰  10¹²  10¹⁴
 - The cheapest and simplest medium
 - The most widely used (telephone lines, LAN cables)
 - Mainly used for communication inside buildings
-- Smaller bandwidth than other media
+- Smaller [bandwidth](glossary:bandwidth) than other media
 - Limited distance (usually 100 m)
-- Why twist? -> to cancel electromagnetic interference. If external noise affects both wires equally, it cancels out when the difference is taken
-  - Crosstalk is reduced by the same principle. The same crosstalk we learned in step 5 of ch3.
+- Why twist? -> to cancel electromagnetic [interference](glossary:interference). If external noise affects both wires equally, it cancels out when the difference is taken
+  - [Crosstalk](glossary:crosstalk) is reduced by the same principle. The same [crosstalk](glossary:crosstalk) we learned in step 5 of ch3.
 
 ```
 Two parallel wires:
@@ -92,35 +92,35 @@ Two twisted wires:
 ### UTP vs STP
 
 Classified by whether there is shielding
-|Item|UTP (Unshielded)|STP (Shielded)|
+|Item|[UTP](glossary:utp) (Unshielded)|[STP](glossary:stp) (Shielded)|
 |---|----------------|---------------|
 |Shielding|None|Metal shielding|
 |Price|Cheap|Expensive|
-|Interference resistance|Weak|Strong|
+|[Interference](glossary:interference) resistance|Weak|Strong|
 |Data rate|Low|High|
 |Uses|Ordinary telephone lines, LAN cables|High-speed communication, industrial|
 
-- With shielding, external electromagnetic interference (EMI) is blocked by the shield, so the signal is protected.
+- With shielding, external electromagnetic [interference](glossary:interference) ([EMI](glossary:electromagnetic-interference)) is blocked by the [shield](glossary:shielding), so the signal is protected.
 
 ### Cat category table
 
-| Category           | Bandwidth | Main use          |
-| ------------------ | --------- | ----------------- |
-| Cat 5e (Class D)   | 100 MHz   | 100 Mbps Ethernet |
-| Cat 6 (Class E)    | 250 MHz   | 1 Gbps Ethernet   |
-| Cat 6A (Class E_A) | 500 MHz   | 10 Gbps Ethernet  |
-| Cat 7 (Class F)    | 600 MHz   | 10 Gbps+          |
-| Cat 7A (Class F_A) | 1000 MHz  | Even faster       |
+| Category                            | [Bandwidth](glossary:bandwidth) | Main use                               |
+| ----------------------------------- | ------------------------------- | -------------------------------------- |
+| [Cat 5e](glossary:cat-5e) (Class D) | 100 MHz                         | 100 Mbps [Ethernet](glossary:ethernet) |
+| [Cat 6](glossary:cat-6) (Class E)   | 250 MHz                         | 1 Gbps [Ethernet](glossary:ethernet)   |
+| Cat 6A (Class E_A)                  | 500 MHz                         | 10 Gbps [Ethernet](glossary:ethernet)  |
+| [Cat 7](glossary:cat-7) (Class F)   | 600 MHz                         | 10 Gbps+                               |
+| Cat 7A (Class F_A)                  | 1000 MHz                        | Even faster                            |
 
 ### Terms
 
-- Insertion loss: loss as the signal passes through the cable (lower is better)
-- NEXT (Near-End Crosstalk): crosstalk measured at the transmitting end (higher is better, since it means the other wire is far away)
-- ACR (Attenuation-to-Crosstalk Ratio): ratio of crosstalk to attenuation (higher is better)
+- [Insertion loss](glossary:insertion-loss): loss as the signal passes through the cable (lower is better)
+- [NEXT](glossary:next) (Near-End [Crosstalk](glossary:crosstalk)): [crosstalk](glossary:crosstalk) measured at the transmitting end (higher is better, since it means the other wire is far away)
+- [ACR](glossary:acr) ([Attenuation](glossary:attenuation)-to-[Crosstalk](glossary:crosstalk) Ratio): ratio of [crosstalk](glossary:crosstalk) to [attenuation](glossary:attenuation) (higher is better)
 
 ## 8-2 Coaxial Cable
 
-The name **"coaxial"** means the inner and outer conductors share **the same axis (co-axial)**
+The name **"[coaxial](glossary:coaxial-cable)"** means the inner and outer conductors share **the same axis (co-axial)**
 ![coaxial cable](/static/images/network-ch4-transmission-media/coaxial-cable.png)
 
 ```
@@ -133,27 +133,27 @@ Inner conductor (signal wire)
 
 ### Characteristics
 
-- Longer distances than twisted pair
-- Can be shared by more devices (good for multi-point)
-- Wider bandwidth (~500MHz)
-- Resistant to external interference (self-shielded)
-- More expensive than twisted pair
-- Slower than optical fiber
+- Longer distances than [twisted pair](glossary:twisted-pair)
+- Can be shared by more devices (good for [multi-point](glossary:multipoint))
+- Wider [bandwidth](glossary:bandwidth) (~500MHz)
+- Resistant to external [interference](glossary:interference) (self-shielded)
+- More expensive than [twisted pair](glossary:twisted-pair)
+- Slower than [optical fiber](glossary:optical-fiber)
 
 ### Transmission characteristics
 
-- Analog: an amplifier every few km (more often at higher frequencies)
-- Digital: a repeater every 1 km (more often at higher speeds)
+- Analog: an [amplifier](glossary:amplifier) every few km (more often at higher frequencies)
+- Digital: a [repeater](glossary:repeater) every 1 km (more often at higher speeds)
 
 ### Uses
 
 - Old TV cable (antenna → TV)
 - Cable internet (modem → wall)
 - Long-distance telephone (in the past)
-- Ethernet LAN (10BASE2, 10BASE5 — old standards)
+- [Ethernet](glossary:ethernet) LAN ([10BASE2](glossary:10base2), [10BASE5](glossary:10base5) — old standards)
 
-Its frequency characteristics are better than twisted pair, but performance is limited by attenuation and noise.
-LANs have all moved to twisted pair these days, but it is still in active use for cable TV/internet
+Its [frequency](glossary:frequency) characteristics are better than [twisted pair](glossary:twisted-pair), but performance is limited by [attenuation](glossary:attenuation) and noise.
+LANs have all moved to [twisted pair](glossary:twisted-pair) these days, but it is still in active use for cable TV/internet
 
 ## 8-3 Optical Fiber
 
@@ -206,11 +206,11 @@ When light enters at or above the critical angle, it is 100% reflected at the cl
    Input pulse: ▌    Output pulse: ▌ (unchanged)
 ```
 
-| Mode                   | Core size | Distance  | Cost      | Data rate | Uses                                |
-| ---------------------- | --------- | --------- | --------- | --------- | ----------------------------------- |
-| Step-index Multimode   | Thick     | Short     | Cheap     | Low       | Short-distance LAN                  |
-| Graded-index Multimode | Thick     | Medium    | Medium    | Medium    | Medium distance                     |
-| Single Mode            | Thin      | Very long | Expensive | Very high | Long-haul backbone, submarine cable |
+| Mode                                                                              | [Core](glossary:core) size | Distance  | Cost      | Data rate | Uses                                                                                 |
+| --------------------------------------------------------------------------------- | -------------------------- | --------- | --------- | --------- | ------------------------------------------------------------------------------------ |
+| [Step-index](glossary:step-index-fiber) [Multimode](glossary:multimode-fiber)     | Thick                      | Short     | Cheap     | Low       | Short-distance LAN                                                                   |
+| [Graded-index](glossary:graded-index-fiber) [Multimode](glossary:multimode-fiber) | Thick                      | Medium    | Medium    | Medium    | Medium distance                                                                      |
+| [Single Mode](glossary:single-mode-fiber)                                         | Thin                       | Very long | Expensive | Very high | Long-haul [backbone](glossary:backbone), [submarine cable](glossary:submarine-cable) |
 
 ### Characteristics
 
@@ -227,15 +227,15 @@ When light enters at or above the critical angle, it is 100% reflected at the cl
 
 ### Uses
 
-- Internet backbone networks
-- Submarine cables (intercontinental communication)
+- Internet [backbone](glossary:backbone) networks
+- [Submarine cables](glossary:submarine-cable) (intercontinental communication)
 - Carrier core networks
 - High-speed links inside data centers
-- FTTH (Fiber To The Home, home fiber internet)
+- [FTTH](glossary:ftth) (Fiber To The Home, home fiber internet)
 
 ## 8-4 Guided Media overall comparison
 
-Attenuation comparison
+[Attenuation](glossary:attenuation) comparison
 
 ```
 How does attenuation change as frequency goes ↑?
@@ -250,24 +250,24 @@ Optical fiber can go 20 times farther than other media.
 
 ### Transmission characteristics by medium (Point-to-Point)
 
-| Medium                   | Frequency range | Attenuation      | Delay    | Repeater spacing |
-| ------------------------ | --------------- | ---------------- | -------- | ---------------- |
-| Twisted pair (loading)   | 0~3.5 kHz       | 0.2 dB/km @ 1kHz | 50 μs/km | 2 km             |
-| Twisted pair (multipair) | 0~1 MHz         | 0.7 dB/km @ 1kHz | 5 μs/km  | 2 km             |
-| Coaxial cable            | 0~500 MHz       | 7 dB/km @ 10MHz  | 4 μs/km  | 1~9 km           |
-| Optical fiber            | 186~370 THz     | 0.2~0.5 dB/km    | 5 μs/km  | 40 km            |
+| Medium                                            | [Frequency](glossary:frequency) range | [Attenuation](glossary:attenuation) | Delay    | [Repeater](glossary:repeater) spacing |
+| ------------------------------------------------- | ------------------------------------- | ----------------------------------- | -------- | ------------------------------------- |
+| [Twisted pair](glossary:twisted-pair) (loading)   | 0~3.5 kHz                             | 0.2 dB/km @ 1kHz                    | 50 μs/km | 2 km                                  |
+| [Twisted pair](glossary:twisted-pair) (multipair) | 0~1 MHz                               | 0.7 dB/km @ 1kHz                    | 5 μs/km  | 2 km                                  |
+| [Coaxial](glossary:coaxial-cable) cable           | 0~500 MHz                             | 7 dB/km @ 10MHz                     | 4 μs/km  | 1~9 km                                |
+| [Optical fiber](glossary:optical-fiber)           | 186~370 THz                           | 0.2~0.5 dB/km                       | 5 μs/km  | 40 km                                 |
 
 # 9. Unguided Media (wireless)
 
 ## 9-1 Unguided Media concept
 
-Characteristics by frequency band
+Characteristics by [frequency](glossary:frequency) band
 |----|-----|----|
-|Band|Frequency|Characteristics|Uses|
+|Band|[Frequency](glossary:frequency)|Characteristics|Uses|
 |----|-----|---|---|
-|Radio|30 MHz ~ 1 GHz|omnidirectional|AM/FM radio, TV|
-|Microwave|1 GHz ~ 40 GHz|can be directional|satellite, microwave relay|
-|Infrared|3×10¹¹ ~ 2×10¹⁴ Hz|line-of-sight, short range|remote controls, short-range communication|
+|[Radio](glossary:radio-wave)|30 MHz ~ 1 GHz|[omnidirectional](glossary:omnidirectional-antenna)|AM/FM radio, TV|
+|[Microwave](glossary:microwave)|1 GHz ~ 40 GHz|can be [directional](glossary:directional-antenna)|[satellite](glossary:satellite-communication), [microwave](glossary:microwave) relay|
+|[Infrared](glossary:infrared)|3×10¹¹ ~ 2×10¹⁴ Hz|line-of-sight, short range|remote controls, short-range communication|
 
 ### Terms
 
@@ -286,7 +286,7 @@ Directional:
 
 ## 9-2 Satellite Microwave
 
-A satellite is a **microwave relay station**
+A [satellite](glossary:satellite-communication) is a **[microwave](glossary:microwave) relay station**
 
 ```
 [Ground station A]          [Ground station B]
@@ -328,16 +328,16 @@ As it became saturated, the higher 12/14 GHz band also came into use.
 
 ### Satellite communication applications
 
-| Application               | Description                                                              |
-| ------------------------- | ------------------------------------------------------------------------ |
-| Long-distance telephone   | Formerly the mainstay of international calls (now ceded to fiber cables) |
-| Private business networks | Dedicated corporate networks                                             |
-| TV distribution           | DBS (Direct Broadcast Satellite, satellite broadcasting)                 |
-| Global positioning        | GPS (Navstar)                                                            |
+| Application               | Description                                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Long-distance telephone   | Formerly the mainstay of international calls (now ceded to fiber cables)                                     |
+| Private business networks | Dedicated corporate networks                                                                                 |
+| TV distribution           | [DBS](glossary:dbs) (Direct Broadcast Satellite, [satellite](glossary:satellite-communication) broadcasting) |
+| Global positioning        | [GPS](glossary:gps) (Navstar)                                                                                |
 
 ### VSAT — Very Small Aperture Terminal
 
-A user terminal using a small satellite antenna. A system that lets even small shops and individual stores use satellite communication
+A user terminal using a small [satellite](glossary:satellite-communication) antenna. A system that lets even small shops and individual stores use [satellite](glossary:satellite-communication) communication
 
 ```
 [Ku-band satellite]
@@ -351,12 +351,12 @@ Used for retail payment systems, data collection from remote sites, etc.
 
 # 10. Key summary
 
-| Item                    | Twisted Pair     | Coaxial        | Optical Fiber       | Wireless       |
-| ----------------------- | ---------------- | -------------- | ------------------- | -------------- |
-| Cost                    | ★ (cheap)        | ★★             | ★★★ (expensive)     | Varies         |
-| Bandwidth               | Small            | Medium         | Very large          | Varies         |
-| Distance                | Short (2km)      | Medium (1-9km) | Very long (40km)    | Varies         |
-| Interference resistance | Weak             | Medium         | Very strong         | Weak           |
-| Security                | Weak             | Medium         | Strong              | Very weak      |
-| Installation            | Easy             | Moderate       | Difficult           | Needs antennas |
-| Main use                | Phone lines, LAN | TV, old LAN    | Backbone, long-haul | Wireless comm. |
+| Item                                             | [Twisted Pair](glossary:twisted-pair) | [Coaxial](glossary:coaxial-cable) | [Optical Fiber](glossary:optical-fiber)  | Wireless       |
+| ------------------------------------------------ | ------------------------------------- | --------------------------------- | ---------------------------------------- | -------------- |
+| Cost                                             | ★ (cheap)                             | ★★                                | ★★★ (expensive)                          | Varies         |
+| [Bandwidth](glossary:bandwidth)                  | Small                                 | Medium                            | Very large                               | Varies         |
+| Distance                                         | Short (2km)                           | Medium (1-9km)                    | Very long (40km)                         | Varies         |
+| [Interference](glossary:interference) resistance | Weak                                  | Medium                            | Very strong                              | Weak           |
+| Security                                         | Weak                                  | Medium                            | Strong                                   | Very weak      |
+| Installation                                     | Easy                                  | Moderate                          | Difficult                                | Needs antennas |
+| Main use                                         | Phone lines, LAN                      | TV, old LAN                       | [Backbone](glossary:backbone), long-haul | Wireless comm. |

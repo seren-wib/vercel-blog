@@ -6,11 +6,11 @@ draft: false
 summary: 'Provisioning 3 Rocky Linux VMs with Vagrant (vagrant-libvirt), configuring an HTCondor cluster with an Ansible playbook, fixing arm64 Vagrant install (RubyGems), storage pool conflict, box 404, disk size and firewalld problems, Chapter 7 exercises (data center automation tools compared, Ansible idempotence)'
 ---
 
-In HW3 I built the HTCondor cluster by hand, step by step. This time I automated that process following textbook Chapter 7. I deleted all three VMs from Chapter 4, created three new VMs with the same names and IPs using Vagrant, and then installed and configured HTCondor with a single Ansible playbook. The later part collects my answers to the Chapter 7 exercises.
+In HW3 I built the [HTCondor](glossary:htcondor) cluster by hand, step by step. This time I automated that process following textbook Chapter 7. I deleted all three [VMs](glossary:vm) from Chapter 4, created three new [VMs](glossary:vm) with the same names and IPs using [Vagrant](glossary:vagrant), and then installed and configured [HTCondor](glossary:htcondor) with a single [Ansible](glossary:ansible) [playbook](glossary:playbook). The later part collects my answers to the Chapter 7 exercises.
 
 # 0. Lab Environment
 
-Same environment as HW2 and HW3. An Apple M3 Mac can't run x86 VirtualBox VMs, so I run Ubuntu in UTM and use KVM/libvirt inside it as the hypervisor. Vagrant and Ansible run on this Ubuntu host.
+Same environment as HW2 and HW3. An Apple M3 Mac can't run [x86](glossary:x86) [VirtualBox](glossary:virtualbox) [VMs](glossary:vm), so I run [Ubuntu](glossary:ubuntu) in [UTM](glossary:utm) and use [KVM](glossary:kvm)/[libvirt](glossary:libvirt) inside it as the hypervisor. [Vagrant](glossary:vagrant) and [Ansible](glossary:ansible) run on this [Ubuntu](glossary:ubuntu) host.
 
 ```text
 macOS (Apple M3)
@@ -22,40 +22,40 @@ macOS (Apple M3)
          └─ work2  Rocky Linux 10.2 aarch64  192.168.56.103  work2.cloud.org  (execute)
 ```
 
-| Textbook (slides)                                                 | This environment                                                                                                          |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Ubuntu host x86_64, account cloudman@abelia                       | Ubuntu 24.04.5 aarch64, account yoosung@yoosung-vm                                                                        |
-| Vagrant provider VirtualBox                                       | libvirt (KVM), vagrant-libvirt 0.12.2 plugin                                                                              |
-| Vagrant install: HashiCorp apt repository                         | No arm64 Linux package in the repository, so installed the vagrant 2.4.9 gem from RubyGems (same version as the slides)   |
-| Box bento/rockylinux-10                                           | Official Rocky rockylinux/10 libvirt arm64 box (10.2-20260525.0)                                                          |
-| Guest NICs eth0 (NAT), eth1 (host-only), cluster interface enp0s8 | enp3s0 (management network 192.168.121.0/24 NAT), enp4s0 (cluster network 192.168.56.0/24) → `NETWORK_INTERFACE = enp4s0` |
-| SSH: forwarded ports 2222–2224 on 127.0.0.1                       | Direct connection to port 22 on the management IP (192.168.121.x). No port forwarding needed                              |
-| HTCondor version not specified                                    | condor-25.14.1-1.el10.aarch64 (25.0 repository)                                                                           |
+| Textbook (slides)                                                                                               | This environment                                                                                                                                                                                     |
+| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Ubuntu](glossary:ubuntu) host [x86_64](glossary:x86), account cloudman@abelia                                  | [Ubuntu](glossary:ubuntu) 24.04.5 [aarch64](glossary:arm64), account yoosung@yoosung-vm                                                                                                              |
+| [Vagrant](glossary:vagrant) provider [VirtualBox](glossary:virtualbox)                                          | [libvirt](glossary:libvirt) ([KVM](glossary:kvm)), [vagrant-libvirt](glossary:vagrant) 0.12.2 plugin                                                                                                 |
+| [Vagrant](glossary:vagrant) install: HashiCorp [apt](glossary:apt) repository                                   | No [arm64](glossary:arm64) [Linux](glossary:linux) package in the repository, so installed the [vagrant](glossary:vagrant) 2.4.9 gem from [RubyGems](glossary:rubygems) (same version as the slides) |
+| Box bento/rockylinux-10                                                                                         | Official [Rocky](glossary:rocky-linux) rockylinux/10 [libvirt](glossary:libvirt) [arm64](glossary:arm64) [box](glossary:vagrant) (10.2-20260525.0)                                                   |
+| Guest NICs eth0 ([NAT](glossary:nat)), eth1 ([host-only](glossary:host-only-network)), cluster interface enp0s8 | enp3s0 (management network 192.168.121.0/24 [NAT](glossary:nat)), enp4s0 (cluster network 192.168.56.0/24) → `NETWORK_INTERFACE = enp4s0`                                                            |
+| [SSH](glossary:ssh): [forwarded](glossary:port-forwarding) ports 2222–2224 on 127.0.0.1                         | Direct connection to port 22 on the management IP (192.168.121.x). No [port forwarding](glossary:port-forwarding) needed                                                                             |
+| [HTCondor](glossary:htcondor) version not specified                                                             | condor-25.14.1-1.el10.[aarch64](glossary:arm64) (25.0 repository)                                                                                                                                    |
 
 ## Automation Flow
 
-The work I did by hand in Chapter 5 is split between two tools. Vagrant creates the three VMs from one Vagrantfile (provisioning) and sets up hostnames, IPs and SSH keys. Ansible installs HTCondor on those three VMs and deploys the per-role configuration files from one playbook (`htcondor.yaml`). Both handle the VMs over SSH from the Ubuntu host.
+The work I did by hand in Chapter 5 is split between two tools. [Vagrant](glossary:vagrant) creates the three [VMs](glossary:vm) from one [Vagrantfile](glossary:vagrant) ([provisioning](glossary:provisioning)) and sets up [hostnames](glossary:hostname), IPs and [SSH](glossary:ssh) keys. [Ansible](glossary:ansible) installs [HTCondor](glossary:htcondor) on those three [VMs](glossary:vm) and deploys the per-role configuration files from one [playbook](glossary:playbook) (`htcondor.yaml`). Both handle the [VMs](glossary:vm) over [SSH](glossary:ssh) from the [Ubuntu](glossary:ubuntu) host.
 
-| Step                | Tool                      | Input files                                     | Result                                                                       |
-| ------------------- | ------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------- |
-| 1. VM provisioning  | Vagrant + vagrant-libvirt | `~/vrepo/Vagrantfile`                           | main, work1, work2 created, hostnames, 192.168.56.101–103, per-node SSH keys |
-| 2. VM configuration | Ansible                   | `/etc/ansible/hosts`, `~/Ansible/htcondor.yaml` | SELinux, firewall, hosts, packages, HTCondor config, service restart         |
+| Step                                                       | Tool                                                              | Input files                                     | Result                                                                                                            |
+| ---------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 1. [VM](glossary:vm) [provisioning](glossary:provisioning) | [Vagrant](glossary:vagrant) + [vagrant-libvirt](glossary:vagrant) | `~/vrepo/Vagrantfile`                           | main, work1, work2 created, [hostnames](glossary:hostname), 192.168.56.101–103, per-node [SSH](glossary:ssh) keys |
+| 2. [VM](glossary:vm) configuration                         | [Ansible](glossary:ansible)                                       | `/etc/ansible/hosts`, `~/Ansible/htcondor.yaml` | [SELinux](glossary:selinux), firewall, hosts, packages, [HTCondor](glossary:htcondor) config, service restart     |
 
 ## SSH Access Layout
 
-The assignment requires every step to be done by connecting to the VMs over SSH, so I wrote down the access paths. There are three layers.
+The assignment requires every step to be done by connecting to the [VMs](glossary:vm) over [SSH](glossary:ssh), so I wrote down the access paths. There are three layers.
 
-- **Mac → Ubuntu host**: SSH key login, same as HW3.
-- **Ubuntu host → VMs**: I used `vagrant ssh <node>`. It runs ssh with the per-node private key that `vagrant up` created and the management IP; `vagrant ssh-config` (shown later) prints that configuration. The `[vagrant@main ~]$` prompt in the screenshots is this connection.
-- **Ansible**: Ansible also works over SSH. It connects to each node with `ansible_user=vagrant` and `ansible_ssh_private_key_file` from the inventory and runs modules there.
+- **Mac → [Ubuntu](glossary:ubuntu) host**: [SSH](glossary:ssh) key login, same as HW3.
+- **[Ubuntu](glossary:ubuntu) host → [VMs](glossary:vm)**: I used `vagrant ssh <node>`. It runs [ssh](glossary:ssh) with the per-node private key that `vagrant up` created and the management IP; `vagrant ssh-config` (shown later) prints that configuration. The `[vagrant@main ~]$` prompt in the screenshots is this connection.
+- **[Ansible](glossary:ansible)**: [Ansible](glossary:ansible) also works over [SSH](glossary:ssh). It connects to each node with `ansible_user=vagrant` and `ansible_ssh_private_key_file` from the [inventory](glossary:inventory) and runs modules there.
 
-Apart from one look through `virsh console` while diagnosing problem 4, I didn't use the VM consoles.
+Apart from one look through `virsh console` while diagnosing problem 4, I didn't use the [VM](glossary:vm) consoles.
 
 # 1. Creating 3 VMs with Vagrant
 
 ## Deleting the Old VMs
 
-I deleted main, work1 and work2, which I had made with `virt-clone` in Chapter 4, including their disks and NVRAM. The three domains are full clones (no backing chain), so removing their disks with `--remove-all-storage` doesn't affect the original. I kept rocky-base, the clone source, since it isn't one of the three Chapter 4 VMs.
+I deleted main, work1 and work2, which I had made with `virt-clone` in Chapter 4, including their disks and [NVRAM](glossary:nvram). The three domains are full clones (no [backing](glossary:backing-file) chain), so removing their disks with `--remove-all-storage` doesn't affect the original. I kept rocky-base, the clone source, since it isn't one of the three Chapter 4 [VMs](glossary:vm).
 
 ```bash
 virsh -c qemu:///system list --all
@@ -68,13 +68,13 @@ virsh -c qemu:///system vol-list images
 
 ![Deleting old VMs](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/01.webp)
 
-_main, work1, work2 removed with domain, disk and NVRAM; only rocky-base left_
+_main, work1, work2 removed with domain, disk and [NVRAM](glossary:nvram); only rocky-base left_
 
 ## Installing Vagrant
 
 ### The Slide Way: HashiCorp apt Repository
 
-First I registered the GPG key and repository as on slide 13. The `–o` on the slide is an EN DASH (U+2013), not a hyphen, so pasting it as-is makes gpg treat `–o` as a file name and fail. I typed `-o` by hand.
+First I registered the [GPG](glossary:gpg) key and repository as on slide 13. The `–o` on the slide is an EN DASH (U+2013), not a hyphen, so pasting it as-is makes [gpg](glossary:gpg) treat `–o` as a file name and fail. I typed `-o` by hand.
 
 ```bash
 wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
@@ -85,7 +85,7 @@ sudo apt install vagrant
 
 ![Registering the HashiCorp repository](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/02.webp)
 
-_Registering the HashiCorp repository and apt update_
+_Registering the HashiCorp repository and [apt](glossary:apt) update_
 
 ### Problem 1. No arm64 Vagrant in the Repository
 
@@ -93,13 +93,13 @@ _Registering the HashiCorp repository and apt update_
 
 ![apt install failure](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/03.webp)
 
-_apt only offers the amd64 package, so the install fails on an arm64 system_
+_apt only offers the amd64 package, so the install fails on an [arm64](glossary:arm64) system_
 
-Looking into it, the repository's package index only has vagrant for amd64 and i686, and releases.hashicorp.com only has a linux_amd64 zip. Ubuntu's own archive last shipped vagrant in 23.10 (mantic); 24.04 (noble) doesn't have it at all. HashiCorp does, however, publish the same version on RubyGems. That works because Vagrant is written in Ruby.
+Looking into it, the repository's package index only has [vagrant](glossary:vagrant) for amd64 and i686, and releases.hashicorp.com only has a linux_amd64 zip. [Ubuntu](glossary:ubuntu)'s own archive last shipped [vagrant](glossary:vagrant) in 23.10 (mantic); 24.04 (noble) doesn't have it at all. HashiCorp does, however, publish the same version on [RubyGems](glossary:rubygems). That works because [Vagrant](glossary:vagrant) is written in [Ruby](glossary:ruby).
 
 ### Installing from RubyGems
 
-I installed Ruby and build tools, then installed vagrant as a gem. `libarchive-tools` provides bsdtar, which vagrant uses to unpack boxes, and `libvirt-dev` is needed to compile the plugin in the next step. Since this isn't an official install path, it warns "outside of the official installers", but it works fine. The installed version is 2.4.9, same as the slides.
+I installed [Ruby](glossary:ruby) and build tools, then installed [vagrant](glossary:vagrant) as a gem. `libarchive-tools` provides bsdtar, which [vagrant](glossary:vagrant) uses to unpack [boxes](glossary:vagrant), and `libvirt-dev` is needed to compile the plugin in the next step. Since this isn't an official install path, it warns "outside of the official installers", but it works fine. The installed version is 2.4.9, same as the slides.
 
 ```bash
 sudo rm /etc/apt/sources.list.d/hashicorp.list && sudo apt clean
@@ -111,15 +111,15 @@ vagrant --version
 
 ![Installing Ruby](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/04.webp)
 
-_Ruby 3.2.3, RubyGems 3.4.20, bsdtar installed_
+_Ruby 3.2.3, [RubyGems](glossary:rubygems) 3.4.20, bsdtar installed_
 
 ![gem install vagrant](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/05.webp)
 
-_gem install vagrant: 54 gems installed, Vagrant 2.4.9_
+_gem install vagrant: 54 gems installed, [Vagrant](glossary:vagrant) 2.4.9_
 
 ## libvirt Provider Plugin
 
-There's no VirtualBox here, so I installed the vagrant-libvirt plugin to make Vagrant create VMs with KVM/libvirt. In terms of slide 12's "tools Vagrant supports", this means picking libvirt as the provider.
+There's no [VirtualBox](glossary:virtualbox) here, so I installed the [vagrant-libvirt](glossary:vagrant) plugin to make [Vagrant](glossary:vagrant) create [VMs](glossary:vm) with [KVM](glossary:kvm)/[libvirt](glossary:libvirt). In terms of slide 12's "tools [Vagrant](glossary:vagrant) supports", this means picking [libvirt](glossary:libvirt) as the provider.
 
 ```bash
 vagrant plugin install vagrant-libvirt
@@ -132,7 +132,7 @@ _vagrant-libvirt 0.12.2 plugin installed_
 
 ## vagrant init
 
-Without comments, the default Vagrantfile from `vagrant init` is just one line: `config.vm.box = "base"`.
+Without comments, the default [Vagrantfile](glossary:vagrant) from `vagrant init` is just one line: `config.vm.box = "base"`.
 
 ```bash
 mkdir vrepo && cd vrepo && vagrant init
@@ -146,7 +146,7 @@ _vagrant init and the default Vagrantfile_
 
 ### Problem 2. Storage Pool Conflict
 
-When I ran `vagrant up` with the default Vagrantfile as on slide 16, libvirt threw an error even before looking for the `base` box.
+When I ran `vagrant up` with the default [Vagrantfile](glossary:vagrant) as on slide 16, [libvirt](glossary:libvirt) threw an error even before looking for the `base` [box](glossary:vagrant).
 
 ```text
 Call to virStoragePoolDefineXML failed: ... Storage source conflict with pool: 'images'
@@ -154,15 +154,15 @@ Call to virStoragePoolDefineXML failed: ... Storage source conflict with pool: '
 
 ![Storage pool conflict](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/08.webp)
 
-_up with the default Vagrantfile: Storage source conflict with pool: 'images'_
+_up with the default [Vagrantfile](glossary:vagrant): Storage source conflict with pool: 'images'_
 
-The plugin tries to define a new pool named `default` at `/var/lib/libvirt/images`, but in HW2 I had already created a pool named `images` at the same path, so libvirt refused. I set `storage_pool_name = "images"` in the libvirt provider block of the Vagrantfile so it uses the existing pool.
+The plugin tries to define a new pool named `default` at `/var/lib/libvirt/images`, but in HW2 I had already created a pool named `images` at the same path, so [libvirt](glossary:libvirt) refused. I set `storage_pool_name = "images"` in the [libvirt](glossary:libvirt) provider block of the [Vagrantfile](glossary:vagrant) so it uses the existing pool.
 
 ## Adding the Rocky Linux 10 Box
 
 ### Problem 3. Box Download 404
 
-The slide's `bento/rockylinux-10` only comes for parallels, utm, virtualbox and vmware, with no libvirt version, so I chose the official Rocky `rockylinux/10` box. But `vagrant box add` failed with a 404.
+The slide's `bento/rockylinux-10` only comes for parallels, utm, virtualbox and vmware, with no [libvirt](glossary:libvirt) version, so I chose the official [Rocky](glossary:rocky-linux) `rockylinux/10` [box](glossary:vagrant). But `vagrant box add` failed with a 404.
 
 ```bash
 vagrant box add rockylinux/10 --provider libvirt        # → 404
@@ -170,9 +170,9 @@ vagrant box add rockylinux/10 --provider libvirt        # → 404
 
 ![Box 404](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/09.webp)
 
-_Download via Vagrant Cloud returns 404_
+_Download via [Vagrant](glossary:vagrant) Cloud returns 404_
 
-The Vagrant Cloud box metadata redirects to `dl.rockylinux.org/.../Rocky-10-Vagrant-Libvirt-10.0-20250609.1.aarch64.box`, but the Rocky mirror only has the 10.2 (20260525.0) files now; the 10.0 file has been removed. I found the latest file URL in the mirror directory and added it directly with a name.
+The [Vagrant](glossary:vagrant) Cloud [box](glossary:vagrant) metadata redirects to `dl.rockylinux.org/.../Rocky-10-Vagrant-Libvirt-10.0-20250609.1.aarch64.box`, but the [Rocky](glossary:rocky-linux) mirror only has the 10.2 (20260525.0) files now; the 10.0 file has been removed. I found the latest file URL in the mirror directory and added it directly with a name.
 
 ```bash
 vagrant box add --name rockylinux/10 https://dl.rockylinux.org/pub/rocky/10/images/aarch64/Rocky-10-Vagrant-Libvirt.latest.aarch64.vagrant.libvirt.box
@@ -181,11 +181,11 @@ vagrant box list
 
 ![Box list](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/10.webp)
 
-_Box list after adding from the mirror URL, box files (box.img, metadata.json, Vagrantfile) and the box's built-in Vagrantfile_
+_Box list after adding from the mirror URL, [box](glossary:vagrant) files (box.img, metadata.json, [Vagrantfile](glossary:vagrant)) and the [box](glossary:vagrant)'s built-in Vagrantfile_
 
 ## Adding pci=nomsi to the Box Image
 
-As I found in HW2, in this nested virtualization setup the Rocky guest kernel hangs during boot without `pci=nomsi`, because it can't receive virtio interrupts. So I wrote a script that attaches the box image with `qemu-nbd` and appends the argument to the `options` line of the boot entries (`/boot/loader/entries/*.conf`). It only needs to run once before the first `vagrant up`; every VM disk created afterwards uses this image as its backing file.
+As I found in HW2, in this [nested virtualization](glossary:nested-virtualization) setup the [Rocky](glossary:rocky-linux) guest kernel hangs during boot without `pci=nomsi`, because it can't receive virtio interrupts. So I wrote a script that attaches the [box](glossary:vagrant) image with `qemu-nbd` and appends the argument to the `options` line of the boot entries (`/boot/loader/entries/*.conf`). It only needs to run once before the first `vagrant up`; every [VM](glossary:vm) disk created afterwards uses this image as its [backing](glossary:backing-file) file.
 
 ```bash:box-nomsi.sh
 #!/bin/bash
@@ -234,13 +234,13 @@ _Box image partitions (EFI, BOOT, rocky) and the kernel options line before/afte
 
 ## Writing the Vagrantfile
 
-I kept the structure from slide 18 (`NODE_COUNT`, the main definition, a `times` loop defining work1 and work2) and only replaced the VirtualBox-specific parts with libvirt ones.
+I kept the structure from slide 18 (`NODE_COUNT`, the main definition, a `times` loop defining work1 and work2) and only replaced the [VirtualBox](glossary:virtualbox)-specific parts with [libvirt](glossary:libvirt) ones.
 
-- **Box and provider**: `config.vm.box = "rockylinux/10"`, provider `"libvirt"`. `cpus` and `memory` instead of `modifyvm`, and `title` for the VM name.
-- **Options that fix problems**: `storage_pool_name = "images"` fixes the conflict with the existing pool (problem 2), and `machine_virtual_size = 10` corrects the box metadata error (problem 4).
-- **aarch64 UEFI boot**: `machine_type`/`machine_arch`, the AAVMF `loader` without secure boot, and per-node `nvram`. The VirtualBox defaults, cirrus video and a PS/2 mouse, don't work on aarch64, so `graphics_type = "none"` plus a virtio keyboard.
-- **Network**: `private_network` reuses the 192.168.56.0/24 network from Chapter 4 via `libvirt__network_name: "cloud56"`. I SSH directly to the management IP, so I removed `forwarded_port`, and I disabled the rsync shared folder built into the box since I don't use it.
-- **Typo**: the slide's last line `End` is a Ruby syntax error, so I wrote `end`.
+- **Box and provider**: `config.vm.box = "rockylinux/10"`, provider `"libvirt"`. `cpus` and `memory` instead of `modifyvm`, and `title` for the [VM](glossary:vm) name.
+- **Options that fix problems**: `storage_pool_name = "images"` fixes the conflict with the existing pool (problem 2), and `machine_virtual_size = 10` corrects the [box](glossary:vagrant) metadata error (problem 4).
+- **[aarch64](glossary:arm64) [UEFI](glossary:uefi) boot**: `machine_type`/`machine_arch`, the AAVMF `loader` without secure boot, and per-node `nvram`. The [VirtualBox](glossary:virtualbox) defaults, cirrus video and a PS/2 mouse, don't work on [aarch64](glossary:arm64), so `graphics_type = "none"` plus a virtio keyboard.
+- **Network**: `private_network` reuses the 192.168.56.0/24 network from Chapter 4 via `libvirt__network_name: "cloud56"`. I [SSH](glossary:ssh) directly to the management IP, so I removed `forwarded_port`, and I disabled the rsync shared folder built into the [box](glossary:vagrant) since I don't use it.
+- **Typo**: the slide's last line `End` is a [Ruby](glossary:ruby) syntax error, so I wrote `end`.
 
 ```ruby:Vagrantfile
 NODE_COUNT=2
@@ -288,19 +288,19 @@ end
 
 ![Vagrantfile](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/12.webp)
 
-_First version of the Vagrantfile (machine_virtual_size was added while fixing problem 4)_
+_First version of the [Vagrantfile](glossary:vagrant) (machine_virtual_size was added while fixing problem 4)_
 
 ## vagrant up
 
 ### Problem 4. All Three VMs Drop to the dracut Emergency Shell
 
-On the first `vagrant up`, all three VMs got stuck at `Waiting for domain to get an IP address...`. The kernel was running (CPU idle) but there were no DHCP requests, so I went in with `virsh console` and found an `sh-5.2#` emergency shell. `/run/initramfs/rdsosreport.txt` showed a timeout waiting for the root UUID device and `Could not boot.`, and `blkid` showed only `/dev/vda: PTTYPE="PMBR"`, with no partitions at all.
+On the first `vagrant up`, all three [VMs](glossary:vm) got stuck at `Waiting for domain to get an IP address...`. The kernel was running (CPU idle) but there were no [DHCP](glossary:dhcp) requests, so I went in with `virsh console` and found an `sh-5.2#` emergency shell. `/run/initramfs/rdsosreport.txt` showed a timeout waiting for the root UUID device and `Could not boot.`, and `blkid` showed only `/dev/vda: PTTYPE="PMBR"`, with no partitions at all.
 
 ![dracut emergency shell](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/13.webp)
 
-_Console of the 1st up: dracut timeout, no partitions in blkid_
+_Console of the 1st up: [dracut](glossary:dracut) timeout, no partitions in blkid_
 
-The cause was the box metadata. The box's `metadata.json` says `virtual_size: 5` (GB), but the actual `box.img` is 10 GiB. vagrant-libvirt created a 5 GiB VM disk from the metadata value, and the kernel dropped the GPT partitions that ran past the end of the disk, so it couldn't find the root filesystem. It's a bug on the Rocky box side, so I added `machine_virtual_size = 10` to the Vagrantfile and brought the VMs up again.
+The cause was the [box](glossary:vagrant) metadata. The [box](glossary:vagrant)'s `metadata.json` says `virtual_size: 5` (GB), but the actual `box.img` is 10 GiB. [vagrant-libvirt](glossary:vagrant) created a 5 GiB [VM](glossary:vm) disk from the metadata value, and the kernel dropped the [GPT](glossary:gpt) partitions that ran past the end of the disk, so it couldn't find the root filesystem. It's a bug on the [Rocky](glossary:rocky-linux) [box](glossary:vagrant) side, so I added `machine_virtual_size = 10` to the [Vagrantfile](glossary:vagrant) and brought the [VMs](glossary:vm) up again.
 
 ```bash
 vagrant up                      # 1st: emergency shell
@@ -314,15 +314,15 @@ vagrant up                      # 2nd: success
 
 _vagrant destroy -f and adding the disk size option_
 
-With 10 GiB disks, all three VMs booted in about 40 seconds. You can see it replacing the per-node SSH keys and setting up hostnames and networking, as on slide 19.
+With 10 GiB disks, all three [VMs](glossary:vm) booted in about 40 seconds. You can see it replacing the per-node [SSH](glossary:ssh) keys and setting up [hostnames](glossary:hostname) and networking, as on slide 19.
 
 ![2nd vagrant up](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/15.webp)
 
-_2nd vagrant up: per-node SSH key replacement, "Machine booted and ready!", hostname and network setup_
+_2nd vagrant up: per-node [SSH](glossary:ssh) key replacement, "Machine booted and ready!", [hostname](glossary:hostname) and network setup_
 
 ## Checking the Nodes
 
-`vagrant status` showed all three running, then I went into each node with `vagrant ssh` to check the hostname and addresses. enp3s0 (192.168.121.x) is the NAT management network vagrant-libvirt created for SSH, and enp4s0 got 192.168.56.101–103, same as the slides.
+`vagrant status` showed all three running, then I went into each node with `vagrant ssh` to check the [hostname](glossary:hostname) and addresses. enp3s0 (192.168.121.x) is the [NAT](glossary:nat) management network [vagrant-libvirt](glossary:vagrant) created for [SSH](glossary:ssh), and enp4s0 got 192.168.56.101–103, same as the slides.
 
 ```bash
 vagrant status
@@ -335,7 +335,7 @@ _hostname and ip -br addr on the three nodes_
 
 ## The vagrant Account's Keys and ssh-config
 
-`vagrant up` created a new key pair for each node and put it in `.vagrant/machines/<node>/libvirt/private_key` (where the slides have a virtualbox directory). `vagrant ssh-config` shows these keys and the management IPs, and I use them as-is in the Ansible inventory.
+`vagrant up` created a new key pair for each node and put it in `.vagrant/machines/<node>/libvirt/private_key` (where the slides have a virtualbox directory). `vagrant ssh-config` shows these keys and the management IPs, and I use them as-is in the [Ansible](glossary:ansible) [inventory](glossary:inventory).
 
 ```bash
 tree .vagrant/ -L 4 -a
@@ -348,13 +348,13 @@ _.vagrant/ tree: per-node private_key_
 
 ![vagrant ssh-config](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/18.webp)
 
-_vagrant ssh-config: HostName is the management IP, Port 22, IdentityFile_
+_vagrant [ssh-config](glossary:ssh-config): HostName is the management IP, Port 22, IdentityFile_
 
 # 2. Configuring HTCondor with Ansible
 
 ## Installing Ansible and the Inventory
 
-The Ubuntu ansible package (core 2.16.3) includes the `ansible.posix` collection the playbook uses.
+The [Ubuntu](glossary:ubuntu) [ansible](glossary:ansible) package (core 2.16.3) includes the `ansible.posix` collection the [playbook](glossary:playbook) uses.
 
 ```bash
 sudo apt install -y ansible
@@ -368,7 +368,7 @@ cat /etc/ansible/hosts
 
 _ansible installed, version, ansible.posix 1.5.4_
 
-The inventory has three groups, `[cluster]`, `[main]` and `[worker]`, like the slides, with one host per line. Only the key paths are changed for this environment.
+The [inventory](glossary:inventory) has three groups, `[cluster]`, `[main]` and `[worker]`, like the slides, with one host per line. Only the key paths are changed for this environment.
 
 ```text:/etc/ansible/hosts
 [cluster]
@@ -390,7 +390,7 @@ _/etc/ansible/hosts_
 
 ## Checking Host Connectivity
 
-I added the three nodes to `/etc/hosts` on the Ubuntu host and checked name resolution and 192.168.56.0/24 connectivity with ping.
+I added the three nodes to `/etc/hosts` on the [Ubuntu](glossary:ubuntu) host and checked name resolution and 192.168.56.0/24 connectivity with [ping](glossary:ping).
 
 ```bash
 printf "%s\n" "192.168.56.101 main.cloud.org main" "192.168.56.102 work1.cloud.org work1" "192.168.56.103 work2.cloud.org work2" | sudo tee -a /etc/hosts
@@ -399,9 +399,9 @@ ping -c 2 main.cloud.org; ping -c 2 work1.cloud.org; ping -c 2 work2.cloud.org
 
 ![ping](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/21.webp)
 
-_Adding /etc/hosts entries and pinging the three nodes_
+_Adding [/etc/hosts](glossary:hosts-file) entries and pinging the three nodes_
 
-The first time I ran `ansible cluster -m ping`, the SSH host key prompts for all three nodes appeared at once and it got stuck. After putting the host keys into `known_hosts` with `ssh-keyscan` and running it again, all three nodes answered pong.
+The first time I ran `ansible cluster -m ping`, the [SSH](glossary:ssh) [host key](glossary:ssh-host-key) prompts for all three nodes appeared at once and it got stuck. After putting the [host keys](glossary:ssh-host-key) into `known_hosts` with `ssh-keyscan` and running it again, all three nodes answered pong.
 
 ```bash
 ssh-keyscan main.cloud.org work1.cloud.org work2.cloud.org >> ~/.ssh/known_hosts
@@ -410,11 +410,11 @@ ansible cluster -m ping
 
 ![ansible ping](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/22.webp)
 
-_ssh-keyscan and ansible cluster -m ping: SUCCESS/pong from all three nodes_
+_ssh-keyscan and ansible cluster -m [ping](glossary:ping): SUCCESS/pong from all three nodes_
 
 ## Writing the Playbook
 
-I copied the three plays from slides 34–38 (common install on cluster, main setup, worker setup) and changed only two things. `NETWORK_INTERFACE` is now `enp4s0`, this environment's cluster interface, and I added a task that turns off firewalld to the cluster play (it's the fix for problem 5, so it wasn't there on the first run). Indentation is two spaces, no tabs.
+I copied the three plays from slides 34–38 (common install on cluster, main setup, worker setup) and changed only two things. `NETWORK_INTERFACE` is now `enp4s0`, this environment's cluster interface, and I added a task that turns off [firewalld](glossary:firewalld) to the cluster play (it's the fix for problem 5, so it wasn't there on the first run). Indentation is two spaces, no tabs.
 
 ```yaml:htcondor.yaml
 ---
@@ -546,11 +546,11 @@ I copied the three plays from slides 34–38 (common install on cluster, main se
 
 ![Playbook 1](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/23.webp)
 
-_htcondor.yaml lines 1–40: HTCondor Installation play (SELinux, firewalld (added), /etc/hosts, OpenSSH, wget)_
+_htcondor.yaml lines 1–40: [HTCondor](glossary:htcondor) Installation play ([SELinux](glossary:selinux), [firewalld](glossary:firewalld) (added), [/etc/hosts](glossary:hosts-file), OpenSSH, wget)_
 
 ![Playbook 2](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/24.webp)
 
-_htcondor.yaml lines 41–91: EPEL, HTCondor repository, condor install, Main Node Setup play_
+_htcondor.yaml lines 41–91: [EPEL](glossary:epel), [HTCondor](glossary:htcondor) repository, [condor](glossary:htcondor) install, Main Node Setup play_
 
 ![Playbook 3](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/25.webp)
 
@@ -558,7 +558,7 @@ _htcondor.yaml lines 92–125: Worker Node Setup play_
 
 ## Running the Playbook
 
-The first run, before adding the firewalld task, finished with `ok=12 changed=9 failed=0` on all three nodes.
+The first run, before adding the [firewalld](glossary:firewalld) task, finished with `ok=12 changed=9 failed=0` on all three nodes.
 
 ```bash
 ansible-playbook --syntax-check htcondor.yaml
@@ -584,7 +584,7 @@ attempt to connect to <192.168.56.101:9618> failed: No route to host
 TCP connection to collector main.cloud.org failed
 ```
 
-The Rocky box comes with firewalld enabled, and the default zone only allows ssh, cockpit and dhcpv6-client, so the HTCondor port (9618) was blocked. The slide playbook has no firewall step. In the Chapter 5 lab, the install script opened 9618 and I later turned off firewalld by hand, so it never came up.
+The [Rocky](glossary:rocky-linux) [box](glossary:vagrant) comes with [firewalld](glossary:firewalld) enabled, and the default zone only allows [ssh](glossary:ssh), cockpit and dhcpv6-client, so the [HTCondor](glossary:htcondor) port (9618) was blocked. The slide [playbook](glossary:playbook) has no firewall step. In the Chapter 5 lab, the install script opened 9618 and I later turned off [firewalld](glossary:firewalld) by hand, so it never came up.
 
 ```bash
 vagrant ssh main
@@ -596,9 +596,9 @@ ansible-playbook htcondor.yaml                                  # after adding t
 
 ![Problem 5 diagnosis](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/28.webp)
 
-_"No route to host" in the worker StartLog and firewalld state on the three nodes_
+_"No route to host" in the worker StartLog and [firewalld](glossary:firewalld) state on the three nodes_
 
-I added a task to the cluster play that sets firewalld to `stopped` and `enabled: no` with `ansible.builtin.service` and ran it again. Only stopping firewalld and the condor config and restart were changed; everything else passed as ok (`ok=13 changed=4`). This shows idempotence in action, so I used it in the answer to exercise 8 too.
+I added a task to the cluster play that sets [firewalld](glossary:firewalld) to `stopped` and `enabled: no` with `ansible.builtin.service` and ran it again. Only stopping [firewalld](glossary:firewalld) and the [condor](glossary:htcondor) config and restart were changed; everything else passed as ok (`ok=13 changed=4`). This shows [idempotence](glossary:idempotency) in action, so I used it in the answer to exercise 8 too.
 
 ![2nd run](/static/images/cloud-computing-hw4-vagrant-ansible-htcondor/29.webp)
 
@@ -606,7 +606,7 @@ _2nd ansible-playbook: PLAY RECAP ok=13 changed=4 failed=0_
 
 ## Final Result
 
-`condor_status` on main lists `slot1@work1.cloud.org` and `slot1@work2.cloud.org` as Unclaimed/Idle, Total 2. The same cluster as on slide 40 was built automatically. Arch is aarch64 because of this environment.
+`condor_status` on main lists `slot1@work1.cloud.org` and `slot1@work2.cloud.org` as Unclaimed/Idle, Total 2. The same cluster as on slide 40 was built automatically. Arch is [aarch64](glossary:arm64) because of this environment.
 
 ```bash
 vagrant ssh main
@@ -621,45 +621,45 @@ _Final condor_status: 2 workers Unclaimed Idle, Total 2_
 
 I was told the slides contain special characters that make copy-pasted commands fail, so I checked the PDF text. These items break commands, so type them by hand.
 
-| Page | Content                                                    | Result                                                                      |
-| ---- | ---------------------------------------------------------- | --------------------------------------------------------------------------- |
-| 13   | `–o` in `sudo gpg --dearmor –o ...` is an EN DASH (U+2013) | gpg reads `–o` as an input file name and fails. Type `-o`                   |
-| 18   | The Vagrantfile's last line is `End`, not `end`            | Ruby is case-sensitive, so the block never closes: syntax error. Type `end` |
-| 30   | `sudo vi /etc/host`                                        | `/etc/hosts`                                                                |
+| Page | Content                                                             | Result                                                                                       |
+| ---- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 13   | `–o` in `sudo gpg --dearmor –o ...` is an EN DASH (U+2013)          | [gpg](glossary:gpg) reads `–o` as an input file name and fails. Type `-o`                    |
+| 18   | The [Vagrantfile](glossary:vagrant)'s last line is `End`, not `end` | [Ruby](glossary:ruby) is case-sensitive, so the block never closes: syntax error. Type `end` |
+| 30   | `sudo vi /etc/host`                                                 | `/etc/hosts`                                                                                 |
 
 # 3. Exercises
 
 ## Ch7-3. Other Automation Tools for the Data Center
 
-Automation tools fall into two groups by what they do. **Provisioning tools** create resources like servers, networks and storage (Vagrant in this lab), and **configuration management tools** bring the packages, settings and services inside existing servers to a desired state (Ansible). I researched them based on the IaC tool list on slides 8–9.
+Automation tools fall into two groups by what they do. **[Provisioning](glossary:provisioning) tools** create resources like servers, networks and storage ([Vagrant](glossary:vagrant) in this lab), and **[configuration management](glossary:configuration-management) tools** bring the packages, settings and services inside existing servers to a desired state ([Ansible](glossary:ansible)). I researched them based on the [IaC](glossary:iac) tool list on slides 8–9.
 
-| Tool                  | Type / approach                                                                                                  | Pros                                                                                                                                                                                          | Cons                                                                                                                                                                                                  |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Terraform (HashiCorp) | Provisioning, declarative, immutable infrastructure. HCL language. Agentless                                     | Many providers (AWS, Azure, GCP, OpenStack, vSphere…) so multiple clouds in one codebase. Preview changes with plan, then apply. State file matches real resources to code. Largest community | Can't configure inside servers, so it needs a configuration management tool. Losing the state file or concurrent use causes accidents. License changed to BSL in 2023, which led to the OpenTofu fork |
-| AWS CloudFormation    | Provisioning, declarative, immutable. JSON/YAML templates. AWS only (Closed)                                     | Fastest and deepest support for AWS services, no extra cost. Create, change and delete by stack, automatic rollback on failure. IAM integration                                               | Unusable outside AWS. Templates are long and verbose. Slow deploys, unfriendly error messages. Small community                                                                                        |
-| OpenStack Heat        | Provisioning, declarative, immutable. HOT (YAML) templates. OpenStack only                                       | Built into private clouds (OpenStack), no extra install. Accepts CloudFormation-compatible templates                                                                                          | Unusable outside OpenStack. Few users and resources (Small community), less mature                                                                                                                    |
-| Pulumi                | Provisioning, declarative model written in general languages (Python, TypeScript, Go…)                           | No separate DSL to learn; loops, functions and tests from the language. Reuses Terraform providers                                                                                            | State storage defaults to the paid Pulumi Cloud service (Must-have). Small community, and the free-form code makes styles drift between teams                                                         |
-| Chef                  | Configuration management, procedural, mutable infrastructure. Ruby DSL. Server–agent                             | Old and stable with plenty of resources (Large community). Plain Ruby makes complex logic easy to express                                                                                     | Hard to learn: need Ruby and the Chef server. Every node needs an agent (chef-client) plus a central server. Procedural, so you spell out every "how"                                                 |
-| Puppet                | Configuration management, declarative, mutable. Own DSL. Master–agent                                            | You only write "what state it should be in". Good node state reporting and auditing, strong for compliance. Large community                                                                   | Need to learn its own DSL and master server. Agents pull periodically, so weak at ad-hoc runs. Heavy for small environments                                                                           |
-| SaltStack (Salt)      | Configuration management + remote execution, declarative (YAML). Master–minion (ZeroMQ), agentless with salt-ssh | Message bus sends commands to thousands of machines quickly and simultaneously. State application and remote execution in one tool. Event-driven automatic responses (reactor)                | Many unique concepts (grains, pillar, state) raise the entry barrier. Requires master and minion installs. Smaller community than Ansible                                                             |
+| Tool                                                         | Type / approach                                                                                                                                                                                | Pros                                                                                                                                                                                          | Cons                                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Terraform](glossary:terraform) (HashiCorp)                  | [Provisioning](glossary:provisioning), [declarative](glossary:declarative), [immutable](glossary:immutable-infrastructure) infrastructure. [HCL](glossary:hcl) language. Agentless             | Many providers (AWS, Azure, GCP, OpenStack, vSphere…) so multiple clouds in one codebase. Preview changes with plan, then apply. State file matches real resources to code. Largest community | Can't configure inside servers, so it needs a [configuration management](glossary:configuration-management) tool. Losing the state file or concurrent use causes accidents. License changed to BSL in 2023, which led to the [OpenTofu](glossary:opentofu) fork |
+| AWS [CloudFormation](glossary:aws-cloudformation)            | [Provisioning](glossary:provisioning), [declarative](glossary:declarative), [immutable](glossary:immutable-infrastructure). JSON/[YAML](glossary:yaml) templates. AWS only (Closed)            | Fastest and deepest support for AWS services, no extra cost. Create, change and delete by stack, automatic rollback on failure. IAM integration                                               | Unusable outside AWS. Templates are long and verbose. Slow deploys, unfriendly error messages. Small community                                                                                                                                                  |
+| [OpenStack Heat](glossary:openstack-heat)                    | [Provisioning](glossary:provisioning), [declarative](glossary:declarative), [immutable](glossary:immutable-infrastructure). HOT ([YAML](glossary:yaml)) templates. OpenStack only              | Built into private clouds (OpenStack), no extra install. Accepts [CloudFormation](glossary:aws-cloudformation)-compatible templates                                                           | Unusable outside OpenStack. Few users and resources (Small community), less mature                                                                                                                                                                              |
+| [Pulumi](glossary:pulumi)                                    | [Provisioning](glossary:provisioning), [declarative](glossary:declarative) model written in general languages (Python, TypeScript, Go…)                                                        | No separate DSL to learn; loops, functions and tests from the language. Reuses [Terraform](glossary:terraform) providers                                                                      | State storage defaults to the paid [Pulumi](glossary:pulumi) Cloud service (Must-have). Small community, and the free-form code makes styles drift between teams                                                                                                |
+| [Chef](glossary:chef)                                        | [Configuration management](glossary:configuration-management), [procedural](glossary:imperative), mutable infrastructure. [Ruby DSL](glossary:ruby). Server–agent                              | Old and stable with plenty of resources (Large community). Plain [Ruby](glossary:ruby) makes complex logic easy to express                                                                    | Hard to learn: need [Ruby](glossary:ruby) and the [Chef](glossary:chef) server. Every node needs an agent (chef-client) plus a central server. [Procedural](glossary:imperative), so you spell out every "how"                                                  |
+| [Puppet](glossary:puppet)                                    | [Configuration management](glossary:configuration-management), [declarative](glossary:declarative), mutable. Own DSL. Master–agent                                                             | You only write "what state it should be in". Good node state reporting and auditing, strong for compliance. Large community                                                                   | Need to learn its own DSL and master server. Agents pull periodically, so weak at [ad-hoc](glossary:ad-hoc-command) runs. Heavy for small environments                                                                                                          |
+| [SaltStack](glossary:saltstack) ([Salt](glossary:saltstack)) | [Configuration management](glossary:configuration-management) + remote execution, [declarative](glossary:declarative) ([YAML](glossary:yaml)). Master–minion (ZeroMQ), agentless with salt-ssh | Message bus sends commands to thousands of machines quickly and simultaneously. State application and remote execution in one tool. Event-driven automatic responses (reactor)                | Many unique concepts (grains, pillar, state) raise the entry barrier. Requires master and minion installs. Smaller community than [Ansible](glossary:ansible)                                                                                                   |
 
-In short, for creating resources, Terraform is more general than CloudFormation or Heat, which are tied to a specific cloud, since it handles many environments in one codebase; Pulumi is the alternative if you want a familiar programming language. For configuring the inside of servers, Chef, Puppet and Salt all use agents and a central server, which makes them strong for large, long-running operations but costly to adopt. Ansible works over plain SSH without agents, which suits quickly configuring a small cluster like this lab.
+In short, for creating resources, [Terraform](glossary:terraform) is more general than [CloudFormation](glossary:aws-cloudformation) or [Heat](glossary:openstack-heat), which are tied to a specific cloud, since it handles many environments in one codebase; [Pulumi](glossary:pulumi) is the alternative if you want a familiar programming language. For configuring the inside of servers, [Chef](glossary:chef), [Puppet](glossary:puppet) and [Salt](glossary:saltstack) all use agents and a central server, which makes them strong for large, long-running operations but costly to adopt. [Ansible](glossary:ansible) works over plain [SSH](glossary:ssh) without agents, which suits quickly configuring a small cluster like this lab.
 
-Real data centers usually don't do everything with one tool; they pair a provisioning tool with a configuration management tool, as in "create with Terraform (or Vagrant), configure with Ansible (or Puppet)". The Vagrant + Ansible combination in this assignment is a miniature of that.
+Real data centers usually don't do everything with one tool; they pair a [provisioning](glossary:provisioning) tool with a [configuration management](glossary:configuration-management) tool, as in "create with [Terraform](glossary:terraform) (or [Vagrant](glossary:vagrant)), configure with [Ansible](glossary:ansible) (or [Puppet](glossary:puppet))". The [Vagrant](glossary:vagrant) + [Ansible](glossary:ansible) combination in this assignment is a miniature of that.
 
 ## Ch7-8. Idempotence in Ansible and Why It Matters
 
-Idempotence is the property that applying the same operation once or many times gives the same result (slide 27). In Ansible it means the system stays in the same state no matter how many times you run the playbook.
+[Idempotence](glossary:idempotency) is the property that applying the same operation once or many times gives the same result (slide 27). In [Ansible](glossary:ansible) it means the system stays in the same state no matter how many times you run the [playbook](glossary:playbook).
 
-This works because Ansible modules don't "run commands"; they take a "desired state", check the current state first, and change things only when they differ. For example, `dnf: name: condor, state: present` installs condor if it's missing and does nothing if it's already there. `blockinfile` finds the block it inserted by its marker comments and never adds it twice. That's why results are split into changed (I changed it) and ok (already in that state, left alone).
+This works because [Ansible](glossary:ansible) modules don't "run commands"; they take a "desired state", check the current state first, and change things only when they differ. For example, `dnf: name: condor, state: present` installs [condor](glossary:htcondor) if it's missing and does nothing if it's already there. `blockinfile` finds the block it inserted by its marker comments and never adds it twice. That's why results are split into changed (I changed it) and ok (already in that state, left alone).
 
-This lab is a direct example. The first run installed and configured everything with `ok=12 changed=9` on all three nodes, and after adding one firewalld task the second run gave `ok=13 changed=4`. The four changes were only the new firewalld stop, the config file removal and creation, and the condor restart; the rest, like SELinux, hosts and package installs, were already in the desired state and passed through. Without idempotence, the second run would have appended the same three lines to `/etc/hosts` again and re-downloaded packages, messing up the state.
+This lab is a direct example. The first run installed and configured everything with `ok=12 changed=9` on all three nodes, and after adding one [firewalld](glossary:firewalld) task the second run gave `ok=13 changed=4`. The four changes were only the new [firewalld](glossary:firewalld) stop, the config file removal and creation, and the [condor](glossary:htcondor) restart; the rest, like [SELinux](glossary:selinux), hosts and package installs, were already in the desired state and passed through. Without [idempotence](glossary:idempotency), the second run would have appended the same three lines to `/etc/hosts` again and re-downloaded packages, messing up the state.
 
-Why idempotence matters:
+Why [idempotence](glossary:idempotency) matters:
 
 - **Safe re-runs**: if a run fails midway, say from a dropped network, you just run it again from the start. Nobody has to work out how far it got, which cuts the human errors of manual work (like the KT outage case on slides 3 and 5, where a single command was missed).
-- **Many machines in the same state**: running the same playbook on 100 machines puts them all in the same state regardless of when they were set up or what state they were in. Configuration drift, where servers' settings diverge over time, can be reversed by running it regularly.
-- **Infrastructure as code**: the playbook becomes a record of "what state the system should be in" rather than a procedure, so it can be version-controlled, reviewed and reused in other environments (the IaC features on slide 7).
+- **Many machines in the same state**: running the same [playbook](glossary:playbook) on 100 machines puts them all in the same state regardless of when they were set up or what state they were in. [Configuration drift](glossary:configuration-drift), where servers' settings diverge over time, can be reversed by running it regularly.
+- **[Infrastructure as code](glossary:iac)**: the [playbook](glossary:playbook) becomes a record of "what state the system should be in" rather than a procedure, so it can be version-controlled, reviewed and reused in other environments (the [IaC](glossary:iac) features on slide 7).
 - **Change tracking**: looking at changed alone tells you what a run actually changed, so any change on a server that shouldn't change shows up immediately. `--check` mode lets you check without applying.
 
-Not every task is idempotent on its own, though. The `shell` and `command` modules run every time, and this playbook's `service: state: restarted` restarts on every run, so it's deliberately not idempotent. Such tasks need a `creates:` condition, or a handler (`notify`) that restarts only when the config file changed, for the whole playbook to be idempotent.
+Not every task is [idempotent](glossary:idempotency) on its own, though. The `shell` and `command` modules run every time, and this [playbook](glossary:playbook)'s `service: state: restarted` restarts on every run, so it's deliberately not [idempotent](glossary:idempotency). Such tasks need a `creates:` condition, or a [handler](glossary:handler) (`notify`) that restarts only when the config file changed, for the whole [playbook](glossary:playbook) to be [idempotent](glossary:idempotency).

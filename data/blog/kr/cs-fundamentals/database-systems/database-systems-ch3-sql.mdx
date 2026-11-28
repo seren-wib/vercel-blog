@@ -8,11 +8,11 @@ summary: 'CREATE TABLE·타입·제약조건·ON DELETE/ON UPDATE, INSERT·DELET
 
 # SQL 문법 한 장 (4·5장 전부)
 
-COMPANY 테이블 기준. `< >` 자리에 네 걸 넣으면 됨. 순서: 테이블 만들기 → 행 넣고 지우고 고치기 → 찾기(SELECT) → 안에 SELECT 또 넣기 → 붙이기(JOIN) → 세기(집계) → 규칙(ASSERTION·TRIGGER) → 뷰
+COMPANY 테이블 기준. `< >` 자리에 네 걸 넣으면 됨. 순서: 테이블 만들기 → 행 넣고 지우고 고치기 → 찾기([SELECT](glossary:select)) → 안에 [SELECT](glossary:select) 또 넣기 → 붙이기([JOIN](glossary:join)) → 세기([Aggregate function](glossary:aggregate-function)) → 규칙([ASSERTION](glossary:assertion)·[TRIGGER](glossary:trigger)) → [View](glossary:view)
 
 ## 0. 직접 돌려보기
 
-교재 COMPANY 데이터가 들어 있는 SQLite가 브라우저 안에서 돌아감. 예제를 고르거나 쿼리를 직접 고쳐서 실행하면 결과와 테이블이 어떻게 바뀌는지 바로 보임. 변경은 실행할수록 쌓이고, **처음 상태로**를 누르면 시작 데이터로 돌아감
+교재 COMPANY 데이터가 들어 있는 [SQLite](glossary:sqlite)가 브라우저 안에서 돌아감. 예제를 고르거나 쿼리를 직접 고쳐서 실행하면 결과와 테이블이 어떻게 바뀌는지 바로 보임. 변경은 실행할수록 쌓이고, **처음 상태로**를 누르면 시작 데이터로 돌아감
 
 <SqlPlayground lang="kr" />
 
@@ -44,33 +44,33 @@ CREATE TABLE DEPARTMENT
                         ON DELETE SET DEFAULT  ON UPDATE CASCADE );
 ```
 
-| 타입            | 뭐                             | 예                    |
-| --------------- | ------------------------------ | --------------------- |
-| `INT`           | 정수                           | Dnumber, Salary       |
-| `CHAR(n)`       | 길이 딱 n 글자                 | Ssn CHAR(9), Sex CHAR |
-| `VARCHAR(n)`    | 최대 n 글자                    | Fname VARCHAR(15)     |
-| `DATE`          | 날짜 '1965-01-09'              | Bdate                 |
-| `DECIMAL(p, s)` | 소수. 전체 p자리 중 소수 s자리 | Hours DECIMAL(3,1)    |
+| [Data type](glossary:data-type) | 뭐                             | 예                                                      |
+| ------------------------------- | ------------------------------ | ------------------------------------------------------- |
+| `INT`                           | 정수                           | Dnumber, Salary                                         |
+| `CHAR(n)`                       | 길이 딱 n 글자                 | Ssn [CHAR](glossary:char)(9), Sex [CHAR](glossary:char) |
+| `VARCHAR(n)`                    | 최대 n 글자                    | Fname [VARCHAR](glossary:varchar)(15)                   |
+| `DATE`                          | 날짜 '1965-01-09'              | Bdate                                                   |
+| `DECIMAL(p, s)`                 | 소수. 전체 p자리 중 소수 s자리 | Hours [DECIMAL](glossary:decimal)(3,1)                  |
 
-| 줄                                | 뜻                                   |
-| --------------------------------- | ------------------------------------ |
-| `NOT NULL`                        | 빈 칸 금지. PK 열은 안 써도 자동     |
-| `DEFAULT <값>`                    | 값 안 주면 이걸로 채움               |
-| `PRIMARY KEY (…)`                 | 기본키. 둘 이상이면 `(Essn, Pno)`    |
-| `UNIQUE (…)`                      | PK는 아닌데 겹치면 안 되는 열        |
-| `FOREIGN KEY (a) REFERENCES T(b)` | a에는 T.b에 있는 값만                |
-| `CONSTRAINT <이름>`               | 제약에 이름. 나중에 고치거나 지울 때 |
+| 줄                                | 뜻                                                                |
+| --------------------------------- | ----------------------------------------------------------------- |
+| `NOT NULL`                        | 빈 칸 금지. [PK](glossary:primary-key) 열은 안 써도 자동          |
+| `DEFAULT <값>`                    | 값 안 주면 이걸로 채움                                            |
+| `PRIMARY KEY (…)`                 | [Primary key](glossary:primary-key). 둘 이상이면 `(Essn, Pno)`    |
+| `UNIQUE (…)`                      | [PK](glossary:primary-key)는 아닌데 겹치면 안 되는 열             |
+| `FOREIGN KEY (a) REFERENCES T(b)` | a에는 T.b에 있는 값만                                             |
+| `CONSTRAINT <이름>`               | [Constraint](glossary:constraint)에 이름. 나중에 고치거나 지울 때 |
 
-**FK가 가리키는 행이 지워지거나 PK가 바뀌면** (FK 줄 뒤에 붙임)
+**[FK](glossary:foreign-key)가 가리키는 행이 지워지거나 [PK](glossary:primary-key)가 바뀌면** ([FK](glossary:foreign-key) 줄 뒤에 붙임)
 
-| 행동          | ON DELETE 때 FK 칸 | 언제                            |
-| ------------- | ------------------ | ------------------------------- |
-| 안 씀         | 삭제 거부          | 아래가 있는 한 위를 못 지우게   |
-| `SET NULL`    | NULL로             | 아래는 남기되 연결만 끊기       |
-| `SET DEFAULT` | DEFAULT 값으로     | 아래는 남기되 기본값으로 옮기기 |
-| `CASCADE`     | 그 행도 같이 삭제  | 위 없어지면 아래도 필요 없음    |
+| 행동          | [ON DELETE](glossary:referential-action) 때 [FK](glossary:foreign-key) 칸 | 언제                            |
+| ------------- | ------------------------------------------------------------------------- | ------------------------------- |
+| 안 씀         | 삭제 거부                                                                 | 아래가 있는 한 위를 못 지우게   |
+| `SET NULL`    | [NULL](glossary:null)로                                                   | 아래는 남기되 연결만 끊기       |
+| `SET DEFAULT` | [DEFAULT](glossary:default) 값으로                                        | 아래는 남기되 기본값으로 옮기기 |
+| `CASCADE`     | 그 행도 같이 삭제                                                         | 위 없어지면 아래도 필요 없음    |
 
-- `ON UPDATE CASCADE`: 상대 PK 바뀌면 FK도 새 값으로. ON UPDATE는 거의 이거
+- `ON UPDATE CASCADE`: 상대 [PK](glossary:primary-key) 바뀌면 [FK](glossary:foreign-key)도 새 값으로. [ON UPDATE](glossary:referential-action)는 거의 이거
 
 ## 2. 행 넣기 · 지우기 · 고치기 (DML)
 
@@ -87,7 +87,7 @@ INSERT INTO EMPLOYEE (Fname, Lname, Dno, Ssn)
 VALUES ('Richard', 'Marini', 4, '653298653');
 ```
 
-- 열 골라 넣을 땐 NOT NULL인데 DEFAULT 없는 열은 꼭 / 없는 Dno, 빠진 Ssn, 겹치는 Ssn → 거부
+- 열 골라 넣을 땐 [NOT NULL](glossary:not-null)인데 [DEFAULT](glossary:default) 없는 열은 꼭 / 없는 Dno, 빠진 Ssn, 겹치는 Ssn → 거부
 
 ```sql
 DELETE FROM <테이블> WHERE <조건>;        -- WHERE 빼면 전부 삭제
@@ -107,7 +107,7 @@ UPDATE PROJECT  SET Plocation = 'Bellaire', Dnum = 5  WHERE Pnumber = 10;
 UPDATE EMPLOYEE SET Salary = Salary * 1.1             WHERE Dno = 5;
 ```
 
-- 값 자리에 계산식 됨 / DELETE·UPDATE 둘 다 FK에 CASCADE 있으면 다른 테이블까지 바뀜
+- 값 자리에 계산식 됨 / [DELETE](glossary:delete)·[UPDATE](glossary:update) 둘 다 [FK](glossary:foreign-key)에 [CASCADE](glossary:cascade) 있으면 다른 테이블까지 바뀜
 
 ## 3. 찾기 (SELECT)
 
@@ -118,7 +118,7 @@ WHERE    <행 조건> AND <테이블 잇는 조건>
 ORDER BY <열> [ASC | DESC], <열>;
 ```
 
-**쓰는 순서**: 뭐 보일지 → 어느 테이블에 있는지 → 조건 → 테이블 둘 이상이면 FK = PK로 잇기 (n개면 n−1개)
+**쓰는 순서**: 뭐 보일지 → 어느 테이블에 있는지 → 조건 → 테이블 둘 이상이면 [FK](glossary:foreign-key) = [PK](glossary:primary-key)로 잇기 (n개면 n−1개)
 
 ```sql
 SELECT Bdate, Address
@@ -158,7 +158,7 @@ FROM   EMPLOYEE AS E, WORKS_ON AS W, PROJECT AS P
 WHERE  E.Ssn = W.Essn AND W.Pno = P.Pnumber AND P.Pname = 'ProductX';
 ```
 
-**집합 연산**: SELECT 결과 둘을 합침. 열 개수·타입 같아야 함. 중복은 지움, 남기려면 `ALL`
+**[Set operation](glossary:set-operation)**: [SELECT](glossary:select) 결과 둘을 합침. 열 개수·[Data type](glossary:data-type) 같아야 함. 중복은 지움, 남기려면 `ALL`
 
 ```sql
 ( SELECT … ) UNION ( SELECT … );        -- 합집합
@@ -185,16 +185,16 @@ UNION
 SELECT … FROM … WHERE <값> <비교> ( SELECT … );
 ```
 
-| 비교             | 참일 때                      | 예                                                         |
-| ---------------- | ---------------------------- | ---------------------------------------------------------- |
-| `v IN (…)`       | v가 안쪽 결과에 있음         | `Pnumber IN (SELECT Pno FROM WORKS_ON WHERE …)`            |
-| `v NOT IN (…)`   | 없음                         |                                                            |
-| `v > ALL (…)`    | 안쪽 결과 전부보다 큼        | `Salary > ALL (SELECT Salary FROM EMPLOYEE WHERE Dno = 5)` |
-| `v = ANY (…)`    | 하나라도 같음 (= IN)         | `Pnumber = ANY (SELECT …)`                                 |
-| `EXISTS (…)`     | 안쪽 결과가 한 행이라도 있음 | 부양가족 있는 직원                                         |
-| `NOT EXISTS (…)` | 안쪽 결과가 비어 있음        | 부양가족 없는 직원                                         |
+| 비교             | 참일 때                             | 예                                                         |
+| ---------------- | ----------------------------------- | ---------------------------------------------------------- |
+| `v IN (…)`       | v가 안쪽 결과에 있음                | `Pnumber IN (SELECT Pno FROM WORKS_ON WHERE …)`            |
+| `v NOT IN (…)`   | 없음                                |                                                            |
+| `v > ALL (…)`    | 안쪽 결과 전부보다 큼               | `Salary > ALL (SELECT Salary FROM EMPLOYEE WHERE Dno = 5)` |
+| `v = ANY (…)`    | 하나라도 같음 (= [IN](glossary:in)) | `Pnumber = ANY (SELECT …)`                                 |
+| `EXISTS (…)`     | 안쪽 결과가 한 행이라도 있음        | 부양가족 있는 직원                                         |
+| `NOT EXISTS (…)` | 안쪽 결과가 비어 있음               | 부양가족 없는 직원                                         |
 
-- ALL·ANY 앞엔 `=`, `>`, `>=`, `<`, `<=`, `<>` 다 됨
+- [ALL](glossary:all)·[ANY](glossary:any) 앞엔 `=`, `>`, `>=`, `<`, `<=`, `<>` 다 됨
 
 ```sql
 SELECT DISTINCT Pnumber
@@ -207,9 +207,9 @@ WHERE  Pnumber IN ( SELECT Pnumber
                     WHERE  Essn = Ssn AND Lname = 'Smith' );
 ```
 
-- 위 UNION을 IN으로
+- 위 [UNION](glossary:union)을 [IN](glossary:in)으로
 
-**안쪽에서 바깥 별명을 쓰면** 바깥 행 하나마다 안쪽을 다시 돌림. 별명 필수
+**안쪽에서 바깥 별명을 쓰면** 바깥 행 하나마다 안쪽을 다시 돌림. [Alias](glossary:alias) 필수
 
 ```sql
 SELECT E.Fname, E.Lname
@@ -234,9 +234,9 @@ WHERE  EXISTS ( SELECT * FROM DEPENDENT  WHERE Ssn = Essn )
   AND  EXISTS ( SELECT * FROM DEPARTMENT WHERE Ssn = Mgr_ssn );
 ```
 
-- 부양가족 없는 직원 / 부양가족 있는 관리자. EXISTS는 있나 없나만 보니까 안쪽은 `SELECT *`
+- 부양가족 없는 직원 / 부양가족 있는 관리자. [EXISTS](glossary:exists)는 있나 없나만 보니까 안쪽은 `SELECT *`
 
-**"~ 전부에 참여하는"**: (전부) EXCEPT (그 사람 것)이 비어야 함 → `NOT EXISTS ( (SELECT …) EXCEPT (SELECT …) )`
+**"~ 전부에 참여하는"**: (전부) [EXCEPT](glossary:except) (그 사람 것)이 비어야 함 → `NOT EXISTS ( (SELECT …) EXCEPT (SELECT …) )`
 
 ```sql
 SELECT Fname, Lname
@@ -260,21 +260,21 @@ FROM   (EMPLOYEE JOIN DEPARTMENT ON Dno = Dnumber)
 WHERE  Dname = 'Research';
 ```
 
-- 잇는 조건을 WHERE 말고 ON에. 결과 열 = 첫 테이블 열 + 둘째 테이블 열
+- 잇는 조건을 [WHERE](glossary:where) 말고 ON에. 결과 열 = 첫 테이블 열 + 둘째 테이블 열
 
-| 종류                  | 결과                                   |
-| --------------------- | -------------------------------------- |
-| `JOIN` (= INNER JOIN) | 양쪽 다 짝 있는 행만                   |
-| `LEFT OUTER JOIN`     | 왼쪽 행 전부, 짝 없으면 오른쪽 칸 NULL |
-| `RIGHT OUTER JOIN`    | 오른쪽 행 전부                         |
-| `FULL OUTER JOIN`     | 양쪽 전부                              |
+| 종류                                         | 결과                                                    |
+| -------------------------------------------- | ------------------------------------------------------- |
+| `JOIN` (= [INNER JOIN](glossary:inner-join)) | 양쪽 다 짝 있는 행만                                    |
+| `LEFT OUTER JOIN`                            | 왼쪽 행 전부, 짝 없으면 오른쪽 칸 [NULL](glossary:null) |
+| `RIGHT OUTER JOIN`                           | 오른쪽 행 전부                                          |
+| `FULL OUTER JOIN`                            | 양쪽 전부                                               |
 
 ```sql
 SELECT E.Fname, E.Lname, S.Fname, S.Lname
 FROM   (EMPLOYEE AS E LEFT OUTER JOIN EMPLOYEE AS S ON E.Super_ssn = S.Ssn);
 ```
 
-- `JOIN`이면 상사 없는 Borg 빠짐 / `LEFT OUTER JOIN`이면 Borg도 나오고 상사 칸 NULL
+- `JOIN`이면 상사 없는 Borg 빠짐 / `LEFT OUTER JOIN`이면 Borg도 나오고 상사 칸 [NULL](glossary:null)
 
 ## 6. 세기 (집계 · GROUP BY · HAVING)
 
@@ -286,12 +286,12 @@ GROUP BY <묶는 열>
 HAVING   <묶음 조건>;
 ```
 
-| 함수          | 뭐              | 주의                                     |
-| ------------- | --------------- | ---------------------------------------- |
-| `COUNT(*)`    | 행 수           |                                          |
-| `COUNT(<열>)` | NULL 아닌 값 수 | `COUNT(DISTINCT Salary)` 서로 다른 값 수 |
-| `SUM`, `AVG`  | 합, 평균        | 숫자 열만                                |
-| `MAX`, `MIN`  | 최대, 최소      |                                          |
+| 함수          | 뭐                               | 주의                                     |
+| ------------- | -------------------------------- | ---------------------------------------- |
+| `COUNT(*)`    | 행 수                            |                                          |
+| `COUNT(<열>)` | [NULL](glossary:null) 아닌 값 수 | `COUNT(DISTINCT Salary)` 서로 다른 값 수 |
+| `SUM`, `AVG`  | 합, 평균                         | 숫자 열만                                |
+| `MAX`, `MIN`  | 최대, 최소                       |                                          |
 
 ```sql
 SELECT SUM(Salary), MAX(Salary), MIN(Salary), AVG(Salary)
@@ -299,7 +299,7 @@ FROM   (EMPLOYEE JOIN DEPARTMENT ON Dno = Dnumber)
 WHERE  Dname = 'Research';
 ```
 
-- GROUP BY 없으면 전체가 한 묶음 → 결과 한 줄
+- [GROUP BY](glossary:group-by) 없으면 전체가 한 묶음 → 결과 한 줄
 
 ```sql
 SELECT   Dno, COUNT(*), AVG(Salary)
@@ -307,7 +307,7 @@ FROM     EMPLOYEE
 GROUP BY Dno;
 ```
 
-- "부서별", "프로젝트마다" → GROUP BY. SELECT엔 GROUP BY 쓴 열 + 집계 함수만
+- "부서별", "프로젝트마다" → [GROUP BY](glossary:group-by). [SELECT](glossary:select)엔 [GROUP BY](glossary:group-by) 쓴 열 + [Aggregate function](glossary:aggregate-function)만
 
 ```sql
 SELECT   Pnumber, Pname, COUNT(*)
@@ -317,7 +317,7 @@ GROUP BY Pnumber, Pname
 HAVING   COUNT(*) > 2;
 ```
 
-- WHERE는 행을 거르고 HAVING은 묶음을 거름. WHERE에 COUNT 쓰면 에러
+- [WHERE](glossary:where)는 행을 거르고 [HAVING](glossary:having)은 묶음을 거름. [WHERE](glossary:where)에 [COUNT](glossary:count) 쓰면 에러
 
 ```sql
 SELECT Fname, Lname
@@ -325,9 +325,9 @@ FROM   EMPLOYEE
 WHERE  ( SELECT COUNT(*) FROM DEPENDENT WHERE Ssn = Essn ) >= 2;
 ```
 
-- 집계를 WHERE 안 중첩 질의로. 부양가족 2명 이상
+- [Aggregate function](glossary:aggregate-function)을 [WHERE](glossary:where) 안 [Subquery](glossary:subquery)로. 부양가족 2명 이상
 
-**실행 순서**: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY
+**실행 순서**: FROM → [WHERE](glossary:where) → [GROUP BY](glossary:group-by) → [HAVING](glossary:having) → [SELECT](glossary:select) → [ORDER BY](glossary:order-by)
 
 ## 7. 규칙 걸기 (ASSERTION · TRIGGER)
 
@@ -345,7 +345,7 @@ CHECK ( NOT EXISTS ( SELECT *
                        AND  D.Mgr_ssn = M.Ssn ) );
 ```
 
-- 어기는 행을 찾는 SELECT를 NOT EXISTS로 감쌈 = "그런 행 없어야 함". 직원 급여 > 부서장 급여 되는 변경은 거부
+- 어기는 행을 찾는 [SELECT](glossary:select)를 [NOT EXISTS](glossary:not-exists)로 감쌈 = "그런 행 없어야 함". 직원 급여 > 부서장 급여 되는 변경은 거부
 
 ```sql
 CREATE TRIGGER <이름>
@@ -364,11 +364,11 @@ WHEN ( NEW.SALARY > ( SELECT SALARY FROM EMPLOYEE
   INFORM_SUPERVISOR(NEW.Supervisor_ssn, NEW.Ssn);
 ```
 
-| 부분      | 코드                                       | 뜻                             |
-| --------- | ------------------------------------------ | ------------------------------ |
-| Event     | `BEFORE INSERT OR UPDATE OF … ON EMPLOYEE` | 어떤 명령 전·후에              |
-| Condition | `WHEN (…)`                                 | 안 쓰면 매번 실행              |
-| Action    | `INFORM_SUPERVISOR(…)`                     | SQL문, 트랜잭션, 외부 프로그램 |
+| 부분      | 코드                                       | 뜻                                                                        |
+| --------- | ------------------------------------------ | ------------------------------------------------------------------------- |
+| Event     | `BEFORE INSERT OR UPDATE OF … ON EMPLOYEE` | 어떤 명령 전·후에                                                         |
+| Condition | `WHEN (…)`                                 | 안 쓰면 매번 실행                                                         |
+| Action    | `INFORM_SUPERVISOR(…)`                     | [SQL](glossary:sql)문, [Transaction](glossary:transaction), 외부 프로그램 |
 
 - `NEW.<열>`은 넣거나 바뀐 뒤 값 / Assertion은 막는 거, Trigger는 뭔가 하는 거
 
@@ -395,49 +395,49 @@ AS SELECT   Dname, COUNT(*), SUM(Salary)
    GROUP BY Dname;
 ```
 
-- 열 이름은 SELECT 그대로. COUNT·SUM처럼 이름 없으면 앞에 `(…)`로 직접
+- 열 이름은 [SELECT](glossary:select) 그대로. [COUNT](glossary:count)·[SUM](glossary:sum)처럼 이름 없으면 앞에 `(…)`로 직접
 
 ```sql
 SELECT Fname, Lname FROM WORKS_ON1 WHERE Pname = 'ProductX';
 DROP VIEW WORKS_ON1;
 ```
 
-- 뷰는 저장 안 됨, 질의할 때 원본에서 만들어짐 / DROP VIEW는 원본 안 건드림
+- [View](glossary:view)는 저장 안 됨, 질의할 때 원본에서 만들어짐 / DROP [VIEW](glossary:view)는 원본 안 건드림
 
-**뷰에 INSERT·DELETE·UPDATE**
+**뷰에 INSERT·[DELETE](glossary:delete)·[UPDATE](glossary:update)**
 
-| 뷰                                                    | 갱신                                 |
-| ----------------------------------------------------- | ------------------------------------ |
-| 테이블 하나 + 집계 없음 + 원본 PK·NOT NULL 열 다 있음 | 됨                                   |
-| 테이블 둘 이상 join                                   | 안 됨 (어느 테이블 고칠지 여러 가지) |
-| GROUP BY·집계 함수                                    | 안 됨 (계산한 값)                    |
+| [View](glossary:view)                                                                                                                           | 갱신                                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| 테이블 하나 + [Aggregate function](glossary:aggregate-function) 없음 + 원본 [PK](glossary:primary-key)·[NOT NULL](glossary:not-null) 열 다 있음 | 됨                                   |
+| 테이블 둘 이상 join                                                                                                                             | 안 됨 (어느 테이블 고칠지 여러 가지) |
+| [GROUP BY](glossary:group-by)·[Aggregate function](glossary:aggregate-function)                                                                 | 안 됨 (계산한 값)                    |
 
 ```sql
 CREATE VIEW DEPT5EMP       AS SELECT * FROM EMPLOYEE WHERE Dno = 5;
 CREATE VIEW BASIC_EMP_DATA AS SELECT Fname, Lname, Address FROM EMPLOYEE;
 ```
 
-- 권한용. 원본 권한 안 주고 뷰 권한만 주면 행(5번 부서만)·열(이름·주소만) 숨김
+- 권한용. 원본 권한 안 주고 [View](glossary:view) 권한만 주면 행(5번 부서만)·열(이름·주소만) 숨김
 
 ## 9. 문제 문장 → 문법
 
-| 문제에 이 말 나오면                    | 쓰는 것                                      |
-| -------------------------------------- | -------------------------------------------- |
-| 테이블 둘 이상의 열                    | FROM에 둘 다, WHERE에 FK = PK (또는 JOIN ON) |
-| 직원과 그 상사                         | 같은 테이블 두 번, `AS E`, `AS S`            |
-| 중복 없이                              | `DISTINCT`                                   |
-| ~별, ~마다                             | `GROUP BY`                                   |
-| ~인 부서만 (묶음에 조건)               | `HAVING`                                     |
-| 몇 명, 합, 평균, 최대                  | `COUNT`, `SUM`, `AVG`, `MAX`                 |
-| ~보다 많이 받는 (비교값을 DB에서)      | 중첩 질의 `> ALL (SELECT …)`                 |
-| ~에 속한, ~한 적 있는                  | `IN (SELECT …)` / `EXISTS`                   |
-| ~가 없는                               | `NOT EXISTS` / `NOT IN`                      |
-| 전부에 참여하는                        | `NOT EXISTS ( … EXCEPT … )`                  |
-| 짝 없는 행도 보여야 (상사 없는 직원도) | `LEFT OUTER JOIN`                            |
-| 둘 다 / 둘 중 하나 / 하나만            | `INTERSECT` / `UNION` / `EXCEPT`             |
-| 정렬, 높은 순                          | `ORDER BY … DESC`                            |
-| 급여 10% 인상                          | `UPDATE … SET Salary = Salary * 1.1`         |
-| 지우면 같이 지워지게                   | `ON DELETE CASCADE`                          |
-| 항상 지켜야 하는 규칙                  | `CREATE ASSERTION … CHECK (NOT EXISTS …)`    |
-| ~할 때 자동으로                        | `CREATE TRIGGER`                             |
-| 자주 쓰는 질의에 이름                  | `CREATE VIEW`                                |
+| 문제에 이 말 나오면                    | 쓰는 것                                                                                                                         |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 테이블 둘 이상의 열                    | FROM에 둘 다, [WHERE](glossary:where)에 [FK](glossary:foreign-key) = [PK](glossary:primary-key) (또는 [JOIN](glossary:join) ON) |
+| 직원과 그 상사                         | 같은 테이블 두 번, `AS E`, `AS S`                                                                                               |
+| 중복 없이                              | `DISTINCT`                                                                                                                      |
+| ~별, ~마다                             | `GROUP BY`                                                                                                                      |
+| ~인 부서만 (묶음에 조건)               | `HAVING`                                                                                                                        |
+| 몇 명, 합, 평균, 최대                  | `COUNT`, `SUM`, `AVG`, `MAX`                                                                                                    |
+| ~보다 많이 받는 (비교값을 DB에서)      | [Subquery](glossary:subquery) `> ALL (SELECT …)`                                                                                |
+| ~에 속한, ~한 적 있는                  | `IN (SELECT …)` / `EXISTS`                                                                                                      |
+| ~가 없는                               | `NOT EXISTS` / `NOT IN`                                                                                                         |
+| 전부에 참여하는                        | `NOT EXISTS ( … EXCEPT … )`                                                                                                     |
+| 짝 없는 행도 보여야 (상사 없는 직원도) | `LEFT OUTER JOIN`                                                                                                               |
+| 둘 다 / 둘 중 하나 / 하나만            | `INTERSECT` / `UNION` / `EXCEPT`                                                                                                |
+| 정렬, 높은 순                          | `ORDER BY … DESC`                                                                                                               |
+| 급여 10% 인상                          | `UPDATE … SET Salary = Salary * 1.1`                                                                                            |
+| 지우면 같이 지워지게                   | `ON DELETE CASCADE`                                                                                                             |
+| 항상 지켜야 하는 규칙                  | `CREATE ASSERTION … CHECK (NOT EXISTS …)`                                                                                       |
+| ~할 때 자동으로                        | `CREATE TRIGGER`                                                                                                                |
+| 자주 쓰는 질의에 이름                  | `CREATE VIEW`                                                                                                                   |

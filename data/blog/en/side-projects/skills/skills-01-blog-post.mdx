@@ -5,188 +5,151 @@ tags: ['Skills']
 draft: false
 aiGenerated: true
 summary: 'How scattered blog-writing rules were gathered into one skill, then grew a two-layer writing rule and length limits'
+level: 1
 ---
-
-> Part 1 of the skills series. What a skill is and why these rules were split out is in [CH0. Skills Overview](/en/blog/side-projects/skills/skills-00-overview/).
 
 ## 0. Introduction
 
-`blog-post` is the [skill](/en/blog/side-projects/devblog/devblog-04-agent-environment/#3-pulling-out-what-is-needed) an AI agent opens when it writes or edits a post on this blog (kibotos.dev). Whether it is moving a lecture note, writing a project series or translating into English, it reads these rules first. The post you are reading was written by this skill too.
+> Part 1 of the [skills](glossary:agent-skill) series. What a [skill](glossary:agent-skill) is and why these rules were split out is in [CH0. Skills Overview](/en/blog/side-projects/skills/skills-00-overview/).
 
-The skill is a single `SKILL.md` file with 7 sections. Its size and commit count are collected in the [By the numbers](#by-the-numbers) table at the end. This post walks through when the skill is read, where its rules came from, and what each rule asks of a post.
+`blog-post` is the [skill](/en/blog/side-projects/devblog/devblog-04-agent-environment/#3-pulling-out-what-is-needed) an [AI agent](glossary:ai-agent) opens when it writes or edits a post on this blog (kibotos.dev). Whether it is moving a lecture note, writing a project series or translating into English, it reads these rules first. The post you are reading was written by this [skill](glossary:agent-skill) too.
+
+In restaurant terms, the blog is the restaurant and a post is a dish. If the cook made every dish differently, guests would get confused, so a recipe card hangs on the kitchen wall. The card stays folded most of the time and is opened only when that dish is made. It says how to tell the story, how long the menu lines may be, how to point to other dishes, and how to hide guests' faces. The recipe card is the [skill](glossary:agent-skill), opening it is a [Skill tool](glossary:skill) call, telling the story is point of view, the menu lines are summary and heading, pointing to other dishes is a cross-link, and hiding faces is [masking](glossary:data-masking).
+
+The [skill](glossary:agent-skill) is a single `SKILL.md` file with 7 sections. This post walks through when the [skill](glossary:agent-skill) is read, where its rules came from, and what each rule asks of a post. Its size and [commit](glossary:git-commit) count are in the table in [section 9](#9-measurements).
 
 ## 1. When the skill is read
 
-Think of a style guide on a bookshelf. Most of the time you only see the title on its spine, and you take it down and open it only when you write.
+Most of the time only one line of a list is visible, and the body opens only when you write. That line is the [frontmatter](glossary:frontmatter) description, and opening the body is a [Skill tool](glossary:skill) call.
 
 ![The order in which the blog-post skill is read: skill listing, Skill tool, SKILL.md body, publish_pipeline.md](/static/images/skills-01-blog-post/skill-loading.svg)
 
-_The order in which the blog-post skill is read: skill listing → Skill tool → SKILL.md body → publish_pipeline.md_
+_The order in which the blog-post [skill](glossary:agent-skill) is read: [skill](glossary:agent-skill) listing → [Skill tool](glossary:skill) → [SKILL](glossary:agent-skill).md body → publish_pipeline.md_
 
-In real terms, the spine is the frontmatter **description**, and taking the book down is a **Skill tool** call.
-
-Claude Code puts a list of skills into the prompt every session. Each skill contributes only its `name` and its one-line `description`. The `blog-post` description lists its triggers as "uploading a note to the blog, writing or editing a post (KR or EN), preparing photos". When a task matches, the agent calls the skill through the Skill tool, and only then does the body enter the context. In a session that does no blog work, the 4.7 KB body is never read.
+[Claude Code](glossary:claude-code) puts a list of [skills](glossary:agent-skill) into the prompt every session. Each [skill](glossary:agent-skill) contributes only its `name` and its one-line `description`. The `blog-post` description lists its triggers as "uploading a note to the blog, writing or editing a post (KR or EN), preparing photos". When a task matches, the [agent](glossary:ai-agent) calls the [skill](glossary:agent-skill) through the [Skill tool](glossary:skill), and only then does the body enter the [context](glossary:context-window). In a session that does no blog work, the 4.7 KB body is never read.
 
 The repo has its own [publish pipeline](https://github.com/seren-wib/vercel-blog/blob/main/docs/agent/publish_pipeline.md) document. The two have different jobs.
 
-| Document                         | Where                          | Covers                                                                        |
-| -------------------------------- | ------------------------------ | ----------------------------------------------------------------------------- |
-| `docs/agent/publish_pipeline.md` | Blog repo (public)             | Importing, file names, frontmatter, image paths, build, PR                    |
-| `blog-post/SKILL.md`             | Personal config repo (private) | Voice, post structure, summary length, cross-links, masking people and photos |
+| Document                         | Where                          | Covers                                                                                                      |
+| -------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `docs/agent/publish_pipeline.md` | Blog repo (public)             | Importing, file names, [frontmatter](glossary:frontmatter), image paths, build, [PR](glossary:pull-request) |
+| `blog-post/SKILL.md`             | Personal config repo (private) | Voice, post structure, summary length, cross-links, [masking](glossary:data-masking) people and photos      |
 
-The repo's `CLAUDE.md` pulls in the pipeline with `@docs/agent/publish_pipeline.md`, so it is always read when working in this repo. The skill's first line says "these rules sit on top of it". The pipeline sets the procedure, and the skill decides how to write on top of it. They clash in exactly one place today, the summary rule, and the skill says it wins ([section 5](#5-summary-and-heading-length)).
+The repo's `CLAUDE.md` pulls in the pipeline with `@docs/agent/publish_pipeline.md`, so it is always read when working in this repo. The [skill](glossary:agent-skill)'s first line says "these rules sit on top of it". The pipeline sets the procedure, and the [skill](glossary:agent-skill) decides how to write on top of it. They clash in exactly one place today, the summary rule, and the [skill](glossary:agent-skill) says it wins ([section 5](#5-summary-and-heading-length)).
 
 ## 2. From memory to a skill
 
-Think of copying four sticky notes into one notebook.
+The rules were not in a [skill](glossary:agent-skill) from the start. Each time posting a note caused a problem, one more file piled up in the [agent](glossary:ai-agent)'s memory. Four [memory files](glossary:agent-memory) were later moved into one [skill](glossary:agent-skill).
 
 ![The order in which blog-post rules appeared: four memory files moved into a skill on 2026-11-13, then grew over four commits](/static/images/skills-01-blog-post/rule-history.svg)
 
-_The order in which blog-post rules appeared: four memory files → skill on 2026-11-13 → four commits_
+_The order in which blog-post rules appeared: four [memory files](glossary:agent-memory) → [skill](glossary:agent-skill) on 2026-11-13 → four commits_
 
-In real terms, the sticky notes are **agent memory files** and the notebook is a **skill**.
+| Date       | [Memory file](glossary:agent-memory) | What prompted it (per the records)                                                                 |
+| ---------- | ------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| 2026-10-09 | `ai-tag-line-on-blog`                | Publishing Software Engineering ch2 with the UNIV note's AI tag line removed                       |
+| 2026-10-20 | `blog-cross-links`                   | More posts overlapping, like Computer Systems ch4 and the OS series, so link instead of repeating  |
+| 2026-11-05 | `blog-photos-and-people`             | Photos in the Woowangthon series showed a school asset label and messy backgrounds                 |
+| 2026-11-10 | `blog-no-agent-dialogue`             | Woowangthon part 9 quoted my exchange with the [agent](glossary:ai-agent) and read like a chat log |
 
-The rules were not in a skill from the start. Each time posting a note caused a problem, one more file piled up in the agent's memory.
+Three of the four were global memory. The global memory index is embedded in the prompt every session, so the blog rule index lines followed me around whether I was doing coursework or fixing settings. On 2026-11-13, [commit](glossary:git-commit) `fa0ceb8e` moved these rules into a [skill](glossary:agent-skill). The [commit](glossary:git-commit) body says, in effect, that rules used for only one kind of task belong in a [skill](glossary:agent-skill) so they load when that task comes up. `pr-workflow`, `docs-style`, `profile-edit` and `teruten` were created the same day for the same reason.
 
-| Date       | Memory file              | What prompted it (per the records)                                                                |
-| ---------- | ------------------------ | ------------------------------------------------------------------------------------------------- |
-| 2026-10-09 | `ai-tag-line-on-blog`    | Publishing Software Engineering ch2 with the UNIV note's AI tag line removed                      |
-| 2026-10-20 | `blog-cross-links`       | More posts overlapping, like Computer Systems ch4 and the OS series, so link instead of repeating |
-| 2026-11-05 | `blog-photos-and-people` | Photos in the Woowangthon series showed a school asset label and messy backgrounds                |
-| 2026-11-10 | `blog-no-agent-dialogue` | Woowangthon part 9 quoted my exchange with the agent and read like a chat log                     |
-
-Three of the four were global memory. The global memory index is embedded in the prompt every session, so the blog rule index lines followed me around whether I was doing coursework or fixing settings. On 2026-11-13, commit `fa0ceb8e` moved these rules into a skill. The commit body says, in effect, that rules used for only one kind of task belong in a skill so they load when that task comes up. `pr-workflow`, `docs-style`, `profile-edit` and `teruten` were created the same day for the same reason.
-
-After that the skill grew over four commits. The two biggest were two-layer writing on 2026-11-25 and the summary length rule on 2026-11-27.
+After that the [skill](glossary:agent-skill) grew over four [commits](glossary:git-commit). The two biggest were two-layer writing on 2026-11-25 and the summary length rule on 2026-11-27.
 
 ## 3. One voice
 
-Think of an article, not an interview transcript. Nobody's lines are taken down word for word; one person sorts it out and writes it.
+A post is fixed to one point of view. The rule is to write like an article, where one person sorts things out, not an interview transcript that takes down who said what.
 
-In real terms, the rule fixes the post to one **point of view**.
-
-- The point of view is one of two: mine ("I decided to ~, because ~") or the agent's ("Claude Code proposed ~").
-- The prompts I typed to the agent are never quoted, and the post never stages a back-and-forth like "I asked / the agent answered".
+- The point of view is one of two: mine ("I decided to ~, because ~") or the [agent](glossary:ai-agent)'s ("[Claude Code](glossary:claude-code) proposed ~").
+- The prompts I typed to the [agent](glossary:ai-agent) are never quoted, and the post never stages a back-and-forth like "I asked / the [agent](glossary:ai-agent) answered".
 - Quoting documents, error messages, command output and teammates' chat is fine.
 
-When this rule was added on 2026-11-10, every post already written that way was set to be fixed. In memory, the agent recorded its own reading of why: "quoted prompts read like a chat log, not a write-up".
+When this rule was added on 2026-11-10, every post already written that way was set to be fixed. In memory, the [agent](glossary:ai-agent) recorded its own reading of why: "quoted prompts read like a chat log, not a write-up".
 
 The same section holds a series rule. A series has to be readable by someone who has never seen it, so the 00 post explains what, why and how, and every later post links back to 00 in its first line. The quote line at the top of this post is that link.
 
 ## 4. Writing in two layers
 
-Think of a map that prints neighborhood names in large type and road numbers in small type. A first-time visitor reads only the names; someone who knows the area reads the numbers too.
+One text serves a newcomer layer and a CS reader layer at once. There is no separate easy version.
 
 ![The structure of one section: analogy, SVG diagram, mapping line, real behavior, with a numbers table and glossary at the end of the post](/static/images/skills-01-blog-post/two-layers.svg)
 
-_The structure of one section: ① analogy → ② SVG diagram → ③ mapping line → ④ real behavior_
+_The structure of one section: ① analogy → ② [SVG](glossary:svg) diagram → ③ mapping line → ④ real behavior_
 
-In real terms, one text serves a **newcomer layer** and a **CS reader layer** at once. There is no separate easy version.
+[Commit](glossary:git-commit) `5c3b37a3` added this section on 2026-11-25. At first each section followed a fixed order: an analogy in one or two sentences, an [SVG](glossary:svg) diagram, one line naming the term the analogy pointed to, then the real behavior. The current [SKILL](glossary:agent-skill).md keeps the analogy in a single paragraph of `## 0. Introduction`, ending by mapping each analogy word to its real term. From section 1 on, only real terms are used.
 
-Commit `5c3b37a3` added this section on 2026-11-25. Each section follows a fixed order.
+- Body from section 1: one [SVG](glossary:svg) diagram, then the real behavior (paths, commands, numbers, and why it was designed that way).
+- Diagrams are files, not [SVG](glossary:svg) code inlined into the post. They live at the same path as photos, `public/static/images/<slug>/<content>.svg`. The same [masking](glossary:data-masking) rules apply, so labels must not contain real hostnames, IPs or account names.
+- Numbers that change (counts, sizes, versions) are not scattered through the text but gathered in one table stamped with its date. The prose points to that table. When a number changes, only the table needs fixing.
 
-1. An analogy in one or two sentences
-2. An SVG diagram, with the real terms as the main labels and the analogy words small beside them
-3. One line stating which term the analogy pointed to, then terms only from there on
-4. The real behavior: paths, commands, numbers, and why it was designed that way
-
-Diagrams are files, not SVG code inlined into the post. They live at the same path as photos, `public/static/images/<slug>/<content>.svg`. The same masking rules apply, so labels must not contain real hostnames, IPs or account names.
-
-Numbers that change (counts, sizes, versions) are not scattered through the text but gathered in one table stamped with its date. The prose points to that table. When a number changes, only the table needs fixing. Each post ends with a glossary table.
-
-The skill commit has no body explaining why this rule came in; the direct trigger is not recorded. Earlier that month, on 2026-11-19, the agent instructions gained a rule that "an explanation may start with an analogy but must end in proper terms and real behavior", and this section has the same shape, applied to post structure.
+The [skill](glossary:agent-skill) [commit](glossary:git-commit) has no body explaining why this rule came in; the direct trigger is not recorded. Earlier that month, on 2026-11-19, the agent instructions gained a rule that "an explanation may start with an analogy but must end in proper terms and real behavior", and this section has the same shape, applied to post structure.
 
 ## 5. Summary and heading length
 
-Think of a book's belly band and its table of contents. Print the whole table of contents on the band and nobody reads it.
-
-In real terms, these are length limits on the frontmatter **`summary`** (the list card subtitle and the meta/OG description) and on each **heading** (one line in the post's table of contents).
-
-Commit `d6cb1c8a` added the rule on 2026-11-27.
+The [frontmatter](glossary:frontmatter) `summary` (the list card subtitle and the [meta description](glossary:meta-description)/[OG](glossary:open-graph) description) and each heading (one line in the post's table of contents) have length limits. Print the whole table of contents on a book's belly band and nobody reads it. [Commit](glossary:git-commit) `d6cb1c8a` added the rule on 2026-11-27.
 
 | Field     | KR             | EN              | Reason                                            |
 | --------- | -------------- | --------------- | ------------------------------------------------- |
 | `summary` | about 80 chars | about 160 chars | Roughly where search result snippets get cut      |
 | heading   | about 20 chars | about 40 chars  | Fits on one line in the desktop TOC and on mobile |
 
-Listing terms in parentheses and chaining several topics with `·` are banned too. Those terms go to the section's first paragraph and the glossary.
+Listing terms in parentheses and chaining several topics with `·` are banned too. Those terms go to the section's first paragraph as glossary links.
 
-The trigger was the summary of the [SSH overlay post](/en/blog/cs-fundamentals/network/network-ssh-overlay/). Its KR summary was 780 characters, one sentence strung together with term lists in parentheses and `·` chains. The skill's Bad example is a sentence cut from that summary. On the day the rule was added, 84 of 99 KR posts were over 80 characters.
+The trigger was the summary of the [SSH overlay post](/en/blog/cs-fundamentals/network/network-ssh-overlay/). Its KR summary was 780 characters, one sentence strung together with term lists in parentheses and `·` chains. The [skill](glossary:agent-skill)'s Bad example is a sentence cut from that summary. On the day the rule was added, 84 of 99 KR posts were over 80 characters.
 
-The pipeline document still has the old line "list the core keywords of the body, separated by commas" for summary. The skill states that it overrides that line, and whether to fix the pipeline document and the existing posts has not been decided yet. The current figures are in [By the numbers](#by-the-numbers).
+The pipeline document still has the old line "list the core keywords of the body, separated by commas" for summary. The [skill](glossary:agent-skill) states that it overrides that line, and whether to fix the pipeline document and the existing posts has not been decided yet. The current figures are in [section 9](#9-measurements).
 
 ## 6. Cross-links
 
-Think of replacing a footnote that says "details on page N" with a word you can click to jump straight to that page.
+A cross-link is an inline link to the [anchor](glossary:anchor-link) of another post's heading. Instead of a footnote that says "details on page N", the word itself is clickable and jumps straight to that page.
 
 ![How a cross-link is made: this post, origin/main posts, github-slugger, a link on the term itself](/static/images/skills-01-blog-post/cross-links.svg)
 
-_How a cross-link is made: term → search posts on origin/main → github-slugger anchor_
-
-In real terms, it is an **inline link** to the **anchor** of another post's heading.
+_How a cross-link is made: term → search posts on origin/main → [github-slugger](glossary:github-slugger) anchor_
 
 - It happens only at the upload step. While writing lecture notes (`chN.md`), nobody hunts for links unless asked.
 - Find a section in another post that covers the same thing in more depth, and put the link on the term itself. No separate "see: …" line.
-- Compute the anchor with the repo's `github-slugger` and check it against the real heading. For example, `4.1.2 도메인 요구사항` becomes `#412-도메인-요구사항`.
+- Compute the [anchor](glossary:anchor-link) with the repo's [github-slugger](glossary:github-slugger) and check it against the real heading. For example, `4.1.2 도메인 요구사항` becomes `#412-도메인-요구사항`.
 - Read posts from `origin/main`. Pull first, so a post merged a moment ago counts as a candidate.
-- The English copy links to `/en/blog/...` with the English post's anchors. English headings are worded differently, so their anchors differ too.
+- The English copy links to `/en/blog/...` with the English post's [anchors](glossary:anchor-link). English headings are worded differently, so their [anchors](glossary:anchor-link) differ too.
 
-The "skill" link in section 0 of this post is an example. Section 3 of the agent environment post covers what a skill is in more depth, so the term links there.
+The "skill" link in section 0 of this post is an example. Section 3 of the agent environment post covers what a [skill](glossary:agent-skill) is in more depth, so the term links there.
 
 ## 7. People and photos
 
-Think of a newspaper photo desk. The names of the people in the shot come out, and the name tag on the back wall gets pixelated.
-
-In real terms, this is the **masking** rule for personal information in public posts.
+Personal information in public posts is hidden with [masking](glossary:data-masking).
 
 - People appear as GitHub IDs only. I am "I" or seren-wib. No real names anywhere in the text or captions.
 - Photos are cropped tight to the subject. Desks, walls, whiteboards and floors go.
 - School asset stickers and barcodes, handwritten hostnames, IPs, MACs, account names, tailnet names and login URLs are masked. For terminals, a masked code block beats a photo.
 - Personal photos showing people's faces never go in.
-- The conversion is HEIC → PNG (ffmpeg) → pixelate and crop → `libwebp -quality 82`, at most 1600 px wide, saved to `public/static/images/<slug>/`. Each output is opened and zoomed into wherever something looks suspicious.
+- The conversion is [HEIC](glossary:heic) → PNG ([ffmpeg](glossary:ffmpeg)) → pixelate and crop → `libwebp -quality 82`, at most 1600 px wide, saved to `public/static/images/<slug>/`. Each output is opened and zoomed into wherever something looks suspicious.
 
 This rule came from posting the [Woowangthon series](/en/blog/hackathon/woowangthon/woowangthon-00-overview/) on 2026-11-05. The leader PC had a school asset label on it, and photos that included the background looked messy.
 
 ## 8. AI notes and mentions
 
-Think of erasing the working notes in a manuscript's margins before it goes to print.
+Authorship tag lines are removed, and a public repo follows the [PR](glossary:pull-request) mention rule.
 
-In real terms, these are **removing authorship tag lines** and the **PR mention rule for a public repo**.
+AI-written UNIV lecture notes can be published and translated. The `AI 생성 문서.` ("AI-generated document.") and `AI 생성 부분 있음.` ("contains AI-generated parts.") lines left in older notes only marked authorship inside the UNIV folder, so they are removed from the blog copy. The blog marks this with `aiGenerated: true` in the [frontmatter](glossary:frontmatter) instead. This post has it too.
 
-AI-written UNIV lecture notes can be published and translated. The `AI 생성 문서.` ("AI-generated document.") and `AI 생성 부분 있음.` ("contains AI-generated parts.") lines left in older notes only marked authorship inside the UNIV folder, so they are removed from the blog copy. The blog marks this with `aiGenerated: true` in the frontmatter instead. This post has it too.
+This blog repo is public. So [PR](glossary:pull-request) bodies and [commit](glossary:git-commit) messages never write another repo's [PR](glossary:pull-request) as `owner/repo#N` or as a URL. If they did, GitHub would leave a mention on that repo's [PR](glossary:pull-request) timeline. Repo names are written as plain text only. The full [commit](glossary:git-commit) and [PR](glossary:pull-request) rules are in the [pr-workflow post](/en/blog/side-projects/skills/skills-05-pr-workflow/).
 
-This blog repo is public. So PR bodies and commit messages never write another repo's PR as `owner/repo#N` or as a URL. If they did, GitHub would leave a mention on that repo's PR timeline. Repo names are written as plain text only. The full commit and PR rules are in the [pr-workflow post](/en/blog/side-projects/skills/skills-05-pr-workflow/).
+## 9. Measurements
 
-## 9. Wrap-up
+As of 2026-11-28. Sources: `git log` and `git show` in the personal config repo, `git ls-tree` on this repo's `origin/main`; KR summary lengths were counted directly from the [frontmatter](glossary:frontmatter).
 
-`blog-post` was not designed in one go. Four problems that came up while posting piled up in memory, were gathered into one skill, and then two-layer writing and length limits were added. Every rule has a post that prompted it. The next rule will probably appear the same way.
+| Item                                                         | Value                                        |
+| ------------------------------------------------------------ | -------------------------------------------- |
+| `SKILL.md`                                                   | 4,737 B, 46 lines, 7 sections                |
+| [Skill](glossary:agent-skill) [commits](glossary:git-commit) | 5 (2026-11-13 to 2026-11-27)                 |
+| Size over time                                               | 2,206 → 2,402 → 2,679 → 3,822 → 4,737 B      |
+| [Memory files](glossary:agent-memory) before the move        | 4                                            |
+| Blog posts                                                   | 112 KR, 111 EN                               |
+| SVGs under `public/static/images`                            | 216                                          |
+| KR summaries over 80 characters                              | 85/112 (84/99 on the day the rule was added) |
+| Longest KR summary                                           | 780 characters (SSH overlay post)            |
 
-## By the numbers
+## 10. Reflection
 
-As of 2026-11-28. Sources: `git log` and `git show` in the personal config repo, `git ls-tree` on this repo's `origin/main`; KR summary lengths were counted directly from the frontmatter.
-
-| Item                              | Value                                        |
-| --------------------------------- | -------------------------------------------- |
-| `SKILL.md`                        | 4,737 B, 46 lines, 7 sections                |
-| Skill commits                     | 5 (2026-11-13 to 2026-11-27)                 |
-| Size over time                    | 2,206 → 2,402 → 2,679 → 3,822 → 4,737 B      |
-| Memory files before the move      | 4                                            |
-| Blog posts                        | 112 KR, 111 EN                               |
-| SVGs under `public/static/images` | 216                                          |
-| KR summaries over 80 characters   | 85/112 (84/99 on the day the rule was added) |
-| Longest KR summary                | 780 characters (SSH overlay post)            |
-
-## Glossary
-
-| Term                                                                                               | Meaning                                                                                                |
-| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| [Skill](/en/blog/side-projects/devblog/devblog-04-agent-environment/#3-pulling-out-what-is-needed) | An agent rule file read only for a specific task (`SKILL.md`)                                          |
-| description                                                                                        | One frontmatter line of a skill; listed every session and acts as its trigger                          |
-| Skill tool                                                                                         | The tool that loads a skill's body into context when a task matches its description                    |
-| Publish pipeline                                                                                   | The procedure document for importing, converting, building and deploying notes (`publish_pipeline.md`) |
-| Point of view                                                                                      | Whose side a post is written from; one per post on this blog                                           |
-| Two-layer writing                                                                                  | Analogy → diagram → terms → real behavior, serving newcomers and CS readers at once                    |
-| `summary`                                                                                          | The list card subtitle and the meta/OG description                                                     |
-| anchor                                                                                             | The id after `#`, made from a heading; computed with `github-slugger`                                  |
-| masking                                                                                            | Hiding personal and identifying details in photos and diagrams                                         |
-| `aiGenerated`                                                                                      | The frontmatter field marking a post as written by AI                                                  |
+Every rule has a post that prompted it, and the next rule will probably appear the same way.

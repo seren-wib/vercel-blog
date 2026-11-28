@@ -1,0 +1,151 @@
+---
+title: 'CH11. unity-mcp-setting: Connecting a Unity Project over MCP'
+date: '2026-11-28'
+tags: ['Skills']
+draft: false
+aiGenerated: true
+summary: 'A skill that connects a Unity project to Claude Code in one go, from adding one package line to waiting for the server and reloading VS Code'
+---
+
+> Part 11 of the series. What a skill is and why these live outside the instruction files is in [CH0. Skills Overview](/en/blog/side-projects/skills/skills-00-overview/).
+
+## In one line
+
+Connecting a Unity project to Claude Code takes five steps in a fixed order. Add the package, let Unity fetch it, make sure the server inside Unity is up, and only then reload the VS Code window. Get one step out of order and the tools never show up. `unity-mcp-setting` is the skill that has the agent walk that order for me. The skill body is 49 lines with two PowerShell scripts (63 and 72 lines) beside it, and 2 commits in the dotfiles repo have touched the folder. It is closer to a run procedure than a writing rule, so its 135 lines of script are longer than its 49-line body (numbers in [By the numbers](#by-the-numbers)).
+
+## 1. Seven steps
+
+As an analogy, it is like getting a phone line for a new shop. Check the address, order the phone, save the number on my own phone, wait until the shop opens, and only then call.
+
+![The 7 steps of unity-mcp-setting: target check, add package, register server, already connected?, focus Unity, wait for server, reload VS Code](/static/images/skills-11-unity-mcp-setting/flow.svg)
+
+_The 7 steps of unity-mcp-setting_
+
+In terms, the shop is the **MCP server** running inside the Unity Editor, ordering the phone is adding a **UPM (Unity Package Manager) dependency**, saving the number is the **MCP client registration** on the Claude Code side, and making the call is the VS Code window **reload**. MCP itself is covered in the [Model Context Protocol](/en/blog/cs-fundamentals/ai/ai-07-01-ai-agent/#model-context-protocol-mcp) post.
+
+The skill body goes in this order.
+
+1. Check that the path given as an argument, or the current folder, has `Packages/manifest.json`. If not, say it is not a Unity project and stop.
+2. Put one package line at the top of `dependencies` in `manifest.json`. Skip if it is already there.
+3. If `claude mcp get unityMCP` fails, register the server.
+4. Search for `unity` with ToolSearch. If Unity tools such as `manage_scene` are already in the session, say no reload is needed and stop.
+5. Bring the Unity window to the front so the package import starts.
+6. Wait up to 300 seconds for the server to come up.
+7. Reload the VS Code window.
+
+Steps 1 to 4 need only Claude Code's built-in tools (file edits, shell), and the scripts in the skill folder handle 5 to 7. The line added in step 2 is this one.
+
+```json:Packages/manifest.json
+"com.coplaydev.unity-mcp": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main",
+```
+
+UPM accepts a Git URL as a dependency. `?path=` is the package folder inside the repo and `#main` is the branch. Since it points at a branch rather than a version tag, Unity pulls whatever `main` is at that moment every time it fetches the package again. Why it was left this way: no record.
+
+The two cautions at the end of the skill are about this file too. `manifest.json` is the project's whole package list, so it never goes into `.gitignore`, and it is committed only when I ask. Success means `unityMCP` shows as Connected in the `/mcp` list after the reload.
+
+## 2. Why the order matters
+
+As an analogy, if you call before the shop opens the line just rings out. And once that call has dropped, you have to dial again even after the shop opens.
+
+In terms, this is **tool list loading at session start**. When a Claude Code session starts, it connects to the registered MCP servers and fetches their tool lists. If the Unity server is not up at that moment, the session settles without those tools. Even if the server comes up later, they do not appear in the same session; the VS Code window has to be reloaded so the extension and the session start fresh.
+
+The guide that wrote down the manual steps (`~/projects/unity-projects/mcp-guide.md`, 2,245 bytes, last modified 2026-10-03) keeps this order in one line.
+
+> 4번 다음에 5번. 서버가 켜지기 전에 리로드하면 도구가 안 들어온다.
+
+("Step 5 after step 4. If you reload before the server is on, the tools do not come in.") Step 4 there is "check that the server is on" and step 5 is "`Reload Window`". The manual procedure needed a person to keep this order while switching between the Unity and VS Code windows. The skill turned "check the server" into a script (step 6) and "reload" into automated key input (step 7), so a machine keeps the order. The same guide already lists `/unity-mcp-setting` as the "quick way", so the skill existed by 2026-10-03 at the latest. Exactly when it was made: no record. All three files are in the first commit of the dotfiles repo (2026-10-06).
+
+## 3. Registering the server per folder
+
+As an analogy, if you put a regular shop's number in your phone's global favorites, you get a "can't connect" alert everywhere, even far from that shop. So I wrote it on a note that only shows up in that neighborhood.
+
+In terms, this is **MCP scope**. `user` scope attaches a server to sessions in every folder, while `local` scope attaches it only in the folder it was registered in. The command in step 3 is this.
+
+```bash
+claude mcp add --scope local --transport http unityMCP http://127.0.0.1:8080/mcp
+```
+
+It started out in `user` scope. A commit on 2026-10-15 changed that, and the reason for the changed line sits right in the skill body.
+
+> user 스코프는 쓰지 않는다. Unity를 열지 않은 폴더에서도 매 세션 연결 실패가 뜬다.
+
+("Do not use user scope. Every session shows a connection failure, even in folders where Unity is not open.") The same commit renamed the server from `UnityMCP` to `unityMCP`. Today `mcp/sync.mjs` and the VS Code `mcp.json` use `unityMCP` as well. The change was not about Unity alone; it was part of a cleanup that took every local Claude Code MCP server out of user scope and attached each one only to the folders that need it. That rule is in [the MCP section of the agent environment post](/en/blog/side-projects/devblog/devblog-04-agent-environment/#9-mcp). `mcp/sync.mjs` already registers `~/projects/unity-projects` in local scope, so for projects directly under it step 3 has nothing to do.
+
+## 4. Is it my project's server?
+
+As an analogy, you call and someone picks up, but you cannot tell whether it is your shop's staff or the shop next door's. The neighbor may be using the same number.
+
+![The two checks of wait-unity-mcp.ps1: endpoint response and pid file, leading to exit 0, 2 or 1](/static/images/skills-11-unity-mcp-setting/wait-check.svg)
+
+_The two checks wait-unity-mcp.ps1 runs every 5 seconds_
+
+In terms, these are a **readiness check** and **port ownership**. The MCP for Unity server uses the fixed address `http://127.0.0.1:8080/mcp`. Open two Unity projects and they compete for the same port. So `wait-unity-mcp.ps1` looks at two things every 5 seconds.
+
+- **endpoint**: POST an MCP `initialize` request and see whether HTTP 200 comes back. Each request times out after 3 seconds.
+- **pid file**: the project that started the server leaves `<project>/Library/MCPForUnity/RunState/mcp_http_8080.pid`. Is that file in the target project, and is the process with that PID alive?
+
+Looking at the endpoint alone would also accept a server another project started. So it checks both and splits the outcome into exit codes.
+
+| State                                                          | Exit code | What the skill does                                           |
+| -------------------------------------------------------------- | --------- | ------------------------------------------------------------- |
+| Endpoint answers, target project has the pid                   | 0         | Go to step 7                                                  |
+| Endpoint answers, target has none but a sibling project has it | 2         | Tell me to close that project or stop its server, then stop   |
+| Not confirmed within 300 seconds                               | 1         | Check the Unity console, point to the server Start, then stop |
+
+Looking at sibling folders assumes the Unity projects sit side by side under one folder, `~/projects/unity-projects`. The script prints a line only when the state changes, so the same line does not pile up every 5 seconds. The skill says to give the PowerShell tool a 360,000 ms timeout: the script's 300 seconds plus one minute of slack. If it stops on a timeout, calling `/unity-mcp-setting` again skips step 2 and carries on.
+
+## 5. Finding windows and reloading
+
+As an analogy, every call means restarting my own phone, and the restart button is in someone else's hand. So I say everything I need to before the button is pressed.
+
+In terms, this is **window focus** and **key input injection**. `window.ps1` walks the window titles with the Win32 API (`EnumWindows` and `SetForegroundWindow` in `user32.dll`) to find the VS Code or Unity window whose title has the project folder name. The title patterns are `<file> - <folder> - Visual Studio Code` for VS Code and `<folder> - <scene> - ... - Unity 6.x` for Unity. How Unity and VS Code split their jobs is in [the Unity basics post](/en/blog/dev/unity/unity-01-basics/#5-roles-of-the-unity-editor-and-vs-code).
+
+The script comments record two workarounds.
+
+- A background process may be blocked by Windows' focus-stealing rules from bringing another window to the front. So it presses and releases Alt once before `SetForegroundWindow`. If the foreground window is not the target 400 ms later, it reports failure with exit code 2.
+- The reload opens the command palette with `Ctrl+Shift+P`, enters `Developer: Reload Window`, and sends Enter. Typing that command name as keystrokes garbles it while the Korean IME is on, so it goes through the clipboard and `Ctrl+V`. The previous clipboard content is saved first and restored at the end.
+
+The reload kills the Claude Code session running inside VS Code. So the skill pins step 7 as **the last tool call** and has the agent report the result first (whether the package was added, the server check, the reload coming up). After the reload a new session starts, and since it starts with the server already up, the Unity tools are in its tool list. If the key input fails (a non-zero exit code), it tells me to run `Ctrl+Shift+P` → `Developer: Reload Window` by hand.
+
+## 6. Limits
+
+As an analogy, this phone-line procedure only works in one neighborhood, with one carrier.
+
+In terms, this is a **platform dependency**. The scripts for steps 5 to 7 rely on PowerShell, the Win32 API and `System.Windows.Forms.SendKeys`, so they run only on Windows. Windows and the Mac share the same dotfiles, but the Mac has no `~/projects/unity-projects` folder and so no `unityMCP` registration. If it is ever needed on the Mac, the window control part has to be written separately.
+
+The port is fixed at 8080, so there is no way to open several Unity projects at once and connect each of them. The skill only reports the clash through exit code 2 from section 4.
+
+How many times this skill has actually run: no record. The worklog and the memory change log only hold the change in how it registers (2026-10-15), not any runs.
+
+## By the numbers
+
+As of 2026-11-28.
+
+| Item                             | Value                                   | Source               |
+| -------------------------------- | --------------------------------------- | -------------------- |
+| `SKILL.md`                       | 49 lines, 3,433 bytes                   | `wc`                 |
+| `wait-unity-mcp.ps1`             | 63 lines, 2,723 bytes                   | `wc`                 |
+| `window.ps1`                     | 72 lines, 3,617 bytes                   | `wc`                 |
+| Commits that changed the folder  | 2 (2026-10-06 first commit, 2026-10-15) | dotfiles `git log`   |
+| 2026-10-15 change                | `SKILL.md` +4 lines −3 lines            | dotfiles `git show`  |
+| Manual guide                     | 2,245 bytes, last modified 2026-10-03   | `mcp-guide.md`       |
+| Steps                            | 7                                       | `SKILL.md`           |
+| Server wait                      | up to 300 s, every 5 s, 3 s per request | `wait-unity-mcp.ps1` |
+| PowerShell tool timeout          | 360,000 ms                              | `SKILL.md`           |
+| Pauses between reload keystrokes | 600 ms, 400 ms, 300 ms                  | `window.ps1`         |
+| Number of runs                   | no record                               |                      |
+
+## Glossary
+
+| Term                                                                             | Meaning                                                                                             |
+| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| [MCP](/en/blog/cs-fundamentals/ai/ai-07-01-ai-agent/#model-context-protocol-mcp) | A protocol that lets an agent use outside programs as tools                                         |
+| MCP for Unity                                                                    | A package that runs an MCP server inside the Unity Editor and exposes scene and asset work as tools |
+| UPM                                                                              | Unity Package Manager. Fetches the dependencies in `Packages/manifest.json`                         |
+| [MCP scope](/en/blog/side-projects/devblog/devblog-04-agent-environment/#9-mcp)  | Where an MCP registration applies. `user` is every folder, `local` only the folder it was added in  |
+| readiness check                                                                  | Sending a real request to see whether a server is ready to take requests                            |
+| pid file                                                                         | A file where a process writes its own PID. Used here to tell who holds the port                     |
+| exit code                                                                        | The number a process returns when it ends. 0 is success, anything else a kind of failure            |
+| window focus                                                                     | Bringing the window that should receive key input to the front                                      |
+| IME                                                                              | The input method that composes characters such as Korean Hangul                                     |
+| Reload Window                                                                    | The VS Code command that reloads the window and restarts its extensions and the session inside      |

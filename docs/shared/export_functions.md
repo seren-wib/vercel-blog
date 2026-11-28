@@ -4,19 +4,19 @@
 
 모든 페이지는 `app/[locale]/` 아래에 있다 (`[locale]` = `kr` | `en`). `app/[locale]/layout.tsx`가 루트 레이아웃이다 (`<html lang>`이 언어마다 달라서).
 
-| 파일                                                         | export명                                       | URL                                           | 설명                                 |
-| ------------------------------------------------------------ | ---------------------------------------------- | --------------------------------------------- | ------------------------------------ |
-| `app/[locale]/layout.tsx`                                    | `RootLayout` (default), `generateStaticParams` | —                                             | 언어별 루트 레이아웃, 헤더·푸터·검색 |
-| `app/[locale]/page.tsx`                                      | `Page` (default)                               | `/[locale]`                                   | 랜딩 (소개 + 전체 글 목록)           |
-| `app/[locale]/page/[page]/page.tsx`                          | `Page` (default)                               | `/[locale]/page/[n]`                          | 전체 글 목록 페이지네이션            |
-| `app/[locale]/blog/[...slug]/page.tsx`                       | `Page` (default)                               | `/[locale]/blog/[category]/[slug]`            | 포스트 상세                          |
-| `app/[locale]/blog/category/[category]/page.tsx`             | `CategoryPage` (default)                       | `/[locale]/blog/category/[category]`          | 카테고리별 포스트                    |
-| `app/[locale]/blog/category/[category]/page/[page]/page.tsx` | `CategoryPage` (default)                       | `/[locale]/blog/category/[category]/page/[n]` | 카테고리별 페이지네이션              |
-| `app/[locale]/about/page.tsx`                                | `Page` (default)                               | `/[locale]/about`                             | 어바웃                               |
-| `app/[locale]/projects/page.tsx`                             | `Projects` (default)                           | `/[locale]/projects`                          | 프로젝트                             |
-| `app/[locale]/playground/page.tsx`                           | `Playground` (default)                         | `/[locale]/playground`                        | 플레이그라운드 카드 목록             |
-| `app/[locale]/playground/[lang]/page.tsx`                    | `PlaygroundLanguagePage` (default)             | `/[locale]/playground/[lang]`                 | 언어별 연습창                        |
-| `app/[locale]/not-found.tsx`                                 | `NotFound` (default)                           | —                                             | 404                                  |
+| 파일                                                         | export명                                       | URL                                                                                                                          | 설명                                                                         |
+| ------------------------------------------------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `app/[locale]/layout.tsx`                                    | `RootLayout` (default), `generateStaticParams` | —                                                                                                                            | 언어별 루트 레이아웃, 헤더·푸터·검색                                         |
+| `app/[locale]/page.tsx`                                      | `Page` (default)                               | `/[locale]`                                                                                                                  | 랜딩 (소개 + 전체 글 목록)                                                   |
+| `app/[locale]/page/[page]/page.tsx`                          | `Page` (default)                               | `/[locale]/page/[n]`                                                                                                         | 전체 글 목록 페이지네이션                                                    |
+| `app/[locale]/blog/[...slug]/page.tsx`                       | `Page` (default)                               | `/[locale]/blog/[parent]/[category]/[slug]`, `/[locale]/blog/[parent]`, `/[locale]/blog/[parent]/[category]` (+ `/page/[n]`) | 포스트 상세, 상위 카테고리, 카테고리별 포스트 (`app/blog-routes.tsx`가 구분) |
+| `app/[locale]/blog/category/[category]/page.tsx`             | `CategoryPage` (default)                       | `/[locale]/blog/category/[category]`                                                                                         | 상위 없는 카테고리별 포스트                                                  |
+| `app/[locale]/blog/category/[category]/page/[page]/page.tsx` | `CategoryPage` (default)                       | `/[locale]/blog/category/[category]/page/[n]`                                                                                | 카테고리별 페이지네이션                                                      |
+| `app/[locale]/about/page.tsx`                                | `Page` (default)                               | `/[locale]/about`                                                                                                            | 어바웃                                                                       |
+| `app/[locale]/projects/page.tsx`                             | `Projects` (default)                           | `/[locale]/projects`                                                                                                         | 프로젝트                                                                     |
+| `app/[locale]/playground/page.tsx`                           | `Playground` (default)                         | `/[locale]/playground`                                                                                                       | 플레이그라운드 카드 목록                                                     |
+| `app/[locale]/playground/[lang]/page.tsx`                    | `PlaygroundLanguagePage` (default)             | `/[locale]/playground/[lang]`                                                                                                | 언어별 연습창                                                                |
+| `app/[locale]/not-found.tsx`                                 | `NotFound` (default)                           | —                                                                                                                            | 404                                                                          |
 
 ------|----------|-----|------|
 | `app/page.tsx` | `HomePage` (default) | `/` | 홈 (최신 5개 포스트) |
@@ -84,16 +84,18 @@
 
 ## 유틸리티 / 설정
 
-| 파일                      | export명                                              | 타입    | 설명                                             |
-| ------------------------- | ----------------------------------------------------- | ------- | ------------------------------------------------ |
-| `app/seo.tsx`             | `genPageMetadata`                                     | named   | 페이지별 metadata 생성                           |
-| `app/theme-providers.tsx` | `ThemeProviders` (default)                            | default | next-themes Provider                             |
-| `data/siteMetadata.js`    | `siteMetadata` (default)                              | default | 사이트 전역 설정                                 |
-| `data/headerNavLinks.ts`  | `headerNavLinks` (default)                            | default | 네비게이션 링크 배열                             |
-| `data/i18n.ts`            | `locales`, `getDictionary`, `localePath`              | named   | 언어 목록, 화면 문구 사전, 언어 접두사 붙인 경로 |
-| `data/categories.ts`      | `getCategoryLabel`, `sortCategories`, `sortByChapter` | named   | 카테고리 표시 이름·순서, 장 순서 정렬            |
-| `data/playground.ts`      | `playgroundLanguages`, `findPlaygroundLanguage`       | named   | 플레이그라운드 언어 목록 (메뉴·카드·연습창)      |
-| `data/projectsData.ts`    | `projectsData` (default), `Project` (type)            | default | 프로젝트 데이터 배열                             |
+| 파일                      | export명                                                                                                                          | 타입     | 설명                                                                                                 |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| `app/seo.tsx`             | `genPageMetadata`                                                                                                                 | named    | 페이지별 metadata 생성                                                                               |
+| `app/blog-routes.tsx`     | `resolveBlogRoute`, `listStaticParams`, `listMetadata`, `BlogListPage`, `findPost`                                                | named    | `/blog/` 아래 주소가 글·상위·카테고리 중 무엇인지 판별, 목록 페이지 렌더링                           |
+| `app/theme-providers.tsx` | `ThemeProviders` (default)                                                                                                        | default  | next-themes Provider                                                                                 |
+| `data/siteMetadata.js`    | `siteMetadata` (default)                                                                                                          | default  | 사이트 전역 설정                                                                                     |
+| `data/headerNavLinks.ts`  | `headerNavLinks` (default)                                                                                                        | default  | 네비게이션 링크 배열                                                                                 |
+| `data/i18n.ts`            | `locales`, `getDictionary`, `localePath`                                                                                          | named    | 언어 목록, 화면 문구 사전, 언어 접두사 붙인 경로                                                     |
+| `data/categories.ts`      | `getCategoryLabel`, `getParentLabel`, `categoryHref`, `parentHref`, `parentOf`, `categoryTree`, `sortCategories`, `sortByChapter` | named    | 카테고리·상위 표시 이름, 목록 주소, 사이드바 트리·순서, 장 순서 정렬                                 |
+| `data/categoryTree.js`    | `parents`, `topLevel`, `labels`                                                                                                   | CommonJS | 상위 카테고리(KR·EN 이름, 하위 순서), 상위 없는 카테고리 순서, 표시 이름. `data/redirects.js`도 읽음 |
+| `data/playground.ts`      | `playgroundLanguages`, `findPlaygroundLanguage`                                                                                   | named    | 플레이그라운드 언어 목록 (메뉴·카드·연습창)                                                          |
+| `data/projectsData.ts`    | `projectsData` (default), `Project` (type)                                                                                        | default  | 프로젝트 데이터 배열                                                                                 |
 
 > - **default**: `import X from '...'`
 > - **named**: `import { X } from '...'`

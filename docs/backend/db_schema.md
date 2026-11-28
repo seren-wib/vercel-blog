@@ -9,7 +9,7 @@
 
 ### Blog
 
-파일 위치: `data/blog/<locale>/<category>/<slug>.mdx` (`locale`은 `kr` 또는 `en`)
+파일 위치: `data/blog/<locale>/<parent>/<category>/<파일명>.mdx` (`locale`은 `kr` 또는 `en`). 상위가 없는 카테고리는 `data/blog/<locale>/<category>/<파일명>.mdx`
 
 | 필드명         | 타입       | 필수 | 설명                           |
 | -------------- | ---------- | ---- | ------------------------------ |
@@ -27,16 +27,18 @@
 
 **Computed Fields (빌드 시 자동 생성)**
 
-| 필드명           | 타입     | 설명                                                                   |
-| ---------------- | -------- | ---------------------------------------------------------------------- |
-| `readingTime`    | `json`   | 읽기 시간 (`reading-time` 라이브러리)                                  |
-| `locale`         | `string` | 언어 (`kr`, `en`). `data/blog/` 바로 아래 폴더 이름                    |
-| `category`       | `string` | 카테고리. 언어 폴더 아래 폴더 이름                                     |
-| `slug`           | `string` | `<category>/<파일명>`. 두 언어 버전이 같은 값을 가진다                 |
-| `path`           | `string` | 라우트 경로, 앞 `/` 없음 (예: `kr/blog/network/network-ch7-data-link`) |
-| `filePath`       | `string` | 실제 파일 경로                                                         |
-| `toc`            | `json`   | 목차 (헤딩 구조)                                                       |
-| `structuredData` | `json`   | JSON-LD structured data                                                |
+| 필드명           | 타입     | 설명                                                                                   |
+| ---------------- | -------- | -------------------------------------------------------------------------------------- |
+| `readingTime`    | `json`   | 읽기 시간 (`reading-time` 라이브러리)                                                  |
+| `locale`         | `string` | 언어 (`kr`, `en`). `data/blog/` 바로 아래 폴더 이름                                    |
+| `parent`         | `string` | 상위 카테고리 폴더 이름. 상위가 없으면 `''`                                            |
+| `category`       | `string` | 카테고리 폴더 이름 (파일 바로 위 폴더)                                                 |
+| `categoryPath`   | `string` | `<parent>/<category>` 또는 `<category>`. 글 수·prev/next·표시 이름의 키                |
+| `slug`           | `string` | `<categoryPath>/<파일명>`. 두 언어 버전이 같은 값을 가진다                             |
+| `path`           | `string` | 라우트 경로, 앞 `/` 없음 (예: `kr/blog/cs-fundamentals/network/network-ch7-data-link`) |
+| `filePath`       | `string` | 실제 파일 경로                                                                         |
+| `toc`            | `json`   | 목차 (헤딩 구조)                                                                       |
+| `structuredData` | `json`   | JSON-LD structured data                                                                |
 
 ---
 
@@ -61,11 +63,11 @@
 
 ## 빌드 타임 생성 파일
 
-| 파일                                             | 생성 함수                  | 내용                                                                         |
-| ------------------------------------------------ | -------------------------- | ---------------------------------------------------------------------------- |
-| `app/tag-data.json`                              | `createTagCount()`         | `{ "태그명": 포스트수 }`                                                     |
-| `app/category-data.json`                         | `createCategoryCount()`    | `{ "kr": { "카테고리": 포스트수 }, "en": { ... } }`                          |
-| `app/translation-data.json`                      | `createTranslationIndex()` | `{ "kr": [slug...], "en": [slug...] }` — 언어 토글이 짝 있는 글을 찾을 때 씀 |
-| `public/search-kr.json`, `public/search-en.json` | `createSearchIndex()`      | 언어별 kbar 검색 인덱스                                                      |
-| `public/feed.xml`, `public/en/feed.xml`          | `postbuild.mjs`            | 언어별 RSS 피드                                                              |
-| `public/sitemap.xml`                             | `app/sitemap.ts`           | 사이트맵                                                                     |
+| 파일                                             | 생성 함수                  | 내용                                                                             |
+| ------------------------------------------------ | -------------------------- | -------------------------------------------------------------------------------- |
+| `app/tag-data.json`                              | `createTagCount()`         | `{ "태그명": 포스트수 }`                                                         |
+| `app/category-data.json`                         | `createCategoryCount()`    | `{ "kr": { "dev/git": 2, "hardware": 1 }, "en": { ... } }` (키는 `categoryPath`) |
+| `app/translation-data.json`                      | `createTranslationIndex()` | `{ "kr": [slug...], "en": [slug...] }` — 언어 토글이 짝 있는 글을 찾을 때 씀     |
+| `public/search-kr.json`, `public/search-en.json` | `createSearchIndex()`      | 언어별 kbar 검색 인덱스                                                          |
+| `public/feed.xml`, `public/en/feed.xml`          | `postbuild.mjs`            | 언어별 RSS 피드                                                                  |
+| `public/sitemap.xml`                             | `app/sitemap.ts`           | 사이트맵                                                                         |

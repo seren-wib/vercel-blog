@@ -121,6 +121,16 @@ const postRedirects = Object.entries({ ...movedPosts, ...renamedPosts }).map(([f
 /**
  * Posts that were taken down and replaced by a rewritten set (same locale, same category).
  */
+/**
+ * Rules for URLs that may come with or without a locale prefix. With a prefix the locale is kept;
+ * without one (older URLs) they go to /kr in one step, instead of middleware.ts adding /kr first
+ * and a rule moving them second. Rules without a prefix must come before the generic category rules.
+ */
+const prefixes = [
+  { from: '/:locale(kr|en)', to: '/:locale' },
+  { from: '', to: '/kr' },
+]
+
 const replacedPosts = {
   'database-systems/database-systems-ch2-db-systems-er-model':
     'database-systems/database-systems-ch2-er-schema-table',
@@ -128,11 +138,13 @@ const replacedPosts = {
     'database-systems/database-systems-ch2-er-schema-table',
 }
 
-const replacedPostRedirects = Object.entries(replacedPosts).map(([from, to]) => ({
-  source: `/:locale(kr|en)/blog/${from}`,
-  destination: `/:locale/blog/${currentPostPath(to)}/`,
-  permanent: true,
-}))
+const replacedPostRedirects = prefixes.flatMap((prefix) =>
+  Object.entries(replacedPosts).map(([from, to]) => ({
+    source: `${prefix.from}/blog/${from}`,
+    destination: `${prefix.to}/blog/${currentPostPath(to)}/`,
+    permanent: true,
+  }))
+)
 
 /**
  * Tag pages were replaced by category pages. Every tag slug matches a category folder name.
@@ -179,22 +191,16 @@ const removedPageRedirects = [
   { source: '/:locale(kr|en)/latest', destination: '/:locale/', permanent: true },
   { source: '/blog/category', destination: '/kr/', permanent: true },
   { source: '/:locale(kr|en)/blog/category', destination: '/:locale/', permanent: true },
-  {
-    source: '/:locale(kr|en)/blog/information-retrieval/information-retrieval-ch7a-midterm-review',
-    destination: `/:locale/blog/${movedCategories['information-retrieval']}/`,
+  ...prefixes.map((prefix) => ({
+    source: `${prefix.from}/blog/information-retrieval/information-retrieval-ch7a-midterm-review`,
+    destination: `${prefix.to}/blog/${movedCategories['information-retrieval']}/`,
     permanent: true,
-  },
+  })),
 ]
 
 /**
  * Posts and category pages from before the parent categories, one rule per parent.
- * With a locale prefix the locale is kept; without one (older URLs) they go to /kr in one step,
- * instead of middleware.ts adding /kr first and this rule moving them second.
  */
-const prefixes = [
-  { from: '/:locale(kr|en)', to: '/:locale' },
-  { from: '', to: '/kr' },
-]
 const movedCategoryRedirects = prefixes.flatMap(({ from, to }) => [
   ...Object.entries(parents).flatMap(([parent, { children }]) => {
     const category = `:category(${children.join('|')})`

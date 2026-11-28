@@ -88,9 +88,6 @@ export default async function RootLayout(props: {
       className={`${space_grotesk.variable} scroll-smooth`}
       suppressHydrationWarning
     >
-      {/* Collapsed sidebar groups, applied before the first paint (data/sidebarCollapse.ts) */}
-      <script dangerouslySetInnerHTML={{ __html: collapseScript }} />
-      <style dangerouslySetInnerHTML={{ __html: collapseStyles }} />
       <script
         async
         src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9188608147369332"
@@ -124,6 +121,9 @@ export default async function RootLayout(props: {
       <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000" />
       <link rel="alternate" type="application/rss+xml" href={`${basePath}${feedPath(locale)}`} />
       <body className="bg-gray-300 pl-[calc(100vw-100%)] text-black antialiased dark:bg-black dark:text-white">
+        {/* Collapsed sidebar groups, first children of <body> so they run before the sidebar is parsed (data/sidebarCollapse.ts) */}
+        <script dangerouslySetInnerHTML={{ __html: collapseScript }} />
+        <style dangerouslySetInnerHTML={{ __html: collapseStyles }} />
         <ThemeProviders>
           <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
           <div className="mx-auto min-h-screen max-w-[52rem] bg-gray-50 shadow-sm sm:my-6 sm:min-h-[calc(100vh-3rem)] sm:rounded-2xl xl:max-w-[70rem] xl:px-12 dark:bg-gray-900">

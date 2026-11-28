@@ -3,7 +3,7 @@ import { parentKeys } from './categories'
 /**
  * Collapsed parent categories in the sidebar, kept in localStorage across visits.
  *
- * The sidebar is server-rendered open. To avoid a flash of the open tree, a small script in <head>
+ * The sidebar is server-rendered open. To avoid a flash of the open tree, a small script at the top of <body>
  * (collapseScript) copies the saved list onto <html data-collapsed-categories="dev hackathon"> before
  * the first paint, and collapseStyles hides those groups with CSS. React only keeps the attribute,
  * localStorage and aria-expanded in sync after that.
@@ -30,20 +30,20 @@ export const collapseStyles = parentKeys
   )
   .join('')
 
+/**
+ * Collapsed parents as currently applied, read from the <html> attribute (set by collapseScript on load
+ * and by writeCollapsed on toggle), so the React state matches what is hidden even when storage fails.
+ */
 export function readCollapsed(): string[] {
-  try {
-    const value = JSON.parse(localStorage.getItem(COLLAPSE_STORAGE_KEY) ?? '[]')
-    return Array.isArray(value) ? value.filter(isKey) : []
-  } catch {
-    return []
-  }
+  const value = document.documentElement.getAttribute(COLLAPSE_ATTRIBUTE) ?? ''
+  return value.split(' ').filter(isKey)
 }
 
 export function writeCollapsed(collapsed: string[]) {
   try {
     localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify(collapsed))
   } catch {
-    // Storage can be unavailable (private mode); the toggle still works for this page view
+    // Storage can be unavailable (private mode, quota); the attribute below still applies for this visit
   }
   if (collapsed.length) {
     document.documentElement.setAttribute(COLLAPSE_ATTRIBUTE, collapsed.join(' '))

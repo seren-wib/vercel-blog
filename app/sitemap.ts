@@ -3,6 +3,7 @@ import { allBlogs } from 'contentlayer/generated'
 import siteMetadata from '@/data/siteMetadata'
 import categoryData from 'app/category-data.json'
 import { playgroundLanguages } from '@/data/playground'
+import { categoryHref, parentHref, parentOf } from '@/data/categories'
 import { locales, localeInfo, localePath, type Locale } from '@/data/i18n'
 
 export const dynamic = 'force-static'
@@ -36,10 +37,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...playgroundLanguages.map((lang) => `/playground/${lang.id}/`),
   ].flatMap((path) => entries(path, locales, today))
 
+  // Parent pages (/blog/<parent>/) and category pages (/blog/<parent>/<category>/ or /blog/category/<category>/)
   const categories = [...new Set(locales.flatMap((l) => Object.keys(counts[l] ?? {})))]
+  const parents = [...new Set(categories.map(parentOf).filter(Boolean))]
+  const parentRoutes = parents.flatMap((parent) =>
+    entries(
+      parentHref(parent),
+      locales.filter((l) => Object.keys(counts[l] ?? {}).some((c) => parentOf(c) === parent)),
+      today
+    )
+  )
   const categoryRoutes = categories.flatMap((category) =>
     entries(
-      `/blog/category/${category}/`,
+      categoryHref(category),
       locales.filter((l) => counts[l]?.[category]),
       today
     )
@@ -56,5 +66,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     )
   })
 
-  return [...routes, ...categoryRoutes, ...blogRoutes]
+  return [...routes, ...parentRoutes, ...categoryRoutes, ...blogRoutes]
 }

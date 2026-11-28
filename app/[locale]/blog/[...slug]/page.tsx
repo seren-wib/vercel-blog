@@ -14,11 +14,20 @@ import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
 import { sortByChapter } from '@/data/categories'
-import { localeInfo, locales, type Locale, asLocale } from '@/data/i18n'
+import { localeInfo, locales, asLocale } from '@/data/i18n'
 import { feedPath, languageAlternates } from 'app/seo'
+import {
+  BlogListPage,
+  findPost,
+  listMetadata,
+  listStaticParams,
+  resolveBlogRoute,
+} from 'app/blog-routes'
 
-const findPost = (locale: Locale, slug: string) =>
-  allBlogs.find((p) => p.locale === locale && p.slug === slug)
+/**
+ * Everything under /<locale>/blog/ except /blog/category/: posts, parent pages and category pages.
+ * resolveBlogRoute (app/blog-routes.tsx) tells them apart.
+ */
 
 /** Locales that have this post, for hreflang and the language switch */
 const postLocales = (slug: string) => locales.filter((l) => findPost(l, slug))
@@ -34,8 +43,15 @@ export async function generateMetadata(props: {
   params: Promise<{ locale: string; slug: string[] }>
 }): Promise<Metadata | undefined> {
   const params = await props.params
-  const slug = decodeURI(params.slug.join('/'))
-  const post = findPost(asLocale(params.locale), slug)
+  const locale = asLocale(params.locale)
+  const route = resolveBlogRoute(
+    locale,
+    params.slug.map((name) => decodeURI(name))
+  )
+  if (!route) return
+  if (route.kind !== 'post') return listMetadata(locale, route)
+  const slug = route.slug
+  const post = findPost(locale, slug)
   const authorList = post?.authors || ['default']
   const authorDetails = authorList.map((author) => {
     const authorResults = allAuthors.find((p) => p.slug === author)
@@ -89,24 +105,35 @@ export async function generateMetadata(props: {
   }
 }
 
-export const generateStaticParams = async () =>
-  allBlogs.map((p) => ({
+export const generateStaticParams = async () => [
+  ...allBlogs.map((p) => ({
     locale: p.locale,
     slug: p.slug.split('/').map((name) => decodeURI(name)),
-  }))
+  })),
+  ...listStaticParams(),
+]
 
 export default async function Page(props: { params: Promise<{ locale: string; slug: string[] }> }) {
   const params = await props.params
-  const slug = decodeURI(params.slug.join('/'))
-  const post = findPost(asLocale(params.locale), slug) as Blog
+  const locale = asLocale(params.locale)
+  const route = resolveBlogRoute(
+    locale,
+    params.slug.map((name) => decodeURI(name))
+  )
+  if (!route) return notFound()
+  if (route.kind !== 'post') return <BlogListPage locale={locale} list={route} />
+  const slug = route.slug
+  const post = findPost(locale, slug) as Blog
   // Filter out drafts in production
   if (!post || allCoreContent([post]).length === 0) {
     return notFound()
   }
 
-  // Previous/next chapter within the same category
+  // Previous/next chapter within the same category (not across the parent)
   const chapters = sortByChapter(
-    allCoreContent(allBlogs.filter((p) => p.locale === post.locale && p.category === post.category))
+    allCoreContent(
+      allBlogs.filter((p) => p.locale === post.locale && p.categoryPath === post.categoryPath)
+    )
   )
   const postIndex = chapters.findIndex((p) => p.slug === slug)
   const prev = chapters[postIndex - 1]

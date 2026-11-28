@@ -31,7 +31,7 @@ iCloud `UNIV` 폴더의 강의 정리 문서를 블로그 글로 옮겨 배포�
 
 1. **사용자가 지정한 문서만** 가져온다. 과목 폴더를 통째로 훑어서 임의로 고르지 않는다.
 2. 중복 확인: `data/blog/kr/` 전체에서 같은 장·같은 제목의 글이 이미 있는지 찾는다. 있으면 덮어쓰기인지 사용자에게 묻는다.
-3. 파일을 한국어 폴더 `data/blog/kr/<category>/`로 복사한다. 카테고리는 과목 단위이고, 새 과목이면 폴더를 만들고 `data/categories.ts`에 영어 표시 이름을 추가한다 (예: `'computer-systems': 'Computer Systems'`).
+3. 파일을 한국어 폴더 `data/blog/kr/<parent>/<category>/`로 복사한다 (예: `data/blog/kr/cs-fundamentals/network/`). 카테고리는 과목 단위이고, 상위 카테고리는 아래 "블로그 구조" 표에서 고른다. 새 과목이면 맞는 상위 아래에 폴더를 만들고 `data/categoryTree.js`에 하위 순서(`parents.<parent>.children`)와 영어 표시 이름(`labels`, 예: `'computer-systems': 'Computer Systems'`)을 추가한다. 어느 상위에도 안 맞으면 사용자에게 묻는다.
 
 ## 2. 변환
 
@@ -95,7 +95,7 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 
 모든 글은 영어 번역을 같이 발행한다. 한국어 글을 다 만든 뒤 번역한다.
 
-- **위치**: `data/blog/en/<category>/<slug>.mdx`. 카테고리 폴더와 파일명은 한국어 글과 똑같이 한다 (언어 토글이 파일명으로 짝을 찾는다).
+- **위치**: `data/blog/en/<parent>/<category>/<slug>.mdx`. 상위·카테고리 폴더와 파일명은 한국어 글과 똑같이 한다 (언어 토글이 이 경로로 짝을 찾는다).
 - **frontmatter**: `title`·`summary`는 번역하고, `CH<n>.`·`HWN.` 접두사는 그대로 둔다. `date`·`tags`·`draft`·`layout`은 한국어 글과 같게 한다.
 - **본문**: 문장만 번역한다. 헤딩 개수·레벨·순서, 표 구조, 리스트 구조는 한국어 글과 똑같이 맞춘다. 코드 블록·인라인 코드·수식·이미지 경로·링크 주소는 그대로 둔다 (코드 안 한국어 주석만 번역). 이미지 캡션과 alt는 번역한다.
 - **용어**: 강의에서 영어 원어를 쓰는 개념은 원어로 쓴다. 한국어 고유 표현(학교 이름, 과목명)은 영어로 옮기고 처음 한 번만 괄호로 원문을 붙인다.
@@ -111,18 +111,28 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
    - CI(`.github/workflows/ci.yml`)는 `main` 대상 PR에서 돈다. **CI가 성공해야 머지한다**: `gh pr checks <number> --watch`로 끝까지 기다리고, 실패하면 고쳐서 다시 푸시한다.
    - 원격 저장소 이름이 바뀐 뒤로 `gh`가 레포를 못 찾을 수 있으므로 `--repo seren-wib/vercel-blog`를 붙인다.
    - auto mode에서 `gh pr create` / `gh pr merge`가 막히면, 사용자에게 명령어를 넘기고 멈춘다.
-5. 배포 확인: `https://kibotos.dev/kr/blog/<category>/<file>/`와 `https://kibotos.dev/en/blog/<category>/<file>/`가 200인지 `curl`로 확인한다.
+5. 배포 확인: `https://kibotos.dev/kr/blog/<parent>/<category>/<file>/`와 `https://kibotos.dev/en/blog/<parent>/<category>/<file>/`가 200인지 `curl`로 확인한다.
 
 ---
 
 ## 블로그 구조
 
 - **언어**: `data/blog/<locale>/` 폴더 = 언어 (`kr`, `en`). `locale` 필드는 `contentlayer.config.ts`에서 폴더 이름으로 계산한다. 화면 구조·토글·SEO는 `docs/shared/pages.md`.
-- **카테고리**: `data/blog/<locale>/<category>/` 폴더 = 카테고리. `category` 필드는 `contentlayer.config.ts`에서 폴더 이름으로 계산하고, 언어별 글 수는 빌드 때 `app/category-data.json`에 기록된다. 표시 이름과 사이드바 순서는 `data/categories.ts`.
-- **URL**: 글 `/<locale>/blog/<category>/<slug>/` (slug에 카테고리 접두사가 들어 있어 `/kr/blog/network/network-ch7-data-link/` 형태), 카테고리 목록 `/<locale>/blog/category/<category>/`. 언어 접두사 없는 예전 주소, 폴더 분리 전 주소, 카테고리 접두사를 붙이기 전 주소, 예전 태그 페이지(`/tags/...`)는 `data/redirects.js`에서 `/kr` 주소로 308 리다이렉트.
+- **카테고리**: 두 단계. `data/blog/<locale>/<parent>/<category>/` 폴더 = 상위 카테고리 / 카테고리. `parent`·`category`·`categoryPath`(`<parent>/<category>`) 필드는 `contentlayer.config.ts`에서 폴더 이름으로 계산하고, 언어별 글 수는 빌드 때 `app/category-data.json`에 `categoryPath` 키로 기록된다. 상위 표시 이름(KR·EN), 하위 표시 이름(영어), 사이드바 순서는 `data/categoryTree.js`.
+
+  | 상위              | KR / EN                         | 카테고리                                                                                                          |
+  | ----------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+  | `dev`             | 개발 / Dev                      | unity, git, sql, web, auth, payments, devops, cloudflare                                                          |
+  | `cs-fundamentals` | CS 기초 / CS Fundamentals       | computer-systems, data-structures, software-engineering, database-systems, information-retrieval, network, os, ai |
+  | `side-projects`   | 사이드 프로젝트 / Side Projects | stairno, devblog, project-docs, coffee-shop                                                                       |
+  | `hackathon`       | 해커톤 / Hackathon              | woowangthon, grokbot                                                                                              |
+
+  상위 없이 `data/blog/<locale>/<category>/`에 둔 카테고리(지금 `hardware`, `cloud-computing`, `side-projects`)도 동작한다. 규칙과 이름 충돌 처리는 `docs/shared/pages.md` "카테고리" 절.
+
+- **URL**: 글 `/<locale>/blog/<parent>/<category>/<slug>/` (예: `/kr/blog/cs-fundamentals/network/network-ch7-data-link/`), 상위 목록 `/<locale>/blog/<parent>/`, 카테고리 목록 `/<locale>/blog/<parent>/<category>/`. 상위 없는 카테고리는 글 `/<locale>/blog/<category>/<slug>/`, 목록 `/<locale>/blog/category/<category>/`. 상위 생기기 전 주소, 언어 접두사 없는 예전 주소, 폴더 분리 전 주소, 카테고리 접두사를 붙이기 전 주소, 예전 태그 페이지(`/tags/...`)는 `data/redirects.js`에서 지금 주소로 한 번에 308 리다이렉트.
 - **이미지**: `public/static/images/<slug>/`에 글별로 둔다. 사이트 공용 이미지(`avatar.png`, `logo.png`, `twitter-card.png`)만 `public/static/images/` 바로 아래에 있다.
 - **태그 없음**: 화면 분류는 카테고리 하나만 쓴다. 태그 페이지·사이드바 태그 목록·헤더 Tags 메뉴는 없앴다.
-- **장 순서**: 카테고리 페이지와 글 하단 이전/다음 링크는 `sortByChapter`(파일명 자연 정렬). 블로그 전체 목록은 날짜순.
+- **장 순서**: 카테고리 페이지와 글 하단 이전/다음 링크는 `sortByChapter`(파일명 자연 정렬). 이전/다음은 같은 카테고리 안에서만 돈다. 블로그 전체 목록과 상위 카테고리 목록은 날짜순.
 - **목차**: `components/TableOfContents.tsx`. 데스크톱은 왼쪽 사이드바에 고정 + 현재 섹션 강조, 모바일은 본문 위 접이식. `#`~`####` 헤딩 대상.
 
 ---
@@ -132,7 +142,9 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 - 카테고리 이름은 영어. 과목이 아닌 글은 주제별(`unity`, `git`, `sql`).
 - 목차와 카테고리 장 순서는 필수.
 - `date`는 발행하는 날.
-- URL은 `/<locale>/blog/<category>/<slug>`. 언어 접두사는 `kr`·`en` (기존 URL은 `/kr`로 리다이렉트).
+- URL은 `/<locale>/blog/<parent>/<category>/<slug>`. 언어 접두사는 `kr`·`en` (기존 URL은 `/kr`로 리다이렉트). 상위 카테고리 생기기 전 주소는 새 주소로 308.
+- 카테고리는 상위 4개(`dev`, `cs-fundamentals`, `side-projects`, `hackathon`) 아래에 둔다. 하위 폴더 이름은 예전 카테고리 이름 그대로다.
+- 하드웨어 지식 글(회로·납땜·부품·측정 도구)은 `dev/hardware`, 하드웨어로 만든 제품 글은 `side-projects/<제품 이름>`에 둔다. 상위 없는 `hardware` 폴더의 기존 글은 옮길지 정해질 때까지 그대로 둔다.
 - 모든 글은 한국어·영어 두 버전으로 발행한다. 영어 번역은 Claude가 한다.
 - 글 파일명(slug)은 전부 `<category>-` 접두사로 시작한다. URL에 카테고리가 두 번 들어가는 건 감수한다.
 - 이미지는 카테고리가 아니라 글 단위 폴더(`public/static/images/<slug>/`)로 묶는다.

@@ -84,18 +84,54 @@ const locales = ['kr', 'en']
 const isPublished = (file) => !isProduction || file.draft !== true
 
 /**
- * Count posts per locale and category (data/blog/<locale>/<category>) and write to json file
+ * Folders between the locale and the file: [parent, category] or [category] for a category without a parent.
+ * data/blog/<locale>/<parent>/<category>/<file>.mdx or data/blog/<locale>/<category>/<file>.mdx
+ */
+const categoryFolders = (doc) => doc._raw.sourceFileDir.split('/').slice(2)
+
+/**
+ * A post URL must never equal a list page URL (parent page, category page or their /page/<n>).
+ * They can meet when a category without a parent has the same name as a parent, e.g. top-level
+ * side-projects next to the side-projects parent: its posts sit at /blog/side-projects/<file>/,
+ * next to the parent's category pages at /blog/side-projects/<category>/.
+ */
+function checkUrlCollisions(allBlogs) {
+  for (const locale of locales) {
+    const posts = allBlogs.filter((file) => file.locale === locale)
+    const listPaths = new Set<string>()
+    for (const file of posts) {
+      if (!file.parent) continue
+      listPaths.add(file.parent)
+      listPaths.add(`${file.parent}/page`)
+      listPaths.add(file.categoryPath)
+      listPaths.add(`${file.categoryPath}/page`)
+    }
+    for (const file of posts) {
+      if (listPaths.has(file.slug)) {
+        throw new Error(`Post ${file._raw.sourceFilePath} has the same URL as a category page`)
+      }
+    }
+  }
+}
+
+/**
+ * Count posts per locale and category path ('<parent>/<category>' or '<category>') and write to json file
  */
 async function createCategoryCount(allBlogs) {
   const categoryCount: Record<string, Record<string, number>> = Object.fromEntries(
     locales.map((locale) => [locale, {}])
   )
   allBlogs.forEach((file) => {
-    if (file.category && categoryCount[file.locale] && isPublished(file)) {
+    if (file.categoryPath && categoryCount[file.locale] && isPublished(file)) {
       const counts = categoryCount[file.locale]
-      counts[file.category] = (counts[file.category] || 0) + 1
+      counts[file.categoryPath] = (counts[file.categoryPath] || 0) + 1
     }
   })
+  for (const locale of locales) {
+    categoryCount[locale] = Object.fromEntries(
+      Object.entries(categoryCount[locale]).sort(([a], [b]) => a.localeCompare(b))
+    )
+  }
   const formatted = await prettier.format(JSON.stringify(categoryCount, null, 2), {
     parser: 'json',
   })
@@ -151,21 +187,35 @@ export const Blog = defineDocumentType(() => ({
   },
   computedFields: {
     ...computedFields,
-    // data/blog/<locale>/<category>/<file>.mdx
+    // data/blog/<locale>/<parent>/<category>/<file>.mdx, or data/blog/<locale>/<category>/<file>.mdx
     locale: {
       type: 'string',
       resolve: (doc) => doc._raw.sourceFileDir.split('/')[1] ?? '',
     },
+    // Parent category folder, '' for a category without a parent
+    parent: {
+      type: 'string',
+      resolve: (doc) => {
+        const folders = categoryFolders(doc)
+        return folders.length > 1 ? folders[0] : ''
+      },
+    },
+    // Category folder name
     category: {
       type: 'string',
-      resolve: (doc) => doc._raw.sourceFileDir.split('/')[2] ?? '',
+      resolve: (doc) => categoryFolders(doc).pop() ?? '',
     },
-    // <category>/<file>, shared by a post and its translation
+    // '<parent>/<category>' or '<category>': the key for counts, labels and prev/next
+    categoryPath: {
+      type: 'string',
+      resolve: (doc) => categoryFolders(doc).join('/'),
+    },
+    // <parent>/<category>/<file> or <category>/<file>, shared by a post and its translation
     slug: {
       type: 'string',
       resolve: (doc) => doc._raw.flattenedPath.split('/').slice(2).join('/'),
     },
-    // URL path without the leading slash: <locale>/blog/<category>/<file>
+    // URL path without the leading slash: <locale>/blog/<slug>
     path: {
       type: 'string',
       resolve: (doc) => {
@@ -248,6 +298,7 @@ export default makeSource({
   },
   onSuccess: async (importData) => {
     const { allBlogs } = await importData()
+    checkUrlCollisions(allBlogs)
     createTagCount(allBlogs)
     createCategoryCount(allBlogs)
     createTranslationIndex(allBlogs)

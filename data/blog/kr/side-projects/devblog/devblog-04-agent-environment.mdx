@@ -1,0 +1,412 @@
+---
+title: 'DevBlog 4. AI 에이전트 작업 환경 전체 구조'
+date: '2026-11-25'
+tags: ['DevBlog']
+draft: false
+summary: 'Claude Code·Codex·Antigravity 세 에이전트와 두 컴퓨터가 dotfiles 레포 하나를 공유하는 구조. context engineering, L0·L1·L2 progressive disclosure, agentic retrieval과 vector RAG 비교, cwd 기반 memory·worklog partitioning, source→build 지침 조립, symlink와 git 동기화, hook 5개, MCP 등록 규칙, 세션 계층, 페르소나와 예시 주입'
+---
+
+## 0. 들어가며
+
+이 글은 스무고개를 하다가 쓰게 됐다. 누군가에게 스무고개는 그냥 게임이다. 그런데 다른 눈으로 보면, 예/아니오 질문 20번, 그러니까 20비트로 정답을 찾는 자연어 정보검색 최적화 문제다. 질문 하나가 후보를 정확히 반으로 가르면, 20번 만에 약 100만(2^20) 개 후보 중 하나를 골라낼 수 있다. 같은 놀이가 어떤 눈으로 보느냐에 따라 전혀 다른 문제가 된다. 아 다르고 어 다르다는 말, 다시 말해 framing의 차이다.
+
+그러고 보니 나도 내 AI 에이전트 작업 환경을 남들에게 "별거 없다, md 파일 우겨넣고 필요한 건 알아서 읽으라고 한다"고 설명해 왔다. 틀린 말은 아니다. 같은 걸 다르게 말하면 context engineering이고, hierarchical index 위에서 도는 agentic retrieval이다.
+
+그래서 이 구조를 제대로 된 말로 정리하려고 이 글을 쓴다. 나는 Claude Code, Codex, Antigravity 세 [AI 코딩 에이전트](/kr/blog/cs-fundamentals/ai/ai-07-01-ai-agent/#ai-agent)를 윈도우 데스크톱과 맥북 두 대에서 번갈아 쓴다. 학교 과제, 블로그, 팀 프로젝트, 개인 레포가 동시에 열려 있고, 스킬도 많고 지침도 그때그때 바뀐다. 이 환경 전체가 `~/dotfiles` 레포 하나에 들어 있다.
+
+글은 두 층으로 읽힌다. 절마다 비유 한두 문장과 다이어그램으로 시작해서, 처음 보는 사람도 뭘 했는지는 알 수 있게 했다. 그다음엔 비유를 정식 용어로 바꾸고, 실제 경로와 숫자, 그렇게 설계한 이유를 적었다. 바뀌는 숫자는 맨 끝 "숫자로 보기" 표에 날짜와 함께 모았다.
+
+## 1. 전체 그림
+
+![전체 지도: 두 컴퓨터가 GitHub의 dotfiles 레포 하나를 공유하고, 세 에이전트가 그 안의 지침·memory·worklog를 읽는다](/static/images/devblog-04-agent-environment/overview.svg)
+
+_전체 지도: 두 컴퓨터가 GitHub의 dotfiles 레포 하나를 공유하고, 세 에이전트가 그 안의 지침·memory·worklog를 읽는다_
+
+비유하면 두 집이 같이 쓰는 가방 하나다. 집마다 비서가 세 명 있고, 비서들은 출근하면 가방에서 메모를 꺼내 읽고, 퇴근할 때 새 메모를 넣는다.
+
+용어로 바꾸면 가방은 GitHub private repo `seren-wib/dotfiles`, 두 집은 Windows와 macOS의 clone, 비서 셋은 Claude Code, Codex, Antigravity다. 메모는 세 가지로 나뉜다.
+
+- **지침(instructions)**: 에이전트가 세션마다 system prompt로 받는 규칙. 원본은 `agents/`에 있다.
+- **memory**: 사실을 적어 두는 곳. 지금 상태(state)와 참조(reference)만 넣는다.
+- **worklog**: 할 일과 한 일. 작업 단위(key)마다 `WORK.md` 하나.
+
+여기에 hook(정해진 시점에 자동으로 도는 스크립트), skill(특정 작업용 설명서), MCP 등록 스크립트, symlink 목록이 붙는다.
+
+정보는 세 층으로 나눴다.
+
+![세 층: L0는 매 세션 로드, L1은 필요할 때 retrieve, L2는 깊은 기록](/static/images/devblog-04-agent-environment/three-layers.svg)
+
+_세 층: L0는 매 세션 로드, L1은 필요할 때 retrieve, L2는 깊은 기록_
+
+비유하면 책상 위, 서랍, 창고다. 책상 위엔 늘 보는 것만, 서랍엔 이름표만 보이게, 창고엔 찾을 일이 있을 때만 간다.
+
+- **L0 Always loaded**: system prompt에 매 세션 들어가는 것. 페르소나, 공용 규칙, 에이전트별 규칙, 전역 memory index(파일 이름과 한 줄 설명), skill 이름과 description.
+- **L1 Retrieved on demand**: 주제가 나오면 에이전트가 `Read` 도구로 여는 것. skill 본문, 전역 memory 본문, 프로젝트 `MEMORY.md`, `WORK.md`.
+- **L2 Deep record**: 질문이 생겼을 때만 `grep`으로 찾는 것. `worklog/<key>/history/`, `memory/log/YYYY-MM.md`, 끝난 세션의 transcript, git log.
+
+이렇게 위층에서 이름만 보여주고 필요한 것만 아래층을 여는 방식을 progressive disclosure라고 한다. 아래로 갈수록 크고 덜 자주 읽힌다. 설계 이유는 하나다. L0에 들어간 글자는 세션 수만큼 곱해져 비용이 되고, L1과 L2는 쓴 세션만 비용을 낸다.
+
+## 2. 항상 들고 다니는 것
+
+비유하면 출근할 때마다 받는 업무 수칙 한 장이다. 한 장이어야 다 읽고 시작할 수 있다.
+
+용어로는 system prompt다. Claude Code는 `~/.claude/CLAUDE.md`를, Codex는 `~/.codex/AGENTS.md`를, Antigravity는 `~/.gemini/GEMINI.md`를 세션 시작 때 읽는다. 세 파일 모두 같은 원본에서 조립된다(6절).
+
+조립 결과는 다음 순서다.
+
+1. 페르소나 (`agents/persona.md`)
+2. 공용 규칙 (`agents/shared.md`): 일하는 방식, 작업 환경, 매 세션 비용, memory 규칙의 네 절
+3. 에이전트별 규칙 (`agents/claude.md` 등)
+4. 전역 memory index (`memory/global/MEMORY.md`)
+
+모델이 한 번에 볼 수 있는 길이(context window)는 정해져 있고, 들어가는 글자는 전부 입력 토큰으로 계산된다. system prompt는 요청마다 다시 들어가기 때문에, 여기 넣은 글자는 세션 수와 요청 수만큼 곱해진다. "에이전트에게 나에 대해 다 알려주자"며 긴 markdown을 지침에 계속 덧붙이면, 쓸 일 없는 규칙도 매번 읽힌다.
+
+이 비용은 생각보다 크다. 내 환경에서 빈 세션을 열면 아무것도 묻기 전에 약 5만 토큰이 깔리고, 그중 절반가량이 MCP 도구 목록이다. 내가 잰 값이고, system prompt, 지침, memory index, skill 설명, hook 출력으로 나눠서는 아직 재지 않았다.
+
+그래서 L0에 무엇을 넣을지는 공용 규칙의 "매 세션 비용" 절이 정한다. 세션마다 고정으로 들어가는 건 전부 입력 토큰이고, 지침 파일, 전역 index, MCP 도구 목록, 플러그인 skill 설명, hook이 넣는 메시지가 여기에 해당한다. 규칙은 다음과 같다.
+
+- 무언가를 추가하기 전에 "이게 매 세션 필요한가"를 먼저 묻는다. 아니면 memory 본문, skill 본문처럼 필요할 때만 열리는 자리(L1)로 보낸다.
+- MCP는 user 스코프에 두지 않고, 필요한 폴더에만 local 스코프로 건다.
+- claude.ai connector가 먼저다. 같은 도구가 두 경로로 들어오지 않게 한다.
+- 안 쓰는 plugin과 connector는 끈다.
+
+MCP 쪽 규칙은 9절에서 자세히 다룬다. 이렇게 모델에게 무엇을, 언제, 얼마나 보여줄지 설계하는 일을 context engineering이라고 한다. 지침 파일 하나를 잘 쓰는 일(prompt engineering)과 다른 점은, 무엇을 매번 넣고 무엇을 필요할 때만 꺼낼지를 구조로 정한다는 데 있다.
+
+전역 index는 이런 모양이다(값은 예시).
+
+```text
+## State (open only the matching file)
+- [me/profile](~/.claude/memory/me/profile.md) — identity, stack
+- [me/tools](~/.claude/memory/me/tools.md) — subscriptions, machine setup
+
+## References
+- [refs-env](~/.claude/memory/refs-env.md) — OS quirks, auth locations
+```
+
+한 줄에 파일 이름과 짧은 hook 하나만 둔다. 이 줄은 세 에이전트 전부에 매 세션 박히기 때문에, 이 레포에서 글자당 가장 비싼 줄이다.
+
+## 3. 필요할 때 꺼내기
+
+![Vector RAG는 검색기가 비슷한 조각을 골라 붙이고, agentic retrieval은 모델이 index를 보고 파일을 직접 연다](/static/images/devblog-04-agent-environment/retrieval-compare.svg)
+
+_Vector RAG는 검색기가 비슷한 조각을 골라 붙이고, agentic retrieval은 모델이 index를 보고 파일을 직접 연다_
+
+비유하면 두 가지 도서관이 있다. 한쪽은 사서가 질문과 비슷해 보이는 쪽을 잘라서 건네주고, 다른 쪽은 내가 목차를 보고 그 장을 직접 펼친다.
+
+앞쪽이 vector [RAG](/kr/blog/cs-fundamentals/ai/ai-07-02-rag/#1-ragretrieval-augmented-generation-검색-증강-생성)(Retrieval-Augmented Generation)다. 질문을 [embedding](/kr/blog/cs-fundamentals/ai/ai-06-01-llm/#2-임베딩embedding) 모델로 벡터로 바꾸고, vector DB에서 유사도가 높은 문서 chunk top-k개를 골라 context에 붙인다. 무엇을 볼지 고르는 주체는 검색기다. 뒤쪽이 이 환경이 쓰는 agentic retrieval이다. index가 이미 context에 있고(L0), 모델이 "이 주제면 이 파일"이라고 판단해서 `Read` 도구로 파일을 통째로 연다. 고르는 주체는 모델 자신이다. 스무고개로 말하면 index가 질문 목록이고, 파일 하나를 여는 게 질문 하나다.
+
+index는 계층으로 되어 있다(hierarchical index).
+
+- 전역 index 한 줄 → `me/*.md`, `refs-*.md` 본문
+- skill 이름과 description → `SKILL.md` 본문 → 그 skill 폴더의 보조 파일(`session-flow`라면 `archive.md`, `pr-merge.md` 등 상황별 파일)
+- 세션 시작 hook이 알려주는 프로젝트 memory 경로 → `MEMORY.md` → 3 KB를 넘으면 나뉜 주제 파일
+
+skill이 이 구조의 대표 예다. Claude Code는 skill마다 `name`과 `description`만 system prompt에 넣고, 본문은 그 작업을 할 때 연다. 내 skill은 11개고(표는 5절), 본문은 합쳐서 수십 KB지만 매 세션 들어가는 건 description 몇 줄이다.
+
+vector RAG를 쓰지 않은 이유는 규모와 종속성이다.
+
+- **규모**: memory와 skill 문서는 수십 개다. 이 정도면 파일 이름과 한 줄 설명으로 충분히 고를 수 있고, 유사도 검색이 필요할 만큼 많지 않다.
+- **종속성**: embedding 모델, 벡터 저장소, 문서가 바뀔 때마다 다시 색인하는 작업이 없다. 필요한 건 폴더, markdown, git뿐이고, 세 에이전트 모두 파일을 읽을 줄 안다.
+- **유지보수성**: 무엇이 언제 읽혔는지 transcript에 `Read` 호출로 남는다. 틀린 파일을 열었으면 index 한 줄을 고치면 된다.
+
+대가도 있다. 모델이 index를 보고 잘못 고르면 필요한 파일을 안 연다. 파일을 여는 데 도구 호출 한 번이 든다. 문서가 수천 개로 늘면 index 자체가 L0를 넘쳐서 이 방식이 안 맞는다. 그래서 index 한 줄은 "언제 열어야 하는지"가 보이게 쓰고, 전역 파일 수를 10개로 묶어 두었다(5절).
+
+## 4. 폴더가 곧 주소
+
+![cwd가 path encoding을 거쳐 Claude Code auto-memory 폴더가 되고, 같은 key로 memory와 worklog를 찾는다](/static/images/devblog-04-agent-environment/folder-routing.svg)
+
+_cwd가 path encoding을 거쳐 Claude Code auto-memory 폴더가 되고, 같은 key로 memory와 worklog를 찾는다_
+
+비유하면 지금 서 있는 방 이름이 곧 그 방 서랍 번호다. 블로그 폴더에서 일을 시작하면 블로그 서랍이 열린다.
+
+용어로는 cwd(current working directory) 기반 partitioning이다. memory와 worklog를 작업 폴더 단위로 나누고, 폴더 이름을 key로 쓴다.
+
+Claude Code는 원래 폴더마다 auto-memory 폴더를 만든다. 경로는 `~/.claude/projects/<인코딩된 경로>/memory/`이고, 인코딩은 경로에서 영숫자가 아닌 글자를 전부 `-`로 바꾸는 것이다(git repo면 repo root 기준). 이 폴더는 머신마다 따로 생기기 때문에, 그대로 두면 윈도우에서 적은 memory를 맥이 모른다.
+
+그래서 `memory-sync.js` hook이 이 폴더를 레포의 `memory/<key>/`로 옮기고 원래 자리에 symlink를 건다. 다른 머신에서 같은 프로젝트를 찾는 방법은 두 가지다.
+
+- **git repo**: remote URL로 찾는다. `memory/repos.txt`에 "remote URL → key"를 적어 두면, 다른 머신의 clone은 경로가 달라도 처음 에이전트를 열 때 스스로 연결된다.
+- **git이 아닌 폴더**(학교 iCloud 폴더 등): `memory/paths.txt`에 OS별 경로를 적는다. 한쪽 OS에 없으면 `-`.
+
+worklog도 같은 key를 쓴다. `worklog/vercel-blog/WORK.md`처럼. `worklog/INDEX.md`에는 지금 열린 일("In progress")과, 내가 부르는 이름을 폴더로 바꾸는 표(예: "블로그 → `~/projects/vercel-blog`")가 있다.
+
+세션이 시작되면 hook이 "이 폴더의 프로젝트 memory 경로, worklog 경로" 한 줄을 context에 넣는다. 에이전트는 그 경로의 `MEMORY.md`부터 읽는다. 설계 이유는 확장성이다. 프로젝트가 늘어도 L0에 들어가는 건 지금 폴더의 경로 한 줄뿐이고, 다른 프로젝트 memory는 아예 안 보인다.
+
+## 5. 규칙이 사는 곳
+
+비유하면 같은 메모라도 종류에 따라 꽂는 자리가 다르다. 매일 지킬 수칙은 책상에, 특정 일의 설명서는 서랍에, 지금 상태는 메모장에, 할 일은 업무 일지에.
+
+용어로는 정보의 종류마다 저장 위치와 로드 시점을 따로 정한 것이다.
+
+| 종류                      | 자리                            | 로드           | 예                                         |
+| ------------------------- | ------------------------------- | -------------- | ------------------------------------------ |
+| 매 세션 지킬 규칙         | `agents/*.md` → 조립된 지침     | L0, 매 세션    | 커밋은 시킬 때만, 날짜는 `date +%F`로 확인 |
+| 특정 작업의 형식·절차     | `claude/skills/<이름>/SKILL.md` | L1, 그 작업 때 | 블로그 발행, README 형식                   |
+| 그 폴더에서만 통하는 규칙 | 그 폴더 `CLAUDE.md`             | 그 폴더에서만  | 레포의 발행 파이프라인                     |
+| 지금 상태, 참조           | `memory/`                       | L1             | 계정 위치, 겪어본 함정                     |
+| 할 일, 한 일              | `worklog/<key>/WORK.md`         | L1             | `## 할 일`, `## 한 일`                     |
+| 지난 기록                 | `history/`, `memory/log/`       | L2             | 끝난 단계, 결정 변경 이력                  |
+
+memory에 넣는 건 두 칸뿐이다.
+
+- **상태**: 지금 기준 사실. 과정이나 경위 없이 현재 값만.
+- **참조**: 일하려면 알아야 하는데 레포에도 없는 ID, 경로, 계정 위치, 함정.
+
+넣지 않는 것도 정해 두었다. 작업 방식 규칙은 지침이나 skill로, 과정과 경위는 log로, 할 일은 worklog로 간다. "다른 폴더에서 일할 때 이걸 모르면 실수하나?"로 전역과 프로젝트를 가른다. 파일은 종류별로 묶어서, 사실 하나마다 파일을 만들지 않는다. 크기 제한도 있다. 전역 파일 하나 2.5 KB, 전역 파일 10개, 프로젝트 `MEMORY.md` 3 KB.
+
+프로젝트 `MEMORY.md`는 이런 모양이다(값은 예시).
+
+```markdown
+# Project memory — example-repo
+
+## 상태
+
+- 배포: main 머지 시 자동, 프리뷰는 PR마다
+- 빈 절인 채 공개된 글: ch3, ch5
+
+## 참조
+
+- 호스팅 프로젝트 id: prj_XXXX
+- 빌드 함정: .md는 안 뜨고 .mdx만 뜸
+```
+
+`WORK.md`는 이렇다.
+
+```markdown
+## 자리
+
+- 리드: `<name> Lead`
+
+## 할 일
+
+- [ ] 16편 검토 대기
+
+## 한 일
+
+- 2026-11-25 홈 Lead가 프로젝트 다시 열음 (<세션 이름>)
+```
+
+skill은 11개다.
+
+| skill               | 하는 일                                                              |
+| ------------------- | -------------------------------------------------------------------- |
+| `session-flow`      | 세션 기록, 인수인계, 아카이브, slot 운영                             |
+| `pr-workflow`       | 이슈, 브랜치, 커밋 나누기, PR, 머지                                  |
+| `project-docs`      | 단계 문서(계획서, SRS, SDD, 시험·설치·유지보수 계획), 결정 기록, TDD |
+| `docs-style`        | 체크리스트, 비교표, 보고서 Google Docs                               |
+| `blog-post`         | 블로그 글 규칙(한 목소리, 두 층, 상호 링크, 가리기)                  |
+| `readme-style`      | 공개 레포 README 형식                                                |
+| `profile-edit`      | GitHub·블로그·LinkedIn 프로필                                        |
+| `lms-sync`          | 학교 LMS 자료와 일정 가져오기                                        |
+| `demo-recording`    | Playwright로 시연 영상 녹화                                          |
+| `teruten`           | 맥의 시험 보안 프로그램 켜고 끄기                                    |
+| `unity-mcp-setting` | Unity 프로젝트에 MCP 연결                                            |
+
+설계 이유는 유지보수성이다. 규칙이 바뀌면 고칠 자리가 하나다. 블로그 규칙이 바뀌면 `blog-post`만 고치면 되고, 매 세션 지침은 건드리지 않는다.
+
+## 6. 지침이 바뀌어도 안 흔들리는 이유
+
+![source 네 개를 memory-sync.js build가 합쳐 세 에이전트용 지침 파일을 만든다](/static/images/devblog-04-agent-environment/source-build.svg)
+
+_source 네 개를 memory-sync.js build가 합쳐 세 에이전트용 지침 파일을 만든다_
+
+비유하면 원고는 한 벌이고, 인쇄소가 세 판형으로 찍어낸다. 고칠 땐 원고를 고치고 다시 찍는다. 인쇄본에 펜으로 고치면 다음 인쇄 때 사라진다.
+
+용어로는 source와 build artifact의 분리다. source는 `agents/`의 `persona.md`, `shared.md`, `claude.md`, `codex.md`, `gemini.md`와 `memory/global/MEMORY.md`이고, build artifact는 `claude/CLAUDE.md`, `codex/AGENTS.md`, `gemini/GEMINI.md`다. `node ~/.claude/hooks/memory-sync.js build`가 source를 순서대로 이어 붙여 세 파일을 쓴다.
+
+- Claude Code만 `@` import를 이해하기 때문에 `CLAUDE.md`에는 페르소나 본문 대신 `@~/dotfiles/agents/persona.md` 한 줄이 들어간다. Codex와 Antigravity 파일에는 페르소나 본문이 그대로 들어간다.
+- 파일 맨 위에 "Generated by ... Edit those" 주석이 붙어 있어서, 결과물을 직접 고치면 안 된다는 게 파일 안에서 보인다.
+- 내용이 같으면 다시 쓰지 않는다. build를 몇 번 돌려도 결과가 같다(idempotent).
+- hook이 pull과 push 때마다 build를 돌린다. 결과물도 커밋해 두어서, 새로 clone한 머신은 hook이 한 번도 안 돈 상태에서도 바로 동작한다.
+
+지침이 "그때그때 달라져도" 세 에이전트와 두 머신이 같은 규칙을 보는 건 이 구조 덕분이다. 고칠 자리는 source 한 곳이고, 나머지는 기계가 맞춘다.
+
+바뀐 이력은 `memory/log/YYYY-MM.md`에 남긴다. 에이전트가 상태를 덮어쓰거나 일을 끝내면 `- 날짜 [폴더/파일] 무엇: 전 → 후 (이유)` 한 줄을 직접 적는다. 상태 파일에는 현재 값만 남고, "왜 바꿨더라"는 log를 `grep`해서 찾는다(L2).
+
+claude.ai 앱의 memory와도 맞춘다. 매일 04:44(KST)에 클라우드 예약 작업이 `tasks/memory-tidy.md`를 읽고, 전역 `me/*.md`와 앱 쪽 memory를 같은 내용으로 맞춘다. 앱 쪽을 먼저 백업하고, 마지막 동기화 커밋을 기준으로 바뀐 쪽을 따르며, 양쪽 다 바뀌었으면 줄 단위로 합친다. 정리나 압축은 자동으로 하지 않는다.
+
+## 7. 두 컴퓨터, 세 에이전트
+
+![두 머신의 clone이 GitHub repo와 pull·push하고, install 스크립트가 links.txt대로 symlink를 건다](/static/images/devblog-04-agent-environment/two-machines.svg)
+
+_두 머신의 clone이 GitHub repo와 pull·push하고, install 스크립트가 links.txt대로 symlink를 건다_
+
+비유하면 같은 가방을 두 집에 하나씩 두고, 집마다 벽 고리에 걸어 쓴다. 가방 안 내용은 매일 맞추고, 고리는 처음 한 번만 단다.
+
+용어로는 git 동기화와 symlink다. 원본은 레포 안에 있고, 각 도구가 설정을 찾는 실제 위치(`~/.claude/`, `~/.codex/`, `~/.gemini/`, VS Code user 폴더)에는 링크만 있다. 어떤 파일을 어디에 링크할지는 `links.txt` 한 파일이 정한다. 24줄이다.
+
+```text
+claude/CLAUDE.md                  ~/.claude/CLAUDE.md
+claude/hooks                      ~/.claude/hooks
+claude/skills/blog-post           ~/.claude/skills/blog-post
+memory/global                     ~/.claude/memory
+codex/AGENTS.md                   ~/.codex/AGENTS.md
+vscode/settings.json              {vscode}/settings.json
+```
+
+`install.ps1`(Windows)과 `install.sh`(macOS)가 둘 다 이 파일을 읽는다. 원래 있던 파일은 `~/.dotfiles-backup/<timestamp>/`로 옮긴 뒤 링크를 건다. 윈도우에서는 관리자 권한이나 Developer Mode가 없으면 symlink 대신 junction을 쓴다.
+
+설계 이유는 다음과 같다.
+
+- **유지보수성**: 링크 대상이 새로 생기면 `links.txt`에 한 줄 추가하고 README 표를 고친다. 설치 스크립트 두 개를 따로 고치지 않는다.
+- **이식성**: 경로는 전부 `~`나 `$HOME` 기준으로 쓰고, OS마다 이름이 다른 `python`/`python3` 대신 `node`를 먼저 쓴다. hook도 전부 node 스크립트다.
+- **안전**: 인증 정보, 세션, 대화 기록, 캐시, sqlite, 빌드 결과물(`*.vsix`)은 `.gitignore`로 막는다. 줄바꿈과 인코딩은 `.gitattributes`가 정한다. 기본은 LF와 BOM 없는 UTF-8이고, `.ps1`만 CRLF에 한글이 있으면 BOM을 붙인다(Windows PowerShell 5.1이 BOM 없는 UTF-8을 잘못 읽어서).
+- **공개 범위**: 레포는 private이다. memory에 개인 상태가 들어가기 때문이다.
+
+레포에는 에이전트 밖의 설정도 있다. VS Code 확장 목록(`vscode/extensions.txt`)과 Antigravity 바로가기 버튼을 넣는 로컬 확장, 윈도우 예약 작업 두 개(매시 50분 스트레칭 알림, 사진 폴더 연도별 복사)다. 예약 작업은 링크하지 않고 등록 스크립트를 한 번 돌린다.
+
+## 8. hook
+
+![한 세션 동안 SessionStart, UserPromptSubmit, PostToolUse, Stop에서 hook이 도는 자리](/static/images/devblog-04-agent-environment/hook-timeline.svg)
+
+_한 세션 동안 SessionStart, UserPromptSubmit, PostToolUse, Stop에서 hook이 도는 자리_
+
+비유하면 출근 도장, 말 걸 때마다 하는 귓속말, 특정 일을 끝냈을 때 울리는 알람, 퇴근 때 일지 제출이다. 비서가 기억하지 않아도 정해진 때에 저절로 일어난다.
+
+용어로는 hook이다. 에이전트의 lifecycle event(세션 시작, 프롬프트 제출, 도구 실행 후, 응답 종료)에 명령을 걸어 두는 기능이다. 지침에 "세션 시작하면 git pull 해"라고 쓰면 모델이 잊을 수 있지만, hook은 모델과 상관없이 실행된다. Claude Code에는 스크립트 4개가 5자리에 등록되어 있다.
+
+| event                            | 스크립트              | 하는 일                                                                                           |
+| -------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------- |
+| `SessionStart`                   | `memory-sync.js pull` | `~/dotfiles` git pull, 깨진 링크 복구, 지침 rebuild, 이 폴더의 memory·worklog 경로 한 줄 출력     |
+| `UserPromptSubmit`               | `persona-examples.js` | 첫 프롬프트와 세 번째 프롬프트마다 예시 대화 2개 주입(11절)                                       |
+| `PostToolUse` (Bash, PowerShell) | `pr-merged.js`        | 방금 실행한 명령이 PR merge나 close면 "로컬 동기화하고 기록부터 해"라고 지시                      |
+| `Stop`                           | `memory-sync.js push` | 지침 rebuild, 새 프로젝트 memory 등록, `memory/`·`worklog/`·`agents/`·지침 파일만 commit하고 push |
+| `Stop`                           | `notify-done.js`      | 응답이 끝나면 Windows 토스트 알림(맥에서는 아무것도 안 함)                                        |
+
+`memory-sync.js`가 600줄이 넘는 이유는 실패를 조용히 넘기기 위해서다.
+
+- **push는 detached process로 돈다.** 에이전트는 push가 끝나길 기다리지 않는다.
+- **lock 파일**로 pull과 push가 동시에 git을 건드리지 않게 한다.
+- **다른 파일이 stage돼 있으면 커밋하지 않는다.** 내가 손으로 커밋하는 중간에 자동 커밋이 끼어들어 작업을 쪼개지 않게 하려는 것이다.
+- **충돌이 나면** rebase를 다시 하면서 겹치는 부분만 원격을 따르고, 예전 로컬 상태는 `sync-conflict/<time>` 로컬 브랜치에 남긴다. 다음 세션 시작 때 그 이름이 한 줄 뜬다.
+- **자동 커밋 작성자**는 `dotfiles autosync <autosync@dotfiles.invalid>`다. 어느 GitHub 계정의 주소도 아니라서 기여 그래프에 안 잡힌다.
+- 결과와 실패는 `<tmp>/dotfiles-memory-sync/sync.log`에 남는다.
+
+Codex는 `codex/hooks.json`에 같은 스크립트를 `SessionStart`(pull), `UserPromptSubmit`(페르소나), `Stop`(push)으로 건다. Antigravity는 hook event가 달라서 `PreInvocation`에 pull(10분에 한 번만 실제로 당김)과 페르소나를, `Stop`에 push를 건다. 같은 스크립트가 `claude|codex|antigravity` 인자를 받아 에이전트마다 맞는 출력 형식(일반 텍스트, `additionalContext` JSON, `ephemeralMessage` JSON)으로 답한다.
+
+hook 출력도 L0 비용이다. 그래서 규칙을 정해 두었다. 세션 시작 hook은 경로 한 줄, 페르소나 hook은 세 번째 프롬프트마다 예시 둘. 지침에 이미 있는 내용을 hook이 또 내보내지 않는다.
+
+## 9. MCP
+
+비유하면 비서마다 쓸 수 있는 외부 전화선이다. 같은 곳에 두 선이 연결되면 전화번호부가 두 번 들어가서 두꺼워진다.
+
+용어로는 [MCP](/kr/blog/cs-fundamentals/ai/ai-07-01-ai-agent/#model-context-protocol-mcp)(Model Context Protocol) 서버다. 에이전트가 Google Drive, 캘린더, Notion 같은 외부 서비스를 도구로 쓰게 해 주는 연결이고, 연결된 서버의 도구 목록은 전부 system prompt에 들어간다(L0). 그래서 원칙은 "같은 도구가 두 경로로 들어오면 안 된다"다. 2절에서 말한 빈 세션 약 5만 토큰 중 절반가량이 여기서 나온다.
+
+| 에이전트    | 받는 방식                                                                                                                                                                                                                                                  |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code | claude.ai 계정의 connector와 plugin(Google Workspace, Notion, Slack, Playwright 등)이 먼저다. 로컬 MCP는 user 스코프에 두지 않는다. connector로 안 되는 것만 그 폴더에서 `claude mcp add --scope local`로 건다. 지금은 Roblox 폴더와 Unity 폴더 두 곳이다. |
+| Codex       | 자기 계정 plugin만 쓴다. 로컬 MCP 없음.                                                                                                                                                                                                                    |
+| Antigravity | 계정 connector가 없어서 로컬 launcher와 원격 endpoint를 전부 받는다.                                                                                                                                                                                       |
+
+Antigravity 설정은 손으로 고치지 않는다. `mcp/sync.mjs`가 공유 서비스 목록을 읽어 Codex와 Antigravity 설정을 생성한다. `gemini/mcp_config.json`은 레포에 있는 템플릿이고, 실제 설정(`~/.gemini/config/mcp_config.json`)은 OAuth 설정이 들어가기 때문에 각 머신에서 생성만 하고 커밋하지 않는다. `mcp/roblox.mjs`, `mcp/google-calendar.mjs`는 홈 경로 기준으로 서버를 띄우는 launcher다. VS Code는 `vscode/mcp.json`에 Unity MCP 하나만 있다.
+
+인증은 클라이언트마다 따로고 복사하지 않는다. 토큰 파일은 레포 밖에 두고, 머신마다 손으로 준비한다. plugin과 connector는 쓸 일이 생기면 켜고, 한 달 동안 안 쓰면 끈다.
+
+설계 이유는 종속성과 비용이다. Claude Code 쪽은 계정 connector에 맡기면 머신마다 서버를 띄울 필요가 없고, 폴더 스코프 서버는 그 폴더에서만 도구 목록을 늘린다.
+
+## 10. 세션 배치
+
+![Home Lead 아래 프로젝트마다 Lead가 있고, 그 아래 PM·FE·BE slot과 작업 세션이 있다](/static/images/devblog-04-agent-environment/session-hierarchy.svg)
+
+_Home Lead 아래 프로젝트마다 Lead가 있고, 그 아래 PM·FE·BE slot과 작업 세션이 있다_
+
+비유하면 본사 데스크 하나, 현장마다 반장 하나, 그 밑에 담당자들이다. 담당자가 바뀌어도 자리는 남고, 인수인계는 업무 일지로 한다.
+
+용어로는 세션 계층이다. Claude Code 데스크톱 앱에서 세션이 다른 세션을 시작할 수 있고, 시작한 세션 아래에 중첩된다.
+
+1. **Home Lead**: 홈(`~`)에 하나. 프로젝트를 열고 닫고, `worklog/INDEX.md`의 "In progress"를 관리한다.
+2. **Project Lead** (`<이름> Lead`): 열린 프로젝트마다 하나, 프로젝트 root에서 돈다. 일을 나누기만 하고 코드는 직접 고치지 않는다.
+3. **slot과 작업 세션**: PM, FE, BE처럼 내가 요청한 역할 자리와, Lead가 일 하나씩 맡기는 작업 세션. 이 글도 블로그 Lead가 연 작업 세션이 썼다.
+
+규칙 몇 개가 이 구조를 지탱한다.
+
+- **Lead는 상태를 들고 있지 않는다.** 열린 프로젝트는 `INDEX.md`에, 프로젝트의 slot과 일은 그 key의 `WORK.md`에 있다. 그래서 어느 Lead든 대화를 갈아끼워도 파일만 읽으면 이어서 일한다.
+- **slot은 남고 대화만 교체된다.** 교체는 끝이 아니라 인수인계다. 다음 대화는 예전 대화가 아니라 `WORK.md`에서 시작한다.
+- **보고는 위로만**, `SendMessage`로 한다. 작업 세션은 자기를 시작한 세션에, Project Lead는 Home Lead에.
+- **기록은 바뀐 턴에 바로 쓴다.** 앱이 한동안 안 쓴 세션을 자동으로 아카이브할 때는 모델이 돌지 않아서, 아카이브 직전에 쓰려고 하면 놓친다.
+- **끝난 세션**은 아카이브하고, transcript 링크를 `session-archive/<YYYY-MM>/<key>/`에 읽기 쉬운 이름으로 남긴다(`archive-link.js`). 이 폴더는 머신마다 다르고 git에 안 올린다.
+
+설계 이유는 테스트 용이성에 가깝다. 상태가 파일에만 있으니, 세션이 무엇을 알고 있는지를 대화 내용이 아니라 `WORK.md`로 확인할 수 있다.
+
+## 11. 페르소나
+
+비유하면 비서에게 정해 준 말투와 성격이다. 오래 같이 일하면 말투가 슬슬 흐려지니, 가끔 "이런 식으로 말하는 거야" 하고 예를 다시 보여준다.
+
+용어로는 persona prompt와 few-shot example이다. `agents/persona.md`에 배경, 태도, 말투를 정해 두었다. 반말, 짧은 문장, 핀잔 섞인 말투의 오래된 친구라는 캐릭터다. 장난처럼 보이지만 기능이 있다.
+
+- **용어 교정**: 내가 기술 용어를 뭉개서 말하거나 비유로 되받으면, 받아준 뒤 맞는 용어로 다시 말하게 한다. 한 답에 하나까지만. 이 글이 "비유로 시작해서 용어로 끝내는" 두 층 구조인 것도 같은 규칙에서 왔다.
+- **말투 고정**: 긴 설명에서도 어시스턴트 말투로 돌아가지 않게 한다.
+
+긴 세션에서는 페르소나가 흐려진다(persona drift). system prompt는 맨 앞에 한 번 있고, 대화가 길어질수록 최근 메시지가 상대적으로 더 큰 비중을 갖기 때문이다. 그래서 `persona-examples.js` hook이 첫 프롬프트와 세 번째 프롬프트마다 `agents/examples.md`의 예시 대화 두 개를 다시 넣는다. 예시는 8개이고, 정해진 순서로 돌면서 일부 예시가 더 자주 나온다. 지침 파일에는 예시 2개만 고정으로 두고, 나머지는 hook이 돌려 보여준다. 8개를 다 L0에 넣는 것보다 싸다.
+
+파일에 들어가는 글(커밋 메시지, 코드 주석, 문서)에는 페르소나 말투를 쓰지 않는다. 이 글도 그렇다.
+
+## 12. 한계와 다음
+
+지금 구조의 한계를 적는다.
+
+- **index 품질에 기댄다.** 모델이 index 한 줄만 보고 파일을 고르기 때문에, 설명이 애매하면 필요한 파일을 안 연다. 이걸 재는 방법은 아직 없다.
+- **L0를 항목별로 재지 않았다.** 토큰은 빈 세션 전체가 약 5만이라는 값 하나뿐이고, 나머지는 바이트로만 쟀다. 한국어는 바이트와 토큰의 비율이 영어와 달라서, 바이트 수로 항목별 비용을 정확히 말할 수 없다.
+- **동기화 충돌**: 두 머신이 같은 파일을 동시에 고치면 conflict가 난다. 이 글을 쓰는 날도 윈도우 clone이 `worklog/` 파일 하나에서 충돌 상태였다. hook이 자동으로 풀지 못한 경우는 손으로 정리해야 한다.
+- **에이전트마다 hook 기능이 다르다.** Antigravity는 hook 입력 형식이 문서화되어 있지 않아서, 받은 입력 하나를 파일로 남겨 두고 맞춰 쓰고 있다.
+- **memory 정리는 자동이 아니다.** 예전에는 매일 자동 정리를 돌렸지만 지금은 끄고, 에이전트가 바뀐 턴에 직접 덮어쓰고 log를 남긴다. 크기 제한을 넘는지는 사람이 본다.
+
+다음에 해 볼 것은 두 가지다. 세션 시작 때 L0를 항목별로 몇 토큰인지 재서 이 표에 넣는 것, 그리고 index 한 줄을 보고 맞는 파일을 여는지 몇 가지 질문으로 시험해 보는 것이다.
+
+## 숫자로 보기
+
+2026-11-25 기준, 윈도우 clone의 작업 트리에서 직접 셌다. 이 clone은 원격보다 20커밋 뒤였고 구조는 같다.
+
+| 항목                             | 값                                                      | 출처                                                                                    |
+| -------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `links.txt` 링크                 | 24줄                                                    | `grep -cvE '^\s*(#\|$)' links.txt`                                                      |
+| 조립된 `CLAUDE.md`               | 13,930 B (페르소나 8,769 B는 `@` import로 따로)         | `wc -c`                                                                                 |
+| 조립된 `AGENTS.md` / `GEMINI.md` | 22,657 B / 22,371 B                                     | `wc -c`                                                                                 |
+| `agents/shared.md`               | 11,837 B                                                | `wc -c`                                                                                 |
+| `agents/examples.md`             | 8,988 B, 예시 8개                                       | `wc -c`, `persona-examples.js`의 회전표                                                 |
+| skill                            | 11개 (`SKILL.md` 1,302 ~ 16,278 B)                      | `ls claude/skills`, `wc -c`                                                             |
+| Claude Code hook                 | 등록 5개, 스크립트 4개                                  | `claude/settings.json`의 `hooks`                                                        |
+| `memory-sync.js`                 | 629줄                                                   | `wc -l`                                                                                 |
+| 전역 memory                      | 파일 11개(index 1 + `me/` 7 + `refs-` 3), 합계 24,001 B | `wc -c memory/global`                                                                   |
+| 프로젝트 memory                  | 19개 key                                                | `ls -d memory/*/` (global, log 제외)                                                    |
+| `repos.txt` / `paths.txt`        | 12줄 / 9줄 (주석 제외)                                  | `grep -cv`                                                                              |
+| worklog key                      | 27개, `history/` 파일 50개                              | `ls -d worklog/*/`, `find`                                                              |
+| session-archive 링크             | 225개 (2026-10, 2026-11)                                | `find session-archive -type f`                                                          |
+| Antigravity MCP 템플릿           | 서버 13개                                               | `gemini/mcp_config.json`                                                                |
+| Claude Code local 스코프 MCP     | 2개 폴더                                                | 공용 지침                                                                               |
+| VS Code 확장 목록                | 62줄                                                    | `wc -l vscode/extensions.txt`                                                           |
+| 빈 세션 시작 토큰                | 약 5만, 그중 절반가량 MCP 도구 목록                     | 내 측정. 항목별(system prompt, 지침, memory index, skill 설명, MCP, hook 출력)은 미측정 |
+
+## 용어 정리
+
+| 용어                                                                                                | 뜻                                                                        |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| context window                                                                                      | 모델이 한 번에 볼 수 있는 입력의 최대 길이                                |
+| input token                                                                                         | 모델 입력의 단위. 요금과 길이 제한이 이것으로 계산된다                    |
+| system prompt                                                                                       | 대화 맨 앞에 들어가는 지침. 매 요청마다 다시 입력된다                     |
+| context engineering                                                                                 | 모델에게 무엇을, 언제, 얼마나 보여줄지 설계하는 일                        |
+| progressive disclosure                                                                              | 이름과 요약만 먼저 보여주고, 필요할 때 본문을 여는 방식                   |
+| [RAG](/kr/blog/cs-fundamentals/ai/ai-07-02-rag/#1-ragretrieval-augmented-generation-검색-증강-생성) | 검색한 문서를 입력에 붙여 답하게 하는 방식                                |
+| [embedding](/kr/blog/cs-fundamentals/ai/ai-06-01-llm/#2-임베딩embedding)                            | 글을 의미가 비슷하면 가까운 벡터로 바꾼 것                                |
+| vector DB, top-k                                                                                    | 벡터를 저장하고, 질문 벡터와 가장 가까운 k개를 돌려주는 저장소            |
+| chunk                                                                                               | 검색 단위로 자른 문서 조각                                                |
+| agentic retrieval                                                                                   | 모델이 도구를 써서 무엇을 읽을지 스스로 고르는 검색                       |
+| hierarchical index                                                                                  | index가 다음 index를 가리키는 여러 단계 목차                              |
+| partitioning                                                                                        | 데이터를 key 기준으로 나눠 필요한 칸만 읽게 하는 것                       |
+| cwd                                                                                                 | 지금 작업 중인 폴더                                                       |
+| skill                                                                                               | 특정 작업용 지침 묶음. description만 상시 로드되고 본문은 쓸 때 열린다    |
+| hook                                                                                                | 에이전트의 lifecycle event에 걸어 두는 명령                               |
+| lifecycle event                                                                                     | 세션 시작, 프롬프트 제출, 도구 실행 후, 응답 종료 같은 시점               |
+| detached process                                                                                    | 부모 프로세스가 끝나길 기다리지 않고 따로 도는 프로세스                   |
+| lock                                                                                                | 두 작업이 같은 자원을 동시에 건드리지 않게 막는 표시                      |
+| rebase                                                                                              | 내 커밋을 원격 최신 커밋 위로 옮겨 다시 쌓는 git 작업                     |
+| source, build artifact                                                                              | 사람이 고치는 원본과, 원본에서 기계가 만든 결과물                         |
+| idempotent                                                                                          | 여러 번 실행해도 결과가 같은 성질                                         |
+| symlink, junction                                                                                   | 다른 위치의 파일·폴더를 가리키는 링크. junction은 윈도우의 폴더 전용 링크 |
+| source of truth                                                                                     | 여러 사본 중 기준이 되는 하나                                             |
+| [MCP](/kr/blog/cs-fundamentals/ai/ai-07-01-ai-agent/#model-context-protocol-mcp)                    | 에이전트가 외부 서비스를 도구로 쓰게 하는 프로토콜                        |
+| connector                                                                                           | claude.ai 계정에 붙여 쓰는 MCP 연결                                       |
+| MCP scope (user, local)                                                                             | MCP 등록이 적용되는 범위. user는 모든 폴더, local은 그 폴더만             |
+| persona prompt                                                                                      | 모델의 말투와 태도를 정하는 지침                                          |
+| few-shot example                                                                                    | 원하는 출력 모양을 보여주는 예시                                          |
+| persona drift                                                                                       | 긴 대화에서 정해 둔 말투가 흐려지는 현상                                  |

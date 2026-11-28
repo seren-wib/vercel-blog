@@ -1,62 +1,42 @@
-import { allCoreContent } from 'pliny/utils/contentlayer'
-import { getCategoryLabel, sortByChapter } from '@/data/categories'
-import ListLayout from '@/layouts/ListLayoutWithCategories'
-import { allBlogs } from 'contentlayer/generated'
-import categoryData from 'app/category-data.json'
-import { genPageMetadata } from 'app/seo'
-import { getDictionary, locales, type Locale, asLocale } from '@/data/i18n'
+import { notFound } from 'next/navigation'
 import { Metadata } from 'next'
+import { parentOf } from '@/data/categories'
+import { locales, asLocale } from '@/data/i18n'
+import { BlogListPage, categoryCounts, listMetadata } from 'app/blog-routes'
 
-const POSTS_PER_PAGE = 5
-const counts = categoryData as Record<string, Record<string, number>>
+/**
+ * Category without a parent: /<locale>/blog/category/<category>/.
+ * Categories under a parent live at /<locale>/blog/<parent>/<category>/ (catch-all route);
+ * their old /blog/category/<category>/ URLs are redirected in data/redirects.js.
+ */
+const isTopLevel = (locale: string, category: string) =>
+  !parentOf(category) && Boolean(categoryCounts[locale]?.[category])
 
 export async function generateMetadata(props: {
   params: Promise<{ locale: string; category: string }>
-}): Promise<Metadata> {
-  const { locale: rawLocale, category: rawCategory } = await props.params
-  const locale = asLocale(rawLocale)
-  const category = decodeURI(rawCategory)
-  const label = getCategoryLabel(category)
-  return genPageMetadata({
-    title: label,
-    description: getDictionary(locale).categoryPosts(label),
-    locale,
-    path: `/blog/category/${category}/`,
-    availableLocales: locales.filter((l) => counts[l]?.[category]),
-  })
+}): Promise<Metadata | undefined> {
+  const params = await props.params
+  const locale = asLocale(params.locale)
+  const category = decodeURI(params.category)
+  if (!isTopLevel(locale, category)) return
+  return listMetadata(locale, { kind: 'category', categoryPath: category, page: 1 })
 }
 
 export const generateStaticParams = async () =>
   locales.flatMap((locale) =>
-    Object.keys(counts[locale] ?? {}).map((category) => ({ locale, category: encodeURI(category) }))
+    Object.keys(categoryCounts[locale] ?? {})
+      .filter((category) => !parentOf(category))
+      .map((category) => ({ locale, category: encodeURI(category) }))
   )
 
 export default async function CategoryPage(props: {
   params: Promise<{ locale: string; category: string }>
 }) {
   const params = await props.params
+  const locale = asLocale(params.locale)
   const category = decodeURI(params.category)
-  const filteredPosts = sortByChapter(
-    allCoreContent(
-      allBlogs.filter(
-        (post) => post.locale === asLocale(params.locale) && post.category === category
-      )
-    )
-  )
-  const totalPages = Math.ceil(filteredPosts.length / POSTS_PER_PAGE)
-  const initialDisplayPosts = filteredPosts.slice(0, POSTS_PER_PAGE)
-  const pagination = {
-    currentPage: 1,
-    totalPages: totalPages,
-  }
-
+  if (!isTopLevel(locale, category)) return notFound()
   return (
-    <ListLayout
-      locale={asLocale(params.locale)}
-      posts={filteredPosts}
-      initialDisplayPosts={initialDisplayPosts}
-      pagination={pagination}
-      title={getCategoryLabel(category)}
-    />
+    <BlogListPage locale={locale} list={{ kind: 'category', categoryPath: category, page: 1 }} />
   )
 }

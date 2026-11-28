@@ -71,7 +71,10 @@ export default async function PlaygroundLanguagePage(props: { params: Params }) 
           <p className="mb-2 text-sm text-gray-600 dark:text-gray-300">
             {dict.pg.sqlNote}{' '}
             <Link
-              href={localePath(locale, '/blog/database-systems/database-systems-ch3-sql/')}
+              href={localePath(
+                locale,
+                '/blog/cs-fundamentals/database-systems/database-systems-ch3-sql/'
+              )}
               className="underline underline-offset-2 hover:text-gray-900 dark:hover:text-gray-100"
             >
               {dict.pg.sqlPost}

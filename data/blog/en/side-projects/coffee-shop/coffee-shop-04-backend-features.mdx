@@ -1,0 +1,124 @@
+---
+title: 'Coffee Shop 4. Product, Cart, Order and Payment APIs'
+date: '2026-11-28'
+tags: ['Coffee Shop']
+draft: false
+aiGenerated: true
+summary: 'Backend feature pull requests that tied every order state change to a conditional UPDATE and changed amount-mismatch handling after a Toss payment spike'
+---
+
+> Post 4 of the series. The whole project is in [Coffee Shop 0](/en/blog/side-projects/coffee-shop/coffee-shop-00-overview/). This post covers the nine feature pull requests (#91 ~ #105) built on the foundation from [post 3](/en/blog/side-projects/coffee-shop/coffee-shop-03-backend-foundation/). All of them merged on November 19.
+
+## In one paragraph
+
+The customer side (products, cart, orders, payments) and the admin side (products, orders) went in one feature per pull request, under one rule: **every piece of code that changes a state is a conditional UPDATE, and zero changed rows means 409.** For payments, two Toss Payments test payments measured the real responses first, and the design changed in one place because of them.
+
+## 1. Pull request order
+
+| PR   | Feature                              | Lines changed | Tests on that branch      |
+| ---- | ------------------------------------ | ------------- | ------------------------- |
+| #91  | Customer bean list and detail        | +389 / -2     | 94                        |
+| #92  | Toss spike harness, step 5 result    | +1,279 / -12  | -                         |
+| #95  | Admin bean management                | +659 / -11    | 127                       |
+| #96  | Cart                                 | +429 / -1     | 122                       |
+| #99  | Demo data `seed_demo`                | +412 / -4     | 133                       |
+| #100 | Order creation, my orders, cancel    | +916 / -12    | 166                       |
+| #102 | Payment start and confirm, PG client | +1,100 / -5   | 208                       |
+| #105 | Toss spike results, amount mismatch  | +68 / -28     | 209 (without concurrency) |
+| #104 | Admin order management               | +618 / -10    | 223                       |
+
+Two Claude Code sessions split the work: one took the product side (#91, #95, #99), the other the order and payment side (#96 ~ #105). Their folders did not overlap (`backend/products/` and `backend/orders/`), and touching the shared `config/urls.py` required a heads-up first (#91 body). The order, payment and admin order pull requests each ran `/code-review` (high) before the merge.
+
+## 2. Order state changes
+
+An order moves between seven states. Like a train ticket going through issued, boarded and arrived in a fixed order, a request to "cancel a ticket that has already arrived" is refused at the counter.
+
+![Order state diagram. From PENDING, a successful payment goes to PAID and a member cancel goes to CANCELLED. From PAID, admin prepare goes to PREPARING. From PAID and PREPARING, a member cancel request goes to CANCEL_REQUESTED, saving the earlier state in status_before_cancel. From CANCEL_REQUESTED, admin approval cancels at the PG and goes to CANCELLED; rejection goes back to the earlier state. From PREPARING, shipping goes to SHIPPED; from SHIPPED, delivery goes to DELIVERED. Any change not in the table is 409 INVALID_STATE](/static/images/coffee-shop-04-backend-features/order-states.svg)
+
+What the clerk at the counter does is a conditional UPDATE. The analogy stops here.
+
+```python:backend/orders/services.py
+# A member cancels an unpaid order directly
+updated = Order.objects.filter(
+    pk=order.pk, order_status=OrderStatus.PENDING
+).update(order_status=OrderStatus.CANCELLED)
+if updated == 0:
+    order.refresh_from_db()
+    raise invalid_state(order.order_status, "취소할")
+```
+
+Written as read → check → write, two requests can both pass the "check". Putting the condition in `WHERE` makes the check and the write one statement, so there is no gap. Zero rows means someone changed it first, and the answer is 409. Every admin order transition goes through one helper, and `test_dr19_disallowed_transitions_raise_invalid_state` walks every (action, state) pair outside the table and expects `INVALID_STATE` (409 in the API) (#104).
+
+Rejecting a cancel restores `status_before_cancel` with an `F()` expression. A `CANCEL_REQUESTED` row with that column empty cannot exist at all, because the CHECK constraint `ck_orders_cancel_request_previous` blocks it. The constraint came from a review finding: "rejecting a cancel request with no earlier state crashes with 500".
+
+## 3. Order creation: the whole cart, all or nothing
+
+An order is made from the whole cart (#100), inside one transaction:
+
+1. Read the cart under the IMMEDIATE write lock
+2. Check sale status and stock for each item, collect **every** problem `cart_item_ids` and return them in one 409 (`NOT_AVAILABLE` or `OUT_OF_STOCK`)
+3. Assign the order number `ORD-YYYYMMDD-NNN` (a sequence per Seoul date)
+4. Take stock for each item with `products.services.decrease_stock`. If any one fails, the whole thing rolls back
+5. Copy product names and prices into the order items (later price changes leave the order alone)
+
+All problem items come back at once because of the screen. Reporting one at a time would make the customer hit the next problem each time they fix one and press again.
+
+Concurrent orders reuse the spike's expected values from post 3 as a test. `test_nfr15_last_stock_concurrent_orders` runs ten threads on file SQLite, and three local runs each gave one 201, nine 409, stock 0 and one order row.
+
+The #100 review (high) found 8 issues, all fixed. A few of them:
+
+- Only an order-number collision becomes 409 `RETRY`; any other constraint failure stays a 500 (turning them all into `RETRY` would hide bugs)
+- The state in the cancel 409 message is the freshly re-read one
+- The cart is checked before the address
+
+## 4. Payments: measure first, then code
+
+The browser opens the [payment window](/en/blog/dev/payments/payments-00-basics/#payment-window), and the server does the [payment approval](/en/blog/dev/payments/payments-00-basics/#payment-approval) through the Toss API. Writing that code without knowing the shape of the approval response, or which error a second cancel returns, means writing it on guesses. So a spike ran before the payment code.
+
+![Payment flow diagram. The browser starts a payment with POST /api/orders/id/payments/ and the server creates a READY payment row. The browser opens the Toss payment window and on success receives paymentKey, orderId and amount on successUrl. The browser sends POST /api/payments/confirm/; the server compares the amount with the start amount and only if equal calls the Toss confirm API outside any transaction. With status DONE, the payment becomes SUCCESS and the order PAID. With a different amount, the PG is not called: CANCELLED and 409 PAYMENT_MISMATCH](/static/images/coffee-shop-04-backend-features/payment-flow.svg)
+
+### Toss spike results
+
+Measured with two test payments (A and B, 1,000 KRW each). The nine raw calls, with `paymentKey` masked, are in `spikes/toss-confirm-cancel/results/calls.jsonl` (#92, #105).
+
+| Step | Check                                          | Result                                                                                 |
+| ---- | ---------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 2    | Confirm                                        | 200 `DONE`, `method: "간편결제"`, `approvedAt` with +09:00 (1,313 ms / 551 ms)         |
+| 3    | Full cancel, second cancel with another key    | 200 `CANCELED` (585 ms); the second is 400 `ALREADY_CANCELED_PAYMENT` (215 ms)         |
+| 4    | Confirm with an amount other than the window's | 403 `FORBIDDEN_REQUEST` (211 ms). The payment stays and confirms with the right amount |
+| 5    | Close the window with X                        | No redirect to `failUrl`; `requestPayment()` rejects with `USER_CANCEL` (both times)   |
+| 6    | Confirm a payment older than 10 minutes        | Not measured                                                                           |
+| 7    | Cancel twice with the same `Idempotency-Key`   | Both 200 with the same body (616 ms / 89 ms). One cancel recorded                      |
+
+Step 4 changed the design. The original design was "confirm, then cancel at the PG if the amount differs". But Toss refuses the confirm itself with 403 when the amount differs, so that path is never reached. Now, when the confirm request's amount differs from the amount at payment start, the server closes the payment as `CANCELLED` ("결제 금액 불일치", amount mismatch) **without calling the PG** and answers 409 `PAYMENT_MISMATCH` (#105). The cancel-after-approval path stays as a defence for when the PG reports a different `totalAmount`.
+
+Step 7 settled the order of admin cancel approval. Since resending with the same [idempotency](/en/blog/dev/payments/payments-00-basics/#idempotency) key (`cancel-<payment_id>`) returns the first result, it is safe to **cancel at the PG first and change the DB after**: a request cut off in the middle can simply be sent again. Step 5 became a screen rule: watching only `failUrl` misses a closed window, so the screen must catch the error from `requestPayment()` itself (post 5).
+
+Step 6 was not measured. The documents keep it as an open assumption based on the public docs: "after 10 minutes, the confirm fails".
+
+### Rules in the payment code (#102)
+
+- The only code that calls Toss is `TossPaymentsClient` in `orders/pg.py`. Tests use `FakePaymentsClient`.
+- PG calls run outside DB transactions. An external call can take up to 10 seconds (the timeout), and holding the SQLite write lock that long would stop every other order.
+- Only Toss `status == "DONE"` counts as approved. Timeouts, 5xx, non-JSON responses and dropped connections keep the payment `READY` and answer 502 `PG_ERROR`.
+
+The #102 review (high) found 8 issues, and each fix came with a regression test that failed on the old code first. The heaviest one: if a new payment attempt replaced the one being approved, the order could become `PAID` with no successful payment at all.
+
+## 5. The product side and demo data
+
+- **List (#91):** 20 per page, newest first, `STOPPED` hidden, search, origin, price range and roast filters ANDed. List and detail share one query function, `customer_products()`, so the "hide stopped beans" rule cannot drift between them. A detail response for a bean with 3 options takes 2 queries.
+- **Admin products (#95):** state changes go only through `products.services`. Origins are a fixed list of 10, and image URLs must start with `https://`.
+- **`seed_demo` (#99):** by default it creates 100 beans, 50 members and 500 orders from a fixed seed. Orders spread evenly over the 7 states, 71~72 each, and beans came out 95 on sale and 5 stopped. 1.71 s on a file SQLite (measured once). It refuses a database that already has data, and runs with `DEBUG=False` only with `--force`.
+
+## Glossary
+
+| Term                                                                                 | Meaning                                                                                                           |
+| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| [Order state machine](/en/blog/dev/payments/payments-00-basics/#order-state-machine) | A model that fixes which states an order can have and which changes are allowed                                   |
+| PG                                                                                   | Payment gateway. Here, Toss Payments                                                                              |
+| [Payment approval](/en/blog/dev/payments/payments-00-basics/#payment-approval)       | The server's API call that confirms a payment authenticated in the payment window                                 |
+| [Idempotency](/en/blog/dev/payments/payments-00-basics/#idempotency)                 | Sending the same request many times has the same result as sending it once                                        |
+| `Idempotency-Key`                                                                    | A key attached to a request for idempotency. With the same key the provider returns the first result              |
+| `F()` expression                                                                     | A Django expression that uses a column's value inside SQL without reading it into Python                          |
+| Regression test                                                                      | A test that checks a fixed bug does not come back. It only means something if it fails on the code before the fix |
+| Snapshot                                                                             | The name, price and address copied at order time                                                                  |

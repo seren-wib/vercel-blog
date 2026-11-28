@@ -67,6 +67,16 @@ export function sortCategories(keys: string[]) {
   })
 }
 
+/** Every category declared in data/categoryTree.js, as '<parent>/<category>' */
+export const declaredCategories = Object.entries(parents).flatMap(([parent, { children }]) =>
+  children.map((child) => `${parent}/${child}`)
+)
+
+/** Post counts with every declared category added at 0, so empty categories still get a page */
+export function withDeclared(counts: Record<string, number>) {
+  return { ...Object.fromEntries(declaredCategories.map((path) => [path, 0])), ...counts }
+}
+
 export type CategoryNode =
   | { kind: 'parent'; parent: string; count: number; children: { path: string; count: number }[] }
   | { kind: 'category'; path: string; count: number }

@@ -1,0 +1,245 @@
+---
+title: 'CH10. demo-recording: 사람이 쓰는 것처럼 보이는 시연 영상'
+date: '2026-11-28'
+tags: ['Skills']
+draft: false
+aiGenerated: true
+summary: 'Playwright 녹화에 실제 같은 마우스 포인터와 한 글자씩 치는 타이핑을 얹어 웹 앱 시연 영상을 찍는 스킬'
+---
+
+> 스킬 연재 10편. 스킬이 무엇이고 왜 따로 뺐는지는 [CH0. 스킬 개요](/kr/blog/side-projects/skills/skills-00-overview/)에 있다.
+
+## 0. 들어가며
+
+`demo-recording`은 웹 앱 시연 영상을 찍을 때 AI 에이전트가 여는 [스킬](/kr/blog/side-projects/devblog/devblog-04-agent-environment/#3-필요할-때-꺼내기)이다. README에 붙일 영상, 발표 영상, 블로그용 화면 녹화가 대상이다. 브라우저는 코드가 조작하지만, 영상만 보면 사람이 마우스를 움직이고 키보드를 치는 것처럼 보이게 하는 것이 목표다.
+
+스킬 폴더에는 `SKILL.md`, 녹화기 `record.mjs`, 검수 도구 `frames.mjs`, 예제 시나리오 하나가 있다. 포인터와 타이핑을 만드는 코드는 스킬 밖 공유 모듈 `human.cjs`에 있다. 크기와 커밋 수는 글 끝 [숫자로 보기](#숫자로-보기) 표에 모았다.
+
+이 스킬은 2026-11-18에 한꺼번에 요청한 스킬 다섯 개(시연 촬영, 영상 편집, 슬라이드, 프론트 디자인, 이미지 생성) 중 첫 번째로 만들어졌다. 나머지 넷이 왜 그 순서였는지는 기록에 없다.
+
+## 1. 그냥 녹화하면 생기는 일
+
+비유하면 투명인간이 조작하는 화면이다. 버튼이 저절로 눌리고, 입력칸에 글자가 한 번에 생기고, 무엇이 어디를 눌렀는지는 보이지 않는다.
+
+![그냥 녹화한 영상과 human.cjs를 얹은 영상 비교](/static/images/skills-10-demo-recording/plain-vs-human.svg)
+
+_왼쪽은 Playwright `recordVideo`만 쓴 경우, 오른쪽은 `human.cjs`를 얹은 경우_
+
+용어로 바꾸면 투명인간은 **headless 브라우저 자동화**다. Playwright는 `browser.newContext({ recordVideo })`로 페이지를 영상으로 저장할 수 있다. 하지만 이 영상에는 OS 마우스 포인터가 찍히지 않는다. 페이지 화면만 캡처하기 때문이다. 게다가 자동화 API는 사람처럼 움직이지 않는다.
+
+| API                    | 기본 동작                                       | 영상에서 보이는 것       |
+| ---------------------- | ----------------------------------------------- | ------------------------ |
+| `page.mouse.move(x,y)` | 목표 좌표로 바로 이벤트를 보냄 (`steps` 기본 1) | 포인터가 있어도 순간이동 |
+| `locator.click()`      | 요소 중앙을 클릭                                | 어디를 눌렀는지 안 보임  |
+| `locator.fill(text)`   | 값을 한 번에 넣음                               | 글자가 한꺼번에 나타남   |
+| `page.mouse.wheel`     | wheel 이벤트 한 번으로 전체 거리를 보냄         | 화면이 뚝 끊겨서 넘어감  |
+
+스킬 첫 문단이 이 문제를 그대로 적어 둔다. 포인터가 없고 글자가 한꺼번에 생겨서 "teleport"처럼 보인다는 것이다. 해결은 세 가지다. 페이지 안에 포인터를 직접 그리고([3절](#3-포인터-overlay)), 실제 마우스를 곡선으로 옮기고([4절](#4-곡선으로-움직이는-마우스)), 한 글자씩 친다([5절](#5-한-글자씩-치는-타이핑)).
+
+클릭 효과(클릭할 때 퍼지는 원 같은 강조)는 일부러 넣지 않았다. 처음 만들 때 실제 마우스 포인터처럼, 실제 키보드처럼 보이게 하라는 방향이 정해졌고, 스킬에는 "No click effects"로 남아 있다. 포인터는 OS 포인터처럼 모양만 바뀐다.
+
+## 2. 장면 목록부터
+
+비유하면 촬영 전에 콘티를 짜는 일이다. 카메라부터 돌리면 무엇을 보여 줄지 촬영 중에 정하게 되고, 그 망설임이 영상에 그대로 남는다.
+
+![demo-recording 작업 순서: README, scene list, scenario.mjs, record.mjs, frames.mjs](/static/images/skills-10-demo-recording/pipeline.svg)
+
+_README → scene list → scenario.mjs → record.mjs → frames.mjs_
+
+용어로는 콘티가 **scene list**, 대본이 **scenario 파일**이다. 스킬 1절 제목이 "Scenario first"다.
+
+1. 대상 프로젝트의 README나 기능 목록, 실행 중인 앱을 먼저 본다.
+2. 장면을 3~7개로 나누고, 한 장면은 한 줄로 쓴다. 무엇을 보여 주는지, 어떤 동작인지, 대략 몇 초인지.
+3. README·발표·블로그처럼 공개될 영상이면 이 목록을 먼저 보여 주고 확인받는다. 빠른 확인용이면 바로 찍는다.
+4. 목록을 scenario 파일로 옮긴다. 파일은 스킬 폴더가 아니라 대상 프로젝트에 둔다(예: `docs/demo/<name>.mjs`).
+
+scenario 파일은 `meta`(파일 이름, 첫 페이지 URL)와 기본 함수 하나를 export한다. 예제 `examples/wikipedia.mjs`는 위키백과 대문에서 검색어를 치고, 추천 목록에서 하나를 고르고, 문서를 두 번 스크롤하는 다섯 장면이다.
+
+```js:examples/wikipedia.mjs
+export const meta = { name: 'wikipedia-search', url: 'https://en.wikipedia.org/wiki/Main_Page' }
+
+export default async function (demo) {
+  const box = demo.page.locator('input[name="search"]:visible').first()
+  await demo.type(box, 'Playwright software', { delay: 110 })
+  // 추천 목록이 뜨면 클릭, 아니면 Enter
+  // ...
+  await demo.scroll(900)
+}
+```
+
+scenario 안에서는 `demo` 객체만 쓴다. `demo.click`, `demo.type`, `demo.scroll`, `demo.pause`가 있고, 그 밖의 일은 `demo.page`(Playwright page)로 한다. 스킬 규칙은 클릭과 입력을 반드시 `demo.click`·`demo.type`으로 하라는 것이다. `locator.click()`을 직접 부르면 포인터가 순간이동하기 때문이다. 장면 사이에는 500~1500 ms를 쉰다. 로그인이 필요한 앱은 localhost에서 프로젝트 seed 파일의 테스트 계정만 쓴다.
+
+녹화 명령은 하나다.
+
+```bash
+node ~/.claude/skills/demo-recording/record.mjs docs/demo/landing.mjs --size 1280x720
+```
+
+설치된 Google Chrome을 `channel: 'chrome'`으로 띄우므로 브라우저를 따로 내려받지 않는다. Chrome이 없으면 Playwright 번들 Chromium으로 넘어간다. 결과는 JSON 한 줄(`video`, `bytes`, `seconds`, `failed`)이다. scenario가 중간에 예외를 던져도 영상은 저장한다. 어디서 멈췄는지 영상으로 확인할 수 있게 하려는 설계다.
+
+## 3. 포인터 overlay
+
+비유하면 영상 위에 투명 필름을 덮고 그 위에 화살표를 그리는 것이다. 카메라가 마우스를 못 찍으니 마우스 모양을 화면 안에 직접 그린다.
+
+용어로는 **pointer overlay**다. `cursorScript()`가 페이지 DOM에 SVG 포인터 하나를 `position: fixed`로 붙이고, 실제 `mousemove` 이벤트를 따라 움직인다. 이 함수는 `context.addInitScript`로 등록하므로 페이지 스크립트보다 먼저, 그리고 페이지를 이동할 때마다 다시 실행된다. 마지막 위치는 `sessionStorage`에 저장해서 새 페이지에서도 같은 자리에서 시작한다.
+
+포인터 모양은 세 가지다. 마우스 밑 요소의 `getComputedStyle(el).cursor`를 먼저 보고, 값이 `auto`면 요소 종류로 정한다.
+
+| 모양   | 조건                                                                |
+| ------ | ------------------------------------------------------------------- |
+| arrow  | 기본값                                                              |
+| hand   | `cursor: pointer`, 또는 링크·버튼·`select`·`summary` 위             |
+| I-beam | `cursor: text`, 또는 텍스트 `input`·`textarea`·`contenteditable` 위 |
+
+2026-11-25에 이 부분에서 버그가 하나 나왔다. iframe이 있는 페이지(코드 에디터를 iframe으로 넣은 사이트)에서 포인터가 두 개 찍혔다. init script는 최상위 문서와 각 iframe 문서에서 따로 돌기 때문에 문서마다 자기 포인터를 그린다. 마우스 경로가 화면 위쪽으로 휘어 나가면 최상위 문서가 포인터를 그리는 동안 iframe도 자기 포인터를 그리고 있었다. 고친 방법은 두 가지다.
+
+- 마우스가 그 문서를 떠나거나 자식 iframe 위에 있으면 그 문서의 포인터를 숨긴다. 새 문서의 포인터는 처음엔 숨긴 상태로 시작하고, 첫 `mousemove`를 받아야 보인다.
+- 마우스 경로의 모든 점을 viewport 안으로 clamp한다.
+
+## 4. 곡선으로 움직이는 마우스
+
+비유하면 손목이 그리는 호다. 사람 손은 두 점 사이를 자로 잰 듯 직선으로 가지 않고, 출발할 땐 느리다가 중간에 빨라지고 도착할 때 다시 느려진다. 가끔은 목표를 살짝 지나쳤다가 되돌아온다.
+
+![cubic Bezier leg: from, c1, c2, to, overshoot](/static/images/skills-10-demo-recording/bezier-leg.svg)
+
+_한 번의 이동은 control point 두 개를 옆으로 민 cubic Bezier 곡선이다_
+
+용어로 손목의 호는 **cubic Bezier curve**, 느리게-빠르게-느리게는 **easing**, 지나쳤다 돌아오는 것은 **overshoot**다. `human.cjs`의 `leg()` 함수가 한 번의 이동을 이렇게 만든다.
+
+1. 출발점과 목표점 사이 거리 `dist`를 구하고, 이동 방향에 수직인 단위 벡터(normal)를 구한다.
+2. 휘는 정도 `bend`는 `dist`의 8~30%, 최대 160 px이고 방향(왼쪽/오른쪽)은 랜덤이다.
+3. control point `c1`은 경로 20~40% 지점, `c2`는 60~80% 지점에 두고 각각 normal 방향으로 `bend`만큼 민다.
+4. 이동 시간은 `min(1300, 220 + dist × 0.7~1.05)` ms다. 멀수록 오래 걸린다는 Fitts의 법칙을 흉내 낸 식이다.
+5. 약 18 ms마다 한 점씩 `page.mouse.move`를 보내고, 진행률에는 easeInOut(3차식)을 건다. 마지막 점을 뺀 나머지 점에는 최대 1.2 px의 tremor(손떨림 노이즈)를 더한다.
+
+`move()`는 `leg()`를 감싼다. 거리가 250 px를 넘으면 35% 확률로 목표를 2~5% 지나친 점까지 먼저 가고, 60~140 ms 쉰 뒤 2.5배 속도로 목표에 돌아온다. `hover()`는 요소의 정중앙이 아니라 박스 안의 랜덤한 점(가로 20~80%, 세로 25~75%)을 목표로 잡는다.
+
+시간은 sleep을 고정으로 주지 않고 시계 기준으로 맞춘다. `page.mouse.move` 왕복 자체에도 시간이 걸리므로, 각 점마다 "이 시각까지 도착해야 한다"를 계산하고 남은 만큼만 쉰다. 처음 버전(`record.mjs` 안에 있던 코드)은 easing만 있는 직선 이동이었고, 곡선·tremor·overshoot는 11-25에 공유 모듈로 옮기면서 들어갔다.
+
+## 5. 한 글자씩 치는 타이핑
+
+비유하면 사람마다 다른 타자 버릇이다. 같은 사람은 대체로 비슷한 속도로 치지만, 글자 사이 간격은 매번 조금씩 다르고, 대문자를 칠 땐 Shift 때문에 한 박자 늦고, 단어가 끝나면 잠깐 쉰다.
+
+용어로는 **keystroke timing**이다. `type()`은 입력칸을 클릭한 뒤 `page.keyboard.type(ch)`로 한 글자씩 보낸다. 기준 간격(`baseDelay`)은 페이지마다 75~120 ms 중 하나로 정해져서 한 세션 안에서는 같은 템포를 유지한다. 글자마다 간격은 이렇게 정한다.
+
+| 규칙             | 간격 변화                                      |
+| ---------------- | ---------------------------------------------- |
+| 기본             | `baseDelay × e^(노이즈)`, 대략 log-normal 분포 |
+| 대문자·특수문자  | `baseDelay`의 0.3~0.7배 추가 (Shift)           |
+| 공백 다음 글자   | 0.4~1.2배 추가 (단어 사이 한 박자)             |
+| `.` `,` `!` 다음 | 1~2.5배 추가 (구절 끝)                         |
+| 같은 키 반복     | 0.8배로 줄임                                   |
+| 4~9글자 연속     | 0.5~0.75배로 줄임 (짧게 몰아치기)              |
+| 5% 확률          | 2~5배 추가 (머뭇거림)                          |
+| 하한             | 22 ms                                          |
+
+스크롤도 같은 방식이다. `scroll(dy)`는 한 번에 넘기지 않고 40~90 px씩 wheel 이벤트를 나눠 보내며, 남은 거리가 200 px 아래면 한 번에 움직이는 양을 0.6배로 줄여서 끝에서 느려진다. 처음 버전은 60 px 고정 step이었다.
+
+## 6. 공유 모듈 human.cjs
+
+비유하면 한 사람의 손버릇을 두 곳에서 빌려 쓰는 것이다. 대본대로 찍는 촬영에도, 에이전트가 평소 브라우저를 쓸 때도 같은 손이 움직인다.
+
+![human.cjs를 record.mjs와 Playwright MCP가 같이 쓰는 구조](/static/images/skills-10-demo-recording/shared-module.svg)
+
+_`human.cjs` 하나를 녹화기와 Playwright MCP가 같이 불러온다_
+
+용어로 손버릇은 **공유 모듈(shared module)**, 평소 브라우저 쓰기는 **Playwright [MCP](/kr/blog/side-projects/devblog/devblog-04-agent-environment/#9-mcp)** 다. 처음(11-18)에는 포인터와 이동 코드가 전부 `record.mjs` 안에 있었다. 11-25에 이 코드를 개인 설정 레포의 `claude/playwright/human.cjs`로 빼면서 `record.mjs`는 9,280 B에서 4,449 B로 줄었다.
+
+`human.cjs`는 진입점이 둘이다.
+
+- `attach(page)`: `move`, `hover`, `click`, `type`, `press`, `scroll`을 가진 객체를 만들어 `page.human`에 붙인다. `record.mjs`는 이 객체를 `demo` 객체로 감싸 scenario에 넘긴다.
+- `initPage({ page })`: Playwright MCP가 새 탭마다 부르는 init 함수다. MCP는 환경 변수 `PLAYWRIGHT_MCP_INIT_PAGE`에 적힌 파일을 불러온다. 설치 스크립트가 이 값을 넣는다(Windows는 `install.ps1`이 사용자 환경 변수, macOS는 `install.sh`가 `~/.zshenv`와 `launchctl`).
+
+그래서 에이전트가 Playwright MCP로 사이트를 조작할 때도 `browser_run_code`에서 `page.human.click('e12')`처럼 부르면 같은 곡선 이동과 타이핑이 나온다. `e12`처럼 MCP snapshot의 ref를 그대로 받으면 `aria-ref=e12` locator로 바꿔 준다. 에이전트 공용 지침에는 Playwright MCP에서 클릭·입력·스크롤을 `page.human`으로 하라는 줄이 있다.
+
+설계 이유는 유지보수성이다. 이동과 타이핑 규칙이 한 파일에만 있으니 3절의 iframe 버그처럼 한 번 고치면 녹화와 MCP 조작이 같이 고쳐진다.
+
+## 7. 보내기 전 검수
+
+비유하면 편집 전에 필름을 몇 컷 뽑아 보는 일이다. 영상 전체를 돌려 보지 않고도 포인터가 찍혔는지, 글자가 반쯤 쳐진 순간이 있는지 확인한다.
+
+용어로는 **frame sampling**이다. `frames.mjs`는 ffmpeg 없이 동작한다. 영상 옆에 `<video>` 하나만 있는 HTML 파일을 만들고, Chrome으로 그 파일을 열어 `currentTime`을 원하는 초로 옮긴 뒤 `video` 요소를 스크린샷으로 저장한다. `about:blank`에서는 `file://` 영상을 못 불러오기 때문에 HTML도 `file://`로 둔다. WebM은 길이 메타데이터가 비어 있을 때가 있어서, 그때는 끝으로 seek해서 길이를 알아낸다.
+
+```bash
+node ~/.claude/skills/demo-recording/frames.mjs demo.webm 2 5 8
+```
+
+스킬은 프레임 3~5장을 열어 세 가지를 확인하라고 한다. 모든 프레임에 포인터가 보이는지, 타이핑 중인 프레임에 글자가 반쯤 들어가 있는지, 마지막 프레임이 맞는 페이지인지. 그다음 길이, 크기, 확인한 것을 보고하고 영상을 보낸다.
+
+스킬을 만든 날 위키백과 예제로 이 절차를 돌렸다. 결과는 [숫자로 보기](#숫자로-보기) 표에 있다. 프레임 8장 모두에 포인터가 보였고, 검색어가 "Playwr"까지 쳐진 프레임, 링크 위 손 모양, 입력칸 위 I-beam을 확인했다.
+
+## 8. 에이전트 작업 녹화
+
+비유하면 대본 없는 다큐 촬영이다. 정해진 장면을 찍는 대신, 에이전트가 실제로 일하는 과정을 그대로 찍는다.
+
+용어로는 **screencast**다. 11-25에 스킬에 추가된 절로, Playwright MCP 세션을 녹화하는 방법이다.
+
+- `browser_run_code`에서 `page.screencast.start(...)`로 녹화를 시작하고, 다른 호출로 작업을 한 뒤 `page.screencast.stop()`으로 끝낸다. page 객체가 호출 사이에 유지되므로 녹화가 여러 호출에 걸쳐 이어진다.
+- 결과는 VP9 WebM이라 Windows 기본 플레이어가 못 열 수 있다. 보내기 전에 H.264 MP4로 바꾼다. 195초 영상이 34 MB WebM에서 4.3 MB MP4가 됐다.
+- ffmpeg `gdigrab`으로 창을 캡처하면 검은 화면만 나온다. Chrome이 GPU로 합성하기 때문이다. 그래서 screencast를 쓴다.
+- screencast는 Playwright 전용 ffmpeg 바이너리가 필요하다. 없을 때 libvpx가 들어간 시스템 ffmpeg를 그 경로에 복사하면 동작했다(Windows, 11-25).
+
+```bash
+ffmpeg -i x.webm -c:v libx264 -crf 23 -pix_fmt yuv420p -movflags +faststart x.mp4
+```
+
+MCP가 `PLAYWRIGHT_MCP_INIT_PAGE` 없이 떠서 `page.human`이 없을 때의 우회법도 적혀 있다. `browser_run_code` 안에서는 `require`·`import`가 막혀 있으므로, `human.cjs`를 `async (page) => ...` 함수 하나로 감싼 파일을 만들어 `filename` 인자로 실행한다. 그러면 그 세션이 끝날 때까지 `page.human`이 남는다.
+
+## 9. 대신 OS 녹화
+
+비유하면 자동 촬영 장비가 못 들어가는 곳은 손으로 찍는다.
+
+용어로는 **OS screen recorder** 대체 경로다. Playwright로 조작할 수 없는 경우가 있다. 네이티브 앱, Unity·Roblox 에디터, 자동화를 막는 사이트, 본인 로그인이 필요한 흐름이다. 이때는 사람이 장면 목록대로 직접 조작하고 OS 녹화 기능으로 찍는다.
+
+| OS      | 방법                                                                 |
+| ------- | -------------------------------------------------------------------- |
+| macOS   | `Cmd+Shift+5` → 선택 영역 녹화, 약 1280×720. 클릭 표시는 필요할 때만 |
+| Windows | `Win+Alt+R`(Game Bar) 또는 캡처 도구의 녹화 모드                     |
+
+computer-use로 네이티브 앱을 조작할 수는 있지만, 녹화 자체는 이 경우에도 OS 녹화기로 한다.
+
+## 10. 한계와 다음
+
+- 스킬 출력 `.webm`은 다음 단계인 영상 편집 스킬(ffmpeg + Remotion)의 입력으로 설계했다. 그래서 자막이나 컷을 넣지 않는다. 그 편집 스킬은 2026-11-28 기준 아직 없다.
+- macOS에서 Playwright MCP 프로세스에 `PLAYWRIGHT_MCP_INIT_PAGE`가 전달되지 않아 `page.human`이 안 붙는 문제가 열려 있다. 셸에는 값이 있지만 MCP 프로세스 환경에는 0개였다. 앱을 완전히 재시작한 뒤 다시 확인할 예정이다.
+- 실제 프로젝트 데모를 이 스킬로 찍은 기록은 2026-11-28 기준 작업 기록에서 찾지 못했다. 기록에 있는 녹화는 위키백과 예제와 MCP screencast 한 건이다.
+
+## 숫자로 보기
+
+2026-11-28 기준. 출처는 개인 설정 레포의 `git log`·`git cat-file -s`, `wc -c`·`wc -l`, 작업 기록(worklog)에 남은 측정값이다.
+
+| 항목                        | 값                                                   |
+| --------------------------- | ---------------------------------------------------- |
+| `SKILL.md`                  | 6,581 B, 87줄                                        |
+| `SKILL.md` 크기 변화        | 4,914 → 5,212 → 6,352 → 6,581 B                      |
+| 스킬 폴더 커밋              | 4개 (2026-11-18 ~ 2026-11-25)                        |
+| `record.mjs`                | 9,280 B (11-18) → 4,449 B, 109줄 (11-25)             |
+| `human.cjs`                 | 10,167 B (11-25 첫 커밋) → 11,206 B, 229줄, 커밋 3개 |
+| `frames.mjs`                | 2,334 B, 53줄                                        |
+| `examples/wikipedia.mjs`    | 1,105 B, 30줄                                        |
+| Playwright                  | 1.65.1 (스킬 폴더 로컬 설치)                         |
+| 위키백과 예제 녹화 (11-18)  | 19.5초, 5,701,392 B WebM                             |
+| 예제 프레임 검수            | 8장 중 포인터 보임 8장                               |
+| MCP screencast 변환 (11-25) | 195초, 34 MB WebM → 4.3 MB MP4                       |
+
+## 용어 정리
+
+| 용어                                                                                    | 뜻                                                                |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [스킬](/kr/blog/side-projects/devblog/devblog-04-agent-environment/#3-필요할-때-꺼내기) | 특정 작업 때만 읽히는 에이전트 규칙 파일 (`SKILL.md`)             |
+| Playwright                                                                              | 브라우저를 코드로 조작하는 라이브러리                             |
+| headless                                                                                | 화면 창 없이 브라우저를 띄우는 모드                               |
+| `recordVideo`                                                                           | Playwright context가 페이지 화면을 WebM으로 저장하는 옵션         |
+| scene list                                                                              | 장면 3~7개를 한 줄씩 적은 녹화 계획                               |
+| scenario 파일                                                                           | scene list를 `demo` 호출로 옮긴 `.mjs` 파일                       |
+| pointer overlay                                                                         | 영상에 안 찍히는 OS 포인터 대신 페이지 DOM에 직접 그린 포인터     |
+| init script                                                                             | 페이지 스크립트보다 먼저, 문서마다 실행되는 스크립트              |
+| cubic Bezier curve                                                                      | 시작·끝점과 control point 두 개로 정하는 곡선                     |
+| easing                                                                                  | 시간에 따라 속도를 바꾸는 함수. 여기선 느리게-빠르게-느리게       |
+| overshoot                                                                               | 목표를 살짝 지나쳤다가 되돌아오는 움직임                          |
+| tremor                                                                                  | 경로 점마다 더하는 작은 랜덤 흔들림                               |
+| keystroke timing                                                                        | 키 입력 사이 간격의 분포                                          |
+| [MCP](/kr/blog/side-projects/devblog/devblog-04-agent-environment/#9-mcp)               | 에이전트가 외부 도구를 쓰게 해 주는 연결 (Model Context Protocol) |
+| `page.human`                                                                            | `human.cjs`가 Playwright page에 붙이는 사람 같은 입력 객체        |
+| screencast                                                                              | Playwright page 화면을 녹화하는 API (`page.screencast`)           |
+| frame sampling                                                                          | 영상에서 몇 장면만 이미지로 뽑아 확인하는 검수                    |

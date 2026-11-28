@@ -338,12 +338,12 @@ _위는 노트북(ssh) ↔ 서버(sshd) 메시지 순서, 아래는 키 하나�
    - 처음이면 "Are you sure you want to continue connecting?"을 묻고, yes면 저장한다.
    - 저장된 것과 다르면 경고한다(중간자 공격 의심, 서버 재설치 등).
 8. **사용자 인증**
-   - 공개키 방식: 서버 `~/.ssh/authorized_keys`에 내 공개키가 있고, 노트북이 개인키로 서명해서 증명한다. 개인키는 밖으로 안 나간다. 실습은 [SSH 키 인증](/kr/blog/cloud-computing/cloud-computing-hw2-kvm-vm-cluster/#2-ssh-키-인증-ch04-extra).
+   - 공개키 방식: 서버 `~/.ssh/authorized_keys`에 내 공개키가 있고, 노트북이 개인키로 서명해서 증명한다. 개인키는 밖으로 안 나간다. 실습은 [SSH 키 인증](/kr/blog/cs-fundamentals/cloud-computing/cloud-computing-hw2-kvm-vm-cluster/#2-ssh-키-인증-ch04-extra).
    - 비밀번호 방식: 이미 암호화된 채널 안이라 평문으로 새지 않는다.
 9. **채널 열기 + 셸 시작**: 세션 채널 → 가상 터미널(pty) → 서버에 로그인 셸이 뜬다.
 10. **키 하나 누를 때마다**: 키 입력 → SSH가 암호화 → TCP 22 → 홉 → 서버 sshd가 복호화 → 셸에 전달 → 화면 출력(입력한 글자 에코 포함)이 다시 암호화돼서 돌아온다.
 
-4~8단계를 서버·클라이언트 쪽 파일 기준으로 본 정리는 [SSH 서버와 클라이언트의 연결 과정](/kr/blog/cloud-computing/cloud-computing-hw3-htcondor-cluster/#ch4-2-ssh-서버와-클라이언트의-연결-과정)에 있다.
+4~8단계를 서버·클라이언트 쪽 파일 기준으로 본 정리는 [SSH 서버와 클라이언트의 연결 과정](/kr/blog/cs-fundamentals/cloud-computing/cloud-computing-hw3-htcondor-cluster/#ch4-2-ssh-서버와-클라이언트의-연결-과정)에 있다.
 
 ## NAT 뒤의 PC에 접속할 때
 

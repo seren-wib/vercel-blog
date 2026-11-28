@@ -6,7 +6,7 @@ draft: false
 summary: 'Docker 29.10.1로 컨테이너 리소스 제한(--memory·--memory-swap과 docker update, --cpus 1, --cpuset-cpus 0,2, --cpu-shares 512:1024를 docker stats·inspect·htop으로 확인), Flask+Redis 서비스를 compose.yaml로 정의해 config·build·up·logs·exec·down -v, 볼륨으로 유지되는 방문 횟수, HW7 Kolla가 남긴 udev 규칙으로 /dev/kvm 권한이 막힌 문제, 연습문제(이미지 레이어 구조, 컨테이너 라이프사이클과 종료 코드 137)'
 ---
 
-교재 16장 실습이다. 앞부분은 컨테이너 하나에 메모리와 CPU를 얼마나 쓰게 할지 옵션으로 제한하고 그 결과를 `docker stats`, `docker inspect`, `htop`으로 확인하는 실습(슬라이드 38~61쪽)이고, 뒷부분은 Flask 웹 서비스와 Redis 두 컨테이너를 `compose.yaml` 하나로 정의해 띄우는 실습(85~104쪽)이다. 실습 전 정리 단계에서 [HW7](/kr/blog/cloud-computing/cloud-computing-hw7-openstack-linux-container/)의 오픈스택 잔재 때문에 가상머신이 켜지지 않은 일이 있었는데, [3장](#3-실습-중-생긴-문제)에 따로 적었다.
+교재 16장 실습이다. 앞부분은 컨테이너 하나에 메모리와 CPU를 얼마나 쓰게 할지 옵션으로 제한하고 그 결과를 `docker stats`, `docker inspect`, `htop`으로 확인하는 실습(슬라이드 38~61쪽)이고, 뒷부분은 Flask 웹 서비스와 Redis 두 컨테이너를 `compose.yaml` 하나로 정의해 띄우는 실습(85~104쪽)이다. 실습 전 정리 단계에서 [HW7](/kr/blog/cs-fundamentals/cloud-computing/cloud-computing-hw7-openstack-linux-container/)의 오픈스택 잔재 때문에 가상머신이 켜지지 않은 일이 있었는데, [3장](#3-실습-중-생긴-문제)에 따로 적었다.
 
 # 0. 실습 환경
 
@@ -457,7 +457,7 @@ _컨테이너 2개, 볼륨, 네트워크 삭제. 슬라이드 101~104쪽_
 
 ## Kolla가 남긴 udev 규칙으로 /dev/kvm 권한이 막힘
 
-HW8 전에 디스크를 비우려고 [HW7](/kr/blog/cloud-computing/cloud-computing-hw7-openstack-linux-container/#2-오픈스택-배포)에서 Ubuntu 호스트에 깔았던 Kolla 오픈스택을 지웠다. `kolla-ansible destroy --include-images`가 4분 2초 만에 failed=0으로 끝났고, 컨테이너 34개와 이미지 9.7GB, 볼륨 3.4GB가 사라져 호스트 디스크 사용량이 44G에서 32G로 줄었다.
+HW8 전에 디스크를 비우려고 [HW7](/kr/blog/cs-fundamentals/cloud-computing/cloud-computing-hw7-openstack-linux-container/#2-오픈스택-배포)에서 Ubuntu 호스트에 깔았던 Kolla 오픈스택을 지웠다. `kolla-ansible destroy --include-images`가 4분 2초 만에 failed=0으로 끝났고, 컨테이너 34개와 이미지 9.7GB, 볼륨 3.4GB가 사라져 호스트 디스크 사용량이 44G에서 32G로 줄었다.
 
 그 뒤 호스트 libvirt를 다시 켜고 `virsh start`로 가상머신을 띄우자 이렇게 실패했다.
 

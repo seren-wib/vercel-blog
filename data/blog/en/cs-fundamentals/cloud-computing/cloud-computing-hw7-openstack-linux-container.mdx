@@ -385,7 +385,7 @@ Three lessons remain.
 
 The first instance created on the Ubuntu host hung during boot right after the `virtio_blk` message. CPU was at 100% and the guest clock didn't go past 9 seconds. cirros 0.6.3 was the same.
 
-It is the same symptom as the MSI interrupt problem under nested virtualization that I hit when installing Rocky aarch64 on KVM in [HW6](/en/blog/cloud-computing/cloud-computing-hw6-kvm-live-migration/#installing-a-rocky-vm-on-kvm). As then, adding `pci=nomsi` to the kernel arguments makes it use legacy interrupts instead of MSI. cirros aarch64 boots with GRUB from the EFI partition, so I copied the image, attached it to a block device with `qemu-nbd`, mounted the EFI partition, and appended `pci=nomsi` to the end of the kernel line in `EFI/ubuntu/grub.cfg`.
+It is the same symptom as the MSI interrupt problem under nested virtualization that I hit when installing Rocky aarch64 on KVM in [HW6](/en/blog/cs-fundamentals/cloud-computing/cloud-computing-hw6-kvm-live-migration/#installing-a-rocky-vm-on-kvm). As then, adding `pci=nomsi` to the kernel arguments makes it use legacy interrupts instead of MSI. cirros aarch64 boots with GRUB from the EFI partition, so I copied the image, attached it to a block device with `qemu-nbd`, mounted the EFI partition, and appended `pci=nomsi` to the end of the kernel line in `EFI/ubuntu/grub.cfg`.
 
 ```bash
 modprobe nbd max_part=16

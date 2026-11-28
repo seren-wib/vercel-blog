@@ -77,7 +77,7 @@ Compared with the command on slide 8, four things changed because of aarch64.
 - MSI interrupts are not delivered under nested virtualization, so I added `pci=nomsi`.
 - The default UEFI firmware (Secure Boot) won't run the installed GRUB, so I specified firmware without Secure Boot with `--boot`.
 
-The last two are settings I found in HW2 while fixing the [Rocky boot hang under nested virtualization](/en/blog/cloud-computing/cloud-computing-hw2-kvm-vm-cluster/#appendix-rocky-boot-hang-under-nested-virtualization). I split the `--boot` value over three lines with `\` so the paths don't break in the middle. The continuation lines are not indented, because the shell would otherwise split the option value at the spaces.
+The last two are settings I found in HW2 while fixing the [Rocky boot hang under nested virtualization](/en/blog/cs-fundamentals/cloud-computing/cloud-computing-hw2-kvm-vm-cluster/#appendix-rocky-boot-hang-under-nested-virtualization). I split the `--boot` value over three lines with `\` so the paths don't break in the middle. The continuation lines are not indented, because the shell would otherwise split the option value at the spaces.
 
 ![Installer start](/static/images/cloud-computing-hw6-kvm-live-migration/05.webp)
 

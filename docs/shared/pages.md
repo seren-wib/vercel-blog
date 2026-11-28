@@ -16,15 +16,15 @@
 
 카테고리는 두 단계다. 상위 카테고리 아래에 카테고리(과목·주제)가 있다. 폴더가 곧 분류이고, 표시 이름과 사이드바 순서는 `data/categoryTree.js`.
 
-| 상위 (`parent`)   | KR / EN                         | 카테고리                                                                                                          |
-| ----------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `dev`             | 개발 / Dev                      | unity, git, sql, web, auth, payments, devops, cloudflare                                                          |
-| `cs-fundamentals` | CS 기초 / CS Fundamentals       | computer-systems, data-structures, software-engineering, database-systems, information-retrieval, network, os, ai |
-| `side-projects`   | 사이드 프로젝트 / Side Projects | stairno, devblog, project-docs, coffee-shop                                                                       |
-| `hackathon`       | 해커톤 / Hackathon              | woowangthon, grokbot                                                                                              |
+| 상위 (`parent`)   | KR / EN                         | 카테고리                                                                                                                           |
+| ----------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `dev`             | 개발 / Dev                      | unity, git, sql, web, auth, payments, devops, cloudflare, hardware                                                                 |
+| `cs-fundamentals` | CS 기초 / CS Fundamentals       | computer-systems, data-structures, software-engineering, database-systems, information-retrieval, network, os, ai, cloud-computing |
+| `side-projects`   | 사이드 프로젝트 / Side Projects | stairno, devblog, project-docs, coffee-shop, random-idea                                                                           |
+| `hackathon`       | 해커톤 / Hackathon              | woowangthon, grokbot                                                                                                               |
 
-- 상위가 없는 카테고리도 된다 (지금 `hardware`, `cloud-computing`, `side-projects`). 이런 카테고리는 상위 카테고리 뒤에 따로 나오고, 목록 주소가 `/[locale]/blog/category/[category]`다.
-- 상위 없는 `side-projects`는 상위 `side-projects`와 이름이 같다. 글 주소(`/blog/side-projects/<글>/`)와 상위의 카테고리 주소(`/blog/side-projects/<카테고리>/`)가 같은 깊이라서, 글 파일명이 카테고리 이름이나 `page`와 같으면 빌드가 실패한다 (`contentlayer.config.ts`의 `checkUrlCollisions`).
+- 지금은 모든 카테고리가 상위 아래에 있다. 코드는 상위 없는 카테고리(`data/blog/<locale>/<category>/`)도 받는다. 이런 카테고리는 상위 카테고리 뒤에 따로 나오고, 목록 주소가 `/[locale]/blog/category/[category]`다 (`data/categoryTree.js`의 `topLevel`).
+- 상위 없는 카테고리의 글 주소(`/blog/<category>/<글>/`)는 상위의 카테고리 주소(`/blog/<parent>/<category>/`)와 깊이가 같다. 둘이 같은 주소가 되면 빌드가 실패한다 (`contentlayer.config.ts`의 `checkUrlCollisions`).
 - 카테고리 이름은 상위 이름·상위 없는 카테고리 이름과 겹치면 안 된다. 예전 주소 리다이렉트 규칙이 그 주소를 잡아버린다 (`data/redirects.js`가 빌드 때 검사).
 - `/`는 페이지가 아니라 리다이렉트다. `Accept-Language`에 `ko`가 있으면 `/kr`, 아니면 `/en`으로 보낸다 (307, 방문자마다 달라서 임시). `middleware.ts`.
 
@@ -71,7 +71,7 @@ Blog(`/[locale]`, 랜딩 글 목록) · Projects · About · Playground · 언�
 - 상위 카테고리 생기기 전 주소 → 상위 아래 주소 (상위마다 규칙 하나, 언어 유지. 접두사 없는 주소는 `/kr`로 한 번에)
   - 글 `/[locale]/blog/[category]/[slug]` → `/[locale]/blog/[parent]/[category]/[slug]`
   - 카테고리 `/[locale]/blog/category/[category]`(`/page/[page]` 포함) → `/[locale]/blog/[parent]/[category]`
-  - 예전 `hackathon` 카테고리: 글 `/blog/hackathon/hackathon-*` → `/blog/hackathon/grokbot/hackathon-*`, 목록 `/blog/category/hackathon` → `/blog/hackathon`
+  - 이름이 상위가 된 예전 카테고리(`hackathon`, `side-projects`): 글은 한 편씩 지정(`/blog/hackathon/hackathon-grokbot-bus-transfer` → `/blog/hackathon/grokbot/...`, `/blog/side-projects/side-projects-random-idea-generator` → `/blog/side-projects/random-idea/random-idea-generator`), 목록 `/blog/category/<이름>` → `/blog/<이름>`
 - 없앤 페이지 → 언어별 랜딩: `/[locale]/latest`, `/[locale]/blog/category` → `/[locale]` (접두사 없는 `/latest`, `/blog/category`는 `/kr`)
 - `/tags` → `/kr`, `/tags/[tag]` → 그 카테고리 목록 (`/kr/blog/[parent]/[tag]`, 상위 없으면 `/kr/blog/category/[tag]`)
 
@@ -83,6 +83,7 @@ Blog(`/[locale]`, 랜딩 글 목록) · Projects · About · Playground · 언�
 랜딩(/[locale])
 ├─ 포스트 클릭 → /[locale]/blog/[parent]/[category]/[slug]
 ├─ 사이드바 상위 카테고리 클릭 → /[locale]/blog/[parent]
+├─ 사이드바 상위 카테고리 옆 ▾ → 하위 목록 접기/펼치기 (기본 펼침, 접은 상위는 localStorage에 남아 다음 방문에도 접힘)
 ├─ 사이드바 카테고리 클릭 → /[locale]/blog/[parent]/[category]
 └─ 페이지네이션 → /[locale]/page/[page]
 

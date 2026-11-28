@@ -182,6 +182,63 @@ const replacedPostRedirects = prefixes.flatMap((prefix) =>
 )
 
 /**
+ * Term-only posts whose entries moved into the glossary (/<locale>/glossary/). The category stays.
+ */
+const glossaryPosts = [
+  'dev/auth/auth-00-basics',
+  'dev/cloudflare/cloudflare-00-basics',
+  'dev/devops/devops-00-basics',
+  'dev/payments/payments-00-basics',
+  'dev/web/web-00-basics',
+]
+
+const glossaryPostRedirects = prefixes.flatMap((prefix) =>
+  glossaryPosts.map((post) => ({
+    source: `${prefix.from}/blog/${post}`,
+    destination: `${prefix.to}/glossary/`,
+    permanent: true,
+  }))
+)
+
+/**
+ * Posts merged into another post of the same category: '<parent>/<category>/<file>' -> merged post.
+ */
+const mergedPosts = {
+  'side-projects/coffee-shop/coffee-shop-01-requirements-design':
+    'side-projects/coffee-shop/coffee-shop-00-overview',
+  'side-projects/coffee-shop/coffee-shop-02-docs-sync':
+    'side-projects/project-docs/project-docs-04-docs-sync',
+  'side-projects/coffee-shop/coffee-shop-03-backend-foundation':
+    'side-projects/coffee-shop/coffee-shop-00-overview',
+  'side-projects/coffee-shop/coffee-shop-04-backend-features':
+    'side-projects/coffee-shop/coffee-shop-00-overview',
+  'side-projects/coffee-shop/coffee-shop-05-frontend':
+    'side-projects/coffee-shop/coffee-shop-00-overview',
+  'side-projects/coffee-shop/coffee-shop-06-deploy':
+    'side-projects/coffee-shop/coffee-shop-00-overview',
+  'side-projects/project-docs/project-docs-01-growing-docs':
+    'side-projects/project-docs/project-docs-00-overview',
+  'side-projects/project-docs/project-docs-02-decision-records':
+    'side-projects/project-docs/project-docs-00-overview',
+  'side-projects/project-docs/project-docs-03-standards':
+    'side-projects/project-docs/project-docs-00-overview',
+  'side-projects/stairno/stairno-01-shared-ui': 'side-projects/stairno/stairno-00-roadmap',
+  'side-projects/stairno/stairno-04a-payment-rehearsal':
+    'side-projects/stairno/stairno-04-payments',
+  'side-projects/devblog/devblog-02-sort-visualizer': 'side-projects/devblog/devblog-01-playground',
+  'side-projects/devblog/devblog-03-giscus-comments': 'side-projects/devblog/devblog-01-playground',
+  'dev/unity/unity-err': 'dev/unity/unity-01-basics',
+}
+
+const mergedPostRedirects = prefixes.flatMap((prefix) =>
+  Object.entries(mergedPosts).map(([from, to]) => ({
+    source: `${prefix.from}/blog/${from}`,
+    destination: `${prefix.to}/blog/${to}/`,
+    permanent: true,
+  }))
+)
+
+/**
  * Tag pages were replaced by category pages. Every tag slug matches a category folder name.
  */
 const tagRedirects = [
@@ -297,6 +354,8 @@ const movedCategoryRedirects = prefixes.flatMap(({ from, to }) => [
 module.exports = [
   ...postRedirects,
   ...replacedPostRedirects,
+  ...glossaryPostRedirects,
+  ...mergedPostRedirects,
   ...removedPageRedirects,
   ...tagRedirects,
   ...listRedirects,

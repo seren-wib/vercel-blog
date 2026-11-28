@@ -34,6 +34,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/projects/',
     '/about/',
     '/playground/',
+    '/glossary/',
     ...playgroundLanguages.map((lang) => `/playground/${lang.id}/`),
   ].flatMap((path) => entries(path, locales, today))
 

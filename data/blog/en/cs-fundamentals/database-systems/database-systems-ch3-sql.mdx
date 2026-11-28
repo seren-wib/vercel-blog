@@ -8,11 +8,11 @@ summary: 'CREATE TABLE, types, constraints, ON DELETE/ON UPDATE, INSERT, DELETE 
 
 # SQL Syntax on One Page (all of chapters 4 and 5)
 
-Based on the COMPANY tables. Put your own values in the `< >` slots. Order: create tables → insert, delete and update rows → find (SELECT) → SELECT inside SELECT → combine (JOIN) → count (aggregates) → rules (ASSERTION, TRIGGER) → views
+Based on the COMPANY tables. Put your own values in the `< >` slots. Order: [create tables](glossary:create-table) → insert, delete and update rows → find ([SELECT](glossary:select)) → [SELECT](glossary:select) inside [SELECT](glossary:select) → combine ([JOIN](glossary:join)) → count ([aggregates](glossary:aggregate-function)) → rules ([ASSERTION](glossary:assertion), [TRIGGER](glossary:trigger)) → [views](glossary:view)
 
 ## 0. Try it yourself
 
-A SQLite database with the textbook COMPANY data runs right in your browser. Pick an example or edit the query, run it, and see the result and how the tables change. Changes build up across runs; **Reset data** brings back the starting data
+A [SQLite](glossary:sqlite) database with the textbook COMPANY data runs right in your browser. Pick an example or edit the query, run it, and see the result and how the tables change. Changes build up across runs; **Reset data** brings back the starting data
 
 <SqlPlayground lang="en" />
 
@@ -44,33 +44,33 @@ CREATE TABLE DEPARTMENT
                         ON DELETE SET DEFAULT  ON UPDATE CASCADE );
 ```
 
-| Type            | What                                                  | Example               |
-| --------------- | ----------------------------------------------------- | --------------------- |
-| `INT`           | Integer                                               | Dnumber, Salary       |
-| `CHAR(n)`       | Exactly n characters                                  | Ssn CHAR(9), Sex CHAR |
-| `VARCHAR(n)`    | Up to n characters                                    | Fname VARCHAR(15)     |
-| `DATE`          | Date '1965-01-09'                                     | Bdate                 |
-| `DECIMAL(p, s)` | Decimal. p digits in total, s of them after the point | Hours DECIMAL(3,1)    |
+| Type            | What                                                  | Example                                                 |
+| --------------- | ----------------------------------------------------- | ------------------------------------------------------- |
+| `INT`           | Integer                                               | Dnumber, Salary                                         |
+| `CHAR(n)`       | Exactly n characters                                  | Ssn [CHAR](glossary:char)(9), Sex [CHAR](glossary:char) |
+| `VARCHAR(n)`    | Up to n characters                                    | Fname [VARCHAR](glossary:varchar)(15)                   |
+| `DATE`          | Date '1965-01-09'                                     | Bdate                                                   |
+| `DECIMAL(p, s)` | Decimal. p digits in total, s of them after the point | Hours [DECIMAL](glossary:decimal)(3,1)                  |
 
-| Line                              | Meaning                                                             |
-| --------------------------------- | ------------------------------------------------------------------- |
-| `NOT NULL`                        | No empty cells. Automatic for PK columns even if you don't write it |
-| `DEFAULT <value>`                 | Filled with this when no value is given                             |
-| `PRIMARY KEY (…)`                 | Primary key. Two or more columns: `(Essn, Pno)`                     |
-| `UNIQUE (…)`                      | Not the PK, but must not repeat                                     |
-| `FOREIGN KEY (a) REFERENCES T(b)` | a may only hold values that exist in T.b                            |
-| `CONSTRAINT <name>`               | Names the constraint. For changing or dropping it later             |
+| Line                              | Meaning                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------------------------- |
+| `NOT NULL`                        | No empty cells. Automatic for [PK](glossary:primary-key) columns even if you don't write it |
+| `DEFAULT <value>`                 | Filled with this when no value is given                                                     |
+| `PRIMARY KEY (…)`                 | Primary key. Two or more columns: `(Essn, Pno)`                                             |
+| `UNIQUE (…)`                      | Not the [PK](glossary:primary-key), but must not repeat                                     |
+| `FOREIGN KEY (a) REFERENCES T(b)` | a may only hold values that exist in T.b                                                    |
+| `CONSTRAINT <name>`               | Names the constraint. For changing or dropping it later                                     |
 
-**When the row an FK points to is deleted or its PK changes** (appended after the FK line)
+**When the row an [FK](glossary:foreign-key) points to is deleted or its [PK](glossary:primary-key) changes** (appended after the [FK](glossary:foreign-key) line)
 
-| Action        | FK cell on ON DELETE      | When                                         |
-| ------------- | ------------------------- | -------------------------------------------- |
-| Not written   | Delete rejected           | Can't delete the parent while children exist |
-| `SET NULL`    | Becomes NULL              | Keep the child, just cut the link            |
-| `SET DEFAULT` | Becomes the DEFAULT value | Keep the child, move it to the default       |
-| `CASCADE`     | That row is deleted too   | Child is useless once the parent is gone     |
+| Action        | [FK](glossary:foreign-key) cell on [ON DELETE](glossary:referential-action) | When                                         |
+| ------------- | --------------------------------------------------------------------------- | -------------------------------------------- |
+| Not written   | Delete rejected                                                             | Can't delete the parent while children exist |
+| `SET NULL`    | Becomes [NULL](glossary:null)                                               | Keep the child, just cut the link            |
+| `SET DEFAULT` | Becomes the [DEFAULT](glossary:default) value                               | Keep the child, move it to the default       |
+| `CASCADE`     | That row is deleted too                                                     | Child is useless once the parent is gone     |
 
-- `ON UPDATE CASCADE`: when the other PK changes, the FK takes the new value too. ON UPDATE is almost always this
+- `ON UPDATE CASCADE`: when the other [PK](glossary:primary-key) changes, the [FK](glossary:foreign-key) takes the new value too. [ON UPDATE](glossary:referential-action) is almost always this
 
 ## 2. Inserting, deleting and updating rows (DML)
 
@@ -87,7 +87,7 @@ INSERT INTO EMPLOYEE (Fname, Lname, Dno, Ssn)
 VALUES ('Richard', 'Marini', 4, '653298653');
 ```
 
-- When choosing columns, NOT NULL columns without a DEFAULT are required / a nonexistent Dno, a missing Ssn or a duplicate Ssn → rejected
+- When choosing columns, [NOT NULL](glossary:not-null) columns without a [DEFAULT](glossary:default) are required / a nonexistent Dno, a missing Ssn or a duplicate Ssn → rejected
 
 ```sql
 DELETE FROM <table> WHERE <condition>;        -- without WHERE, deletes everything
@@ -107,7 +107,7 @@ UPDATE PROJECT  SET Plocation = 'Bellaire', Dnum = 5  WHERE Pnumber = 10;
 UPDATE EMPLOYEE SET Salary = Salary * 1.1             WHERE Dno = 5;
 ```
 
-- Expressions work in the value slot / with CASCADE on an FK, both DELETE and UPDATE change other tables too
+- Expressions work in the value slot / with [CASCADE](glossary:cascade) on an [FK](glossary:foreign-key), both [DELETE](glossary:delete) and [UPDATE](glossary:update) change other tables too
 
 ## 3. Finding (SELECT)
 
@@ -118,7 +118,7 @@ WHERE    <row condition> AND <join condition>
 ORDER BY <column> [ASC | DESC], <column>;
 ```
 
-**Writing order**: what to show → which tables it's in → conditions → with two or more tables, join them with FK = PK (n tables need n−1)
+**Writing order**: what to show → which tables it's in → conditions → with two or more tables, join them with [FK](glossary:foreign-key) = [PK](glossary:primary-key) (n tables need n−1)
 
 ```sql
 SELECT Bdate, Address
@@ -158,7 +158,7 @@ FROM   EMPLOYEE AS E, WORKS_ON AS W, PROJECT AS P
 WHERE  E.Ssn = W.Essn AND W.Pno = P.Pnumber AND P.Pname = 'ProductX';
 ```
 
-**Set operations**: combine two SELECT results. Column count and types must match. Duplicates are removed; use `ALL` to keep them
+**[Set operations](glossary:set-operation)**: combine two [SELECT](glossary:select) results. Column count and types must match. Duplicates are removed; use `ALL` to keep them
 
 ```sql
 ( SELECT … ) UNION ( SELECT … );        -- union
@@ -185,16 +185,16 @@ UNION
 SELECT … FROM … WHERE <value> <comparison> ( SELECT … );
 ```
 
-| Comparison       | True when                             | Example                                                    |
-| ---------------- | ------------------------------------- | ---------------------------------------------------------- |
-| `v IN (…)`       | v is in the inner result              | `Pnumber IN (SELECT Pno FROM WORKS_ON WHERE …)`            |
-| `v NOT IN (…)`   | It isn't                              |                                                            |
-| `v > ALL (…)`    | Greater than every inner result       | `Salary > ALL (SELECT Salary FROM EMPLOYEE WHERE Dno = 5)` |
-| `v = ANY (…)`    | Equal to at least one (= IN)          | `Pnumber = ANY (SELECT …)`                                 |
-| `EXISTS (…)`     | The inner result has at least one row | Employees with dependents                                  |
-| `NOT EXISTS (…)` | The inner result is empty             | Employees with no dependents                               |
+| Comparison       | True when                                   | Example                                                    |
+| ---------------- | ------------------------------------------- | ---------------------------------------------------------- |
+| `v IN (…)`       | v is in the inner result                    | `Pnumber IN (SELECT Pno FROM WORKS_ON WHERE …)`            |
+| `v NOT IN (…)`   | It isn't                                    |                                                            |
+| `v > ALL (…)`    | Greater than every inner result             | `Salary > ALL (SELECT Salary FROM EMPLOYEE WHERE Dno = 5)` |
+| `v = ANY (…)`    | Equal to at least one (= [IN](glossary:in)) | `Pnumber = ANY (SELECT …)`                                 |
+| `EXISTS (…)`     | The inner result has at least one row       | Employees with dependents                                  |
+| `NOT EXISTS (…)` | The inner result is empty                   | Employees with no dependents                               |
 
-- `=`, `>`, `>=`, `<`, `<=`, `<>` all work before ALL and ANY
+- `=`, `>`, `>=`, `<`, `<=`, `<>` all work before [ALL](glossary:all) and [ANY](glossary:any)
 
 ```sql
 SELECT DISTINCT Pnumber
@@ -207,7 +207,7 @@ WHERE  Pnumber IN ( SELECT Pnumber
                     WHERE  Essn = Ssn AND Lname = 'Smith' );
 ```
 
-- The UNION above written with IN
+- The [UNION](glossary:union) above written with [IN](glossary:in)
 
 **If the inner query uses an outer alias**, the inner query runs again for each outer row. Aliases required
 
@@ -234,9 +234,9 @@ WHERE  EXISTS ( SELECT * FROM DEPENDENT  WHERE Ssn = Essn )
   AND  EXISTS ( SELECT * FROM DEPARTMENT WHERE Ssn = Mgr_ssn );
 ```
 
-- Employees with no dependents / managers with dependents. EXISTS only checks whether rows exist, so the inner query is `SELECT *`
+- Employees with no dependents / managers with dependents. [EXISTS](glossary:exists) only checks whether rows exist, so the inner query is `SELECT *`
 
-**"works on all of ~"**: (all of them) EXCEPT (that person's) must be empty → `NOT EXISTS ( (SELECT …) EXCEPT (SELECT …) )`
+**"works on all of ~"**: (all of them) [EXCEPT](glossary:except) (that person's) must be empty → `NOT EXISTS ( (SELECT …) EXCEPT (SELECT …) )`
 
 ```sql
 SELECT Fname, Lname
@@ -260,21 +260,21 @@ FROM   (EMPLOYEE JOIN DEPARTMENT ON Dno = Dnumber)
 WHERE  Dname = 'Research';
 ```
 
-- The join condition goes in ON instead of WHERE. Result columns = first table's columns + second table's columns
+- The join condition goes in ON instead of [WHERE](glossary:where). Result columns = first table's columns + second table's columns
 
-| Kind                  | Result                                         |
-| --------------------- | ---------------------------------------------- |
-| `JOIN` (= INNER JOIN) | Only rows with a match on both sides           |
-| `LEFT OUTER JOIN`     | Every left row; right cells NULL when no match |
-| `RIGHT OUTER JOIN`    | Every right row                                |
-| `FULL OUTER JOIN`     | Every row on both sides                        |
+| Kind                                         | Result                                                          |
+| -------------------------------------------- | --------------------------------------------------------------- |
+| `JOIN` (= [INNER JOIN](glossary:inner-join)) | Only rows with a match on both sides                            |
+| `LEFT OUTER JOIN`                            | Every left row; right cells [NULL](glossary:null) when no match |
+| `RIGHT OUTER JOIN`                           | Every right row                                                 |
+| `FULL OUTER JOIN`                            | Every row on both sides                                         |
 
 ```sql
 SELECT E.Fname, E.Lname, S.Fname, S.Lname
 FROM   (EMPLOYEE AS E LEFT OUTER JOIN EMPLOYEE AS S ON E.Super_ssn = S.Ssn);
 ```
 
-- With `JOIN`, Borg (no supervisor) drops out / with `LEFT OUTER JOIN`, Borg shows up with NULL supervisor cells
+- With `JOIN`, Borg (no supervisor) drops out / with `LEFT OUTER JOIN`, Borg shows up with [NULL](glossary:null) supervisor cells
 
 ## 6. Counting (aggregates, GROUP BY, HAVING)
 
@@ -286,12 +286,12 @@ GROUP BY <grouping column>
 HAVING   <group condition>;
 ```
 
-| Function          | What                      | Note                                            |
-| ----------------- | ------------------------- | ----------------------------------------------- |
-| `COUNT(*)`        | Number of rows            |                                                 |
-| `COUNT(<column>)` | Number of non-NULL values | `COUNT(DISTINCT Salary)` counts distinct values |
-| `SUM`, `AVG`      | Sum, average              | Numeric columns only                            |
-| `MAX`, `MIN`      | Maximum, minimum          |                                                 |
+| Function          | What                                       | Note                                            |
+| ----------------- | ------------------------------------------ | ----------------------------------------------- |
+| `COUNT(*)`        | Number of rows                             |                                                 |
+| `COUNT(<column>)` | Number of non-[NULL](glossary:null) values | `COUNT(DISTINCT Salary)` counts distinct values |
+| `SUM`, `AVG`      | Sum, average                               | Numeric columns only                            |
+| `MAX`, `MIN`      | Maximum, minimum                           |                                                 |
 
 ```sql
 SELECT SUM(Salary), MAX(Salary), MIN(Salary), AVG(Salary)
@@ -299,7 +299,7 @@ FROM   (EMPLOYEE JOIN DEPARTMENT ON Dno = Dnumber)
 WHERE  Dname = 'Research';
 ```
 
-- Without GROUP BY everything is one group → one result row
+- Without [GROUP BY](glossary:group-by) everything is one group → one result row
 
 ```sql
 SELECT   Dno, COUNT(*), AVG(Salary)
@@ -307,7 +307,7 @@ FROM     EMPLOYEE
 GROUP BY Dno;
 ```
 
-- "per department", "for each project" → GROUP BY. SELECT may contain only GROUP BY columns + aggregate functions
+- "per department", "for each project" → [GROUP BY](glossary:group-by). [SELECT](glossary:select) may contain only [GROUP BY](glossary:group-by) columns + aggregate functions
 
 ```sql
 SELECT   Pnumber, Pname, COUNT(*)
@@ -317,7 +317,7 @@ GROUP BY Pnumber, Pname
 HAVING   COUNT(*) > 2;
 ```
 
-- WHERE filters rows, HAVING filters groups. COUNT in WHERE is an error
+- [WHERE](glossary:where) filters rows, [HAVING](glossary:having) filters groups. [COUNT](glossary:count) in [WHERE](glossary:where) is an error
 
 ```sql
 SELECT Fname, Lname
@@ -325,9 +325,9 @@ FROM   EMPLOYEE
 WHERE  ( SELECT COUNT(*) FROM DEPENDENT WHERE Ssn = Essn ) >= 2;
 ```
 
-- An aggregate as a nested query inside WHERE. Two or more dependents
+- An aggregate as a [nested query](glossary:subquery) inside [WHERE](glossary:where). Two or more dependents
 
-**Execution order**: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY
+**Execution order**: FROM → [WHERE](glossary:where) → [GROUP BY](glossary:group-by) → [HAVING](glossary:having) → [SELECT](glossary:select) → [ORDER BY](glossary:order-by)
 
 ## 7. Setting rules (ASSERTION, TRIGGER)
 
@@ -345,7 +345,7 @@ CHECK ( NOT EXISTS ( SELECT *
                        AND  D.Mgr_ssn = M.Ssn ) );
 ```
 
-- Wrap the SELECT that finds violating rows in NOT EXISTS = "no such rows allowed". Any change that makes an employee's salary > the department manager's is rejected
+- Wrap the [SELECT](glossary:select) that finds violating rows in [NOT EXISTS](glossary:not-exists) = "no such rows allowed". Any change that makes an employee's salary > the department manager's is rejected
 
 ```sql
 CREATE TRIGGER <name>
@@ -364,11 +364,11 @@ WHEN ( NEW.SALARY > ( SELECT SALARY FROM EMPLOYEE
   INFORM_SUPERVISOR(NEW.Supervisor_ssn, NEW.Ssn);
 ```
 
-| Part      | Code                                       | Meaning                                              |
-| --------- | ------------------------------------------ | ---------------------------------------------------- |
-| Event     | `BEFORE INSERT OR UPDATE OF … ON EMPLOYEE` | Before or after which command                        |
-| Condition | `WHEN (…)`                                 | Runs every time if omitted                           |
-| Action    | `INFORM_SUPERVISOR(…)`                     | An SQL statement, a transaction, an external program |
+| Part      | Code                                       | Meaning                                                                                      |
+| --------- | ------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| Event     | `BEFORE INSERT OR UPDATE OF … ON EMPLOYEE` | Before or after which command                                                                |
+| Condition | `WHEN (…)`                                 | Runs every time if omitted                                                                   |
+| Action    | `INFORM_SUPERVISOR(…)`                     | An [SQL](glossary:sql) statement, a [transaction](glossary:transaction), an external program |
 
 - `NEW.<column>` is the value after insert or update / an assertion blocks, a trigger does something
 
@@ -395,7 +395,7 @@ AS SELECT   Dname, COUNT(*), SUM(Salary)
    GROUP BY Dname;
 ```
 
-- Column names come from the SELECT. When there's no name, as with COUNT or SUM, give them yourself in `(…)` up front
+- Column names come from the [SELECT](glossary:select). When there's no name, as with [COUNT](glossary:count) or [SUM](glossary:sum), give them yourself in `(…)` up front
 
 ```sql
 SELECT Fname, Lname FROM WORKS_ON1 WHERE Pname = 'ProductX';
@@ -404,13 +404,13 @@ DROP VIEW WORKS_ON1;
 
 - A view isn't stored; it's built from the base tables at query time / DROP VIEW doesn't touch the base tables
 
-**INSERT, DELETE and UPDATE on a view**
+**[INSERT](glossary:insert), [DELETE](glossary:delete) and [UPDATE](glossary:update) on a view**
 
-| View                                                                          | Update                                                      |
-| ----------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| One table + no aggregates + includes the base table's PK and NOT NULL columns | Works                                                       |
-| Join of two or more tables                                                    | Doesn't work (several ways to decide which table to change) |
-| GROUP BY or aggregate functions                                               | Doesn't work (computed values)                              |
+| View                                                                                                                                                      | Update                                                      |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| One table + no [aggregates](glossary:aggregate-function) + includes the base table's [PK](glossary:primary-key) and [NOT NULL](glossary:not-null) columns | Works                                                       |
+| Join of two or more tables                                                                                                                                | Doesn't work (several ways to decide which table to change) |
+| [GROUP BY](glossary:group-by) or aggregate functions                                                                                                      | Doesn't work (computed values)                              |
 
 ```sql
 CREATE VIEW DEPT5EMP       AS SELECT * FROM EMPLOYEE WHERE Dno = 5;
@@ -421,23 +421,23 @@ CREATE VIEW BASIC_EMP_DATA AS SELECT Fname, Lname, Address FROM EMPLOYEE;
 
 ## 9. Question wording → syntax
 
-| When the question says                                            | Use                                         |
-| ----------------------------------------------------------------- | ------------------------------------------- |
-| Columns from two or more tables                                   | Both in FROM, FK = PK in WHERE (or JOIN ON) |
-| An employee and their supervisor                                  | The same table twice, `AS E`, `AS S`        |
-| Without duplicates                                                | `DISTINCT`                                  |
-| per ~, for each ~                                                 | `GROUP BY`                                  |
-| Only departments where ~ (condition on groups)                    | `HAVING`                                    |
-| How many, sum, average, maximum                                   | `COUNT`, `SUM`, `AVG`, `MAX`                |
-| Earning more than ~ (comparison value from the DB)                | Nested query `> ALL (SELECT …)`             |
-| Belonging to ~, who has ever ~                                    | `IN (SELECT …)` / `EXISTS`                  |
-| With no ~                                                         | `NOT EXISTS` / `NOT IN`                     |
-| Working on all of                                                 | `NOT EXISTS ( … EXCEPT … )`                 |
-| Rows without a match must show too (employees with no supervisor) | `LEFT OUTER JOIN`                           |
-| Both / either / only one                                          | `INTERSECT` / `UNION` / `EXCEPT`            |
-| Sorted, highest first                                             | `ORDER BY … DESC`                           |
-| 10% raise                                                         | `UPDATE … SET Salary = Salary * 1.1`        |
-| Delete along with it                                              | `ON DELETE CASCADE`                         |
-| A rule that must always hold                                      | `CREATE ASSERTION … CHECK (NOT EXISTS …)`   |
-| Automatically when ~                                              | `CREATE TRIGGER`                            |
-| Name a frequently used query                                      | `CREATE VIEW`                               |
+| When the question says                                            | Use                                                                                                                            |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Columns from two or more tables                                   | Both in FROM, [FK](glossary:foreign-key) = [PK](glossary:primary-key) in [WHERE](glossary:where) (or [JOIN](glossary:join) ON) |
+| An employee and their supervisor                                  | The same table twice, `AS E`, `AS S`                                                                                           |
+| Without duplicates                                                | `DISTINCT`                                                                                                                     |
+| per ~, for each ~                                                 | `GROUP BY`                                                                                                                     |
+| Only departments where ~ (condition on groups)                    | `HAVING`                                                                                                                       |
+| How many, sum, average, maximum                                   | `COUNT`, `SUM`, `AVG`, `MAX`                                                                                                   |
+| Earning more than ~ (comparison value from the DB)                | Nested query `> ALL (SELECT …)`                                                                                                |
+| Belonging to ~, who has ever ~                                    | `IN (SELECT …)` / `EXISTS`                                                                                                     |
+| With no ~                                                         | `NOT EXISTS` / `NOT IN`                                                                                                        |
+| Working on all of                                                 | `NOT EXISTS ( … EXCEPT … )`                                                                                                    |
+| Rows without a match must show too (employees with no supervisor) | `LEFT OUTER JOIN`                                                                                                              |
+| Both / either / only one                                          | `INTERSECT` / `UNION` / `EXCEPT`                                                                                               |
+| Sorted, highest first                                             | `ORDER BY … DESC`                                                                                                              |
+| 10% raise                                                         | `UPDATE … SET Salary = Salary * 1.1`                                                                                           |
+| Delete along with it                                              | `ON DELETE CASCADE`                                                                                                            |
+| A rule that must always hold                                      | `CREATE ASSERTION … CHECK (NOT EXISTS …)`                                                                                      |
+| Automatically when ~                                              | `CREATE TRIGGER`                                                                                                               |
+| Name a frequently used query                                      | `CREATE VIEW`                                                                                                                  |

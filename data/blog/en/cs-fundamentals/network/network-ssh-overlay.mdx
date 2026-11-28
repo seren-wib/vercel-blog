@@ -7,45 +7,45 @@ draft: false
 summary: 'Getting stuck trying to SSH between three devices (phone, Mac, desktop) from anywhere, tailscale ping vs Operation timed out, drop vs RST, Tailscale ACL and packet filter (tailscale debug netmap), sshd and Windows Defender Firewall, L3 reachability (NAT, public IP, port forwarding, DDNS, CGNAT), L4 ports, firewalls and ACLs, L7 SSH authentication, WireGuard, NAT traversal and DERP relay, self-hosted vs managed per layer (control plane, data plane, the cost of dependency and the exit), comparing port forwarding, self-hosted WireGuard, Headscale and Tailscale, defense in depth (device keys and user keys), macOS sshd_config.d and PAM, Windows OpenSSH Server with firewall rules and administrators_authorized_keys and its ACL, Termius Biometric Key (Secure Enclave) and Too many authentication failures, per-device SSH keys and SSH config Include, an emergency path for Claude Remote Control (schtasks scheduled tasks, SSH child processes and session 0, orphan processes), the cost of auto sign-in, autogroup:self ACL, orphan nodes and the hostname -1 suffix'
 ---
 
-> I wanted to SSH between my phone, Mac and desktop from anywhere, and got stuck. This post goes from the cause to the setup and the emergency path I actually use. I rewrote it with the results after finishing the desktop setup on 2026-11-27. What a packet goes through at each layer is in [Networking by layer](/en/blog/cs-fundamentals/network/network-tcp-ip-layers/), and the SSH connection steps are in [the SSH section of the web request journey](/en/blog/cs-fundamentals/network/network-web-request-journey/#15-connecting-over-ssh). This post applies the NAT, port and SSH sections of those two posts to a real problem.
+> I wanted to [SSH](glossary:ssh) between my phone, Mac and desktop from anywhere, and got stuck. This post goes from the cause to the setup and the emergency path I actually use. I rewrote it with the results after finishing the desktop setup on 2026-11-27. What a packet goes through at each layer is in [Networking by layer](/en/blog/cs-fundamentals/network/network-tcp-ip-layers/), and the [SSH](glossary:ssh) connection steps are in [the SSH section of the web request journey](/en/blog/cs-fundamentals/network/network-web-request-journey/#15-connecting-over-ssh). This post applies the [NAT](glossary:nat), port and [SSH](glossary:ssh) sections of those two posts to a real problem.
 
 # 0. At a glance
 
-The conclusion first: **the network was there from the start; the SSH server was not.** The desktop was already connected to the Mac through Tailscale, but it had no sshd to accept the connection, and Windows Firewall was dropping incoming packets.
+The conclusion first: **the network was there from the start; the [SSH](glossary:ssh) server was not.** The desktop was already connected to the Mac through [Tailscale](glossary:tailscale), but it had no [sshd](glossary:sshd) to accept the connection, and Windows Firewall was dropping incoming packets.
 
-| Question                                     | Answer                                                                                                                                                                                                                                                                                           |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Why not plain SSH (router port forwarding)?  | The Mac on campus Wi-Fi sits behind the campus NAT, so there is no way in from outside, and opening 22 on the home router exposes it to the whole internet                                                                                                                                       |
-| What Tailscale solves                        | L3 reachability. It connects devices behind NAT with WireGuard tunnels. Ports opened on the router: 0                                                                                                                                                                                            |
-| What Tailscale does not solve                | The OS firewall at L4, and the SSH server and user authentication at L7. Each device needs these on its own                                                                                                                                                                                      |
-| Why hand it off instead of running it myself | The company runs L3 and the control plane (device key distribution) for me. The cost is depending on an outside company and one account; since the layer underneath is WireGuard, [swapping just those two slots is the way out](#4-why-handing-it-off-is-simpler-what-each-layer-leaves-to-you) |
-| Where it was blocked this time               | Desktop: no sshd + Windows Defender Firewall drop. Mac: Remote Login off (no sshd)                                                                                                                                                                                                               |
-| Result                                       | Done on 2026-11-27. The Mac and desktop are SSH servers; the phone is a client only. Connection tests in all four directions succeeded ([section 7](#connection-tests))                                                                                                                          |
-| Why build it                                 | To SSH into the desktop from the phone and turn Claude Code Remote Control back on when it's off ([section 8](#8-when-remote-control-is-off-turning-it-back-on-over-ssh))                                                                                                                        |
+| Question                                                                                | Answer                                                                                                                                                                                                                                                                                                                                                                 |
+| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Why not plain [SSH](glossary:ssh) (router [port forwarding](glossary:port-forwarding))? | The Mac on campus Wi-Fi sits behind the campus [NAT](glossary:nat), so there is no way in from outside, and opening 22 on the home router exposes it to the whole internet                                                                                                                                                                                             |
+| What [Tailscale](glossary:tailscale) solves                                             | [L3](glossary:osi-model) [reachability](glossary:reachability). It connects devices behind [NAT](glossary:nat) with [WireGuard](glossary:wireguard) tunnels. Ports opened on the router: 0                                                                                                                                                                             |
+| What [Tailscale](glossary:tailscale) does not solve                                     | The OS [firewall](glossary:firewall) at [L4](glossary:osi-model), and the [SSH](glossary:ssh) server and user authentication at [L7](glossary:osi-model). Each device needs these on its own                                                                                                                                                                           |
+| Why hand it off instead of running it myself                                            | The company runs [L3](glossary:osi-model) and the [control plane](glossary:control-plane) (device key distribution) for me. The cost is depending on an outside company and one account; since the layer underneath is [WireGuard](glossary:wireguard), [swapping just those two slots is the way out](#4-why-handing-it-off-is-simpler-what-each-layer-leaves-to-you) |
+| Where it was blocked this time                                                          | Desktop: no [sshd](glossary:sshd) + [Windows Defender Firewall](glossary:windows-defender-firewall) [drop](glossary:packet-drop). Mac: Remote Login off (no [sshd](glossary:sshd))                                                                                                                                                                                     |
+| Result                                                                                  | Done on 2026-11-27. The Mac and desktop are [SSH](glossary:ssh) servers; the phone is a client only. Connection tests in all four directions succeeded ([section 7](#connection-tests))                                                                                                                                                                                |
+| Why build it                                                                            | To [SSH](glossary:ssh) into the desktop from the phone and turn [Claude Code](glossary:claude-code) [Remote Control](glossary:remote-control) back on when it's off ([section 8](#8-when-remote-control-is-off-turning-it-back-on-over-ssh))                                                                                                                           |
 
 # 1. The situation
 
 Three devices are on this network. In this post I use the names below instead of the real ones.
 
-| Name      | Device          | Usually at   | SSH role        |
-| --------- | --------------- | ------------ | --------------- |
-| `phone`   | Phone (iOS)     | With me      | Client only     |
-| `laptop`  | Mac             | Campus Wi-Fi | Server + client |
-| `desktop` | Windows desktop | Home         | Server + client |
+| Name      | Device          | Usually at   | [SSH](glossary:ssh) role |
+| --------- | --------------- | ------------ | ------------------------ |
+| `phone`   | Phone (iOS)     | With me      | Client only              |
+| `laptop`  | Mac             | Campus Wi-Fi | Server + client          |
+| `desktop` | Windows desktop | Home         | Server + client          |
 
-- On iOS an app can't run sshd to accept connections. So the phone only goes out (client), and the receiving side (server) is the Mac and the desktop.
+- On iOS an app can't run [sshd](glossary:sshd) to accept connections. So the phone only goes out (client), and the receiving side (server) is the Mac and the desktop.
 - I meant to add the tablet at first, but I rarely use it, so I left it out of this network.
 
-The goal is one thing. Remote Control lets me keep using Claude Code from my phone while I'm out, and if it goes off, the phone has no way to turn it back on. Then I SSH into the desktop from the phone and turn it on again (section 8).
+The goal is one thing. [Remote Control](glossary:remote-control) lets me keep using [Claude Code](glossary:claude-code) from my phone while I'm out, and if it goes off, the phone has no way to turn it back on. Then I [SSH](glossary:ssh) into the desktop from the phone and turn it on again (section 8).
 
-I wanted to move between these three over SSH from anywhere. The desktop was already on the tailnet (the network of my devices joined by Tailscale), and `tailscale ping` from the Mac got an answer right away.
+I wanted to move between these three over [SSH](glossary:ssh) from anywhere. The desktop was already on the [tailnet](glossary:tailscale) (the network of my devices joined by [Tailscale](glossary:tailscale)), and `tailscale ping` from the Mac got an answer right away.
 
 ```text
 $ tailscale ping desktop
 pong from desktop (100.x.y.z) via 203.0.113.x:41641 in 24ms
 ```
 
-`via <IP:port>` means the two devices are connected **directly**, without a relay. But opening SSH (22) and Remote Desktop (RDP, 3389) to the same address both waited a long time and gave up.
+`via <IP:port>` means the two devices are connected **directly**, without a [relay](glossary:relay-server). But opening [SSH](glossary:ssh) (22) and [Remote Desktop](glossary:rdp) ([RDP](glossary:rdp), 3389) to the same address both waited a long time and gave up.
 
 ```text
 $ ssh user@100.x.y.z
@@ -54,16 +54,16 @@ ssh: connect to host 100.x.y.z port 22: Operation timed out
 
 ## timed out is not refused
 
-It is the difference between knocking and getting no answer at all, and someone opening the door to say "wrong place" and shutting it. No answer is a **drop**; shutting the door is an **RST**.
+It is the difference between knocking and getting no answer at all, and someone opening the door to say "wrong place" and shutting it. No answer is a **[drop](glossary:packet-drop)**; shutting the door is an **[RST](glossary:tcp-rst)**.
 
-- If a packet arrives and no program is listening on that port, the OS TCP stack sends back an **RST**. The client gets `Connection refused` immediately.
-- If something on the way **silently discards (drops)** the packet, the client resends the SYN a few times and then gives up. That is `Operation timed out`.
+- If a packet arrives and no program is listening on that port, the OS TCP stack sends back an **[RST](glossary:tcp-rst)**. The client gets `Connection refused` immediately.
+- If something on the way **silently discards ([drops](glossary:packet-drop))** the packet, the client resends the SYN a few times and then gives up. That is `Operation timed out`.
 
-So timed out is closer to "**something is throwing it away**" than "the port is closed". The thing throwing it away is usually a firewall. From here I narrowed down where, one layer at a time.
+So [timed out](glossary:connection-timeout) is closer to "**something is throwing it away**" than "the port is closed". The thing throwing it away is usually a [firewall](glossary:firewall). From here I narrowed down where, one layer at a time.
 
 # 2. Narrowing down the cause
 
-In building terms there are three things to check. Is there a road to the building, am I on the front desk's guest list, and is the office door unlocked with someone inside. The road is the overlay's L3 route, the guest list is the Tailscale ACL, the office door is the OS firewall, and the person inside is sshd.
+In building terms there are three things to check. Is there a road to the building, am I on the front desk's guest list, and is the office door unlocked with someone inside. The road is the overlay's [L3](glossary:osi-model) route, the guest list is the [Tailscale](glossary:tailscale) [ACL](glossary:acl), the office door is the OS [firewall](glossary:firewall), and the person inside is [sshd](glossary:sshd).
 
 ![The four places I checked: overlay route and ACL passed, blocked at the OS firewall and sshd](/static/images/network-ssh-overlay/layer-checkpoints.svg)
 
@@ -71,13 +71,13 @@ _The four checkpoints a packet from the Mac to the desktop's port 22 goes throug
 
 ## Check 1: the overlay route — passed
 
-`tailscale ping` 24 ms, direct. The WireGuard tunnel between the two devices is up.
+`tailscale ping` 24 ms, direct. The [WireGuard](glossary:wireguard) tunnel between the two devices is up.
 
-But `tailscale ping` is a ping between the tailscaled daemons, so it never reaches the OS firewall or sshd. All it tells you is "there is an L3 route". It cannot tell you whether port 22 is open.
+But `tailscale ping` is a [ping](glossary:ping) between the tailscaled daemons, so it never reaches the OS [firewall](glossary:firewall) or [sshd](glossary:sshd). All it tells you is "there is an [L3](glossary:osi-model) route". It cannot tell you whether port 22 is open.
 
 ## Check 2: Tailscale ACL — passed
 
-At first I suspected the ACL. Tailscale pushes the ACL (policy file) from the admin console to each device as a **packet filter**, and the device's tailscaled drops packets that don't match the rules. That is also a drop, so it also gives timed out.
+At first I suspected the [ACL](glossary:acl). [Tailscale](glossary:tailscale) pushes the [ACL](glossary:acl) (policy file) from the admin console to each device as a **[packet filter](glossary:packet-filter)**, and the device's tailscaled [drops](glossary:packet-drop) packets that don't match the rules. That is also a [drop](glossary:packet-drop), so it also gives [timed out](glossary:connection-timeout).
 
 So I looked at the rules the Mac actually received.
 
@@ -85,129 +85,129 @@ So I looked at the rules the Mac actually received.
 tailscale debug netmap
 ```
 
-The packet filter part of the output had a rule **allowing ports 0-65535** between the desktop and the Mac. The ACL was not blocking port 22. But the policy at the time had no rule allowing phone → Mac, so packets from the phone to the Mac were blocked by this packet filter. Section 7 fixes that by replacing the ACL.
+The [packet filter](glossary:packet-filter) part of the output had a rule **allowing ports 0-65535** between the desktop and the Mac. The [ACL](glossary:acl) was not blocking port 22. But the policy at the time had no rule allowing phone → Mac, so packets from the phone to the Mac were blocked by this [packet filter](glossary:packet-filter). Section 7 fixes that by replacing the [ACL](glossary:acl).
 
 ## Check 3: the OS — blocked here
 
 What was left was the desktop's OS.
 
-- **There was no sshd.** Windows ships only the OpenSSH **Client** by default; the **Server** has to be installed separately. Nothing was listening on 22.
-- **Windows Defender Firewall dropped it.** With nothing listening there should have been an RST, but it timed out instead, because the firewall discarded the incoming packets first. 3389 timed out for the same reason.
+- **There was no [sshd](glossary:sshd).** Windows ships only the [OpenSSH](glossary:openssh) **Client** by default; the **Server** has to be installed separately. Nothing was listening on 22.
+- **[Windows Defender Firewall](glossary:windows-defender-firewall) [dropped](glossary:packet-drop) it.** With nothing listening there should have been an [RST](glossary:tcp-rst), but it [timed out](glossary:connection-timeout) instead, because the [firewall](glossary:firewall) discarded the incoming packets first. 3389 [timed out](glossary:connection-timeout) for the same reason.
 
-When I checked the Mac, **Remote Login** in System Settings was off. macOS only starts sshd when Remote Login is on. So the other direction (desktop → Mac) would not have worked from the start either.
+When I checked the Mac, **Remote Login** in System Settings was off. macOS only starts [sshd](glossary:sshd) when Remote Login is on. So the other direction (desktop → Mac) would not have worked from the start either.
 
 ## Conclusion
 
-The network was there from the start. What was missing were the two pieces on top of it: **a firewall rule allowing the incoming port** and **an SSH server to accept the connection**.
+The network was there from the start. What was missing were the two pieces on top of it: **a [firewall](glossary:firewall) rule allowing the incoming port** and **an [SSH](glossary:ssh) server to accept the connection**.
 
 # 3. What each layer needs
 
-For a parcel to end up in someone's hands you need all three: you must be able to find the address (a road), be let into the building (entry), and the recipient must confirm who they are (identity). The road is L3 reachability, entry is L4 ports, firewalls and ACLs, and identity is L7 SSH authentication.
+For a parcel to end up in someone's hands you need all three: you must be able to find the address (a road), be let into the building (entry), and the recipient must confirm who they are (identity). The road is [L3](glossary:osi-model) [reachability](glossary:reachability), entry is [L4](glossary:osi-model) ports, [firewalls](glossary:firewall) and [ACLs](glossary:acl), and identity is [L7](glossary:osi-model) [SSH](glossary:ssh) authentication.
 
-| Layer | What it needs                       | With plain SSH                                 | With SSH over Tailscale                                |
-| ----- | ----------------------------------- | ---------------------------------------------- | ------------------------------------------------------ |
-| L3    | A route that reaches the other side | Public IP, router port forwarding, DDNS        | Tailscale handles it with NAT traversal and DERP relay |
-| L4    | Rules that let the port through     | Router forwarding rule + OS firewall           | Tailscale ACL + OS firewall                            |
-| L7    | Who you are, and encryption         | SSH authentication (public key) and encryption | The same SSH authentication and encryption             |
+| Layer                    | What it needs                       | With plain [SSH](glossary:ssh)                                                                                     | With [SSH](glossary:ssh) over [Tailscale](glossary:tailscale)                                                           |
+| ------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| [L3](glossary:osi-model) | A route that reaches the other side | [Public IP](glossary:public-ip-address), router [port forwarding](glossary:port-forwarding), [DDNS](glossary:ddns) | [Tailscale](glossary:tailscale) handles it with [NAT traversal](glossary:nat-traversal) and [DERP relay](glossary:derp) |
+| [L4](glossary:osi-model) | Rules that let the port through     | Router forwarding rule + OS [firewall](glossary:firewall)                                                          | [Tailscale](glossary:tailscale) [ACL](glossary:acl) + OS [firewall](glossary:firewall)                                  |
+| [L7](glossary:osi-model) | Who you are, and encryption         | [SSH](glossary:ssh) authentication ([public key](glossary:public-key-authentication)) and encryption               | The same [SSH](glossary:ssh) authentication and encryption                                                              |
 
-SSH solves **only L7**. SSH handles authentication and encryption after the connection is made; it does not build the road to the other device.
+[SSH](glossary:ssh) solves **only [L7](glossary:osi-model)**. [SSH](glossary:ssh) handles authentication and encryption after the connection is made; it does not build the road to the other device.
 
 ## L3: can it be reached
 
-- The home desktop uses a [private IP](/en/blog/cs-fundamentals/network/network-tcp-ip-layers/#private-ip-public-ip-nat) behind the router. A packet that arrives first from outside has no entry in the NAT translation table and is dropped. To let it in you need **port forwarding** on the router, plus **DDNS** to follow the home public IP when it changes ([Reaching a PC behind NAT](/en/blog/cs-fundamentals/network/network-web-request-journey/#reaching-a-pc-behind-nat)).
-- The Mac on campus Wi-Fi sits behind the **campus NAT**. The campus router is not mine, so I can't set up port forwarding. The phone behind the carrier's [CGNAT](/en/blog/cs-fundamentals/network/network-tcp-ip-layers/#private-ip-public-ip-nat) is the same. Getting into these devices directly from outside is impossible by design.
+- The home desktop uses a [private IP](/en/blog/cs-fundamentals/network/network-tcp-ip-layers/#private-ip-public-ip-nat) behind the router. A packet that arrives first from outside has no entry in the [NAT](glossary:nat) translation table and is [dropped](glossary:packet-drop). To let it in you need **[port forwarding](glossary:port-forwarding)** on the router, plus **[DDNS](glossary:ddns)** to follow the home [public IP](glossary:public-ip-address) when it changes ([Reaching a PC behind NAT](/en/blog/cs-fundamentals/network/network-web-request-journey/#reaching-a-pc-behind-nat)).
+- The Mac on campus Wi-Fi sits behind the **campus [NAT](glossary:nat)**. The campus router is not mine, so I can't set up [port forwarding](glossary:port-forwarding). The phone behind the carrier's [CGNAT](/en/blog/cs-fundamentals/network/network-tcp-ip-layers/#private-ip-public-ip-nat) is the same. Getting into these devices directly from outside is impossible by design.
 
 ## L4: can it get in
 
-Even with an L3 route, there has to be a rule that lets [port](/en/blog/cs-fundamentals/network/network-tcp-ip-layers/#port-numbers-and-multiplexing) 22 through at every place on the path. With plain SSH that is the router's forwarding rule and the OS firewall; with Tailscale it is the Tailscale ACL and the OS firewall. This time the OS firewall blocked it.
+Even with an [L3](glossary:osi-model) route, there has to be a rule that lets [port](/en/blog/cs-fundamentals/network/network-tcp-ip-layers/#port-numbers-and-multiplexing) 22 through at every place on the path. With plain [SSH](glossary:ssh) that is the router's forwarding rule and the OS [firewall](glossary:firewall); with [Tailscale](glossary:tailscale) it is the [Tailscale](glossary:tailscale) [ACL](glossary:acl) and the OS [firewall](glossary:firewall). This time the OS [firewall](glossary:firewall) blocked it.
 
 ## L7: who are you
 
-Once the connection reaches port 22, SSH takes over. It checks the server with the host key, checks the user with a private-key signature, and encrypts with a session key.
+Once the connection reaches port 22, [SSH](glossary:ssh) takes over. It checks the server with the [host key](glossary:host-key), checks the user with a private-key signature, and encrypts with a session key.
 
 ## What Tailscale does at L3
 
 ![Direct exposure opens a router port to the whole internet; with an overlay every device only opens connections outward](/static/images/network-ssh-overlay/direct-vs-overlay.svg)
 
-_Top: port 22 opened with router port forwarding. Bottom: Tailscale. Red lines are connections from outside, green lines are connections opened from inside to outside._
+_Top: port 22 opened with router [port forwarding](glossary:port-forwarding). Bottom: [Tailscale](glossary:tailscale). Red lines are connections from outside, green lines are connections opened from inside to outside._
 
-- **Overlay network**: a virtual network laid on top of the existing internet. Each device gets one `100.x.y.z` address. These addresses come from 100.64.0.0/10, the same range as [CGNAT](/en/blog/cs-fundamentals/network/network-tcp-ip-layers/#private-ip-public-ip-nat).
-- **WireGuard**: traffic between devices is encrypted and carried in a WireGuard tunnel (UDP). It is the same kind of encapsulation as a [VPN](/en/blog/cs-fundamentals/network/network-web-request-journey/#14-when-using-a-vpn), but devices connect to each other directly (mesh) instead of through a central VPN server.
-- **Coordination server**: collects each device's WireGuard public key and current outside address (endpoint) and hands them to the other devices. No data passes through it.
-- **NAT traversal**: both sides send UDP to each other's outside address at the same time. Each packet goes "from inside to outside", so both NAT tables get an entry, and the other side's packet comes in through that entry (UDP hole punching). The `via 203.0.113.x:41641` in the `tailscale ping` output is a direct path opened this way.
-- **DERP relay**: behind NATs where hole punching fails (symmetric NAT, blocked UDP), traffic goes through Tailscale's relay servers. It rides on HTTPS (TCP 443) so it gets through most firewalls, but the detour adds latency. The content stays encrypted by WireGuard, so the relay can't read it either.
+- **[Overlay network](glossary:overlay-network)**: a virtual network laid on top of the existing internet. Each device gets one `100.x.y.z` address. These addresses come from 100.64.0.0/10, the same range as [CGNAT](/en/blog/cs-fundamentals/network/network-tcp-ip-layers/#private-ip-public-ip-nat).
+- **[WireGuard](glossary:wireguard)**: traffic between devices is encrypted and carried in a [WireGuard](glossary:wireguard) tunnel (UDP). It is the same kind of encapsulation as a [VPN](/en/blog/cs-fundamentals/network/network-web-request-journey/#14-when-using-a-vpn), but devices connect to each other directly (mesh) instead of through a central [VPN](glossary:vpn) server.
+- **[Coordination server](glossary:coordination-server)**: collects each device's [WireGuard](glossary:wireguard) [public key](glossary:public-key-authentication) and current outside address (endpoint) and hands them to the other devices. No data passes through it.
+- **[NAT traversal](glossary:nat-traversal)**: both sides send UDP to each other's outside address at the same time. Each packet goes "from inside to outside", so both [NAT](glossary:nat) tables get an entry, and the other side's packet comes in through that entry ([UDP hole punching](glossary:udp-hole-punching)). The `via 203.0.113.x:41641` in the `tailscale ping` output is a direct path opened this way.
+- **[DERP relay](glossary:derp)**: behind [NATs](glossary:nat) where [hole punching](glossary:udp-hole-punching) fails (symmetric [NAT](glossary:nat), blocked UDP), traffic goes through [Tailscale](glossary:tailscale)'s [relay](glossary:relay-server) servers. It rides on HTTPS (TCP 443) so it gets through most [firewalls](glossary:firewall), but the detour adds latency. The content stays encrypted by [WireGuard](glossary:wireguard), so the [relay](glossary:relay-server) can't read it either.
 - Every connection is opened **outward** by the device. So the number of **inbound ports opened on the router is 0**.
 
 # 4. Why handing it off is simpler: what each layer leaves to you
 
-If all you know is "SSH sits on top of a private network (overlay)", Tailscale looks like just one network laid under SSH. But if I run that network myself, each layer brings its own work.
+If all you know is "[SSH](glossary:ssh) sits on top of a private network (overlay)", [Tailscale](glossary:tailscale) looks like just one network laid under [SSH](glossary:ssh). But if I run that network myself, each layer brings its own work.
 
-In apartment terms, it is the difference between managing the building yourself and handing it to a management office. Do it yourself and the road in front, the guard at the front gate, and issuing and revoking access cards are all yours. Hand it off and the office does that; you only keep track of your own room key. The road is L3 reachability, the gate is L4 ports and firewalls, the access cards are the **control plane** that hands out device keys, and the room key is L7 SSH.
+In apartment terms, it is the difference between managing the building yourself and handing it to a management office. Do it yourself and the road in front, the guard at the front gate, and issuing and revoking access cards are all yours. Hand it off and the office does that; you only keep track of your own room key. The road is [L3](glossary:osi-model) [reachability](glossary:reachability), the gate is [L4](glossary:osi-model) ports and [firewalls](glossary:firewall), the access cards are the **[control plane](glossary:control-plane)** that hands out device keys, and the room key is [L7](glossary:osi-model) [SSH](glossary:ssh).
 
 ![For each layer, what I do when self-hosted and what goes away when managed. L7 SSH is mine either way](/static/images/network-ssh-overlay/self-hosted-vs-managed.svg)
 
-_Left: the work I take on with self-hosted WireGuard. Right: what is left when a managed service like Tailscale takes it. The top L7 row is the same on both sides._
+_Left: the work I take on with [self-hosted](glossary:self-hosting) [WireGuard](glossary:wireguard). Right: what is left when a [managed](glossary:managed-service) service like [Tailscale](glossary:tailscale) takes it. The top [L7](glossary:osi-model) row is the same on both sides._
 
-| Slot                        | What I take on when self-hosted                                                                                                                                                                    | Handed to managed (Tailscale)                                                                                              |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| L3 reachability             | Getting a public IP (a VPS if home has none), DDNS when the IP changes, setting up NAT traversal myself, running relay servers for paths that fail, assigning and recording a tunnel IP per device | A fixed 100.x IP assigned to each device automatically, automatic NAT traversal, DERP relay when a direct connection fails |
-| L4 ports and firewall       | Router port forwarding (UDP 51820), router and OS firewall rules, keeping track of open ports                                                                                                      | 0 ports opened on the router; what each device may reach is one ACL policy file                                            |
-| Control plane (device keys) | Generating a key pair per device, writing each peer's public key and endpoint into config files and distributing them, revoking a lost device's key by deleting it from every peer's config        | Add a device with one login; delete it in the admin console and it drops off every device                                  |
-| L7 SSH                      | Installing sshd, registering public keys, turning off password login                                                                                                                               | **Still mine, exactly the same**                                                                                           |
+| Slot                                                             | What I take on when [self-hosted](glossary:self-hosting)                                                                                                                                                                                                                                             | Handed to [managed](glossary:managed-service) ([Tailscale](glossary:tailscale))                                                                                       |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [L3](glossary:osi-model) [reachability](glossary:reachability)   | Getting a [public IP](glossary:public-ip-address) (a VPS if home has none), [DDNS](glossary:ddns) when the IP changes, setting up [NAT traversal](glossary:nat-traversal) myself, running [relay](glossary:relay-server) servers for paths that fail, assigning and recording a tunnel IP per device | A fixed 100.x IP assigned to each device automatically, automatic [NAT traversal](glossary:nat-traversal), [DERP relay](glossary:derp) when a direct connection fails |
+| [L4](glossary:osi-model) ports and [firewall](glossary:firewall) | Router [port forwarding](glossary:port-forwarding) (UDP 51820), router and OS [firewall](glossary:firewall) rules, keeping track of open ports                                                                                                                                                       | 0 ports opened on the router; what each device may reach is one [ACL](glossary:acl) policy file                                                                       |
+| [Control plane](glossary:control-plane) (device keys)            | Generating a key pair per device, writing each peer's [public key](glossary:public-key-authentication) and endpoint into config files and distributing them, revoking a lost device's key by deleting it from every peer's config                                                                    | Add a device with one login; delete it in the admin console and it drops off every device                                                                             |
+| [L7](glossary:osi-model) [SSH](glossary:ssh)                     | Installing [sshd](glossary:sshd), registering [public keys](glossary:public-key-authentication), turning off password login                                                                                                                                                                          | **Still mine, exactly the same**                                                                                                                                      |
 
-- **L3**: self-hosted ultimately needs one "point reachable from outside". Whether it is the home router's public IP or a VPS, securing that point and following it when the address changes is my job. Devices that can't be such a point, like the Mac behind the campus NAT, only join through the server. With managed, the company runs that point (coordination server, DERP).
-- **L4**: self-hosted WireGuard needs one UDP port open on the device acting as the server. With managed, every device only opens connections outward, so nothing is open, and who can reach what is set in one ACL file. Each device's OS firewall is still mine to set up either way (the Windows rules in section 7).
-- **Control plane**: WireGuard peers have to know each other's public keys. Connecting three devices to each other (full mesh) gives 3×2÷2 = 3 peer pairs, and each config lists the other two, so 6 entries (calculated). With n devices it grows to n(n−1). Every time a device is added or lost, all the other configs change. Putting one server in the middle (hub-and-spoke) cuts the entries, but then all traffic goes through that server. With managed, the coordination server does this key exchange, distribution and revocation.
-- **L7**: SSH is the same whatever the overlay is. Even when handing off, sshd, keys and turning off passwords are mine (Tailscale SSH can take this too, but it does not support Windows as a server).
+- **[L3](glossary:osi-model)**: [self-hosted](glossary:self-hosting) ultimately needs one "point reachable from outside". Whether it is the home router's [public IP](glossary:public-ip-address) or a VPS, securing that point and following it when the address changes is my job. Devices that can't be such a point, like the Mac behind the campus [NAT](glossary:nat), only join through the server. With [managed](glossary:managed-service), the company runs that point ([coordination server](glossary:coordination-server), [DERP](glossary:derp)).
+- **[L4](glossary:osi-model)**: [self-hosted](glossary:self-hosting) [WireGuard](glossary:wireguard) needs one UDP port open on the device acting as the server. With [managed](glossary:managed-service), every device only opens connections outward, so nothing is open, and who can reach what is set in one [ACL](glossary:acl) file. Each device's OS [firewall](glossary:firewall) is still mine to set up either way (the Windows rules in section 7).
+- **[Control plane](glossary:control-plane)**: [WireGuard](glossary:wireguard) peers have to know each other's [public keys](glossary:public-key-authentication). Connecting three devices to each other ([full mesh](glossary:full-mesh)) gives 3×2÷2 = 3 peer pairs, and each config lists the other two, so 6 entries (calculated). With n devices it grows to n(n−1). Every time a device is added or lost, all the other configs change. Putting one server in the middle ([hub-and-spoke](glossary:hub-and-spoke)) cuts the entries, but then all traffic goes through that server. With [managed](glossary:managed-service), the [coordination server](glossary:coordination-server) does this key exchange, distribution and revocation.
+- **[L7](glossary:osi-model)**: [SSH](glossary:ssh) is the same whatever the overlay is. Even when handing off, [sshd](glossary:sshd), keys and turning off passwords are mine ([Tailscale SSH](glossary:tailscale) can take this too, but it does not support Windows as a server).
 
 ## The cost of dependency, and the exit
 
 What you hand off becomes something you depend on.
 
-- **An outside company**: the company runs the coordination server and DERP. If its policy or free-plan terms change, I have to follow, and during an outage on its side, registering new devices or renewing keys can stop. The company also sees the device list and connection metadata (not traffic content, which is encrypted by WireGuard).
-- **One account**: the whole tailnet is tied to one login account (identity provider). If that account is locked, I can't add new devices.
+- **An outside company**: the company runs the [coordination server](glossary:coordination-server) and [DERP](glossary:derp). If its policy or free-plan terms change, I have to follow, and during an outage on its side, registering new devices or renewing keys can stop. The company also sees the device list and connection metadata (not traffic content, which is encrypted by [WireGuard](glossary:wireguard)).
+- **One account**: the whole [tailnet](glossary:tailscale) is tied to one login account ([identity provider](glossary:identity-provider)). If that account is locked, I can't add new devices.
 
-But there is an exit. What I handed to the company is only **L3 and the control plane**; the data plane that actually carries packets is standard WireGuard. So leaving means swapping just those two slots.
+But there is an exit. What I handed to the company is only **[L3](glossary:osi-model) and the [control plane](glossary:control-plane)**; the [data plane](glossary:data-plane) that actually carries packets is standard [WireGuard](glossary:wireguard). So leaving means swapping just those two slots.
 
-- **Headscale**: keep the Tailscale clients and move only the control plane to my own server.
-- **Self-hosted WireGuard**: take on L3 and the control plane entirely (the left column of the table above).
-- Either way, the L7 SSH setup (sshd_config, `authorized_keys`, SSH keys) stays as it is. The L4 OS firewall rules stay too; if the new tunnel range isn't 100.64.0.0/10, only the `-RemoteAddress` value changes.
+- **[Headscale](glossary:headscale)**: keep the [Tailscale](glossary:tailscale) clients and move only the [control plane](glossary:control-plane) to my own server.
+- **[Self-hosted](glossary:self-hosting) [WireGuard](glossary:wireguard)**: take on [L3](glossary:osi-model) and the [control plane](glossary:control-plane) entirely (the left column of the table above).
+- Either way, the [L7](glossary:osi-model) [SSH](glossary:ssh) setup ([sshd_config](glossary:sshd), `authorized_keys`, [SSH keys](glossary:ssh-key)) stays as it is. The [L4](glossary:osi-model) OS [firewall](glossary:firewall) rules stay too; if the new tunnel range isn't 100.64.0.0/10, only the `-RemoteAddress` value changes.
 
 # 5. Comparing the alternatives
 
 There were four options. Every drawback is listed.
 
-| Option                                            | Drawbacks                                                                                                                                                                                                                                                                                                                                                       |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ① Expose SSH directly with router port forwarding | Port 22 is open to the whole internet, and brute-force bots keep knocking. Largest attack surface. Any sshd vulnerability is exposed directly. DDNS is needed when the home public IP changes. The Mac behind the campus NAT and the phone behind CGNAT can't accept connections this way at all                                                                |
-| ② Self-hosted WireGuard                           | Needs UDP 51820 forwarding on the router (one port stays open). I distribute keys every time a device is added or replaced. DDNS when the public IP changes, and router setup and upkeep are all mine. If the device acting as the server goes down, everything is cut off. Devices behind the campus NAT, with no server, can't connect to each other directly |
-| ③ Headscale (open-source coordination server)     | Needs a VPS with a public IP (cost, OS updates, backups). If the server dies, registering new devices and renewing keys stop. The relay (DERP) has to be self-hosted too, or you lean on public relays. Clients are the regular Tailscale apps, but some official features arrive late                                                                          |
-| ④ Tailscale                                       | Depends on an outside company's coordination server. If the company's policy or free-plan terms change, I have to follow. If the account (identity provider) is locked, I can't add new devices. The company sees the device list and connection metadata                                                                                                       |
+| Option                                                                                              | Drawbacks                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ① Expose [SSH](glossary:ssh) directly with router [port forwarding](glossary:port-forwarding)       | Port 22 is open to the whole internet, and [brute-force](glossary:brute-force-attack) bots keep knocking. Largest [attack surface](glossary:attack-surface). Any [sshd](glossary:sshd) vulnerability is exposed directly. [DDNS](glossary:ddns) is needed when the home [public IP](glossary:public-ip-address) changes. The Mac behind the campus [NAT](glossary:nat) and the phone behind [CGNAT](glossary:cgnat) can't accept connections this way at all |
+| ② [Self-hosted](glossary:self-hosting) [WireGuard](glossary:wireguard)                              | Needs UDP 51820 forwarding on the router (one port stays open). I distribute keys every time a device is added or replaced. [DDNS](glossary:ddns) when the [public IP](glossary:public-ip-address) changes, and router setup and upkeep are all mine. If the device acting as the server goes down, everything is cut off. Devices behind the campus [NAT](glossary:nat), with no server, can't connect to each other directly                               |
+| ③ [Headscale](glossary:headscale) (open-source [coordination server](glossary:coordination-server)) | Needs a VPS with a [public IP](glossary:public-ip-address) (cost, OS updates, backups). If the server dies, registering new devices and renewing keys stop. The [relay](glossary:relay-server) ([DERP](glossary:derp)) has to be [self-hosted](glossary:self-hosting) too, or you lean on public [relays](glossary:relay-server). Clients are the regular [Tailscale](glossary:tailscale) apps, but some official features arrive late                       |
+| ④ [Tailscale](glossary:tailscale)                                                                   | Depends on an outside company's [coordination server](glossary:coordination-server). If the company's policy or free-plan terms change, I have to follow. If the account ([identity provider](glossary:identity-provider)) is locked, I can't add new devices. The company sees the device list and connection metadata                                                                                                                                      |
 
 I picked ④.
 
-- **Scalability**: adding a device is one login to join the tailnet. No router rules or key distribution to touch. It joins regardless of the NAT type (campus, CGNAT).
-- **Maintainability**: with 0 ports open on the router, the attack surface to guard shrinks to the SSH server itself. I don't handle public IP changes, DDNS or server patching.
-- **Dependency**: relying on an outside company is a drawback, but the layer underneath is standard WireGuard, so [only L3 needs swapping](#the-cost-of-dependency-and-the-exit). Moving to Headscale or self-hosted WireGuard keeps the L4 firewall rules and L7 SSH setup (keys, sshd_config) as they are.
-- **Testability**: `tailscale ping` (L3), `tailscale debug netmap` (ACL) and `ssh -v` (L7) let me check one layer at a time. That is the order in which I found this cause.
+- **Scalability**: adding a device is one login to join the [tailnet](glossary:tailscale). No router rules or key distribution to touch. It joins regardless of the [NAT](glossary:nat) type (campus, [CGNAT](glossary:cgnat)).
+- **Maintainability**: with 0 ports open on the router, the [attack surface](glossary:attack-surface) to guard shrinks to the [SSH](glossary:ssh) server itself. I don't handle [public IP](glossary:public-ip-address) changes, [DDNS](glossary:ddns) or server patching.
+- **Dependency**: relying on an outside company is a drawback, but the layer underneath is standard [WireGuard](glossary:wireguard), so [only L3 needs swapping](#the-cost-of-dependency-and-the-exit). Moving to [Headscale](glossary:headscale) or [self-hosted](glossary:self-hosting) [WireGuard](glossary:wireguard) keeps the [L4](glossary:osi-model) [firewall](glossary:firewall) rules and [L7](glossary:osi-model) [SSH](glossary:ssh) setup (keys, [sshd_config](glossary:sshd)) as they are.
+- **Testability**: `tailscale ping` ([L3](glossary:osi-model)), `tailscale debug netmap` ([ACL](glossary:acl)) and `ssh -v` ([L7](glossary:osi-model)) let me check one layer at a time. That is the order in which I found this cause.
 
 # 6. Two checkpoints: defense in depth
 
-It is like checking a building pass (the building) and a room key (the room) separately. Lose the pass and the room still won't open; lose the key and you still can't get into the building. The pass is the **WireGuard key**, and the room key is the **SSH key**.
+It is like checking a building pass (the building) and a room key (the room) separately. Lose the pass and the room still won't open; lose the key and you still can't get into the building. The pass is the **[WireGuard](glossary:wireguard) key**, and the room key is the **[SSH key](glossary:ssh-key)**.
 
-| Checkpoint | What it checks                                                   | Where the key lives                                                 |
-| ---------- | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
-| WireGuard  | Did this packet come from a **device** registered on the tailnet | A key tailscaled created on each device                             |
-| SSH        | Is this the right **user**                                       | The user's private key in `~/.ssh/`, the server's `authorized_keys` |
+| Checkpoint                      | What it checks                                                                         | Where the key lives                                                                                       |
+| ------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| [WireGuard](glossary:wireguard) | Did this packet come from a **device** registered on the [tailnet](glossary:tailscale) | A key tailscaled created on each device                                                                   |
+| [SSH](glossary:ssh)             | Is this the right **user**                                                             | The user's [private key](glossary:public-key-authentication) in `~/.ssh/`, the server's `authorized_keys` |
 
-The two checkpoints are independent. If one tailnet device is compromised but my SSH private key isn't on it, it can't log in to my other devices; if my SSH private key leaks, it still can't reach port 22 from outside the tailnet. Layering independent defenses like this is called **defense in depth**. That's why, even inside Tailscale, I turn off SSH password login and use public keys only. SSH keys are per device too, so if one device is compromised I only delete that device's key (section 7).
+The two checkpoints are independent. If one [tailnet](glossary:tailscale) device is compromised but my [SSH](glossary:ssh) [private key](glossary:public-key-authentication) isn't on it, it can't log in to my other devices; if my [SSH](glossary:ssh) [private key](glossary:public-key-authentication) leaks, it still can't reach port 22 from outside the [tailnet](glossary:tailscale). Layering independent defenses like this is called **[defense in depth](glossary:defense-in-depth)**. That's why, even inside [Tailscale](glossary:tailscale), I turn off [SSH](glossary:ssh) password login and use [public keys](glossary:public-key-authentication) only. [SSH keys](glossary:ssh-key) are per device too, so if one device is compromised I only delete that device's key (section 7).
 
 # 7. The actual setup
 
 ## Mac: Remote Login + public keys only
 
-1. System Settings → General → Sharing → turn on **Remote Login**. This starts sshd.
-2. Put the public keys of the devices that will connect into `~/.ssh/authorized_keys` on the Mac.
+1. System Settings → General → Sharing → turn on **Remote Login**. This starts [sshd](glossary:sshd).
+2. Put the [public keys](glossary:public-key-authentication) of the devices that will connect into `~/.ssh/authorized_keys` on the Mac.
 3. **First confirm key login works from a new terminal.** If you turn off passwords first and the key doesn't work, you're locked out. Keep the existing session open while you check.
 4. Create a file in `/etc/ssh/sshd_config.d/` to turn off password authentication.
 
@@ -216,13 +216,13 @@ PasswordAuthentication no
 KbdInteractiveAuthentication no
 ```
 
-- sshd on macOS goes through PAM (`UsePAM yes`). If you turn off only `PasswordAuthentication`, PAM asks for the password again through keyboard-interactive. So turn off **both**.
-- The top of `sshd_config` is `Include /etc/ssh/sshd_config.d/*`, and sshd uses the **first value it reads** for each option. Putting the file in this folder instead of editing the main file keeps the setting even if a macOS update overwrites the main file.
+- [sshd](glossary:sshd) on macOS goes through [PAM](glossary:pam) (`UsePAM yes`). If you turn off only `PasswordAuthentication`, [PAM](glossary:pam) asks for the password again through [keyboard-interactive](glossary:keyboard-interactive-authentication). So turn off **both**.
+- The top of `sshd_config` is `Include /etc/ssh/sshd_config.d/*`, and [sshd](glossary:sshd) uses the **first value it reads** for each option. Putting the file in this folder instead of editing the main file keeps the setting even if a macOS update overwrites the main file.
 - Check the values in effect with `sudo sshd -T | grep -i authentication`.
 
 ## Windows desktop: OpenSSH Server + tailnet only + public keys only
 
-Done on 2026-11-27. The desktop runs Windows 11, and the installed sshd is OpenSSH for Windows 9.5. Everything ran in an administrator PowerShell.
+Done on 2026-11-27. The desktop runs Windows 11, and the installed [sshd](glossary:sshd) is [OpenSSH](glossary:openssh) for Windows 9.5. Everything ran in an administrator [PowerShell](glossary:powershell).
 
 ```powershell
 # Install OpenSSH Server, start it, start it at boot
@@ -239,26 +239,26 @@ New-NetFirewallRule -Name OpenSSH-Server-Tailnet -DisplayName 'OpenSSH Server (t
 Disable-NetFirewallRule -Name OpenSSH-Server-In-TCP
 ```
 
-- Before the install the `OpenSSH.Server` capability was `NotPresent`; after it, `Installed`, with sshd `Running` and `Automatic`.
-- Installing OpenSSH Server also creates the default rule `OpenSSH-Server-In-TCP`, which allows port 22 from **every address**. If you leave it on and add the rule above, the narrowing means nothing: Windows Firewall lets a packet through if any one allow rule matches. So I turned it off and kept only the rule whose remote address is 100.64.0.0/10 (the CGNAT range Tailscale uses).
-- Carrier CGNAT uses the same range, so to narrow it further you can also limit it to the Tailscale interface (`-InterfaceAlias Tailscale`). I didn't do that this time.
+- Before the install the `OpenSSH.Server` capability was `NotPresent`; after it, `Installed`, with [sshd](glossary:sshd) `Running` and `Automatic`.
+- Installing [OpenSSH](glossary:openssh) Server also creates the default rule `OpenSSH-Server-In-TCP`, which allows port 22 from **every address**. If you leave it on and add the rule above, the narrowing means nothing: Windows Firewall lets a packet through if any one allow rule matches. So I turned it off and kept only the rule whose remote address is 100.64.0.0/10 (the [CGNAT](glossary:cgnat) range [Tailscale](glossary:tailscale) uses).
+- Carrier [CGNAT](glossary:cgnat) uses the same range, so to narrow it further you can also limit it to the [Tailscale](glossary:tailscale) interface (`-InterfaceAlias Tailscale`). I didn't do that this time.
 
 ### Trap: administrator accounts read a different file
 
-If the desktop account is in the **Administrators group**, sshd doesn't look at `~/.ssh/authorized_keys`. The default Windows `sshd_config` ends with this block:
+If the desktop account is in the **Administrators group**, [sshd](glossary:sshd) doesn't look at `~/.ssh/authorized_keys`. The default Windows `sshd_config` ends with this block:
 
 ```text:C:\ProgramData\ssh\sshd_config
 Match Group administrators
        AuthorizedKeysFile __PROGRAMDATA__/ssh/administrators_authorized_keys
 ```
 
-So the public keys go in `C:\ProgramData\ssh\administrators_authorized_keys`. sshd only reads that file if its ACL is SYSTEM and Administrators only. If inherited permissions remain, the key is ignored even when it matches.
+So the [public keys](glossary:public-key-authentication) go in `C:\ProgramData\ssh\administrators_authorized_keys`. [sshd](glossary:sshd) only reads that file if its [ACL](glossary:acl) is SYSTEM and Administrators only. If inherited permissions remain, the key is ignored even when it matches.
 
 ```powershell
 icacls.exe "C:\ProgramData\ssh\administrators_authorized_keys" /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"
 ```
 
-Logging in over SSH as an administrator opens a session with an **administrator token** and no UAC prompt (the Termius tab title gets an `Administrator:` prefix). One SSH key equals administrator rights, which makes turning off password login matter even more.
+Logging in over [SSH](glossary:ssh) as an administrator opens a session with an **administrator token** and no [UAC](glossary:uac) prompt (the [Termius](glossary:termius) tab title gets an `Administrator:` prefix). One [SSH key](glossary:ssh-key) equals administrator rights, which makes turning off password login matter even more.
 
 ### Turning off password authentication
 
@@ -269,24 +269,24 @@ PasswordAuthentication no
 KbdInteractiveAuthentication no
 ```
 
-- At the top for the same reason as on the Mac: sshd uses the first value it reads for an option, and inside a `Match` block lower in the file it would only apply to that condition.
+- At the top for the same reason as on the Mac: [sshd](glossary:sshd) uses the first value it reads for an option, and inside a `Match` block lower in the file it would only apply to that condition.
 - Check: a password login attempt from the Mac was refused with `Permission denied (publickey)` (1/1). The list of methods the server accepts now has only `publickey`.
-- **Tailscale SSH** (a feature where Tailscale also takes the SSH server role) does not support Windows as a server. So the desktop uses OpenSSH Server directly.
+- **[Tailscale SSH](glossary:tailscale)** (a feature where [Tailscale](glossary:tailscale) also takes the [SSH](glossary:ssh) server role) does not support Windows as a server. So the desktop uses [OpenSSH](glossary:openssh) Server directly.
 
 ## Phone: Termius + Biometric Key
 
-The phone's SSH client is **Termius**. For the key I used Termius's **Biometric Key**: an ECDSA P-256 key created inside the phone's Secure Enclave, so the private key can't be exported as a file, and using it goes through biometric authentication. I copied only the public key into the Mac's `authorized_keys` (2026-11-26) and the desktop's `administrators_authorized_keys` (2026-11-27).
+The phone's [SSH](glossary:ssh) client is **[Termius](glossary:termius)**. For the key I used [Termius](glossary:termius)'s **Biometric Key**: an [ECDSA](glossary:ecdsa) P-256 key created inside the phone's [Secure Enclave](glossary:secure-enclave), so the [private key](glossary:public-key-authentication) can't be exported as a file, and using it goes through biometric authentication. I copied only the [public key](glossary:public-key-authentication) into the Mac's `authorized_keys` (2026-11-26) and the desktop's `administrators_authorized_keys` (2026-11-27).
 
 ### Trap: Too many authentication failures
 
-Phone → desktop failed the first three times. With the desktop sshd log raised to `LogLevel DEBUG3`, Termius sent `userauth` requests with `method none` seven times and `publickey` zero times. sshd cut it off for going over the allowed count: `Too many authentication failures`.
+Phone → desktop failed the first three times. With the desktop [sshd](glossary:sshd) log raised to `LogLevel DEBUG3`, [Termius](glossary:termius) sent `userauth` requests with `method none` seven times and `publickey` zero times. [sshd](glossary:sshd) cut it off for going over the allowed count: `Too many authentication failures`.
 
-The cause was the Termius config. When I attached an **Identity** (an entry bundling a username and key) to the host, it was saved without the key. No key, so no signature to send. Setting the Username and Key directly on the host fixed it right away.
+The cause was the [Termius](glossary:termius) config. When I attached an **Identity** (an entry bundling a username and key) to the host, it was saved without the key. No key, so no signature to send. Setting the Username and Key directly on the host fixed it right away.
 
 ## Per-device keys and SSH config
 
-- Each device has its own key. The desktop holds two lines, the Mac key (ed25519) and the phone key (Biometric Key); the Mac holds the desktop key (with a passphrase) and the phone key. If I lose one device, I delete that one key line on the others.
-- The Mac and the desktop share the same dotfiles repo. It holds one SSH config fragment, and each device's `~/.ssh/config` pulls it in with `Include` on the first line.
+- Each device has its own key. The desktop holds two lines, the Mac key ([ed25519](glossary:ed25519)) and the phone key (Biometric Key); the Mac holds the desktop key (with a passphrase) and the phone key. If I lose one device, I delete that one key line on the others.
+- The Mac and the desktop share the same [dotfiles](glossary:dotfiles) repo. It holds one [SSH config](glossary:ssh-config) fragment, and each device's `~/.ssh/config` pulls it in with `Include` on the first line.
 
 ```text:~/.ssh/config
 Include dotfiles/tailnet.conf
@@ -306,14 +306,14 @@ Host laptop
   IdentitiesOnly yes
 ```
 
-- `HostName` is the Tailscale MagicDNS name. No IP (100.x) is written, so it keeps working if the address changes.
+- `HostName` is the [Tailscale](glossary:tailscale) [MagicDNS](glossary:magicdns) name. No IP (100.x) is written, so it keeps working if the address changes.
 - `IdentitiesOnly yes` offers only the named key. With several keys in the agent, the client tries them one by one and can get cut off with `Too many authentication failures`, like the trap above.
-- `~/.ssh/dotfiles` is a link to the repo folder: a symbolic link on the Mac, a **directory junction** on Windows. Creating a file symbolic link on Windows needs administrator rights (or Developer Mode); a directory junction doesn't.
+- `~/.ssh/dotfiles` is a link to the repo folder: a [symbolic link](glossary:symbolic-link) on the Mac, a **directory [junction](glossary:junction)** on Windows. Creating a file [symbolic link](glossary:symbolic-link) on Windows needs administrator rights (or Developer Mode); a directory [junction](glossary:junction) doesn't.
 - Now `ssh desktop` and `ssh laptop` connect with one word.
 
 ## Connection tests
 
-All connections used MagicDNS names.
+All connections used [MagicDNS](glossary:magicdns) names.
 
 | Direction       | Result                                         | Date       |
 | --------------- | ---------------------------------------------- | ---------- |
@@ -336,47 +336,47 @@ All connections used MagicDNS names.
 }
 ```
 
-- `autogroup:member`: users of the tailnet. `autogroup:self`: devices **owned by that same user**. My devices can reach each other on every port, and if I invite someone to the tailnet later, they can't reach my devices.
-- I replaced the policy with the rule above on 2026-11-26. The desktop ↔ Mac allow rule from section 2 came from the old policy, which had no phone → Mac rule, so those packets were blocked by the packet filter. After saving, I checked that the sources in the Mac's packet filter now include all three devices: phone, desktop and Mac.
-- The tailnet has one user right now (1 Owner, 0 pending invites).
-- I didn't narrow the ports to 22 because the L4 restriction is done in each device's OS firewall.
+- `autogroup:member`: users of the [tailnet](glossary:tailscale). `autogroup:self`: devices **owned by that same user**. My devices can reach each other on every port, and if I invite someone to the [tailnet](glossary:tailscale) later, they can't reach my devices.
+- I replaced the policy with the rule above on 2026-11-26. The desktop ↔ Mac allow rule from section 2 came from the old policy, which had no phone → Mac rule, so those packets were blocked by the [packet filter](glossary:packet-filter). After saving, I checked that the sources in the Mac's [packet filter](glossary:packet-filter) now include all three devices: phone, desktop and Mac.
+- The [tailnet](glossary:tailscale) has one user right now (1 Owner, 0 pending invites).
+- I didn't narrow the ports to 22 because the [L4](glossary:osi-model) restriction is done in each device's OS [firewall](glossary:firewall).
 
 # 8. When Remote Control is off: turning it back on over SSH
 
-This section is why the network exists. I use Claude Code running on the desktop from the Claude app while I'm away (Remote Control). But if the Remote Control process on the desktop stops, the phone has no way to start it again. Then I SSH in from the phone and start it.
+This section is why the network exists. I use [Claude Code](glossary:claude-code) running on the desktop from the Claude app while I'm away ([Remote Control](glossary:remote-control)). But if the [Remote Control](glossary:remote-control) process on the desktop stops, the phone has no way to start it again. Then I [SSH](glossary:ssh) in from the phone and start it.
 
-It's like turning something on at home over the phone. If you reach in yourself through the phone, your hand disappears the moment you hang up. So you just ask someone at home to turn it on, and hang up. The call is the **SSH session**, your own hand is **a child process of the SSH session**, and the person at home is **a scheduled task running in the logon session** (Task Scheduler).
+It's like turning something on at home over the phone. If you reach in yourself through the phone, your hand disappears the moment you hang up. So you just ask someone at home to turn it on, and hang up. The call is the **[SSH](glossary:ssh) session**, your own hand is **a [child process](glossary:child-process) of the [SSH](glossary:ssh) session**, and the person at home is **a [scheduled task](glossary:task-scheduler) running in the logon session** ([Task Scheduler](glossary:task-scheduler)).
 
 ![A process started straight from the SSH session dies with SSH; one started by a scheduled task stays in the logon session](/static/images/network-ssh-overlay/remote-control-recovery.svg)
 
-_Top: started directly inside the SSH session, it dies when SSH drops. Bottom: just run the scheduled task and leave, and it keeps running in the logon session._
+_Top: started directly inside the [SSH](glossary:ssh) session, it dies when [SSH](glossary:ssh) drops. Bottom: just run the [scheduled task](glossary:task-scheduler) and leave, and it keeps running in the logon session._
 
 ## It works inside the SSH session, but not for long
 
-- The `claude` CLI runs inside an SSH session. Even in a session logged in with a public key, `claude auth status` showed `loggedIn: true`, and `claude remote-control` got to `Connected`.
-- The problem is lifetime. A process started in an SSH session is that session's child, so **it dies when SSH drops**. iOS soon suspends Termius once it's in the background, and that drops SSH. To use Remote Control on the phone I have to switch to the Claude app, and if Termius gets suspended meanwhile, the Remote Control I just started dies with it.
-- A GUI app (the Claude desktop app) started over SSH lands in **session 0**. Session 0 is where services run and has no display, so it runs but nobody can see it.
+- The `claude` CLI runs inside an [SSH](glossary:ssh) session. Even in a session logged in with a [public key](glossary:public-key-authentication), `claude auth status` showed `loggedIn: true`, and `claude remote-control` got to `Connected`.
+- The problem is lifetime. A process started in an [SSH](glossary:ssh) session is that session's child, so **it dies when [SSH](glossary:ssh) drops**. iOS soon suspends [Termius](glossary:termius) once it's in the background, and that drops [SSH](glossary:ssh). To use [Remote Control](glossary:remote-control) on the phone I have to switch to the Claude app, and if [Termius](glossary:termius) gets suspended meanwhile, the [Remote Control](glossary:remote-control) I just started dies with it.
+- A GUI app (the Claude desktop app) started over [SSH](glossary:ssh) lands in **[session 0](glossary:session-0)**. Session 0 is where services run and has no display, so it runs but nobody can see it.
 
 ## Handing it to scheduled tasks
 
-So the actual launch is left to two **scheduled tasks** that run in the logged-in desktop session (the interactive session where the user is signed in).
+So the actual launch is left to two **[scheduled tasks](glossary:task-scheduler)** that run in the logged-in desktop session (the interactive session where the user is signed in).
 
-| Task                  | What it does                                                                 |
-| --------------------- | ---------------------------------------------------------------------------- |
-| `ClaudeRemoteControl` | Stops the old Remote Control process and starts a new one named `desktop-rc` |
-| `ClaudeAppStart`      | Starts the Claude desktop app                                                |
+| Task                  | What it does                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------- |
+| `ClaudeRemoteControl` | Stops the old [Remote Control](glossary:remote-control) process and starts a new one named `desktop-rc` |
+| `ClaudeAppStart`      | Starts the Claude desktop app                                                                           |
 
-From the phone I SSH in, type one line and leave.
+From the phone I [SSH](glossary:ssh) in, type one line and leave.
 
 ```powershell
 schtasks /Run /TN ClaudeRemoteControl
 ```
 
-The scheduled task runs in the logon session, not the SSH session, so it survives SSH dropping. After this one line, I confirmed `desktop-rc` showing up in the Code tab of the Claude app on the phone.
+The [scheduled task](glossary:task-scheduler) runs in the logon session, not the [SSH](glossary:ssh) session, so it survives [SSH](glossary:ssh) dropping. After this one line, I confirmed `desktop-rc` showing up in the Code tab of the Claude app on the phone.
 
 ## Trap: /End doesn't kill the grandchild
 
-At first I used `schtasks /End` to stop the task and run it again. But `/End` only ends the `cmd` the task started; the `claude` that `cmd` started stays behind without its parent (an **orphan process**). With the old Remote Control still alive, the newly started one exited right away.
+At first I used `schtasks /End` to stop the task and run it again. But `/End` only ends the `cmd` the task started; the `claude` that `cmd` started stays behind without its parent (an **[orphan process](glossary:orphan-process)**). With the old [Remote Control](glossary:remote-control) still alive, the newly started one exited right away.
 
 - The script first finds and stops the old `remote-control` process itself.
 - The task's `MultipleInstances` setting is `StopExisting`, so if it's already running, that instance is stopped and a new one starts.
@@ -384,83 +384,46 @@ At first I used `schtasks /End` to stop the task and run it again. But `/End` on
 
 ## Preparing for a reboot, and the cost
 
-After a reboot there is no logon session, so the scheduled tasks can't run either. So I made sign-in itself automatic.
+After a reboot there is no logon session, so the [scheduled tasks](glossary:task-scheduler) can't run either. So I made sign-in itself automatic.
 
-1. **Auto sign-in**: turned on with Sysinternals Autologon. The password goes into an LSA secret, not into the registry in plain text. Auto sign-in doesn't work while the Windows Hello–only sign-in option is on, so I turned that option off.
+1. **Auto sign-in**: turned on with Sysinternals [Autologon](glossary:autologon). The password goes into an [LSA secret](glossary:lsa-secret), not into the registry in plain text. Auto sign-in doesn't work while the Windows Hello–only sign-in option is on, so I turned that option off.
 2. After sign-in, the Claude app starts as a startup program, and `ClaudeRemoteControl` runs automatically one minute after logon.
 3. Sleep and hibernate on AC power were already set to "Never".
 
 **I did not run a reboot test.** Whether this chain actually carries through a reboot is not measured. If it doesn't, I'll fix it then.
 
-There is a cost. With auto sign-in and BitLocker off, **anyone who sits down at the desktop is signed in right away.** It's a device inside my home, so I accepted that. The way in from outside still goes through the two checkpoints, tailnet + public key (section 6).
+There is a cost. With auto sign-in and [BitLocker](glossary:bitlocker) off, **anyone who sits down at the desktop is signed in right away.** It's a device inside my home, so I accepted that. The way in from outside still goes through the two checkpoints, [tailnet](glossary:tailscale) + [public key](glossary:public-key-authentication) (section 6).
 
 # 9. Appendix: orphan nodes and `-1`
 
-While looking at the tailnet device list, I found the three k3s nodes I had added for a hackathon still there. The servers themselves are long gone, but their registrations are still alive on the tailnet: **orphan** nodes.
+While looking at the [tailnet](glossary:tailscale) device list, I found the three [k3s](glossary:k3s) nodes I had added for a hackathon still there. The servers themselves are long gone, but their registrations are still alive on the [tailnet](glossary:tailscale): **[orphan](glossary:orphan-node)** nodes.
 
-This can cause trouble. When device names collide, Tailscale adds `-1` to the name of the one that joined later. If you rejoin a device with the same hostname, the orphan keeps the original name and the new device gets something like `desktop-1`. ACLs or SSH settings that point to a device by name end up pointing at the powered-off orphan.
+This can cause trouble. When device names collide, [Tailscale](glossary:tailscale) adds `-1` to the name of the one that joined later. If you rejoin a device with the same hostname, the [orphan](glossary:orphan-node) keeps the original name and the new device gets something like `desktop-1`. [ACLs](glossary:acl) or [SSH](glossary:ssh) settings that point to a device by name end up pointing at the powered-off [orphan](glossary:orphan-node).
 
-- Remove orphans from the device list in the admin console. I removed the three k3s nodes on 2026-11-26, and the tailnet went from 6 devices to 3 (checked with `tailscale status` on the Mac).
-- If you rejoined a device, remove the orphan, then drop the `-1` from the new device's name and recheck that settings using that name point to the right device.
+- Remove [orphans](glossary:orphan-node) from the device list in the admin console. I removed the three [k3s](glossary:k3s) nodes on 2026-11-26, and the [tailnet](glossary:tailscale) went from 6 devices to 3 (checked with `tailscale status` on the Mac).
+- If you rejoined a device, remove the [orphan](glossary:orphan-node), then drop the `-1` from the new device's name and recheck that settings using that name point to the right device.
 
 # 10. Numbers
 
 As of 2026-11-27 (values measured on November 26 are kept as they were). Only measured values; what was not measured is listed separately at the bottom.
 
-| Item                                                        | Value                                                     | Source                               |
-| ----------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------ |
-| Mac → desktop `tailscale ping`                              | 24 ms, direct                                             | `tailscale ping` on the Mac          |
-| Mac → desktop TCP 22, 3389                                  | `Operation timed out` (drop, not RST)                     | SSH and RDP attempts from the Mac    |
-| Allowed ports desktop ↔ Mac, as received by the Mac         | 0-65535                                                   | `tailscale debug netmap` on the Mac  |
-| Inbound ports opened on the router                          | 0                                                         | Tailscale setup (no port forwarding) |
-| Orphan nodes left on the tailnet                            | 3 (hackathon k3s), removed 2026-11-26                     | Tailscale device list                |
-| Tailnet devices before → after the orphan cleanup           | 6 → 3                                                     | `tailscale status` on the Mac        |
-| Sources in the Mac's packet filter after the ACL change     | 3 (phone, desktop, Mac)                                   | `tailscale debug netmap` on the Mac  |
-| Desktop sshd version                                        | OpenSSH for Windows 9.5                                   | Desktop                              |
-| Remote addresses allowed for 22/TCP on the desktop firewall | 100.64.0.0/10 only (default rule off)                     | Desktop firewall rules               |
-| Password login attempt on the desktop                       | Refused 1/1 (`Permission denied (publickey)`)             | Attempt from the Mac                 |
-| Auth methods the desktop sshd accepts                       | `publickey` only                                          | Server response on connect           |
-| Public keys registered on the desktop                       | 2 (Mac, phone)                                            | `administrators_authorized_keys`     |
-| First phone → desktop attempts                              | 3 failed; `method none` 7 times, `publickey` 0 times      | Desktop sshd DEBUG3 log              |
-| Connection tests                                            | Mac → desktop 1/1, desktop → Mac 1/1, phone → desktop 1/1 | `ssh` from each device               |
-| `schtasks /Run` twice in a row                              | 2/2, replaced by one Remote Control process each time     | Desktop process list                 |
-| Auto-start delay                                            | `ClaudeRemoteControl` 1 min after logon                   | Scheduled task trigger setting       |
+| Item                                                                                              | Value                                                                             | Source                                                                                 |
+| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Mac → desktop `tailscale ping`                                                                    | 24 ms, direct                                                                     | `tailscale ping` on the Mac                                                            |
+| Mac → desktop TCP 22, 3389                                                                        | `Operation timed out` ([drop](glossary:packet-drop), not [RST](glossary:tcp-rst)) | [SSH](glossary:ssh) and [RDP](glossary:rdp) attempts from the Mac                      |
+| Allowed ports desktop ↔ Mac, as received by the Mac                                               | 0-65535                                                                           | `tailscale debug netmap` on the Mac                                                    |
+| Inbound ports opened on the router                                                                | 0                                                                                 | [Tailscale](glossary:tailscale) setup (no [port forwarding](glossary:port-forwarding)) |
+| Orphan nodes left on the [tailnet](glossary:tailscale)                                            | 3 (hackathon [k3s](glossary:k3s)), removed 2026-11-26                             | [Tailscale](glossary:tailscale) device list                                            |
+| [Tailnet](glossary:tailscale) devices before → after the [orphan](glossary:orphan-node) cleanup   | 6 → 3                                                                             | `tailscale status` on the Mac                                                          |
+| Sources in the Mac's [packet filter](glossary:packet-filter) after the [ACL](glossary:acl) change | 3 (phone, desktop, Mac)                                                           | `tailscale debug netmap` on the Mac                                                    |
+| Desktop [sshd](glossary:sshd) version                                                             | [OpenSSH](glossary:openssh) for Windows 9.5                                       | Desktop                                                                                |
+| Remote addresses allowed for 22/TCP on the desktop [firewall](glossary:firewall)                  | 100.64.0.0/10 only (default rule off)                                             | Desktop [firewall](glossary:firewall) rules                                            |
+| Password login attempt on the desktop                                                             | Refused 1/1 (`Permission denied (publickey)`)                                     | Attempt from the Mac                                                                   |
+| Auth methods the desktop [sshd](glossary:sshd) accepts                                            | `publickey` only                                                                  | Server response on connect                                                             |
+| [Public keys](glossary:public-key-authentication) registered on the desktop                       | 2 (Mac, phone)                                                                    | `administrators_authorized_keys`                                                       |
+| First phone → desktop attempts                                                                    | 3 failed; `method none` 7 times, `publickey` 0 times                              | Desktop [sshd](glossary:sshd) DEBUG3 log                                               |
+| Connection tests                                                                                  | Mac → desktop 1/1, desktop → Mac 1/1, phone → desktop 1/1                         | `ssh` from each device                                                                 |
+| `schtasks /Run` twice in a row                                                                    | 2/2, replaced by one [Remote Control](glossary:remote-control) process each time  | Desktop process list                                                                   |
+| Auto-start delay                                                                                  | `ClaudeRemoteControl` 1 min after logon                                           | Scheduled task trigger setting                                                         |
 
-Not measured: whether auto sign-in → app → Remote Control actually carries through a reboot (no reboot test), and how long until iOS suspends Termius in the background.
-
-# 11. Glossary
-
-| Term                                                                                                      | Meaning                                                                                                                                  |
-| --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| overlay network                                                                                           | A network laid on top of an existing one with virtual addresses and tunnels                                                              |
-| tailnet                                                                                                   | The network of devices of one Tailscale account (organization)                                                                           |
-| WireGuard                                                                                                 | A VPN protocol that identifies devices by public key and builds tunnels over UDP                                                         |
-| coordination server                                                                                       | A server that collects and hands out devices' public keys and outside addresses. No data passes through it                               |
-| NAT traversal / UDP hole punching                                                                         | Both sides send outward at once to create NAT table entries and connect directly                                                         |
-| DERP relay                                                                                                | Tailscale servers that relay encrypted packets over HTTPS when a direct connection fails                                                 |
-| [NAT](/en/blog/cs-fundamentals/network/network-tcp-ip-layers/#private-ip-public-ip-nat) / CGNAT           | Rewriting private IPs to a public IP / NAT done once more by the carrier (100.64.0.0/10)                                                 |
-| [port forwarding](/en/blog/cs-fundamentals/network/network-web-request-journey/#reaching-a-pc-behind-nat) | A router setting that passes connections arriving at public IP:port to a device inside                                                   |
-| DDNS                                                                                                      | A service that keeps a fixed domain name pointed at a changing public IP                                                                 |
-| reachability                                                                                              | Whether there is a path for packets to reach the other device                                                                            |
-| drop / RST                                                                                                | Silently discarding a packet (timed out) / refusing because nothing is listening (refused)                                               |
-| ACL / packet filter                                                                                       | The access policy in the Tailscale admin console / the actual filter rules pushed to devices from it                                     |
-| [SSH](/en/blog/cs-fundamentals/network/network-web-request-journey/#15-connecting-over-ssh) / sshd        | An encrypted remote login protocol / the server program that accepts it                                                                  |
-| PAM / keyboard-interactive                                                                                | The OS's pluggable authentication modules / an SSH auth method that asks for a password through PAM                                      |
-| lockout                                                                                                   | Changing auth settings wrongly so you can no longer get back in remotely                                                                 |
-| defense in depth                                                                                          | Layering independent defenses on top of each other                                                                                       |
-| autogroup:self                                                                                            | In an ACL, the group meaning "devices owned by the user the rule applies to"                                                             |
-| orphan node                                                                                               | A node whose device is gone but whose registration remains on the tailnet                                                                |
-| control plane / data plane                                                                                | The part that hands out and manages device keys and addresses / the part that carries packets (WireGuard here)                           |
-| self-hosted / managed                                                                                     | Running the servers myself / handing them to a service a company runs                                                                    |
-| full mesh / hub-and-spoke                                                                                 | Every device connected to every other directly / connected through one server in the middle                                              |
-| administrators_authorized_keys                                                                            | The file Windows sshd reads public keys from for Administrators group accounts. Read only when its ACL is SYSTEM and Administrators only |
-| Termius / Biometric Key                                                                                   | iOS SSH client / an ECDSA P-256 key made in the Secure Enclave that can't be exported                                                    |
-| Too many authentication failures                                                                          | The message when sshd drops a connection that didn't finish authentication within the allowed count                                      |
-| SSH config Include / IdentitiesOnly                                                                       | A directive that pulls in another config file / an option that offers only the named key                                                 |
-| MagicDNS                                                                                                  | Tailscale's DNS that resolves tailnet device names to 100.x addresses                                                                    |
-| junction                                                                                                  | A folder-only link on Windows; can be created without administrator rights                                                               |
-| Remote Control                                                                                            | Continuing a Claude Code session running on the desktop from the Claude app on another device                                            |
-| Scheduled task (Task Scheduler) / schtasks                                                                | The Windows feature that runs programs on set conditions / the command for it                                                            |
-| session 0                                                                                                 | The Windows session where services run, with no display; GUI started there can't be seen                                                 |
-| orphan process                                                                                            | A child process left alone after its parent ended first                                                                                  |
-| Auto sign-in (Autologon)                                                                                  | A setting that signs in to an account after boot without typing the password; the password is stored as an LSA secret                    |
+Not measured: whether auto sign-in → app → [Remote Control](glossary:remote-control) actually carries through a reboot (no reboot test), and how long until iOS suspends [Termius](glossary:termius) in the background.

@@ -10,39 +10,39 @@ summary: 'Definition of information retrieval, structured vs unstructured data, 
 
 ## 1.1 Introduction
 
-1. What information retrieval (IR) is
-   - Searching unstructured data (a DB table = structured)
-   - Finding what satisfies an information need
-   - Searching within a large collection (a set of documents)
+1. What [information retrieval](glossary:information-retrieval) ([IR](glossary:information-retrieval)) is
+   - Searching [unstructured](glossary:unstructured-data) data (a DB table = [structured](glossary:structured-data))
+   - Finding what satisfies an [information need](glossary:information-need)
+   - Searching within a large [collection](glossary:collection) (a set of documents)
 
-2. Money used to go to the structured side; these days it goes to the unstructured side
+2. Money used to go to the [structured](glossary:structured-data) side; these days it goes to the [unstructured](glossary:unstructured-data) side
 
-3. Boolean retrieval model
-   - The simplest model for building an IR system
-   - The query is a Boolean expression (e.g. Caesar AND Brutus)
+3. [Boolean retrieval](glossary:boolean-retrieval) model
+   - The simplest model for building an [IR](glossary:information-retrieval) system
+   - The [query](glossary:query) is a Boolean expression (e.g. Caesar AND Brutus)
    - Returns every document that satisfies the expression, in no order
 
 4. How Google does it
-   1. anchor text: if the link text another page uses to link to this page contains the query word, this page shows up even if the word isn't in its body
+   1. [anchor text](glossary:anchor-text): if the link text another page uses to link to this page contains the [query](glossary:query) word, this page shows up even if the word isn't in its body
    2. Word variants: verb forms, spellings, and synonyms show up too
-   3. For long queries, results show up even if a few words are missing
+   3. For long [queries](glossary:query), results show up even if a few words are missing
    4. When the expression returns too few results, it widens the conditions
-   5. **ranking**: plain Boolean returns results in no order, but Google puts the good results on top (continued in [ch6 6.1](/en/blog/cs-fundamentals/information-retrieval/information-retrieval-ch6-scoring-term-weighting-vector-space/#61-why-ranked-retrieval))
+   5. **[ranking](glossary:ranked-retrieval)**: plain Boolean returns results in no order, but Google puts the good results on top (continued in [ch6 6.1](/en/blog/cs-fundamentals/information-retrieval/information-retrieval-ch6-scoring-term-weighting-vector-space/#61-why-ranked-retrieval))
 
 ## 1.2 Inverted index
 
-**grep doesn't work → try a matrix → the matrix is too big → store only the 1s = inverted index**
+**[grep](glossary:grep) doesn't work → try a matrix → the matrix is too big → store only the 1s = [inverted index](glossary:inverted-index)**
 
-1. Why grep doesn't work
-   - It's slow (with a large collection it has to read everything from the start)
-   - grep works line by line, but IR works document by document
+1. Why [grep](glossary:grep) doesn't work
+   - It's slow (with a large [collection](glossary:collection) it has to read everything from the start)
+   - [grep](glossary:grep) works line by line, but [IR](glossary:information-retrieval) works document by document
    - Things like NOT~ need the whole document checked, so it's hard
-   - It can't do proximity search like "countryman near Romans"
+   - It can't do [proximity search](glossary:proximity-query) like "countryman near Romans"
 
 2. Term-document incidence matrix
-   - Rows are terms, columns are documents
-   - 1 if the term is in the document, 0 if not
-   - Each row is a (0/1) vector; do bit operations on these vectors
+   - Rows are [terms](glossary:term), columns are documents
+   - 1 if the [term](glossary:term) is in the document, 0 if not
+   - Each row is a (0/1) vector; do [bit operations](glossary:bitwise-operation) on these vectors
 
 |           | Anthony and Cleopatra | Julius Caesar | The Tempest | Hamlet | Othello | Macbeth |
 | --------- | --------------------- | ------------- | ----------- | ------ | ------- | ------- |
@@ -67,25 +67,25 @@ AND              1    0   0    1    0    0    = 100100
 
 - Result: **Anthony and Cleopatra, Hamlet** / Julius Caesar drops out because it contains Calpurnia
 
-3. As the collection grows, the matrix blows up
-   - token: every word occurrence, duplicates included
-   - term: distinct words, duplicates removed
-     - e.g. "the the the" has token=3, term=1
+3. As the [collection](glossary:collection) grows, the matrix blows up
+   - [token](glossary:token): every word occurrence, duplicates included
+   - [term](glossary:term): distinct words, duplicates removed
+     - e.g. "the the the" has [token](glossary:token)=3, [term](glossary:term)=1
 
-| Item                  | Value                                                         |
-| --------------------- | ------------------------------------------------------------- |
-| Number of documents N | 10⁶                                                           |
-| Tokens per document   | about 1000 → 10⁹ tokens total                                 |
-| Size per token        | 6 bytes (incl. spaces and punctuation) → collection about 6GB |
-| Distinct terms M      | 500,000 (= number of rows)                                    |
-| Matrix cells          | 500,000 × 10⁶ = 5×10¹¹                                        |
-| Number of 1s          | at most 10⁹ (one token makes at most one cell a 1)            |
+| Item                              | Value                                                                                |
+| --------------------------------- | ------------------------------------------------------------------------------------ |
+| Number of documents N             | 10⁶                                                                                  |
+| Tokens per document               | about 1000 → 10⁹ [tokens](glossary:token) total                                      |
+| Size per [token](glossary:token)  | 6 bytes (incl. spaces and punctuation) → [collection](glossary:collection) about 6GB |
+| Distinct [terms](glossary:term) M | 500,000 (= number of rows)                                                           |
+| Matrix cells                      | 500,000 × 10⁶ = 5×10¹¹                                                               |
+| Number of 1s                      | at most 10⁹ (one [token](glossary:token) makes at most one cell a 1)                 |
 
-- There are 5×10¹¹ cells but at most 10⁹ of them are 1, so almost everything is 0. This is called a sparse matrix. All the space goes to storing 0s, so the conclusion is to write down only the 1s
+- There are 5×10¹¹ cells but at most 10⁹ of them are 1, so almost everything is 0. This is called a [sparse matrix](glossary:sparse-matrix). All the space goes to storing 0s, so the conclusion is to write down only the 1s
 
 4. Inverted index
 
-**For each term, store only the list of document numbers (docIDs) that contain it**
+**For each [term](glossary:term), store only the list of document numbers (docIDs) that contain it**
 
 ```text
 Brutus    -> 1 -> 2 -> 4 -> 11 -> 31 -> 45 -> 173 -> 174
@@ -93,55 +93,55 @@ Caesar    -> 1 -> 2 -> 4 -> 5 -> 6 -> 16 -> 57 -> 132
 Calpurnia -> 2 -> 31 -> 54 -> 101
 ```
 
-- The set of terms (Brutus, Caesar, Calpurnia): dictionary
-- posting: a single docID (e.g. 1)
-- postings list: the list of postings (-> 1 -> 2 -> 4 ->...)
+- The set of [terms](glossary:term) (Brutus, Caesar, Calpurnia): [dictionary](glossary:dictionary)
+- [posting](glossary:postings-list): a single [docID](glossary:docid) (e.g. 1)
+- [postings list](glossary:postings-list): the list of [postings](glossary:postings-list) (-> 1 -> 2 -> 4 ->...)
 
-5. Four steps to build an inverted index
+5. Four steps to build an [inverted index](glossary:inverted-index)
 
-| Step                        | What it does                                             | Example                                                |
-| --------------------------- | -------------------------------------------------------- | ------------------------------------------------------ |
-| 1. Collect documents        | Gather the documents to index                            | Friends, Romans, countrymen. So let it be with Caesar… |
-| 2. Tokenize                 | Split documents into tokens                              | `Friends` `Romans` `countrymen`                        |
-| 3. Linguistic preprocessing | Normalize tokens → index terms. Lowercase, strip plurals | `friend` `roman` `countryman`                          |
-| 4. Index                    | Build the dictionary + postings                          | Item 6 below                                           |
+| Step                                                             | What it does                                                                                | Example                                                |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| 1. Collect documents                                             | Gather the documents to index                                                               | Friends, Romans, countrymen. So let it be with Caesar… |
+| 2. [Tokenize](glossary:tokenization)                             | Split documents into [tokens](glossary:token)                                               | `Friends` `Romans` `countrymen`                        |
+| 3. [Linguistic preprocessing](glossary:linguistic-preprocessing) | Normalize [tokens](glossary:token) → index [terms](glossary:term). Lowercase, strip plurals | `friend` `roman` `countryman`                          |
+| 4. Index                                                         | Build the [dictionary](glossary:dictionary) + [postings](glossary:postings-list)            | Item 6 below                                           |
 
-6. Example of building an inverted index
+6. Example of building an [inverted index](glossary:inverted-index)
 
 - Doc 1: _I did enact Julius Caesar: I was killed i' the Capitol; Brutus killed me._
 - Doc 2: _So let it be with Caesar. The noble Brutus hath told you Caesar was ambitious:_
 
-| Step                  | What it does                                              | Result                                                       |
-| --------------------- | --------------------------------------------------------- | ------------------------------------------------------------ |
-| ① Preprocess          | Lowercase, remove punctuation                             | `i did enact julius caesar i was killed …`                   |
-| ② (term, docID) pairs | In order of appearance                                    | `(i,1) (did,1) (enact,1) … (caesar,2) (was,2) (ambitious,2)` |
-| ③ Sort                | By term alphabetically, then by docID                     | `(ambitious,2) (be,2) (brutus,1) (brutus,2) …`               |
-| ④ Merge + df          | Group the same term into a postings list                  | Table below                                                  |
-| ⑤ Split               | Store dictionary (term + df) and postings file separately |                                                              |
+| Step                                                     | What it does                                                                                                                                               | Result                                                       |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| ① Preprocess                                             | Lowercase, remove punctuation                                                                                                                              | `i did enact julius caesar i was killed …`                   |
+| ② ([term](glossary:term), [docID](glossary:docid)) pairs | In order of appearance                                                                                                                                     | `(i,1) (did,1) (enact,1) … (caesar,2) (was,2) (ambitious,2)` |
+| ③ Sort                                                   | By [term](glossary:term) alphabetically, then by [docID](glossary:docid)                                                                                   | `(ambitious,2) (be,2) (brutus,1) (brutus,2) …`               |
+| ④ Merge + [df](glossary:document-frequency)              | Group the same [term](glossary:term) into a [postings list](glossary:postings-list)                                                                        | Table below                                                  |
+| ⑤ Split                                                  | Store [dictionary](glossary:dictionary) ([term](glossary:term) + [df](glossary:document-frequency)) and [postings](glossary:postings-list) file separately |                                                              |
 
-| term   | df  | postings |
-| ------ | --- | -------- |
-| brutus | 2   | 1 → 2    |
-| caesar | 2   | 1 → 2    |
-| i      | 1   | 1        |
-| was    | 2   | 1 → 2    |
+| [term](glossary:term) | [df](glossary:document-frequency) | [postings](glossary:postings-list) |
+| --------------------- | --------------------------------- | ---------------------------------- |
+| brutus                | 2                                 | 1 → 2                              |
+| caesar                | 2                                 | 1 → 2                              |
+| i                     | 1                                 | 1                                  |
+| was                   | 2                                 | 1 → 2                              |
 
-- **df (document frequency)**: the **number of documents** a term appears in (not the number of occurrences) / caesar appears twice in Doc 2 but df = 2; i appears twice in Doc 1 but df = 1
+- **[Document frequency](glossary:document-frequency) (df)**: the **number of documents** a [term](glossary:term) appears in (not the number of occurrences) / caesar appears twice in Doc 2 but [df](glossary:document-frequency) = 2; i appears twice in Doc 1 but [df](glossary:document-frequency) = 1
 
 Building large indexes is in ch4, compression in ch5, and indexes for ranked retrieval in ch6–7.
 
 ## 1.3 Processing Boolean queries
 
-1. Steps for processing a two-term AND query
+1. Steps for processing a two-term AND [query](glossary:query)
    - Query: Brutus AND Calpurnia
-   1. Look up Brutus in the dictionary
-   2. Fetch Brutus's postings list
-   3. Look up Calpurnia in the dictionary
-   4. Fetch Calpurnia's postings list
-   5. **Intersect** the two postings lists
+   1. Look up Brutus in the [dictionary](glossary:dictionary)
+   2. Fetch Brutus's [postings list](glossary:postings-list)
+   3. Look up Calpurnia in the [dictionary](glossary:dictionary)
+   4. Fetch Calpurnia's [postings list](glossary:postings-list)
+   5. **[Intersect](glossary:intersection)** the two [postings lists](glossary:postings-list)
    6. Return the result
 
-2. Intersection algorithm (Intersect)
+2. Intersection algorithm ([Intersect](glossary:intersection))
 
    ```text
    Brutus    -> 1 -> 2 -> 4 -> 11 -> 31 -> 45 -> 173 -> 174
@@ -164,8 +164,8 @@ Building large indexes is in ch4, compression in ch5, and indexes for ranked ret
 
 3. Evaluating the Boolean model
 
-- Any query that is a Boolean expression joined by AND, OR, NOT can be answered.
-- It treats a document as a set of terms. It doesn't care how many times a term appears.
+- Any [query](glossary:query) that is a Boolean expression joined by AND, OR, NOT can be answered.
+- It treats a document as a set of [terms](glossary:term). It doesn't care how many times a [term](glossary:term) appears.
 - It is precise. A document either matches the condition or it doesn't
 - The mainstay of commercial search tools for 30 years
 - Spotlight, email search, and intranet search are Boolean too.
@@ -173,14 +173,14 @@ Building large indexes is in ch4, compression in ch5, and indexes for ranked ret
 4. Westlaw (the largest legal search service by number of paying subscribers)
    - Boolean search is still the default
 
-| Symbol | Meaning                         | Example                                   |
-| ------ | ------------------------------- | ----------------------------------------- |
-| `/3`   | within 3 words                  | `employment /3 place`                     |
-| `/s`   | in the same sentence            | `disclos! /s prevent`                     |
-| `/p`   | in the same paragraph           | `host! /p guest`                          |
-| space  | **OR** (Google uses AND)        | `responsib! liab!` = responsib! OR liab!  |
-| `!`    | anything may follow             | `employe!` → employee, employer, employed |
-| `"…"`  | phrase: adjacent, in that order | `"trade secret"`                          |
+| Symbol | Meaning                                                  | Example                                   |
+| ------ | -------------------------------------------------------- | ----------------------------------------- |
+| `/3`   | within 3 words                                           | `employment /3 place`                     |
+| `/s`   | in the same sentence                                     | `disclos! /s prevent`                     |
+| `/p`   | in the same paragraph                                    | `host! /p guest`                          |
+| space  | **OR** (Google uses AND)                                 | `responsib! liab!` = responsib! OR liab!  |
+| `!`    | anything may follow                                      | `employe!` → employee, employer, employed |
+| `"…"`  | [phrase](glossary:phrase-query): adjacent, in that order | `"trade secret"`                          |
 
 | Information need                                                          | Query                                                             | Read as                                                                                                                    |
 | ------------------------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -196,13 +196,13 @@ Building large indexes is in ch4, compression in ch5, and indexes for ranked ret
    - Efficiency depends on which operation runs first.
 
 2. So which one goes first?
-   - AND the postings lists starting from the shortest (smallest df).
+   - AND the [postings lists](glossary:postings-list) starting from the shortest (smallest [df](glossary:document-frequency)).
 
-3. Optimized intersection algorithm
-   1. Sort terms by increasing df
-   2. Start result with the shortest list; keep only the remaining terms
-   3. Intersect result with the next list using the 1.3 Intersect
-   4. Repeat 3 while terms remain and result isn't empty
+3. Optimized [intersection](glossary:intersection) algorithm
+   1. Sort [terms](glossary:term) by increasing [df](glossary:document-frequency)
+   2. Start result with the shortest list; keep only the remaining [terms](glossary:term)
+   3. [Intersect](glossary:intersection) result with the next list using the 1.3 [Intersect](glossary:intersection)
+   4. Repeat 3 while [terms](glossary:term) remain and result isn't empty
    5. Return result
    - If result becomes empty midway, stop right away (ANDing anything after it gives the empty set)
    - e.g. in the order Caesar(2) → Calpurnia(4) → Brutus(8) / Caesar ∩ Calpurnia = 31, ∩ Brutus = 31
@@ -219,7 +219,7 @@ Building large indexes is in ch4, compression in ch5, and indexes for ranked ret
    ```
 
 4. Queries with OR mixed in
-   - Get the df of every term
+   - Get the [df](glossary:document-frequency) of every [term](glossary:term)
    - Estimate the size of each OR as the sum of its two dfs
    - Process the ORs with the smallest estimated size first
    * This estimate is called conservative, because the sum of the two dfs is an upper bound on the OR result.

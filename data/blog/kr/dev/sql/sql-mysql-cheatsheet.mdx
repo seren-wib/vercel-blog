@@ -2,11 +2,20 @@
 title: 'MySQL Cheatsheet (macOS)'
 date: '2026-10-09'
 tags: ['SQL']
-summary: 'MySQL 설치와 서비스 관리, 접속, DB/테이블, CRUD, 백업, 유저 권한, 비밀번호 초기화'
+summary: 'MySQL 설치부터 접속, CRUD, 백업, 권한, 비밀번호 초기화까지 쓰는 명령 모음'
+level: 1
 draft: false
 ---
 
+## 0. 들어가며
+
 > 개인 참고용. 원본: `3-1/오픈소스 웹소프트웨어/mysql-test/mysql-setup.md` 에서 보강.
+
+[MySQL](glossary:mysql)을 쓸 때 찾아보는 명령을 설치부터 비밀번호 초기화까지 한 장에 모았다.
+
+식당으로 비유하면 [MySQL](glossary:mysql) 서버는 재고 창고이고, 창고지기에게 재고를 묻고 넣고 빼고 지우는 말이 [CRUD](glossary:crud)다. 창고 열쇠는 유저에게 주는 [Privilege](glossary:privilege)이고, 재고 장부를 통째로 베껴 두는 게 [Database dump](glossary:database-dump)다.
+
+설치와 서비스 관리, 접속, 데이터베이스와 테이블, [CRUD](glossary:crud), 파일 실행과 [Backup](glossary:backup), 유저와 [Privilege](glossary:privilege), 주의사항, 비밀번호 초기화, 문제 해결 순서로 정리했다.
 
 ---
 
@@ -119,10 +128,10 @@ DROP USER 'app'@'localhost';
 
 ## 7. 주의사항
 
-- `root` 비밀번호는 **PC 전역** — 같은 MySQL을 쓰는 모든 프로젝트에 영향.
+- `root` 비밀번호는 **PC 전역** — 같은 [MySQL](glossary:mysql)을 쓰는 모든 프로젝트에 영향.
 - 비밀번호 변경 후 각 프로젝트의 `.env` / DB 설정 파일도 함께 수정 필요.
 - `UPDATE` / `DELETE` 는 **`WHERE` 를 빼먹으면 전체 행에 적용됨**. 실행 전 `SELECT` 로 대상 먼저 확인하는 습관.
-- `DROP` / `TRUNCATE` 는 되돌리기 어려움. 백업 먼저.
+- `DROP` / `TRUNCATE` 는 되돌리기 어려움. [Backup](glossary:backup) 먼저.
 
 ---
 
@@ -156,7 +165,7 @@ FLUSH PRIVILEGES;
 exit
 ```
 
-> 비밀번호 정책 기본값: 대문자 + 소문자 + 숫자 + 특수문자 조합 필요.
+> [Password policy](glossary:password-policy) 기본값: 대문자 + 소문자 + 숫자 + 특수문자 조합 필요.
 > `validate_password.policy = LOW` 로 낮추면 단순한 비밀번호도 가능.
 
 ### 4) 정리 후 재시작
@@ -187,9 +196,15 @@ lsof -i :3306
 brew services list
 ```
 
-| 증상                            | 원인/해결                                         |
-| ------------------------------- | ------------------------------------------------- |
-| `Access denied for user 'root'` | 비번 틀림 → 8번 초기화                            |
-| `Can't connect ... socket`      | 서버 안 켜짐 → `brew services start mysql`        |
-| 한글 깨짐 (`???`)               | DB/테이블 charset을 `utf8mb4` 로                  |
-| `Unknown database`              | `SHOW DATABASES;` 로 이름 확인, `CREATE DATABASE` |
+| 증상                            | 원인/해결                                                  |
+| ------------------------------- | ---------------------------------------------------------- |
+| `Access denied for user 'root'` | 비번 틀림 → 8번 초기화                                     |
+| `Can't connect ... socket`      | 서버 안 켜짐 → `brew services start mysql`                 |
+| 한글 깨짐 (`???`)               | DB/테이블 [charset](glossary:character-set)을 `utf8mb4` 로 |
+| `Unknown database`              | `SHOW DATABASES;` 로 이름 확인, `CREATE DATABASE`          |
+
+---
+
+## 10. 느낀 점
+
+`UPDATE`와 `DELETE`는 `WHERE`를 빼먹으면 전체 행에 적용되니, 실행 전에 `SELECT`로 대상부터 확인한다.

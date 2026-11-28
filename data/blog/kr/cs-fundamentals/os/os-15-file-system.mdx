@@ -36,7 +36,7 @@ summary: 'file system basics, mapping problem, directories, mounting, disk layou
 
 # 1. 기본 개념 (Basic Concepts)
 
-디스크는 그냥 "512B 블록 N개"로만 보인다 → 사람이 쓰기엔 너무 날것 → 그 위에 추상화 한 겹 = 파일 시스템
+디스크는 그냥 "512B 블록 N개"로만 보인다 → 사람이 쓰기엔 너무 날것 → 그 위에 추상화 한 겹 = [File system](glossary:file-system)
 
 ## 1. 장기 정보 저장의 3대 요구사항
 
@@ -48,26 +48,26 @@ summary: 'file system basics, mapping problem, directories, mounting, disk layou
 
 - 정의: 보조저장장치에 기록된 "이름 붙은 관련 정보 묶음"
 - 핵심: persistent (전원 나가도 살아남음 ← 메모리와의 결정적 차이)
-- OS가 파일이라는 통일된 논리적 뷰를 제공 → 사용자는 블록·섹터 몰라도 됨
+- OS가 파일이라는 통일된 논리적 뷰를 제공 → 사용자는 블록·[Sector](glossary:sector) 몰라도 됨
 
 ## 3. File System의 역할
 
 - 보조저장장치 추상화 → 파일이라는 단위로 보여줌
-- 논리적 구조화 → 디렉토리
+- 논리적 구조화 → [Directory](glossary:directory)
 - 데이터 공유 (프로세스·사람·머신 간)
 - 보호/접근 제어 (security)
 
 ## 4. 디스크의 논리적 뷰 (block device 추상화)
 
-- 블록 디바이스 드라이버가 제공하는 연산:
+- [Block device](glossary:block-device) 드라이버가 제공하는 연산:
   - Identify() → 전체 블록 수 N 반환
-  - Read(시작 섹터#, 섹터 개수)
-  - Write(시작 섹터#, 섹터 개수)
-- 즉 디스크는 `[512B][512B]...[512B]` (0 ~ N-1) 배열일 뿐 → 이름·디렉토리 개념 없음
+  - Read(시작 [Sector](glossary:sector)#, [Sector](glossary:sector) 개수)
+  - Write(시작 [Sector](glossary:sector)#, [Sector](glossary:sector) 개수)
+- 즉 디스크는 `[512B][512B]...[512B]` (0 ~ N-1) 배열일 뿐 → 이름·[Directory](glossary:directory) 개념 없음
 
 # 2. 핵심 모델 — "매핑 문제 (mapping problem)"
 
-파일 시스템이 푸는 본질적 문제 = **`<파일명, 메타데이터, 데이터>` → `<블록 집합>` 매핑**
+[File system](glossary:file-system)이 푸는 본질적 문제 = **`<파일명, 메타데이터, 데이터>` → `<블록 집합>` 매핑**
 
 ## 1. 파일을 구성하는 3요소
 
@@ -77,19 +77,19 @@ summary: 'file system basics, mapping problem, directories, mounting, disk layou
 
 ### 2. File attributes (metadata)
 
-- 파일 크기, 소유자, 접근 제어 목록(ACL)
+- 파일 크기, 소유자, [ACL](glossary:acl)
 - 생성/접근/수정 시간 등
 - ※ 파일 "내용"이 아니라 "파일에 대한 정보"
 
 ### 3. File contents (data)
 
-- 실제 내용 → 파일 시스템은 이게 뭔지 신경 안 씀 (그냥 바이트 덩어리로 취급)
+- 실제 내용 → [File system](glossary:file-system)은 이게 뭔지 신경 안 씀 (그냥 바이트 덩어리로 취급)
 
 ## 2. 매핑이 왜 비자명한가
 
 - 파일 하나의 데이터가 디스크 위에서 **흩어져(non-contiguous)** 저장됨
 - 예: "a.out"의 블록 1,2,3,4 / "dog.jpg"의 블록 1,2,3 가 디스크에 뒤섞여 배치
-- → 메타데이터가 "이 파일의 블록들이 디스크 어디에 있는지" 순서대로 들고 있어야 함
+- → [Metadata](glossary:metadata)가 "이 파일의 블록들이 디스크 어디에 있는지" 순서대로 들고 있어야 함
 
 ## 3. 목표
 
@@ -99,10 +99,10 @@ summary: 'file system basics, mapping problem, directories, mounting, disk layou
 
 (시험에 "어떤 문제를 풀어야 하나" 형태로 나옴)
 
-- 메타데이터에 무슨 정보를 담을까
-- 메타데이터를 어떻게 찾을까 → **경로명 → 메타데이터 매핑**
+- [Metadata](glossary:metadata)에 무슨 정보를 담을까
+- [Metadata](glossary:metadata)를 어떻게 찾을까 → **경로명 → [Metadata](glossary:metadata) 매핑**
 - 데이터 블록을 어떻게 찾을까
-- 메타데이터·데이터 블록 관리 (할당 / 회수 / 여유공간 관리)
+- [Metadata](glossary:metadata)·데이터 블록 관리 (할당 / 회수 / [Free space management](glossary:free-space-management))
 - 크래시 후 어떻게 복구할까
 
 # 3. 파일 속성 & 연산
@@ -120,69 +120,69 @@ summary: 'file system basics, mapping problem, directories, mounting, disk layou
 
 - `creat` / `open` / `close`
 - `read` / `write` / `lseek` (파일 오프셋 이동)
-- `stat` (메타데이터 조회)
+- `stat` ([Metadata](glossary:metadata) 조회)
 - `chmod` (권한 변경) / `chown` (소유자 변경)
-- `flock` (파일 잠금) / `fcntl` (파일 제어)
+- `flock` ([File locking](glossary:file-locking)) / `fcntl` (파일 제어)
 
 # 4. 디렉토리 (Directories)
 
 ## 1. 디렉토리의 두 얼굴
 
 - **사용자 입장**: 파일을 구조적으로 조직하는 수단
-- **파일 시스템 입장**: 이름 인터페이스 제공
+- **[File system](glossary:file-system) 입장**: 이름 인터페이스 제공
   - → **논리적 파일 조직(이름)** 과 **물리적 디스크 배치** 를 분리 (핵심)
 
 ## 2. 계층적 디렉토리 시스템
 
-- 대부분 다단계(multi-level) 디렉토리 지원
-- 현재 작업 디렉토리(cwd, working directory) 개념 존재
-- 상대 경로: cwd 기준 → `cd ../../foo/bar/../bar`
-- 절대 경로: 루트부터 시작 → `cd /tmp/foo/bar`
+- 대부분 다단계(multi-level) [Directory](glossary:directory) 지원
+- [Current working directory](glossary:current-working-directory) 개념 존재
+- [Relative path](glossary:relative-path): [cwd](glossary:current-working-directory) 기준 → `cd ../../foo/bar/../bar`
+- [Absolute path](glossary:absolute-path): 루트부터 시작 → `cd /tmp/foo/bar`
 
 ## 3. 디렉토리 내부 구조 (Directory Internals)
 
-- 디렉토리 = **사실상 그냥 특별한 메타데이터를 담은 파일**
+- [Directory](glossary:directory) = **사실상 그냥 특별한 [Metadata](glossary:metadata)를 담은 파일**
 - 내용 = `(파일 이름, 파일 속성)` 목록
   - 속성: 크기, 보호, 생성/접근 시간, 디스크상 위치 등
-- 보통 정렬 안 됨 (effectively random) → 정렬은 디렉토리 읽는 프로그램(`ls` 등)이 함
+- 보통 정렬 안 됨 (effectively random) → 정렬은 [Directory](glossary:directory) 읽는 프로그램(`ls` 등)이 함
 
 ## 4. 경로명 해석 (Pathname Translation) ★
 
 `open("/a/b/c", ...)` 처리 과정:
 
-1. 루트 "/" 디렉토리 연다 (위치 항상 알고 있음)
+1. 루트 "/" [Directory](glossary:directory) 연다 (위치 항상 알고 있음)
 2. "/"에서 "a" 검색 → "a" 위치 획득
 3. "a" 열고 "b" 검색 → "b" 위치 획득
 4. "b" 열고 "c" 검색 → "c" 위치 획득
 5. 파일 "c" 오픈
 
 - ※ **각 단계마다 권한 검사** 수행
-- → 경로 한 단계 내려갈 때마다 디렉토리 읽고 검색하는 비용 큼 (시스템이 경로 걷는 데 시간 많이 씀)
+- → 경로 한 단계 내려갈 때마다 [Directory](glossary:directory) 읽고 검색하는 비용 큼 (시스템이 경로 걷는 데 시간 많이 씀)
 
 ### ★ open()이 read()/write()와 분리된 이유
 
-- 경로 해석이 비싸니까 → `read("/a/b/c", buf, 100)` 처럼 매 입출력마다 경로를 다시 걷게 하면 미친 짓
-- → **open()에서 경로 해석을 단 한 번만** 하고 결과(fd)를 넘김 → read/write는 fd만 쓰니까 경로 해석 불필요
+- [Pathname translation](glossary:pathname-translation)이 비싸니까 → `read("/a/b/c", buf, 100)` 처럼 매 입출력마다 경로를 다시 걷게 하면 미친 짓
+- → **open()에서 [Pathname translation](glossary:pathname-translation)을 단 한 번만** 하고 결과([fd](glossary:file-descriptor))를 넘김 → read/write는 [fd](glossary:file-descriptor)만 쓰니까 [Pathname translation](glossary:pathname-translation) 불필요
 - 추가 최적화: OS가 prefix 조회 결과를 캐싱
   - `/a/b`, `/a/bb`, `/a/bbb` 는 모두 `/a` prefix 공유 → 한 번 찾은 거 재사용
 
 ## 5. 디렉토리 연산
 
-- 디렉토리도 파일이라 → 파일 연산으로 조작 가능
+- [Directory](glossary:directory)도 파일이라 → 파일 연산으로 조작 가능
 - C 런타임이 상위 추상화 제공:
   - `opendir` / `readdir` / `seekdir` / `closedir`
-- 기타 시스템콜:
+- 기타 [System call](glossary:system-call):
   - `rename` (이름 변경)
-  - `link` (하드링크 생성) / `unlink` (링크 제거 = 삭제)
+  - `link` ([Hard link](glossary:hard-link) 생성) / `unlink` (링크 제거 = 삭제)
 
 # 5. 파일 시스템 마운팅 (Mounting)
 
-"파일시스템을 OS가 인식해서 쓸 수 있게 만드는 단계"
+"[File system](glossary:file-system)을 OS가 인식해서 쓸 수 있게 만드는 단계"
 
-- 파일 시스템은 **마운트되기 전엔 프로세스가 못 씀** (반드시 마운트 필요)
+- [File system](glossary:file-system)은 **[Mount](glossary:mount)되기 전엔 프로세스가 못 씀** (반드시 [Mount](glossary:mount) 필요)
 - **Windows**: 드라이브 문자에 붙임 (`C:\`, `D:\`, ...)
-- **Unix**: 기존의 **빈 디렉토리(= mount point)** 에 붙임
-  - 예: `/users` 아래에 새 파일시스템을 마운트하면 그 디렉토리가 새 FS의 루트처럼 동작
+- **Unix**: 기존의 **빈 [Directory](glossary:directory)(= [mount point](glossary:mount))** 에 붙임
+  - 예: `/users` 아래에 새 [File system](glossary:file-system)을 [Mount](glossary:mount)하면 그 [Directory](glossary:directory)가 새 FS의 루트처럼 동작
 
 # 6. 디스크 레이아웃 (Disk Layout)
 
@@ -190,60 +190,60 @@ summary: 'file system basics, mapping problem, directories, mounting, disk layou
 
 ## 1. 디스크 전체
 
-- **MBR (Master Boot Record)**: boot code + partition table
-- **Partition들**: Partition 1(active) / 2 / 3 ...
-  - active 파티션이 부팅 대상
+- **[MBR](glossary:mbr) (Master Boot Record)**: boot code + [partition](glossary:partition) table
+- **[Partition](glossary:partition)들**: [Partition](glossary:partition) 1(active) / 2 / 3 ...
+  - active [Partition](glossary:partition)이 부팅 대상
 
 ## 2. 파티션 내부 (FS-dependent, 파일시스템 종류마다 다름)
 
 위에서 아래 순서:
 
-- **boot block**: 부팅 코드
-- **super block**: FS 메타데이터 (FS 타입, 전체 블록 수 등) ← FS 전체를 대표하는 정보(PK 같은 존재)
-- **bitmaps**: 여유 공간 관리용 자료구조 → "이 블록이 지금 **쓰이고 있나/비었나**" 표시
-- **i-nodes**: 파일 메타데이터 → "특정 파일을 디스크 어디에 어떻게 **배치**했나"
-- **root dir**: 루트 디렉토리
-- **files & directories**: 실제 파일·디렉토리 데이터
+- **[boot block](glossary:boot-block)**: 부팅 코드
+- **[super block](glossary:superblock)**: FS [Metadata](glossary:metadata) (FS 타입, 전체 블록 수 등) ← FS 전체를 대표하는 정보(PK 같은 존재)
+- **[bitmaps](glossary:bitmap)**: [Free space management](glossary:free-space-management)용 자료구조 → "이 블록이 지금 **쓰이고 있나/비었나**" 표시
+- **[i-nodes](glossary:inode)**: 파일 [Metadata](glossary:metadata) → "특정 파일을 디스크 어디에 어떻게 **배치**했나"
+- **root dir**: 루트 [Directory](glossary:directory)
+- **files & directories**: 실제 파일·[Directory](glossary:directory) 데이터
 
-> ⚠️ bitmap vs i-node 헷갈림 주의
+> ⚠️ [bitmap](glossary:bitmap) vs [i-node](glossary:inode) 헷갈림 주의
 >
-> - bitmap = 블록의 사용/여유 여부 (공간 관리)
-> - i-node = 그 파일의 블록 배치 정보 (파일 관리)
+> - [bitmap](glossary:bitmap) = 블록의 사용/여유 여부 (공간 관리)
+> - [i-node](glossary:inode) = 그 파일의 블록 배치 정보 (파일 관리)
 
 # 7. 파일 시스템 내부 구조 (Internals)
 
 ## 1. 계층 구조 (위 → 아래)
 
-1. **System call interface** ← 유저 프로세스가 open/read/write 호출하는 진입점
-2. **VFS (Virtual File System)** ← 여러 FS를 하나로 추상화
-3. **개별 File System** (minix, nfs, ext4, fat, procfs ...)
-4. **buffer cache** ← 디스크 블록 캐싱 (성능)
-5. **device driver** ← 실제 하드웨어 제어
+1. **[System call](glossary:system-call) interface** ← 유저 프로세스가 open/read/write 호출하는 진입점
+2. **[VFS](glossary:vfs)** ← 여러 FS를 하나로 추상화
+3. **개별 [File System](glossary:file-system)** (minix, nfs, ext4, fat, procfs ...)
+4. **[buffer cache](glossary:buffer-cache)** ← 디스크 블록 캐싱 (성능)
+5. **[device driver](glossary:device-driver)** ← 실제 하드웨어 제어
 
 ## 2. VFS (Virtual File System)
 
 - 역할:
-  - 모든 파일 시스템을 **하나의 커널 레벨 포맷**으로 추상화 → 위(시스템콜)에선 FS 종류 몰라도 됨
-  - user-level 시스템콜 수신 (open, read, write, close, stat 등)
-  - **mount point traversal** 기반으로 특정 FS와 상호작용 → 경로 걷다가 마운트 지점 만나면 해당 FS 드라이버 호출
+  - 모든 [File system](glossary:file-system)을 **하나의 커널 레벨 포맷**으로 추상화 → 위([System call](glossary:system-call))에선 FS 종류 몰라도 됨
+  - user-level [System call](glossary:system-call) 수신 (open, read, write, close, stat 등)
+  - **[mount point](glossary:mount) traversal** 기반으로 특정 FS와 상호작용 → 경로 걷다가 [Mount](glossary:mount) 지점 만나면 해당 FS 드라이버 호출
 
 ### ★ Linux VFS 공통 파일 모델 — 4개 객체 (단답·매칭 단골)
 
-- **superblock object**: 마운트된 파일 시스템 전체 정보
-- **dentry object**: 디렉토리 엔트리 ↔ 파일의 **연결(linking)** 정보 → 디렉토리 구조 담당
-- **inode object**: 특정 파일에 대한 일반 정보 → 파일 자체 담당
+- **[superblock object](glossary:superblock)**: [Mount](glossary:mount)된 [File system](glossary:file-system) 전체 정보
+- **[dentry object](glossary:dentry)**: [Directory entry](glossary:dentry) ↔ 파일의 **연결(linking)** 정보 → [Directory](glossary:directory) 구조 담당
+- **[inode object](glossary:inode)**: 특정 파일에 대한 일반 정보 → 파일 자체 담당
 - **file object**: **열린 파일 ↔ 프로세스** 간 상호작용 정보 (open된 상태)
 
-> dentry(디렉토리 구조) ↔ inode(파일 구조) 바꿔 쓰면 그대로 감점
+> [dentry](glossary:dentry)([Directory](glossary:directory) 구조) ↔ [inode](glossary:inode)(파일 구조) 바꿔 쓰면 그대로 감점
 
 ## 3. In-memory 자료구조 (실행 중 메모리에 올라오는 것들)
 
-- **per-process file descriptor table** (프로세스별 open-file table)
-  - 프로세스마다 따로 가짐 → fd 번호로 인덱싱
-- **system-wide file table** (시스템 전역 open-file table)
+- **per-process [file descriptor table](glossary:open-file-table)** (프로세스별 [open-file table](glossary:open-file-table))
+  - 프로세스마다 따로 가짐 → [fd](glossary:file-descriptor) 번호로 인덱싱
+- **system-wide [file table](glossary:open-file-table)** (시스템 전역 [open-file table](glossary:open-file-table))
   - count(참조 수), offset(파일 내 현재 위치) 보관
-- **in-memory partition table**
-- **directory cache** (경로 해석 가속)
-- **buffer cache** (디스크 블록 캐싱)
+- **in-memory [partition](glossary:partition) table**
+- **[directory cache](glossary:dentry)** ([Pathname translation](glossary:pathname-translation) 가속)
+- **[buffer cache](glossary:buffer-cache)** (디스크 블록 캐싱)
 
-> fd table은 프로세스별 / file table은 전역 → 이 분리 구조가 fork·dup 때 파일 공유 동작을 설명함
+> [fd table](glossary:open-file-table)은 프로세스별 / [file table](glossary:open-file-table)은 전역 → 이 분리 구조가 [fork](glossary:fork)·[dup](glossary:dup) 때 파일 공유 동작을 설명함

@@ -2,20 +2,18 @@
 title: 'Git / GitHub Cheatsheet'
 date: '2026-10-09'
 tags: ['Git']
-summary: 'Git/GitHub 기본 개념, 상태 확인, pull, 충돌 해결, 커밋/푸시, 되돌리기'
+summary: 'Git/GitHub 상태 확인, pull, 충돌 해결, 커밋/푸시, 되돌리기 명령 모음'
 draft: false
+level: 1
 ---
 
-> 헷갈릴 때 보는 개인 치트시트. 명령어는 터미널에서 저장소 폴더로 들어간 뒤 실행.
+## 0. 들어가며
 
----
+헷갈릴 때 보려고 정리한 개인 치트시트다. 명령어는 터미널에서 [Repository](glossary:repository) 폴더로 들어간 뒤 실행한다.
 
-## 0. 기본 개념
+식당으로 비유하면 내 컴퓨터의 작업 폴더는 주방이고, [GitHub](glossary:github)에 올라간 [Repository](glossary:repository)는 본점 창고다. 한 접시를 완성해 사진으로 남기면 변경 기록 하나가 되고, 조리 중인 접시는 잠깐 서랍에 치워둔다. 즉 주방은 로컬 [Repository](glossary:repository), 본점 창고는 [Remote](glossary:remote)인 [Origin](glossary:origin), 사진 기록은 [Commit](glossary:commit), 서랍은 [Stash](glossary:stash)다.
 
-- **로컬**: 내 컴퓨터에 있는 파일/저장소
-- **원격(remote, origin)**: GitHub에 올라가 있는 저장소
-- **커밋(commit)**: 변경사항을 기록한 스냅샷 하나
-- **stash(스태시)**: 작업 중인 변경을 임시로 "서랍"에 치워두는 것
+이 글은 상태 확인, 변경사항을 잃지 않는 [Pull](glossary:pull), [Merge conflict](glossary:merge-conflict) 해결, [Commit](glossary:commit)과 [Push](glossary:push), 되돌리기 순으로 명령을 정리했다.
 
 ---
 
@@ -30,9 +28,9 @@ git log HEAD..@{u} --oneline   # 원격에 있는데 나한텐 없는 커밋
 
 ---
 
-## 2. 변경사항 잃지 않고 pull 하기 ★ (2026-06-13에 했던 작업)
+## 2. 변경사항 잃지 않고 pull 하기
 
-로컬에 수정 중인 파일이 있는데 원격에도 새 커밋이 있을 때.
+2026-06-13에 했던 작업이다. 로컬에 수정 중인 파일이 있는데 [Remote](glossary:remote)에도 새 [Commit](glossary:commit)이 있을 때.
 그냥 `git pull` 하면 겹치는 파일에서 멈추거나 거부됨. 안전 순서:
 
 ```bash
@@ -46,14 +44,14 @@ git pull --ff-only
 git stash pop
 ```
 
-- 겹치는 파일이 있으면 `stash pop`에서 **충돌(conflict)** 이 남 → 아래 3번으로.
-- 데이터는 안 사라짐. stash는 충돌나도 `git stash list`에 남아있음.
+- 겹치는 파일이 있으면 `stash pop`에서 **[Merge conflict](glossary:merge-conflict)**가 남 → 아래 3번으로.
+- 데이터는 안 사라짐. [stash](glossary:stash)는 [Merge conflict](glossary:merge-conflict)가 나도 `git stash list`에 남아있음.
 
 ---
 
 ## 3. 충돌(conflict) 해결
 
-충돌난 파일을 열면 이런 마커가 들어있음:
+[Merge conflict](glossary:merge-conflict)가 난 파일을 열면 이런 [Conflict marker](glossary:conflict-marker)가 들어있음:
 
 ```
 <<<<<<< Updated upstream
@@ -65,15 +63,15 @@ git stash pop
 
 해결법:
 
-1. 셋 중 살릴 내용만 남기고 **마커 세 줄을 직접 지움** (`<<<`, `===`, `>>>`)
-2. 양쪽 다 필요하면 둘 다 남기고 마커만 지움
-3. 정리한 파일을 스테이지:
+1. 셋 중 살릴 내용만 남기고 **[Conflict marker](glossary:conflict-marker) 세 줄을 직접 지움** (`<<<`, `===`, `>>>`)
+2. 양쪽 다 필요하면 둘 다 남기고 [Conflict marker](glossary:conflict-marker)만 지움
+3. 정리한 파일을 [Staging area](glossary:staging-area)에 올림:
 
 ```bash
 git add "파일경로"
 ```
 
-**파일 삭제 vs 수정 충돌** (한쪽은 지우고 한쪽은 고친 경우):
+**파일 삭제 vs 수정 [Merge conflict](glossary:merge-conflict)** (한쪽은 지우고 한쪽은 고친 경우):
 
 ```bash
 git rm "파일경로"      # 삭제를 선택할 때
@@ -81,7 +79,7 @@ git rm "파일경로"      # 삭제를 선택할 때
 git add "파일경로"     # 남기기를 선택할 때 (파일은 살아있음)
 ```
 
-충돌 다 정리했으면 stash 서랍 비우기:
+[Merge conflict](glossary:merge-conflict) 다 정리했으면 [stash](glossary:stash) 서랍 비우기:
 
 ```bash
 git stash drop         # 방금 꺼낸 stash 삭제
@@ -112,14 +110,6 @@ git reset --hard HEAD        # ⚠️ 모든 로컬 변경 버림 (되돌리기 
 
 ---
 
-## 자주 쓰는 한 줄 요약
+## 6. 느낀 점
 
-| 하고 싶은 것            | 명령어                                         |
-| ----------------------- | ---------------------------------------------- |
-| 상태 확인               | `git status`                                   |
-| 원격 변경 안전하게 받기 | stash → `git pull --ff-only` → `git stash pop` |
-| 충돌 해결 후            | 마커 지우고 `git add`                          |
-| 커밋                    | `git add .` → `git commit -m "..."`            |
-| GitHub에 올리기         | `git push`                                     |
-| 변경 임시 보관          | `git stash push -u`                            |
-| 보관한 거 꺼내기        | `git stash pop`                                |
+[stash](glossary:stash)는 [Merge conflict](glossary:merge-conflict)가 나도 `git stash list`에 남아서 데이터는 사라지지 않는다.

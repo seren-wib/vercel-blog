@@ -11,17 +11,17 @@ summary: '컴퓨터과학의 범위, 문제와 알고리즘(유클리드 호제�
 **컴퓨터과학은 문제 해결 방법과 이를 실행하는 컴퓨터 시스템을 함께 연구하는 학문이다**
 
 1. 문제정의
-2. 알고리즘 설계
+2. [Algorithm](glossary:algorithm) 설계
 3. 프로그램 구현
 4. 컴퓨터 시스템에서 실행
 
 ## 전체 흐름 한 줄
 
-**문제 → 알고리즘 → 프로그램(C 코드) → 실행 파일 → 프로세스 → CPU가 실행**
+**문제 → [Algorithm](glossary:algorithm) → 프로그램([C](glossary:c) 코드) → [Executable file](glossary:executable-file) → [Process](glossary:process) → [CPU](glossary:cpu)가 실행**
 
 # 2. 문제와 알고리즘
 
-- 알고리즘적 사고: 문제를 명확한 단계와 데이터의 형태로 바꾸는 것
+- [Algorithm](glossary:algorithm)적 사고: 문제를 명확한 단계와 데이터의 형태로 바꾸는 것
 
 ## 알고리즘
 
@@ -30,17 +30,17 @@ summary: '컴퓨터과학의 범위, 문제와 알고리즘(유클리드 호제�
 
 ### 예시(유클리드 호제법)
 
-- gcd(m, n) = gcd(n, m mod n), n이 0이 되면 그때 m이 답.
-- gcd(48,18) → (18,12) → (12,6) → (6,0) → 6
+- [gcd](glossary:gcd)(m, n) = [gcd](glossary:gcd)(n, m [mod](glossary:modulo) n), n이 0이 되면 그때 m이 답.
+- [gcd](glossary:gcd)(48,18) → (18,12) → (12,6) → (6,0) → 6
 
 # 3. 프로그램과 컴퓨터 시스템의 연결
 
-- C코드가 실행되기 까지: 전처리 → 컴파일 → 어셈블 → 링킹 → 실행 파일 → OS가 메모리에 적재
+- [C](glossary:c) 코드가 실행되기 까지: [Preprocessing](glossary:preprocessing) → [Compiler](glossary:compiler) → [Assembly](glossary:assembly) → [Linker](glossary:linker) → [Executable file](glossary:executable-file) → [OS](glossary:os)의 [Loader](glossary:loader)가 메모리에 적재
 
-- 프로그램 실행 과정: 사용자 → 응용 프로그램 → 표준 라이브러리 → 운영체제 → 하드웨어
+- 프로그램 실행 과정: 사용자 → 응용 프로그램 → [Standard library](glossary:standard-library) → [OS](glossary:os) → 하드웨어
 
 ## 추상화
 
 복잡한 내부는 숨기고 사용자가 필요한 부분만 제공
 
-arr[i] 주소 = 시작 주소 + i × 원소 크기
+[arr[i]](glossary:array)의 [Memory address](glossary:memory-address) = 시작 [Memory address](glossary:memory-address) + i × 원소 크기

@@ -3,58 +3,63 @@ title: 'Stairno 3. Building Sign-in and Going Live'
 date: '2026-10-20'
 tags: ['Stairno']
 draft: false
-summary: 'Roadmap step 3. Building sign-up, sign-in, verification mail, device management and a sign-in gateway for sites (OIDC) with TDD in an empty repo, and putting it live on Cloudflare Workers. The first-day Workers check, mail domain authentication, Korean traffic entering through LAX, the free plan CPU limit, the shared account menu and the acceptance checklist'
+summary: 'Building sign-in with TDD in an empty repo and putting it live on Cloudflare Workers, through to the acceptance checklist'
+level: 2
 ---
+
+## 0. Introduction
 
 > Roadmap step 3. Sign-in was actually built to the documents from [step 2](/en/blog/side-projects/stairno/stairno-02-account-plan/) and put live. The big picture is in [Stairno 0. The whole roadmap](/en/blog/side-projects/stairno/stairno-00-roadmap/).
 
-## In one line
+Payments, the next step on the roadmap, needs an account to sit on, so sign-up and sign-in came first.
 
-From the early hours to the late morning of 18 October, an empty repo got sign-up, sign-in, verification mail, device management and a sign-in gateway for other sites, and `api.stairno.com` and `account.stairno.com` went live. In the afternoon, the account menu shared with the hub was attached, the acceptance checklist was checked on the production addresses, and step 3 closed.
+In restaurant terms, the kitchen is the API ([Hono](glossary:hono), [Better Auth](glossary:better-auth)), the floor is the account center screens ([Astro](glossary:astro)), the guest wristband is the [session](glossary:session), the coupon that partner shops accept is the [access token](glossary:access-token), and the reservation-confirmation call is the [verification mail](glossary:email-verification). The order in which this restaurant opens its doors is the deploy automation.
+
+From the early hours to the late morning of 18 October, an empty repo got sign-up, sign-in, [verification mail](glossary:email-verification), device management and a sign-in gateway for other sites, and `api.stairno.com` and `account.stairno.com` went live. In the afternoon I attached the account menu shared with the hub and checked the [acceptance checklist](glossary:acceptance-criteria) on the production addresses, which closed step 3.
 
 ## 1. How the work was done
 
 The rules came before the code.
 
-- **One feature = one [issue](/en/blog/dev/devops/devops-00-basics/#issue) + one [PR](/en/blog/dev/devops/devops-00-basics/#pr).** A feature like "password reset mail" goes on a card, and a change containing only that feature is submitted
-- **Commits come in `test` → `feat` pairs.** Following [TDD](/en/blog/dev/devops/devops-00-basics/#tdd), the failing test is committed first, and the code that makes it pass is the next commit. The history alone shows "what was promised and how it was kept"
+- **One feature = one [issue](glossary:issue) + one [PR](glossary:pull-request).** A feature like "password reset mail" goes on a card, and a change containing only that feature is submitted
+- **Commits come in `test` → `feat` pairs.** Following [TDD](glossary:tdd), the failing test is committed first, and the code that makes it pass is the next commit. The history alone shows "what was promised and how it was kept"
 - **Requirement numbers in test names.** Like `FR-3 returns the same body for an unknown email and a wrong password`
-- **Merging into `main` means deploying.** In this step, a PR that passed [CI](/en/blog/dev/devops/devops-00-basics/#ci) went into `main`, and `main` went to production automatically. This changes in step 4
+- **Merging into `main` means deploying.** In this step, a [PR](glossary:pull-request) that passed [CI](glossary:ci) went into `main`, and `main` went to production automatically. This changes in step 4
 
-The code was written by an [AI coding agent](/en/blog/dev/devops/devops-00-basics/#ai-coding-agent) following these rules, and I reviewed the PRs and made the decisions. More than 60 PRs went into `main` during step 3.
+The code was written by an [AI coding agent](glossary:ai-coding-agent) following these rules, and I reviewed the [PRs](glossary:pull-request) and made the decisions. More than 60 [PRs](glossary:pull-request) went into `main` during step 3.
 
 ## 2. Setting up the skeleton
 
 One repo holds three pieces.
 
-| Folder              | What                                                                       |
-| ------------------- | -------------------------------------------------------------------------- |
-| `apps/api`          | The shared API. Hono + Better Auth + DB                                    |
-| `apps/account`      | The account center screens. Astro                                          |
-| `packages/contract` | The agreements both share: input validation rules, the list of error codes |
+| Folder              | What                                                                             |
+| ------------------- | -------------------------------------------------------------------------------- |
+| `apps/api`          | The shared API. [Hono](glossary:hono) + [Better Auth](glossary:better-auth) + DB |
+| `apps/account`      | The account center screens. [Astro](glossary:astro)                              |
+| `packages/contract` | The agreements both share: input validation rules, the list of error codes       |
 
 Why `packages/contract` exists: the sign-up form checks "the password must be at least so many characters", and the API must check exactly the same thing. Writing the rule in two places means they drift apart one day. So it is written once and both use it.
 
-CI runs these on every PR.
+[CI](glossary:ci) runs these on every [PR](glossary:pull-request).
 
 1. Code formatting check
-2. Type check (are the kinds of values right)
+2. [Type check](glossary:type-checking) (are the kinds of values right)
 3. All tests
-4. Whether the [DB blueprint and migration files](/en/blog/dev/devops/devops-00-basics/#schema-and-migration) match each other
+4. Whether the [DB blueprint](glossary:schema) and [migration](glossary:database-migration) files match each other
 5. Actually building both servers
-6. Sign-up → sign-in from start to finish on the real Workers engine ([workerd](/en/blog/dev/cloudflare/cloudflare-00-basics/#workerd))
+6. Sign-up → sign-in from start to finish on the real [Workers](glossary:cloudflare-workers) engine ([workerd](glossary:workerd))
 
-## 3. The first-day check: does it really run on Workers?
+## 3. The first-day Workers check
 
-The second line of the step 2 risk table, "the chosen tools do not run on Workers", was checked on day one. Better Auth, Drizzle and the Neon connection all say on paper that they support Workers, but you do not know until you run them.
+The second line of the step 2 risk table, "the chosen tools do not run on [Workers](glossary:cloudflare-workers)", was checked on day one. [Better Auth](glossary:better-auth), [Drizzle](glossary:drizzle) and the [Neon](glossary:neon) connection all say on paper that they support [Workers](glossary:cloudflare-workers), but you do not know until you run them.
 
-The conclusion was "it works". But **one bug that never shows on Node.js** came out.
+The conclusion was "it works". But **one bug that never shows on [Node.js](glossary:nodejs)** came out.
 
-> If the first request right after the server woke up ([cold start](/en/blog/dev/cloudflare/cloudflare-00-basics/#cold-start)) was the health check (`/health`), **every sign-in request after it hung without an answer.**
+> If the first request right after the server woke up ([cold start](glossary:cold-start)) was the health check (`/health`), **every sign-in request after it hung without an answer.**
 
-Here is why. The first request starts getting Better Auth ready, then finishes its own work and ends before the preparation is done. When a request ends, workerd throws away the work that request started. So the "preparing" state never finishes, and the following requests waiting on it hang with it. Node.js does not throw that work away, so the problem does not show there.
+Here is why. The first request starts getting [Better Auth](glossary:better-auth) ready, then finishes its own work and ends before the preparation is done. When a request ends, [workerd](glossary:workerd) throws away the work that request started. So the "preparing" state never finishes, and the following requests waiting on it hang with it. [Node.js](glossary:nodejs) does not throw that work away, so the problem does not show there.
 
-The fix: the request that starts the preparation now waits until it is done before ending. Writing "actually try it on Workers on day one" as a risk response was the right call.
+The fix: the request that starts the preparation now waits until it is done before ending. Writing "actually try it on [Workers](glossary:cloudflare-workers) on day one" as a risk response was the right call.
 
 ## 4. One feature at a time
 
@@ -62,33 +67,33 @@ One by one, in order, test first every time.
 
 ### The API side
 
-| Feature                       | What it does                                                                                                                                                                                                           |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sign-up                       | Email, password, accepting the terms. [Passwords that have leaked before](/en/blog/dev/auth/auth-00-basics/#breached-password-check) are refused                                                                       |
-| Verification mail             | Signing up sends a "confirm your email" message, in Korean or English, in the user's language                                                                                                                          |
-| Sign-in                       | A single failure reason only (it does not say whether the email is unknown or the password is wrong)                                                                                                                   |
-| Sign out, sign out everywhere | Delete one of my [sessions](/en/blog/dev/web/web-00-basics/#session), or all of them                                                                                                                                   |
-| Password reset                | A new password from a link in the mail                                                                                                                                                                                 |
-| Profile                       | Change name, language, email                                                                                                                                                                                           |
-| Device list                   | See where you are signed in and sign out only the devices you choose                                                                                                                                                   |
-| Account deletion              | Deleted after confirming the password once more                                                                                                                                                                        |
-| Session rules                 | Kept 30 days, extended a day at a time with daily use. The cookie cannot be read by JavaScript and travels only over https                                                                                             |
-| Sign-in gateway for sites     | An [OIDC](/en/blog/dev/auth/auth-00-basics/#oidc) provider. Sites are registered only by an operator command                                                                                                           |
-| Tokens                        | [Access tokens](/en/blog/dev/auth/auth-00-basics/#token) 1 hour, refresh tokens 90 days                                                                                                                                |
-| Connected sites               | See which sites you signed into with Stairno and disconnect them                                                                                                                                                       |
-| Error format                  | Every error in one shape, `{ error: { code, message } }`. Codes only from a fixed list                                                                                                                                 |
-| Security                      | Only registered sites may call the API ([CORS](/en/blog/dev/web/web-00-basics/#origin)), security headers, [rate limiting](/en/blog/dev/auth/auth-00-basics/#rate-limiting) on sign-in, sign-up, reset and mail resend |
-| Mail log                      | Sent mail is recorded, and a failing mail service does not break the sign-up itself                                                                                                                                    |
+| Feature                                          | What it does                                                                                                                                                                                     |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Sign-up                                          | Email, password, accepting the terms. [Passwords that have leaked before](glossary:breached-password-check) are refused                                                                          |
+| [Verification mail](glossary:email-verification) | Signing up sends a "confirm your email" message, in Korean or English, in the user's language                                                                                                    |
+| Sign-in                                          | A single failure reason only (it does not say whether the email is unknown or the password is wrong)                                                                                             |
+| Sign out, sign out everywhere                    | Delete one of my [sessions](glossary:session), or all of them                                                                                                                                    |
+| Password reset                                   | A new password from a link in the mail                                                                                                                                                           |
+| Profile                                          | Change name, language, email                                                                                                                                                                     |
+| Device list                                      | See where you are signed in and sign out only the devices you choose                                                                                                                             |
+| Account deletion                                 | Deleted after confirming the password once more                                                                                                                                                  |
+| [Session](glossary:session) rules                | Kept 30 days, extended a day at a time with daily use. The [cookie](glossary:cookie) cannot be read by JavaScript and travels only over https                                                    |
+| Sign-in gateway for sites                        | An [OIDC](glossary:oidc) provider. Sites are registered only by an operator command                                                                                                              |
+| Tokens                                           | [Access tokens](glossary:access-token) 1 hour, [refresh tokens](glossary:refresh-token) 90 days                                                                                                  |
+| Connected sites                                  | See which sites you signed into with Stairno and disconnect them                                                                                                                                 |
+| Error format                                     | Every error in one shape, `{ error: { code, message } }`. Codes only from a fixed list                                                                                                           |
+| Security                                         | Only registered sites may call the API ([CORS](glossary:cors)), [security headers](glossary:security-header), [rate limiting](glossary:rate-limiting) on sign-in, sign-up, reset and mail resend |
+| Mail log                                         | Sent mail is recorded, and a failing mail service does not break the sign-up itself                                                                                                              |
 
 ### The screen side
 
 Sign-in, sign-up, password reset, email confirmation, the consent screen, the account home, profile, signed-in devices, connected sites and account deletion. Visiting `/` sends you to `/ko` or `/en` based on the browser's language.
 
-The screens also got a **Content Security Policy (CSP)**: an allow-list saying "only scripts from these addresses run on this page". Even if someone sneaks a script into the page, the browser does not run it.
+The screens also got a **[Content Security Policy](glossary:csp) ([CSP](glossary:csp))**: an allow-list saying "only scripts from these addresses run on this page". Even if someone sneaks a script into the page, the browser does not run it.
 
 ### Terms and privacy policy
 
-Account data is collected here, so they live in the account center. I turned the required items from the relevant articles of Korea's Personal Information Protection Act and the Personal Information Protection Commission's drafting guide into a checklist and filled them in one by one. The data collected is the minimum (email, name, payment records), and the processors (Cloudflare, Neon, Resend) and their countries are listed. Sign-up also confirms the user is at least 14.
+Account data is collected here, so they live in the account center. I turned the required items from the relevant articles of Korea's Personal Information Protection Act and the Personal Information Protection Commission's drafting guide into a checklist and filled them in one by one. The data collected is the minimum (email, name, payment records), and the processors (Cloudflare, [Neon](glossary:neon), [Resend](glossary:resend)) and their countries are listed. Sign-up also confirms the user is at least 14.
 
 At first the operator field had my name in it, but a personal name stamped on a public page bothered me, so it became "Stairno privacy desk" with a contact address. At step 9 (business registration), when real payments start, the representative's name goes back in as the law requires.
 
@@ -96,10 +101,10 @@ At first the operator field had my name in it, but a personal name stamped on a 
 
 ### Deploy automation
 
-When something is merged into `main`, GitHub Actions ships it to production in this order.
+When something is merged into `main`, [GitHub Actions](glossary:github-actions) ships it to production in this order.
 
 1. Tests
-2. Apply [migrations](/en/blog/dev/devops/devops-00-basics/#schema-and-migration) to the production DB
+2. Apply [migrations](glossary:database-migration) to the production DB
 3. Deploy the API
 4. Deploy the account center
 
@@ -109,39 +114,39 @@ If the step that changes the DB structure fails, nothing after it runs. This pre
 
 Some things had to be done by a person once before the automation could take over.
 
-- Create the DB on Neon and run the first migration by hand
-- Store the two servers' [secrets](/en/blog/dev/cloudflare/cloudflare-00-basics/#workers-secrets) at Cloudflare and the deploy keys at GitHub
-- Connect the subdomains `api` and `account` to the servers
+- Create the DB on [Neon](glossary:neon) and run the first [migration](glossary:database-migration) by hand
+- Store the two servers' [secrets](glossary:secret) at Cloudflare and the deploy keys at GitHub
+- Connect the [subdomains](glossary:subdomain) `api` and `account` to the servers
 
 Around 11 a.m. on 18 October, `api.stairno.com` and `account.stairno.com` went live.
 
 ### Keeping mail out of spam
 
-If the verification mail lands in spam, sign-up is blocked. So the `stairno.com` domain was authenticated with Resend. That means adding three records to the DNS (SPF, DKIM, DMARC) that let the receiving side check "did stairno.com really send this mail?". Signing up for real and receiving it in Gmail, it arrived in the inbox with all three marked as passed.
+If the [verification mail](glossary:email-verification) lands in spam, sign-up is blocked. So the `stairno.com` domain was authenticated with [Resend](glossary:resend). That means adding three records to the [DNS](glossary:dns) ([SPF](glossary:spf), [DKIM](glossary:dkim), [DMARC](glossary:dmarc)) that let the receiving side check "did stairno.com really send this mail?". Signing up for real and receiving it in Gmail, it arrived in the inbox with all three marked as passed.
 
 ### Measured in production
 
-| Check                                   | Result                                                                            |
-| --------------------------------------- | --------------------------------------------------------------------------------- |
-| Sign-up, sign-in, sign-out              | Passed                                                                            |
-| Cookie settings                         | Not readable by JavaScript, https only, shared only among the `stairno.com` rooms |
-| Security headers                        | Passed                                                                            |
-| Requests sneaked in from another origin | Refused                                                                           |
+| Check                                                      | Result                                                                            |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Sign-up, sign-in, sign-out                                 | Passed                                                                            |
+| [Cookie](glossary:cookie) settings                         | Not readable by JavaScript, https only, shared only among the `stairno.com` rooms |
+| [Security headers](glossary:security-header)               | Passed                                                                            |
+| Requests sneaked in from another [origin](glossary:origin) | Refused                                                                           |
 
 And two problems turned up.
 
-**1) It goes over the free plan CPU limit.** Password [hashing](/en/blog/dev/auth/auth-00-basics/#hash) is deliberately heavy. Measured in production, one sign-up took 152 ms of CPU and a sign-in about 95 ms, far above the Workers free plan's [10 ms per request](/en/blog/dev/cloudflare/cloudflare-00-basics/#free-plan-cpu-limit). The requests succeeded when measured, but running over the limit is not something to keep doing. For now the only users are me and test accounts, so the free plan stays, and the decision log says to switch to the paid plan (5 dollars a month) as soon as sign-ups or sign-ins start failing on CPU.
+**1) It goes over the free plan CPU limit.** Password [hashing](glossary:hash-function) is deliberately heavy. Measured in production, one sign-up took 152 ms of CPU and a sign-in about 95 ms, far above the [Workers](glossary:cloudflare-workers) free plan's [10 ms per request](glossary:cpu-time-limit). The requests succeeded when measured, but running over the limit is not something to keep doing. For now the only users are me and test accounts, so the free plan stays, and the decision log says to switch to the paid plan (5 dollars a month) as soon as sign-ups or sign-ins start failing on CPU.
 
-**2) Requests from Korea go through the US.** Requests sent from Korea entered Cloudflare's Los Angeles data center (LAX). The round trip alone is about 0.2 seconds. That is decided by the plan and the internet provider, and I cannot change it. Instead I did what I could. The DB (Neon) is in the AWS Singapore region, so the API server was set to [run next to the DB](/en/blog/dev/cloudflare/cloudflare-00-basics/#placement).
+**2) Requests from Korea go through the US.** Requests sent from Korea entered Cloudflare's Los Angeles [data center](glossary:data-center) (LAX). The [round trip](glossary:latency) alone is about 0.2 seconds. That is decided by the plan and the internet provider, and I cannot change it. Instead I did what I could. The DB ([Neon](glossary:neon)) is in the [AWS](glossary:aws) Singapore [region](glossary:region), so I turned on [Smart Placement](glossary:smart-placement), which runs the API server next to the DB.
 
-| Request (from Korea, median)       | Before | After |
-| ---------------------------------- | ------ | ----- |
-| A request that does not use the DB | 227ms  | 384ms |
-| Health check (one DB call)         | 391ms  | 371ms |
-| Public key list (several DB calls) | 816ms  | 418ms |
-| Sign-in check (no cookie)          | 211ms  | 399ms |
+| Request (from Korea, [median](glossary:median)) | Before | After |
+| ----------------------------------------------- | ------ | ----- |
+| A request that does not use the DB              | 227ms  | 384ms |
+| Health check (one DB call)                      | 391ms  | 371ms |
+| Public key list (several DB calls)              | 816ms  | 418ms |
+| Sign-in check (no [cookie](glossary:cookie))    | 211ms  | 399ms |
 
-It is not a free win. Requests with several DB calls were halved, but requests that do not call the DB take one more trip to Singapore and got slower. It was still the right side to pick, because almost every real API request calls the DB at least once. Session checks look at the DB every time, and [rate limiting](/en/blog/dev/auth/auth-00-basics/#rate-limiting) records are stored in the DB too. The only requests that skip the DB are "who is this?" from someone not signed in, and addresses that do not exist.
+It is not a free win. Requests with several DB calls were halved, but requests that do not call the DB take one more trip to Singapore and got slower. It was still the right side to pick, because almost every real API request calls the DB at least once. [Session](glossary:session) checks look at the DB every time, and [rate limiting](glossary:rate-limiting) records are stored in the DB too. The only requests that skip the DB are "who is this?" from someone not signed in, and addresses that do not exist.
 
 ### Polishing the screens
 
@@ -153,7 +158,7 @@ Looking at the live screens myself showed things to fix.
 
 ## 6. The account menu shared with the hub
 
-In the afternoon, the account menu from [Stairno 1](/en/blog/side-projects/stairno/stairno-01-shared-ui/#6-afterwards-adding-the-account-menu) was attached. The order mattered, so it went one PR at a time.
+In the afternoon, the account menu from [Stairno 1](/en/blog/side-projects/stairno/stairno-00-roadmap/#adding-the-account-menu) was attached. The order mattered, so it went one [PR](glossary:pull-request) at a time.
 
 1. Build the account menu part in `@stairno/ui` and bump its version
 2. Let the API accept "who is this?" and "sign out" requests coming from the hub (`stairno.com`)
@@ -163,29 +168,31 @@ In the afternoon, the account menu from [Stairno 1](/en/blog/side-projects/stair
 
 Each step was checked in production by actually signing in. The signed-in state now shows at the top right of the hub's front page.
 
-## 7. The tests were running under different conditions from production
+## 7. Tests ran under different conditions
 
-The most unsettling find of this step. Better Auth **turns off the [origin check](/en/blog/dev/web/web-00-basics/#origin) automatically in a test environment.** So the test "refuse sign-in requests from another origin" was actually passing with the check switched off.
+The most unsettling find of this step. [Better Auth](glossary:better-auth) **turns off the [origin](glossary:origin) check automatically in a test environment.** So the test "refuse sign-in requests from another [origin](glossary:origin)" was actually passing with the check switched off.
 
-Production had been closed from the start (sending from another origin was in fact refused). But tests that run under different conditions from production cannot be trusted. A setting now keeps the check always on, so the tests run under the same conditions as production.
+Production had been closed from the start (sending from another [origin](glossary:origin) was in fact refused). But tests that run under different conditions from production cannot be trusted. A setting now keeps the check always on, so the tests run under the same conditions as production.
 
 ## 8. Acceptance checklist
 
-On the afternoon of 18 October, the [acceptance checklist](/en/blog/dev/devops/devops-00-basics/#acceptance-checklist) was checked on the production addresses.
+On the afternoon of 18 October, the [acceptance checklist](glossary:acceptance-criteria) was checked on the production addresses.
 
-| Item                                                                                        | Result                                                                                                                        |
-| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Every part 1 requirement                                                                    | Automated tests (150 for the API, 134 for the screens, 6 end-to-end) + checked by hand in production                          |
-| Verification mail lands in the inbox                                                        | Passed in Gmail                                                                                                               |
-| Cookies, security headers                                                                   | Passed                                                                                                                        |
-| Sign-up, sign-in and sign-out with the keyboard only, 360px wide screen                     | Passed                                                                                                                        |
-| [Lighthouse](/en/blog/dev/web/web-00-basics/#lighthouse) accessibility 100, performance 90+ | Accessibility 100. Performance 91 in English and 81–85 in Korean, short of the target. Handed to `stairno-ui` as a font issue |
-| No secrets in the repos or logs                                                             | Passed. Zero automatic secret detection alerts on all three repos                                                             |
-| Rerun the 13-step experiment against the production OIDC provider                           | **Deferred.** No site to connect yet, so in step 5 (Labs)                                                                     |
-| Token refresh fails on connected sites after account deletion                               | **Deferred.** For the same reason, in step 5. The automated test passes                                                       |
-
-Remember those two deferred rows. That "no site to connect yet, so later" check exacts its price in [part 4a](/en/blog/side-projects/stairno/stairno-04a-payment-rehearsal/).
+| Item                                                                               | Result                                                                                                                           |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Every part 1 requirement                                                           | Automated tests (150 for the API, 134 for the screens, 6 [end-to-end](glossary:end-to-end-test)) + checked by hand in production |
+| [Verification mail](glossary:email-verification) lands in the inbox                | Passed in Gmail                                                                                                                  |
+| [Cookies](glossary:cookie), [security headers](glossary:security-header)           | Passed                                                                                                                           |
+| Sign-up, sign-in and sign-out with the keyboard only, 360px wide screen            | Passed                                                                                                                           |
+| [Lighthouse](glossary:lighthouse) accessibility 100, performance 90+               | Accessibility 100. Performance 91 in English and 81–85 in Korean, short of the target. Handed to `stairno-ui` as a font issue    |
+| No [secrets](glossary:secret) in the repos or logs                                 | Passed. Zero automatic [secret](glossary:secret) detection alerts on all three repos                                             |
+| Rerun the 13-step experiment against the production [OIDC](glossary:oidc) provider | **Deferred.** No site to connect yet, so in step 5 (Labs)                                                                        |
+| Token refresh fails on connected sites after account deletion                      | **Deferred.** For the same reason, in step 5. The automated test passes                                                          |
 
 Step 3 done. Next come payments.
 
 Next: [Stairno 4. Building payments](/en/blog/side-projects/stairno/stairno-04-payments/)
+
+## 9. Reflection
+
+The check put off because there was "no site to connect yet" exacts its price in [part 4a](/en/blog/side-projects/stairno/stairno-04-payments/#7-a-404-on-the-first-button).

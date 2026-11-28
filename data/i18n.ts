@@ -52,6 +52,7 @@ const labels = {
     projects: 'Projects',
     about: 'About',
     playground: 'Playground',
+    glossary: 'Glossary',
   },
   allPosts: 'All Posts',
   categories: 'Categories',
@@ -100,6 +101,8 @@ const dictionaries = {
     scrollToTop: '맨 위로',
     scrollToComment: '댓글로 이동',
     toggleMenu: '메뉴 열기/닫기',
+    glossaryIntro: '블로그 글에 나오는 용어를 A-Z로 모은 사전입니다. 글자를 누르면 펼쳐집니다.',
+    glossarySearch: '용어 검색 (영어·한글)',
     pg: {
       intro:
         '브라우저에서 바로 코드를 써 보고 실행하는 연습장입니다. 쓴 코드는 이 브라우저에 저장됩니다.',
@@ -143,6 +146,8 @@ const dictionaries = {
     scrollToTop: 'Scroll to top',
     scrollToComment: 'Scroll to comments',
     toggleMenu: 'Toggle menu',
+    glossaryIntro: 'Terms used across the blog, A to Z. Open a letter to see its entries.',
+    glossarySearch: 'Search terms',
     pg: {
       intro: 'Write and run code right in the browser. Your code is saved in this browser.',
       privacy:

@@ -3,29 +3,30 @@ title: 'CH6. session-flow: splitting sessions into slots and handing over throug
 date: '2026-11-28'
 tags: ['Skills']
 draft: false
+level: 2
 aiGenerated: true
 summary: 'Rules that split sessions into three levels and keep all state in files, so any conversation can be replaced at any time'
 ---
 
+## 0. Introduction
+
 > Part 6 of the skills series. What a skill is and why I keep them separate is in [CH0. Skills overview](/en/blog/side-projects/skills/skills-00-overview/).
 
-## In one line
+When several sessions run at once in the [Claude Code](glossary:claude-code) desktop app, anything a session knows only from its conversation is lost the moment that conversation is replaced. So I wrote `session-flow`: rules that split sessions into levels and keep all state in files.
 
-`session-flow` is the set of rules for running several sessions at once in the Claude Code desktop app. Sessions are split into three levels, home Lead, project Lead and work session, and what each one knows lives only in two files, `WORK.md` and `INDEX.md`, never in a conversation. So any session can drop its conversation and start fresh, and it picks up the work just by reading those files. Where this structure sits in the whole environment is covered briefly in [the session layout of my agent environment](/en/blog/side-projects/devblog/devblog-04-agent-environment/#10-session-layout); this post covers how the rules changed over two weeks.
+In restaurant terms, this is how a restaurant chain runs. Headquarters only knows which branches are open, each branch manager splits the work, and staff take turns at stations such as the kitchen or the floor. The next person on shift starts from the handover log, not from the previous person's memory. Headquarters is the home Lead, a branch manager is a project Lead, a station is a role slot, a staff member is a conversation, and the handover log is `WORK.md`.
+
+Sessions are split into home Lead, project Lead and work session, and what each one knows lives only in two files, `WORK.md` and `INDEX.md`. So any session can drop its conversation and start fresh, and it picks up the work just by reading those files. Where this structure sits in the whole environment is covered briefly in [the session layout of my agent environment](/en/blog/side-projects/devblog/devblog-04-agent-environment/#10-session-layout); this post covers how the rules changed over two weeks. Of the 34 [commits](glossary:commit) to the `session-flow` folder (2026-11-14 to 11-28), 33 changed `SKILL.md` (`~/dotfiles` git log, as of 2026-11-28).
 
 ## 1. Three levels of sessions
-
-As an analogy: one headquarters, one site manager per site, and work crews under each. Headquarters only knows which sites are open; the site manager splits the work on site.
 
 ![Under the home Lead there is one Lead per project, and under each, role slots and work sessions. Reports go up through SendMessage](/static/images/skills-06-session-flow/session-levels.svg)
 
 _Under the home Lead there is one Lead per project, and under each, role slots and work sessions. Reports go up through SendMessage_
 
-Headquarters is the **home Lead**, the site manager is the **project Lead**, and the crews are **role slots and work sessions**.
-
 1. **Home Lead** (`Lead`): always exactly one, in the home folder (`~`). It opens and closes projects and keeps "In progress" in `worklog/INDEX.md`. Questions that span projects also go here.
 2. **Project Lead** (`<name> Lead`): one per open project, running in that project's root. The name is whatever I call the project (blog, coffee shop). It owns that key's `WORK.md` and its `## 자리` (slots) list.
-3. **Role slots**: only the roles I asked for (PM, FE, BE and so on). With a PM, the PM splits the work and the others take items from `## 할 일` (to do). A session that does one job and ends is a **work session**; when it writes code it runs in its own git worktree. This post was written by one such work session.
+3. **Role slots**: only the roles I asked for (PM, FE, BE and so on). With a PM, the PM splits the work and the others take items from `## 할 일` (to do). A session that does one job and ends is a **work session**; when it writes code it runs in its own [git worktree](glossary:git-worktree). This post was written by one such work session.
 
 A session starts another with `start_session`, and the new session is nested under the one that started it. Only project Leads are pulled out with `detach_session` and placed in a per-project group in the sidebar. Role slots are never detached, so that closing a project Lead also cleans up everything nested under it.
 
@@ -33,35 +34,27 @@ The structure did not start with three levels. The first version on 2026-11-14 w
 
 ## 2. Leads only assign
 
-As an analogy: once the site manager starts laying bricks, nobody watches what the other crews are doing. The manager splits the work and checks the results, nothing more.
+The "Leads assign, never do" rule was added on 2026-11-17 (`bdd01fa`).
 
-In terms of the skill, this is the "Leads assign, never do" rule, added on 2026-11-17 (`bdd01fa`).
-
-- A Lead never edits code or documents, never makes commits, branches or PRs, and never deletes or moves project files, however small the change.
-- What a Lead does: read (records, transcripts, subagents), decide who does what, open that session or message it with `SendMessage`, and check the result. It writes only three things: `WORK.md`, `INDEX.md` and `## 자리`.
+- A Lead never edits code or documents, never makes [commits](glossary:commit), [branches](glossary:branch) or [PRs](glossary:pull-request), and never deletes or moves project files, however small the change.
+- What a Lead does: read (records, transcripts, [subagents](glossary:subagent)), decide who does what, open that session or message it with `SendMessage`, and check the result. It writes only three things: `WORK.md`, `INDEX.md` and `## 자리`.
 - With no fitting slot, it opens a work session. Even when I ask a Lead directly, it hands the work off and says which session took it.
 
-Before this rule, the archive table had a separate row for "a Lead makes a PR on its own"; this commit removed that row and merged it into the work-session PR row. No more detailed reason is recorded.
+Before this rule, the archive table had a separate row for "a Lead makes a [PR](glossary:pull-request) on its own"; this [commit](glossary:commit) removed that row and merged it into the work-session [PR](glossary:pull-request) row. No more detailed reason is recorded.
 
 For the same reason, **Leads hold no state.** Open projects are in `INDEX.md`, and a project's slots and work are in its key's `WORK.md`. A Lead knows how far a slot got from these files, not from what it heard in conversation. So a Lead can swap its conversation just like any other session.
 
 ## 3. The slot stays, the conversation changes
 
-As an analogy: a shift change. The desk stays where it is and only the person changes, and the next person starts from the handover log, not from the previous person's memory.
-
-The desk is the **slot**, the person is the **conversation**, and the log is **`WORK.md`**.
-
 - A slot stays in `## 자리` as one line, `- FE: <what it owns>`. The line stays even when no session is running in it.
 - Replacing a conversation is a handover, not an end. The handover steps are in `archive.md`. Finished work gets one line in `## 한 일` (done) with the slot name (`- YYYY-MM-DD <what changed> (FE, <PR url>)`), and unfinished work goes into `## 할 일` as `- [ ]` items that a session which never saw this conversation can pick up: where it stopped, what was tried, what's next, what is unverified.
-- A finished conversation leaves a transcript link in `~/dotfiles/session-archive/<YYYY-MM>/<key>/`, named `<date> <title>.jsonl`, through `archive-link.js`. Moving the transcript would break reopening it in the app, so only a link is made. On Windows without Developer Mode, symlinks are refused, so a hard link is used instead.
+- A finished conversation leaves a transcript link in `~/dotfiles/session-archive/<YYYY-MM>/<key>/`, named `<date> <title>.jsonl`, through `archive-link.js`. Moving the transcript would break reopening it in the app, so only a link is made (`archive-link.js` is 1,823 B). On Windows without [Developer Mode](glossary:windows-developer-mode), [symlinks](glossary:symbolic-link) are refused, so a [hard link](glossary:hard-link) is used instead.
 
 `WORK.md` holds only the latest conversation's record (`d814f21`, 11-14). When a new conversation first writes to it, the old `## 한 일` lines move to `history/` and it starts empty. `history/` holds one checklist per stage and is never read at start; a question that needs it opens one file or searches.
 
 ## 4. Turns that can open sessions
 
-As an analogy: a new hire only happens on a day the owner says so in person. A note passed from another department doesn't count.
-
-In terms of the app, these are the turns where `start_session` is refused. It works only in a turn I typed in that session (Remote Control included), in the first turn of a session started from such a turn, or from an `own_initiative` card I click. In a turn started by another session's `SendMessage`, it is refused in every permission mode. `SendMessage` itself is never refused.
+This section covers the turns where `start_session` is refused. It works only in a turn I typed in that session ([Remote Control](glossary:remote-control) included), in the first turn of a session started from such a turn, or from an `own_initiative` card I click. In a turn started by another session's `SendMessage`, it is refused in every [permission mode](glossary:permission-mode). `SendMessage` itself is never refused.
 
 This constraint reshaped the rules several times.
 
@@ -72,54 +65,46 @@ When a Lead needs a slot I haven't asked for, it doesn't open it; it tells me wh
 
 ## 5. Report up only what's needed
 
-As an analogy: crew members tell the site manager everything, but the manager sends headquarters only the results of work headquarters handed down and news other sites need.
+The reporting rules are in the skill's Reports section, settled on 11-17 (`3500aa4`).
 
-In terms of the skill, this is the Reports section, settled on 11-17 (`3500aa4`).
-
-| From → to                                | What                                                                                                                                                                                    |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Role slot → project Lead                 | Everything (nested, so it arrives by itself)                                                                                                                                            |
-| Project Lead → home Lead                 | Results of work the home Lead relayed; merges, PR closes, deadline results; anything other projects need; project open, close, handover and archive requests; what it can't solve alone |
-| Lead → Lead                              | Results back to the Lead that asked                                                                                                                                                     |
-| Session started by another → its starter | Before archiving: what it did, commit or PR, what's left                                                                                                                                |
+| From → to                                | What                                                                                                                                                                                                                               |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Role slot → project Lead                 | Everything (nested, so it arrives by itself)                                                                                                                                                                                       |
+| Project Lead → home Lead                 | Results of work the home Lead relayed; [merges](glossary:merge), [PR](glossary:pull-request) closes, deadline results; anything other projects need; project open, close, handover and archive requests; what it can't solve alone |
+| Lead → Lead                              | Results back to the Lead that asked                                                                                                                                                                                                |
+| Session started by another → its starter | Before archiving: what it did, [commit](glossary:commit) or [PR](glossary:pull-request), what's left                                                                                                                               |
 
 The last row came in on 11-18 (`28fe93a`). Work I gave directly in a Lead's window is not sent up. Being worth remembering is not a reason to report either: that goes in `## 한 일`, which the home Lead reads to know the status.
 
-When work is handed to another project, my words quoted exactly count as my own instruction, commit and push included (`3d4f8fd`, 11-17). Paraphrased or added words are not mine. On 11-28 the same standard went into the brief (work order) given to a sub-session (`ba07d45`). A brief opens with my words quoted as I said them, and adds only what the sender checked itself (paths, IDs, PR links, measured values) and the scope. No conclusions, guessed causes or chosen fixes. The trigger was a brief that came with its conclusions already written, from which a wrong course name went straight into a post; the receiving session never got the chance to check it.
+When work is handed to another project, my words quoted exactly count as my own instruction, [commit](glossary:commit) and [push](glossary:push) included (`3d4f8fd`, 11-17). Paraphrased or added words are not mine. On 11-28 the same standard went into the brief (work order) given to a sub-session (`ba07d45`). A brief opens with my words quoted as I said them, and adds only what the sender checked itself (paths, IDs, [PR](glossary:pull-request) links, measured values) and the scope. No conclusions, guessed causes or chosen fixes. The trigger was a brief that came with its conclusions already written, from which a wrong course name went straight into a post; the receiving session never got the chance to check it.
 
 ## 6. Write records in the same turn
 
-As an analogy: if you plan to fill in the log right before clocking out and the power goes out, that day has no record. You write it whenever the work changes.
-
-In terms of the skill, this is the Every turn section. The app auto-archives sessions unused for 3 days (`auto_archive_inactive_days`), and no model runs in the session when that happens. No hook fires and nothing is written. So a plan of "I'll clean up when archiving" misses that moment.
+The skill's Every turn section reads like this. The app auto-archives sessions unused for 3 days (`auto_archive_inactive_days`), and no model runs in the session when that happens. No [hook](glossary:hook) fires and nothing is written. So a plan of "I'll clean up when archiving" misses that moment.
 
 - When remaining work changes, edit `## 할 일`. When something is done, write a dated `## 한 일` line in that turn and delete its `## 할 일` item.
-- When I only learn something is resolved (checked, not done by me), grep every key's `~/dotfiles/worklog/*/WORK.md` and close every matching item, other projects' keys included (`7adb788`, 11-27). In those keys only the item is removed, with no `## 한 일` line.
+- When I only learn something is resolved (checked, not done by me), [grep](glossary:grep) every key's (28 folders as of 2026-11-28) `~/dotfiles/worklog/*/WORK.md` and close every matching item, other projects' keys included (`7adb788`, 11-27). In those keys only the item is removed, with no `## 한 일` line.
 - A changed fact goes to memory; work started or stopped goes to "In progress" in `INDEX.md`.
-- No git commands for these files. The Stop [hook](/en/blog/side-projects/devblog/devblog-04-agent-environment/#8-hook) commits and pushes `memory/` and `worklog/`.
+- No git commands for these files. The Stop [hook](/en/blog/side-projects/devblog/devblog-04-agent-environment/#8-hook) [commits](glossary:commit) and [pushes](glossary:push) `memory/` and `worklog/`.
 
 For work with a deadline, like an assignment, the deadline and submission status live only in the upper Lead's key (e.g. `univ`) (`01bc017`, 11-27). The key that does the work (e.g. `vm`) holds only a pointer, "deadline and submission status: `univ` WORK.md", never the value. If the same value lives in two places, only one gets updated.
 
 ## 7. A merge doesn't close the session
 
-As an analogy: one delivery finishing doesn't disband the site crew. There may be more work left.
+This rule is in the skill's "After a [PR](glossary:pull-request) [merges](glossary:merge)" section and `pr-merge.md`. At first a role slot was archived when its [PR](glossary:pull-request) [merged](glossary:merge) (`e9fe6e0`, 11-17). But there were cases where the [PR](glossary:pull-request) [merged](glossary:merge) while the slot's work was not done, and on 11-19 the [merge](glossary:merge) row was removed from the archive table (`3cff282`). The app setting `auto_archive_on_pr_close` is off too (`ff487c6`). It's an account-wide setting, so it is off on both the Mac and Windows.
 
-In terms of the skill, this is the "After a PR merges" section and `pr-merge.md`. At first a role slot was archived when its PR merged (`e9fe6e0`, 11-17). But there were cases where the PR merged while the slot's work was not done, and on 11-19 the merge row was removed from the archive table (`3cff282`). The app setting `auto_archive_on_pr_close` is off too (`ff487c6`). It's an account-wide setting, so it is off on both the Mac and Windows.
+Now, in the turn of the [merge](glossary:merge) and before any other reply:
 
-Now, in the turn of the merge and before any other reply:
-
-1. Fetch and fast-forward local `main`. If a worktree was used, the repo's main checkout too. Delete only this PR's branch, locally and on the remote (its worktree first), and start the next work on a fresh branch from `main`. Report how many commits `main` moved.
-2. One line in `WORK.md` `## 한 일` with the PR URL.
-3. Tell the session this one reports to about the merge.
+1. [Fetch](glossary:fetch) and [fast-forward](glossary:fast-forward) local `main`. If a [worktree](glossary:git-worktree) was used, the repo's main checkout too. Delete only this [PR](glossary:pull-request)'s [branch](glossary:branch), locally and on the remote (its [worktree](glossary:git-worktree) first), and start the next work on a fresh [branch](glossary:branch) from `main`. Report how many [commits](glossary:commit) `main` moved.
+2. One line in `WORK.md` `## 한 일` with the [PR](glossary:pull-request) URL.
+3. Tell the session this one reports to about the [merge](glossary:merge).
 4. Keep working.
 
-The branch cleanup scope changed twice in one day. On 11-19, after seeing 24 local and 22 remote merged branches piled up in one project, the rule was changed to delete every merged branch after a merge (`a82bb3a`); the same day it went back to deleting only this PR's branch (`4900b66`). If every merge deletes its own branch, everything ends up clean anyway. A full sweep happens only in the branch update of [pr-workflow](/en/blog/side-projects/skills/skills-05-pr-workflow/), when I ask for it.
+The [branch](glossary:branch) cleanup scope changed twice in one day. On 11-19, after seeing 24 local and 22 remote [merged](glossary:merge) [branches](glossary:branch) piled up in one project, the rule was changed to delete every [merged](glossary:merge) [branch](glossary:branch) after a [merge](glossary:merge) (`a82bb3a`); the same day it went back to deleting only this [PR](glossary:pull-request)'s [branch](glossary:branch) (`4900b66`). If every [merge](glossary:merge) deletes its own [branch](glossary:branch), everything ends up clean anyway. A full sweep happens only in the [branch](glossary:branch) update of [pr-workflow](/en/blog/side-projects/skills/skills-05-pr-workflow/), when I ask for it.
 
 ## 8. Closing and the sweep
 
-As an analogy: when pulling out of a site, the crews leave first and the site manager locks up last. Only headquarters opens again the next day.
-
-In terms of the skill, this is the close cascade (`9124350`, 11-17). The session told to close closes together with everything nested under it, and only the home Lead ever reopens.
+This rule is the close cascade (`9124350`, 11-17). The session told to close closes together with everything nested under it, and only the home Lead ever reopens.
 
 - A project Lead waits until every session under it has handed over and archived, deletes the project's sidebar group, and archives itself (`06848d8`). No successor. Reopening brings back only the Lead; a slot starts from `WORK.md` again only when I ask for it.
 - When I tell the home Lead to close, it first starts the next home Lead (section 4), then relays the close to each open project Lead. Once "In progress" lists no projects, it archives itself.
@@ -128,60 +113,36 @@ Leftover sessions are cleaned up by the **sweep**. The trigger on 11-15 was a Ma
 
 ## 9. Models and session cost
 
-As an analogy: fixed procedures go to skilled hands, design that needs judgment goes to whoever is in charge.
+Model choice for slots and agents was set on 11-19 (`731fb96`). A Lead picks [Opus](glossary:claude) for sessions that need judgment or design, and [Sonnet](glossary:claude) for fixed procedures. The brief sets the agents' model and a cap on concurrent agents: mechanical agent work runs on [Sonnet](glossary:claude), judgment stays in the session. The basis is a measurement from another project running both models. The measurement conditions are not in this skill's records; only the result numbers are.
 
-In terms of the skill, this is model choice for slots and agents (`731fb96`, 11-19). A Lead picks Opus for sessions that need judgment or design, and Sonnet for fixed procedures. The brief sets the agents' model and a cap on concurrent agents: mechanical agent work runs on Sonnet, judgment stays in the session. The basis is a measurement from another project running both models (numbers table below). The measurement conditions are not in this skill's records; only the result numbers are.
+| 2026-11-19, another project, from the worklog | [Sonnet](glossary:claude) | [Opus](glossary:claude) |
+| --------------------------------------------- | ------------------------- | ----------------------- |
+| finish errors                                 | 0                         | 35                      |
+| [tokens](glossary:token) per item             | 7,098                     | 6,859                   |
 
-Each session start reads all instructions and the tool list from scratch. So a question never opens a session; reading and searching go to a subagent. This input-token cost is the same reason instructions are moved out into skills in the first place.
+Each session start reads all instructions and the tool list from scratch. So a question never opens a session; reading and searching go to a [subagent](glossary:subagent). This input-[token](glossary:token) cost is the same reason instructions are moved out into skills in the first place.
 
 ## 10. From 135 lines to 71
 
-As an analogy: from a manual that grew too thick, keep only the rules you read every day up front and move the occasional procedures to appendices.
+This structure is [progressive disclosure](glossary:progressive-disclosure). `SKILL.md` opens first, and the files next to it open only for their situation. The 11-20 [commit](glossary:commit) (`1f7935d`) cut `SKILL.md` down to rules and moved situational procedures into five side files. Duplicated rules were merged, and quotes, incident notes and examples were removed. As of 2026-11-28, measured from file sizes in the `~/dotfiles` repo.
 
-In terms of the skill, this is progressive disclosure. `SKILL.md` opens first, and the files next to it open only for their situation. The 11-20 commit (`1f7935d`) cut `SKILL.md` down to rules and moved situational procedures into five side files. Duplicated rules were merged, and quotes, incident notes and examples were removed.
+| `SKILL.md` at                             | Size                     |
+| ----------------------------------------- | ------------------------ |
+| Its largest (just before the 11-20 split) | 135 lines, 29,962 B      |
+| Right after the split                     | 71 lines, 7,908 B (−74%) |
+| Now                                       | 73 lines, 8,893 B        |
+| Five side files combined                  | 11,116 B                 |
 
-| File          | Opened when                                                               |
-| ------------- | ------------------------------------------------------------------------- |
-| `archive.md`  | Archiving, closing, replacing, handover                                   |
-| `pr-merge.md` | A PR was merged or closed                                                 |
-| `projects.md` | Opening or closing a project, handing work to another project, a new repo |
-| `slots.md`    | Slot requests, Red Team, work-session defaults, models, sidebar groups    |
-| `history.md`  | Writing `history/` files                                                  |
+| File          | Opened when                                                                                 |
+| ------------- | ------------------------------------------------------------------------------------------- |
+| `archive.md`  | Archiving, closing, replacing, handover                                                     |
+| `pr-merge.md` | A [PR](glossary:pull-request) was [merged](glossary:merge) or closed                        |
+| `projects.md` | Opening or closing a project, handing work to another project, a new repo                   |
+| `slots.md`    | Slot requests, [Red Team](glossary:red-team), work-session defaults, models, sidebar groups |
+| `history.md`  | Writing `history/` files                                                                    |
 
-A Red Team slot writes no code and owns no files. It only raises objections against plans, decision records and PRs. When I split a project into slots and `## 자리` has no Red Team, the Lead asks in one line whether to add one. The objections and their answers go into the [decision record](/en/blog/side-projects/project-docs/project-docs-02-decision-records/).
+A [Red Team](glossary:red-team) slot writes no code and owns no files. It only raises objections against plans, decision records and [PRs](glossary:pull-request). When I split a project into slots and `## 자리` has no [Red Team](glossary:red-team), the Lead asks in one line whether to add one. The objections and their answers go into the [decision record](/en/blog/side-projects/project-docs/project-docs-00-overview/#5-decision-records-inside-the-sdd).
 
-## By the numbers
+## 11. Reflection
 
-As of 2026-11-28, measured from the `~/dotfiles` repo's git log and file sizes.
-
-| Item                                                         | Value                                                                      |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| Commits to the `session-flow` folder                         | 34 (2026-11-14 to 11-28)                                                   |
-| Of those, commits changing `SKILL.md`                        | 33 (busiest day 11-17, 11 commits)                                         |
-| `SKILL.md` at its largest (just before the 11-20 split)      | 135 lines, 29,962 B                                                        |
-| Right after the split                                        | 71 lines, 7,908 B (−74%)                                                   |
-| Now                                                          | 73 lines, 8,893 B                                                          |
-| Five side files combined                                     | 11,116 B                                                                   |
-| `archive-link.js`                                            | 1,823 B                                                                    |
-| Worklog key folders                                          | 28                                                                         |
-| App auto-archive                                             | after 3 days unused                                                        |
-| Trigger for post-merge branch cleanup (11-19, one project)   | 24 local and 22 remote branches left behind after merge                    |
-| Model measurement (11-19, another project, from the worklog) | finish errors Sonnet 0, Opus 35 / tokens per item Sonnet 7,098, Opus 6,859 |
-
-## Glossary
-
-| Term                                                                        | Meaning                                                                              |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Home Lead                                                                   | The one session in the home folder; opens and closes projects and keeps `INDEX.md`   |
-| Project Lead                                                                | One per open project; a session that only assigns work                               |
-| Role slot                                                                   | A role seat kept in `## 자리`; sessions come and go, the seat stays                  |
-| Work session                                                                | A session that takes one job, reports and archives when done                         |
-| `start_session`                                                             | The app tool a session uses to start another; refused in message-started turns       |
-| `SendMessage`                                                               | The tool for messaging between sessions; never refused                               |
-| nested / detached                                                           | Attached under the session that started it / pulled out on its own                   |
-| handover                                                                    | Writing what was done and what's left into `WORK.md` before replacing a conversation |
-| sweep                                                                       | A Lead recording and archiving leftover sessions outside the slots                   |
-| close cascade                                                               | The rule that a closing session closes together with everything under it             |
-| brief                                                                       | The work order for a sub-session: my exact words and checked facts only              |
-| progressive disclosure                                                      | Opening a short body first and side files only for their situation                   |
-| [hook](/en/blog/side-projects/devblog/devblog-04-agent-environment/#8-hook) | A script that runs automatically on agent events (end of turn, etc.)                 |
+Any session can drop its conversation and start fresh, and it picks up the work by reading only `WORK.md` and `INDEX.md`.

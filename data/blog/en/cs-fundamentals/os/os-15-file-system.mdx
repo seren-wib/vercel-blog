@@ -36,7 +36,7 @@ summary: 'file system basics, mapping problem, directories, mounting, disk layou
 
 # 1. Basic Concepts
 
-A disk looks like nothing more than "N blocks of 512B" → too raw for people to use → one layer of abstraction on top of it = the file system
+A disk looks like nothing more than "N blocks of 512B" → too raw for people to use → one layer of abstraction on top of it = the [file system](glossary:file-system)
 
 ## 1. The 3 requirements for long-term information storage
 
@@ -48,26 +48,26 @@ A disk looks like nothing more than "N blocks of 512B" → too raw for people to
 
 - Definition: "a named collection of related information" recorded on secondary storage
 - Key point: persistent (survives when the power goes out ← the decisive difference from memory)
-- The OS provides a uniform logical view called a file → the user doesn't need to know about blocks or sectors
+- The OS provides a uniform logical view called a file → the user doesn't need to know about blocks or [sectors](glossary:sector)
 
 ## 3. The role of the File System
 
 - Abstracts secondary storage → presents it in units called files
-- Logical structuring → directories
+- Logical structuring → [directories](glossary:directory)
 - Data sharing (between processes, people and machines)
 - Protection/access control (security)
 
 ## 4. The logical view of a disk (block device abstraction)
 
-- Operations provided by the block device driver:
+- Operations provided by the [block device](glossary:block-device) driver:
   - Identify() → returns the total number of blocks N
-  - Read(starting sector#, number of sectors)
-  - Write(starting sector#, number of sectors)
-- That is, a disk is just an array `[512B][512B]...[512B]` (0 ~ N-1) → no notion of names or directories
+  - Read(starting [sector](glossary:sector)#, number of [sectors](glossary:sector))
+  - Write(starting [sector](glossary:sector)#, number of [sectors](glossary:sector))
+- That is, a disk is just an array `[512B][512B]...[512B]` (0 ~ N-1) → no notion of names or [directories](glossary:directory)
 
 # 2. Core model — "the mapping problem"
 
-The essential problem a file system solves = **mapping `<file name, metadata, data>` → `<set of blocks>`**
+The essential problem a [file system](glossary:file-system) solves = **mapping `<file name, metadata, data>` → `<set of blocks>`**
 
 ## 1. The 3 components of a file
 
@@ -77,19 +77,19 @@ The essential problem a file system solves = **mapping `<file name, metadata, da
 
 ### 2. File attributes (metadata)
 
-- File size, owner, access control list (ACL)
+- File size, owner, [access control list (ACL)](glossary:acl)
 - Creation/access/modification times, etc.
 - ※ Not the file's "contents" but "information about the file"
 
 ### 3. File contents (data)
 
-- The actual contents → the file system doesn't care what it is (treats it as just a lump of bytes)
+- The actual contents → the [file system](glossary:file-system) doesn't care what it is (treats it as just a lump of bytes)
 
 ## 2. Why the mapping is non-trivial
 
 - One file's data is stored **scattered (non-contiguous)** across the disk
 - e.g.: blocks 1,2,3,4 of "a.out" / blocks 1,2,3 of "dog.jpg" are laid out mixed together on the disk
-- → The metadata has to hold, in order, "where on the disk this file's blocks are"
+- → The [metadata](glossary:metadata) has to hold, in order, "where on the disk this file's blocks are"
 
 ## 3. Goals
 
@@ -99,10 +99,10 @@ The essential problem a file system solves = **mapping `<file name, metadata, da
 
 (Shows up on the exam in the form "what problems need to be solved")
 
-- What information to put in the metadata
-- How to find the metadata → **pathname → metadata mapping**
+- What information to put in the [metadata](glossary:metadata)
+- How to find the [metadata](glossary:metadata) → **pathname → [metadata](glossary:metadata) mapping**
 - How to find the data blocks
-- Managing metadata and data blocks (allocation / reclamation / free space management)
+- Managing [metadata](glossary:metadata) and data blocks (allocation / reclamation / [free space management](glossary:free-space-management))
 - How to recover after a crash
 
 # 3. File attributes & operations
@@ -120,69 +120,69 @@ The essential problem a file system solves = **mapping `<file name, metadata, da
 
 - `creat` / `open` / `close`
 - `read` / `write` / `lseek` (move the file offset)
-- `stat` (look up metadata)
+- `stat` (look up [metadata](glossary:metadata))
 - `chmod` (change permissions) / `chown` (change owner)
-- `flock` (file lock) / `fcntl` (file control)
+- `flock` ([file lock](glossary:file-locking)) / `fcntl` (file control)
 
 # 4. Directories
 
 ## 1. The two faces of a directory
 
 - **From the user's side**: a means of organizing files structurally
-- **From the file system's side**: provides the naming interface
+- **From the [file system](glossary:file-system)'s side**: provides the naming interface
   - → Separates **logical file organization (names)** from **physical disk placement** (key point)
 
 ## 2. Hierarchical directory system
 
-- Most support multi-level directories
-- The concept of a current working directory (cwd, working directory) exists
-- Relative path: relative to cwd → `cd ../../foo/bar/../bar`
-- Absolute path: starts from the root → `cd /tmp/foo/bar`
+- Most support multi-level [directories](glossary:directory)
+- The concept of a [current working directory (cwd, working directory)](glossary:current-working-directory) exists
+- [Relative path](glossary:relative-path): relative to [cwd](glossary:current-working-directory) → `cd ../../foo/bar/../bar`
+- [Absolute path](glossary:absolute-path): starts from the root → `cd /tmp/foo/bar`
 
 ## 3. Directory Internals
 
-- A directory = **effectively just a file holding special metadata**
+- A [directory](glossary:directory) = **effectively just a file holding special [metadata](glossary:metadata)**
 - Contents = a list of `(file name, file attributes)`
   - Attributes: size, protection, creation/access time, location on disk, etc.
-- Usually not sorted (effectively random) → sorting is done by the program reading the directory (`ls`, etc.)
+- Usually not sorted (effectively random) → sorting is done by the program reading the [directory](glossary:directory) (`ls`, etc.)
 
 ## 4. Pathname Translation ★
 
 How `open("/a/b/c", ...)` is processed:
 
-1. Open the root "/" directory (its location is always known)
+1. Open the root "/" [directory](glossary:directory) (its location is always known)
 2. Search "/" for "a" → get the location of "a"
 3. Open "a" and search for "b" → get the location of "b"
 4. Open "b" and search for "c" → get the location of "c"
 5. Open file "c"
 
 - ※ **A permission check is performed at every step**
-- → Each step down the path costs a lot to read and search the directory (the system spends a lot of time walking paths)
+- → Each step down the path costs a lot to read and search the [directory](glossary:directory) (the system spends a lot of time walking paths)
 
 ### ★ Why open() is separate from read()/write()
 
-- Path resolution is expensive → making every I/O walk the path again, like `read("/a/b/c", buf, 100)`, would be insane
-- → **open() resolves the path just once** and hands over the result (fd) → read/write use only the fd, so no path resolution is needed
+- [Path resolution](glossary:pathname-translation) is expensive → making every I/O walk the path again, like `read("/a/b/c", buf, 100)`, would be insane
+- → **open() resolves the path just once** and hands over the result ([fd](glossary:file-descriptor)) → read/write use only the [fd](glossary:file-descriptor), so no [path resolution](glossary:pathname-translation) is needed
 - Extra optimization: the OS caches prefix lookup results
   - `/a/b`, `/a/bb`, `/a/bbb` all share the `/a` prefix → reuse what was found once
 
 ## 5. Directory operations
 
-- Directories are files too → they can be manipulated with file operations
+- [Directories](glossary:directory) are files too → they can be manipulated with file operations
 - The C runtime provides a higher-level abstraction:
   - `opendir` / `readdir` / `seekdir` / `closedir`
-- Other system calls:
+- Other [system calls](glossary:system-call):
   - `rename` (rename)
-  - `link` (create a hard link) / `unlink` (remove a link = delete)
+  - `link` (create a [hard link](glossary:hard-link)) / `unlink` (remove a link = delete)
 
 # 5. File system Mounting
 
-"The step that makes a file system recognized by the OS and usable"
+"The step that makes a [file system](glossary:file-system) recognized by the OS and usable"
 
-- A file system **can't be used by processes before it's mounted** (mounting is mandatory)
+- A [file system](glossary:file-system) **can't be used by processes before it's [mounted](glossary:mount)** ([mounting](glossary:mount) is mandatory)
 - **Windows**: attached to a drive letter (`C:\`, `D:\`, ...)
-- **Unix**: attached to an existing **empty directory (= mount point)**
-  - e.g.: if a new file system is mounted under `/users`, that directory acts like the root of the new FS
+- **Unix**: attached to an existing **empty [directory](glossary:directory) (= [mount point](glossary:mount))**
+  - e.g.: if a new [file system](glossary:file-system) is [mounted](glossary:mount) under `/users`, that [directory](glossary:directory) acts like the root of the new FS
 
 # 6. Disk Layout
 
@@ -190,60 +190,60 @@ What gets laid out on the disk physically, and in what order
 
 ## 1. The whole disk
 
-- **MBR (Master Boot Record)**: boot code + partition table
-- **Partitions**: Partition 1(active) / 2 / 3 ...
-  - The active partition is the one booted
+- **[MBR](glossary:mbr) (Master Boot Record)**: boot code + [partition](glossary:partition) table
+- **[Partitions](glossary:partition)**: [Partition](glossary:partition) 1(active) / 2 / 3 ...
+  - The active [partition](glossary:partition) is the one booted
 
 ## 2. Inside a partition (FS-dependent, differs per file system type)
 
 In order from top to bottom:
 
-- **boot block**: boot code
-- **super block**: FS metadata (FS type, total number of blocks, etc.) ← information representing the whole FS (something like a PK)
-- **bitmaps**: a data structure for free space management → marks "is this block currently **in use / free**"
-- **i-nodes**: file metadata → "where and how a particular file is **placed** on the disk"
-- **root dir**: the root directory
-- **files & directories**: the actual file and directory data
+- **[boot block](glossary:boot-block)**: boot code
+- **[super block](glossary:superblock)**: FS [metadata](glossary:metadata) (FS type, total number of blocks, etc.) ← information representing the whole FS (something like a PK)
+- **[bitmaps](glossary:bitmap)**: a data structure for [free space management](glossary:free-space-management) → marks "is this block currently **in use / free**"
+- **[i-nodes](glossary:inode)**: file [metadata](glossary:metadata) → "where and how a particular file is **placed** on the disk"
+- **root dir**: the root [directory](glossary:directory)
+- **files & [directories](glossary:directory)**: the actual file and [directory](glossary:directory) data
 
-> ⚠️ Watch out for mixing up bitmap vs i-node
+> ⚠️ Watch out for mixing up [bitmap](glossary:bitmap) vs [i-node](glossary:inode)
 >
-> - bitmap = whether a block is used/free (space management)
-> - i-node = that file's block placement information (file management)
+> - [bitmap](glossary:bitmap) = whether a block is used/free (space management)
+> - [i-node](glossary:inode) = that file's block placement information (file management)
 
 # 7. File system Internals
 
 ## 1. Layer structure (top → bottom)
 
-1. **System call interface** ← the entry point where user processes call open/read/write
-2. **VFS (Virtual File System)** ← abstracts multiple FSes into one
-3. **Individual File Systems** (minix, nfs, ext4, fat, procfs ...)
-4. **buffer cache** ← caches disk blocks (performance)
-5. **device driver** ← controls the actual hardware
+1. **[System call](glossary:system-call) interface** ← the entry point where user processes call open/read/write
+2. **[VFS (Virtual File System)](glossary:vfs)** ← abstracts multiple FSes into one
+3. **Individual [File Systems](glossary:file-system)** (minix, nfs, ext4, fat, procfs ...)
+4. **[buffer cache](glossary:buffer-cache)** ← caches disk blocks (performance)
+5. **[device driver](glossary:device-driver)** ← controls the actual hardware
 
 ## 2. VFS (Virtual File System)
 
 - Role:
-  - Abstracts all file systems into **a single kernel-level format** → the layer above (system calls) doesn't need to know the FS type
-  - Receives user-level system calls (open, read, write, close, stat, etc.)
-  - Interacts with a specific FS based on **mount point traversal** → while walking a path, on hitting a mount point it calls that FS's driver
+  - Abstracts all [file systems](glossary:file-system) into **a single kernel-level format** → the layer above ([system calls](glossary:system-call)) doesn't need to know the FS type
+  - Receives user-level [system calls](glossary:system-call) (open, read, write, close, stat, etc.)
+  - Interacts with a specific FS based on **[mount point](glossary:mount) traversal** → while walking a path, on hitting a [mount point](glossary:mount) it calls that FS's driver
 
 ### ★ Linux VFS common file model — 4 objects (a regular for short-answer and matching questions)
 
-- **superblock object**: information about the whole mounted file system
-- **dentry object**: **linking** information between a directory entry ↔ a file → in charge of the directory structure
-- **inode object**: general information about a specific file → in charge of the file itself
+- **[superblock object](glossary:superblock)**: information about the whole [mounted](glossary:mount) [file system](glossary:file-system)
+- **[dentry object](glossary:dentry)**: **linking** information between a [directory entry](glossary:dentry) ↔ a file → in charge of the [directory](glossary:directory) structure
+- **[inode object](glossary:inode)**: general information about a specific file → in charge of the file itself
 - **file object**: information about the interaction between **an open file ↔ a process** (the opened state)
 
-> Swapping dentry (directory structure) ↔ inode (file structure) loses points outright
+> Swapping [dentry](glossary:dentry) ([directory](glossary:directory) structure) ↔ [inode](glossary:inode) (file structure) loses points outright
 
 ## 3. In-memory data structures (what gets loaded into memory at runtime)
 
-- **per-process file descriptor table** (per-process open-file table)
-  - Each process has its own → indexed by fd number
-- **system-wide file table** (system-wide open-file table)
+- **per-process [file descriptor table](glossary:open-file-table)** (per-process [open-file table](glossary:open-file-table))
+  - Each process has its own → indexed by [fd](glossary:file-descriptor) number
+- **system-wide [file table](glossary:open-file-table)** (system-wide [open-file table](glossary:open-file-table))
   - Holds count (number of references) and offset (current position in the file)
-- **in-memory partition table**
-- **directory cache** (speeds up path resolution)
-- **buffer cache** (caches disk blocks)
+- **in-memory [partition](glossary:partition) table**
+- **[directory cache](glossary:dentry)** (speeds up [path resolution](glossary:pathname-translation))
+- **[buffer cache](glossary:buffer-cache)** (caches disk blocks)
 
-> The fd table is per process / the file table is global → this split explains how files are shared on fork and dup
+> The [fd table](glossary:open-file-table) is per process / the [file table](glossary:open-file-table) is global → this split explains how files are shared on [fork](glossary:fork) and [dup](glossary:dup)

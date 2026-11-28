@@ -29,35 +29,35 @@ summary: 'memory management, fixed/variable partitions, overlays, swapping, virt
 # 1. Goals of memory management
 
 1. Provide abstractions that are convenient to program with (like arrays)
-2. Distribute scarce memory resources among multiple processes
-   - Maximize performance with minimal overhead
-3. Provide isolation between processes
+2. Distribute scarce memory resources among multiple [processes](glossary:process)
+   - Maximize performance with minimal [overhead](glossary:overhead)
+3. Provide isolation between [processes](glossary:process)
 
 - So why is this hard?
 
 # 2. Single / Batch Programming
 
-- The days when only one process was loaded into memory and run
-- Programs used actual RAM addresses (physical addresses) directly
+- The days when only one [process](glossary:process) was loaded into memory and run
+- Programs used actual [RAM](glossary:ram) addresses (physical addresses) directly
 - Only one user program is in memory at a time
 
 # 3. Multiprogramming
 
-When multiple processes are loaded into memory at the same time, processes must not invade each other's memory regions, so we need **Protection** so each uses only its own region. Also, processes use addresses constantly, so if address translation is slow the whole process slows down. So we need something that quickly converts virtual > physical (**fast translation**). Also, the memory settings must be switched quickly on a context switch (**fast context switch**).
+When multiple [processes](glossary:process) are loaded into memory at the same time, [processes](glossary:process) must not invade each other's memory regions, so we need **Protection** so each uses only its own region. Also, [processes](glossary:process) use addresses constantly, so if [address translation](glossary:address-translation) is slow the whole [process](glossary:process) slows down. So we need something that quickly converts virtual > physical (**fast translation**). Also, the memory settings must be switched quickly on a [context switch](glossary:context-switch) (**fast [context switch](glossary:context-switch)**).
 
 ## virtual address vs physical address
 
-**The memory address a process sees can differ from the actual memory address. The kernel manages this**
+**The memory address a [process](glossary:process) sees can differ from the actual memory address. The [kernel](glossary:kernel) manages this**
 
 # 4. Ways to load multiple processes into memory (old-style)
 
 ## 1. Fixed Partitions
 
-- Divide physical memory into fixed-size partitions
-- Each partition holds one process
-- The hardware needed is a base register
-- Physical address = virtual address + base register
-- On a context switch, the OS loads the base register value for the current process
+- Divide physical memory into fixed-size [partitions](glossary:partition)
+- Each [partition](glossary:partition) holds one [process](glossary:process)
+- The hardware needed is a [base register](glossary:base-register)
+- Physical address = [virtual address](glossary:virtual-address) + [base register](glossary:base-register)
+- On a [context switch](glossary:context-switch), the OS loads the [base register](glossary:base-register) value for the current [process](glossary:process)
 
 ### Advantages
 
@@ -66,39 +66,39 @@ When multiple processes are loaded into memory at the same time, processes must 
 
 ### Disadvantages
 
-1. Internal fragmentation: even if memory is left over inside a partition, other processes can't use it
-2. The partition size doesn't fit every process (similar to point 1)
+1. Internal fragmentation: even if memory is left over inside a [partition](glossary:partition), other [processes](glossary:process) can't use it
+2. The [partition](glossary:partition) size doesn't fit every [process](glossary:process) (similar to point 1)
 
 ### The improved version that followed
 
-- Prepare partitions cut from physical memory in several sizes
-- Since we know how much memory a process uses, scan the memory regions based on that and put it into a partition of a suitable size
-- The scanning step makes the overhead larger
+- Prepare [partitions](glossary:partition) cut from physical memory in several sizes
+- Since we know how much memory a [process](glossary:process) uses, scan the memory regions based on that and put it into a [partition](glossary:partition) of a suitable size
+- The scanning step makes the [overhead](glossary:overhead) larger
 
 ## 2. Variable Partitions
 
-**Sizing each partition differently to fit the process size**
+**Sizing each [partition](glossary:partition) differently to fit the [process](glossary:process) size**
 
-- Divide physical memory into variable-sized partitions.
-- The hardware needed is a base register and a limit register.
-- The base register stores the address where the process starts in physical memory.
-- The limit register stores the range the process can access and serves as protection.
-- Physical address = virtual address + base register
-- If a virtual address goes beyond the limit, a protection fault occurs.
-- Only one register value needs to change, so the overhead is small (but even if small, it's more than fixed)
+- Divide physical memory into variable-sized [partitions](glossary:partition).
+- The hardware needed is a [base register](glossary:base-register) and a [limit register](glossary:limit-register).
+- The [base register](glossary:base-register) stores the address where the [process](glossary:process) starts in physical memory.
+- The [limit register](glossary:limit-register) stores the range the [process](glossary:process) can access and serves as [protection](glossary:protection).
+- Physical address = [virtual address](glossary:virtual-address) + [base register](glossary:base-register)
+- If a [virtual address](glossary:virtual-address) goes beyond the limit, a [protection fault](glossary:protection-fault) occurs.
+- Only one register value needs to change, so the [overhead](glossary:overhead) is small (but even if small, it's more than fixed)
 
 ### Allocation strategies
 
-1. First fit
-   - Place it in the first hole it fits in.
-2. Best fit
-   - Place it in the smallest hole it fits in.
-3. Worst fit
-   - Place it in the largest hole.
+1. [First fit](glossary:first-fit)
+   - Place it in the first [hole](glossary:hole) it fits in.
+2. [Best fit](glossary:best-fit)
+   - Place it in the smallest [hole](glossary:hole) it fits in.
+3. [Worst fit](glossary:worst-fit)
+   - Place it in the largest [hole](glossary:hole).
 
 ### Advantages
 
-- No internal fragmentation: because the partition is allocated to exactly fit the process size.
+- No [internal fragmentation](glossary:internal-fragmentation): because the [partition](glossary:partition) is allocated to exactly fit the [process](glossary:process) size.
 
 ### Problems
 
@@ -106,9 +106,9 @@ When multiple processes are loaded into memory at the same time, processes must 
 
 ### Solutions to external fragmentation
 
-- Compaction: move scattered processes to one side to merge the holes into a big one
-- Paging: divide memory into fixed-size pages/frames to remove the need for contiguous space
-- Segmentation: divide the program into meaningful units called segments and manage them
+- [Compaction](glossary:compaction): move scattered [processes](glossary:process) to one side to merge the [holes](glossary:hole) into a big one
+- [Paging](glossary:paging): divide memory into fixed-size pages/frames to remove the need for contiguous space
+- [Segmentation](glossary:segmentation): divide the program into meaningful units called segments and manage them
 
 ## 3. Overlays
 
@@ -118,7 +118,7 @@ When multiple processes are loaded into memory at the same time, processes must 
 
 ### Advantages
 
-- Usable when the memory a process needs is larger than the memory region
+- Usable when the memory a [process](glossary:process) needs is larger than the memory region
 - Needs no special OS support
 
 ### Disadvantages
@@ -127,7 +127,7 @@ When multiple processes are loaded into memory at the same time, processes must 
 
 ### Example: two-pass assembler
 
-- The symbol table, common routines and overlay driver are always needed.
+- The [symbol table](glossary:symbol-table), common routines and [overlay](glossary:overlay) driver are always needed.
 - Pass 1 and Pass 2 are not needed at the same time.
 - So Pass 1 and Pass 2 can take turns being loaded into the same memory region.
   ![two-pass example](/static/images/os-09-memory/mem-overlay.png)
@@ -141,14 +141,14 @@ Size needed with overlays:
 
 ## 4. Swapping
 
-- Temporarily move a process that was in memory out to the backing store (disk).
+- Temporarily move a [process](glossary:process) that was in memory out to the [backing store](glossary:backing-store) (disk).
 - Later bring it back into memory and continue running it.
 
 ### Flow
 
-1. The process is in main memory.
-2. When memory runs short or another process needs to run, the OS swaps the process out to the backing store.
-3. Later, when that process runs again, it is swapped in from the backing store to main memory.
+1. The [process](glossary:process) is in main memory.
+2. When memory runs short or another [process](glossary:process) needs to run, the OS swaps the [process](glossary:process) out to the [backing store](glossary:backing-store).
+3. Later, when that [process](glossary:process) runs again, it is swapped in from the [backing store](glossary:backing-store) to main memory.
 
 ### Backing store
 
@@ -158,35 +158,35 @@ Size needed with overlays:
 
 ### Problems
 
-- Most of the swap time is transfer time.
+- Most of the [swap](glossary:swapping) time is [transfer time](glossary:transfer-time).
 - Transfer time is directly proportional to the amount of memory swapped.
-- Swapping a process with pending I/O can cause problems.
+- Swapping a [process](glossary:process) with pending [I/O](glossary:io) can cause problems.
 
 # 5. Virtual Memory
 
 ## 1. Core concept
 
-Virtual memory is a scheme where a process doesn't use actual physical memory addresses directly but uses virtual addresses instead.
+Virtual memory is a scheme where a [process](glossary:process) doesn't use actual physical memory addresses directly but uses virtual addresses instead.
 
-- Each process has its own independent virtual address space.
-- The same virtual address can be mapped to different physical addresses for different processes.
+- Each [process](glossary:process) has its own independent [virtual address space](glossary:address-space).
+- The same [virtual address](glossary:virtual-address) can be mapped to different physical addresses for different [processes](glossary:process).
 - The CPU and OS translate virtual addresses into physical addresses.
-- A data structure such as a page table is used for this translation.
+- A data structure such as a [page table](glossary:page-table) is used for this translation.
 
 ## 2. Why is it needed?
 
-When running multiple processes at the same time, it's needed to make each process look like it has its own independent memory space.
+When running multiple [processes](glossary:process) at the same time, it's needed to make each [process](glossary:process) look like it has its own independent memory space.
 
-- It keeps processes from directly invading each other's memory.
-- The programmer doesn't have to care about actual RAM locations.
-- A process can use memory as if it had a large, contiguous block.
+- It keeps [processes](glossary:process) from directly invading each other's memory.
+- The programmer doesn't have to care about actual [RAM](glossary:ram) locations.
+- A [process](glossary:process) can use memory as if it had a large, contiguous block.
 - Only the needed parts have to be in actual physical memory.
 
 ## 3. Address translation flow
 
-1. A CPU instruction produces a virtual address.
+1. A CPU instruction produces a [virtual address](glossary:virtual-address).
 2. The hardware translates the address with help from the OS.
-3. The page table is used to find the physical address that corresponds to the virtual address.
+3. The [page table](glossary:page-table) is used to find the [physical address](glossary:physical-address) that corresponds to the [virtual address](glossary:virtual-address).
 4. The actual physical memory is accessed.
 
 ```text
@@ -198,7 +198,7 @@ Process
 
 ## 4. Virtual Address Space
 
-The virtual address space is the entire range of virtual addresses a process can use.
+The [virtual address space](glossary:address-space) is the entire range of virtual addresses a [process](glossary:process) can use.
 
 The typical layout is as follows.
 
@@ -213,34 +213,34 @@ High addresses
 Low addresses
 ```
 
-- The stack is created at runtime.
-- The heap is managed by dynamic memory allocation such as malloc.
+- The [stack](glossary:stack) is created at runtime.
+- The [heap](glossary:heap) is managed by dynamic memory allocation such as [malloc](glossary:malloc).
 - `.data` and `.bss` are the readable/writable global data areas.
 - `.text` and `.rodata` are the code and read-only data areas.
 
 ## 5. Lazy Loading
 
-With virtual memory, there's no need to load the whole program into physical memory from the start.
+With [virtual memory](glossary:virtual-memory), there's no need to load the whole program into physical memory from the start.
 
 - Only the needed parts are loaded into physical memory.
 - Parts not needed yet can stay on disk.
-- The process runs as if its entire address space were in memory.
-  This approach leads to demand paging.
+- The [process](glossary:process) runs as if its entire address space were in memory.
+  This approach leads to [demand paging](glossary:demand-paging).
 
 ## 6. Advantages
 
 - Separates logical memory from physical memory.
-- Provides an independent address space per process.
-- Good for protection.
-- Can run processes larger than physical memory.
+- Provides an independent address space per [process](glossary:process).
+- Good for [protection](glossary:protection).
+- Can run [processes](glossary:process) larger than physical memory.
 - Only the parts actually used need to be in memory, so more programs can run at the same time.
-- With demand paging, only the needed pages are fetched, so I/O can be reduced.
+- With [demand paging](glossary:demand-paging), only the needed pages are fetched, so [I/O](glossary:io) can be reduced.
 - Makes sharing files and address spaces easier.
-- Efficient for process creation.
+- Efficient for [process](glossary:process) creation.
 
 ## 7. Disadvantages
 
-Virtual memory has performance overhead.
+Virtual memory has performance [overhead](glossary:overhead).
 
 Specifically, it incurs the following costs.
 
@@ -252,5 +252,5 @@ Specifically, it incurs the following costs.
 
 Virtual memory is typically implemented in the following ways.
 
-- Paging
-- Segmentation
+- [Paging](glossary:paging)
+- [Segmentation](glossary:segmentation)

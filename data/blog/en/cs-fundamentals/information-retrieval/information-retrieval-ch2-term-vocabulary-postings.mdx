@@ -13,43 +13,43 @@ summary: 'Parsing documents (format, language, character set), document units, w
 **Defining what a document is turns out to be a harder question than it seems**
 
 1. In ch1 we assumed we know what a document is and can read it.
-2. In reality, parsing a document is not easy.
+2. In reality, [parsing](glossary:document-parsing) a document is not easy.
    - There are three things to decide.
 
-   | To decide     | Example                                                                          |
-   | ------------- | -------------------------------------------------------------------------------- |
-   | format        | pdf, word, excel, html                                                           |
-   | language      | English, Korean, French                                                          |
-   | character set | UTF-8, EUC-KR. The same bytes are different characters depending on the encoding |
+   | To decide                               | Example                                                                                                               |
+   | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+   | format                                  | pdf, word, excel, html                                                                                                |
+   | language                                | English, Korean, French                                                                                               |
+   | [character set](glossary:character-set) | [UTF-8](glossary:utf-8), [EUC-KR](glossary:euc-kr). The same bytes are different characters depending on the encoding |
 
    All three are classification problems.
 
-   The alternative is heuristics.
+   The alternative is [heuristics](glossary:heuristic).
 
 3. Complications
-   - One index mixes terms from several languages
+   - One index mixes [terms](glossary:term) from several languages
    - Even a single document mixes them
-   - What to use as the document unit
+   - What to use as the [document unit](glossary:document-unit)
    * Conclusion: what a document is has no fixed answer; it's a design decision.
 
 ## 2.2 Terms
 
-**Problems that come up when turning documents → tokens → terms**
+**Problems that come up when turning documents → [tokens](glossary:token) → [terms](glossary:term)**
 
-| Term      | Meaning                                                                     | Example              |
-| --------- | --------------------------------------------------------------------------- | -------------------- |
-| **word**  | The character string exactly as it appears in the text                      | `Windows`, `U.S.A.`  |
-| **term**  | A normalized word. A group of words treated as the same (equivalence class) | `usa` (U.S.A., USA)  |
-| **token** | One actual occurrence in a document                                         | "the the" → 2 tokens |
-| **type**  | Mostly the same as a term. A group of identical tokens                      | "the the" → 1 type   |
+| Term                        | Meaning                                                                                                   | Example                                |
+| --------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| **word**                    | The character string exactly as it appears in the text                                                    | `Windows`, `U.S.A.`                    |
+| **[term](glossary:term)**   | A normalized word. A group of words treated as the same ([equivalence class](glossary:equivalence-class)) | `usa` (U.S.A., USA)                    |
+| **[token](glossary:token)** | One actual occurrence in a document                                                                       | "the the" → 2 [tokens](glossary:token) |
+| **type**                    | Mostly the same as a [term](glossary:term). A group of identical [tokens](glossary:token)                 | "the the" → 1 type                     |
 
 ### General + Non-English
 
-1. Normalization
+1. [Normalization](glossary:normalization)
    - Treat USA = U.S.A
 
 2. The same word can mean different things in different languages
-3. Tokenization: which tokens to emit
+3. [Tokenization](glossary:tokenization): which [tokens](glossary:token) to emit
    - O'Neill → oneill? o'neill? o + neill?
 
 4. One word or two
@@ -64,33 +64,33 @@ summary: 'Parsing documents (format, language, character set), document units, w
 
 ### English
 
-8. Case folding: lowercase everything
-9. Stop words: words so common they don't help pick out documents
+8. [Case folding](glossary:case-folding): lowercase everything
+9. [Stop words](glossary:stop-word): words so common they don't help pick out documents
    - things like and, a, by
-   - Removing them used to be standard, but these days they're kept because phrase queries need them
+   - Removing them used to be standard, but these days they're kept because [phrase queries](glossary:phrase-query) need them
 
-10. Other equivalence classes: words that sound the same, or synonyms
-11. Lemmatization
-    - Inflected or variant forms → the base form listed in a dictionary (lemma)
+10. Other [equivalence classes](glossary:equivalence-class): words that sound the same, or synonyms
+11. [Lemmatization](glossary:lemmatization)
+    - Inflected or variant forms → the base form listed in a dictionary ([lemma](glossary:lemmatization))
     - A "proper" reduction
     - Inflectional: the part of speech stays, only the form changes. cutting → cut
     - Derivational: the part of speech changes too. destruction → destroy
 
-12. Stemming
-    - A heuristic that roughly chops off word endings
-    - Roughly imitates what lemmatization tries to do with linguistic knowledge
+12. [Stemming](glossary:stemming)
+    - A [heuristic](glossary:heuristic) that roughly chops off word endings
+    - Roughly imitates what [lemmatization](glossary:lemmatization) tries to do with linguistic knowledge
     - Language-specific, and cuts both inflectional and derivational endings
     - e.g. automate, automatic, automation → all automat. It's fine if the result isn't a dictionary word.
 
-    |          | Lemmatization                                | Stemming                                         |
+    |          | [Lemmatization](glossary:lemmatization)      | [Stemming](glossary:stemming)                    |
     | -------- | -------------------------------------------- | ------------------------------------------------ |
     | Method   | Find the base form with linguistic knowledge | Chop off the ending by rules                     |
     | Result   | A dictionary word (`be`, `car`)              | May not be in the dictionary (`automat`, `poni`) |
     | Accuracy | High                                         | Rough                                            |
     | Example  | `am, are, is → be`                           | `automation → automat`                           |
 
-13. Porter algorithm
-    - The most common algorithm for English stemming
+13. [Porter algorithm](glossary:porter-stemmer)
+    - The most common algorithm for English [stemming](glossary:stemming)
     - Conventions + 5 phases applied in order. Each phase has several commands
     - Command example: if a word ends in ement and what's left after removing it is longer than 1 character, remove it. `replacement → replac` / `cement → cement` (c is one character, so it isn't removed)
     - Convention example: within a compound command, pick the rule matching the longest suffix
@@ -105,40 +105,40 @@ summary: 'Parsing documents (format, language, character set), document units, w
 
     Comparing three stemmers (part of the same sentence)
 
-    | Original       | Porter    | Lovins    | Paice     |
-    | -------------- | --------- | --------- | --------- |
-    | analysis       | analysi   | analys    | analys    |
-    | features       | featur    | featur    | feat      |
-    | easily         | easili    | eas       | easy      |
-    | picture        | pictur    | pictur    | pict      |
-    | interpretation | interpret | interpres | interpret |
-    - Each stemmer gives different results. Porter cuts the least (Lovins goes as far as the → th, Paice as far as picture → pict)
+    | Original       | [Porter](glossary:porter-stemmer) | [Lovins](glossary:lovins-stemmer) | [Paice](glossary:paice-stemmer) |
+    | -------------- | --------------------------------- | --------------------------------- | ------------------------------- |
+    | analysis       | analysi                           | analys                            | analys                          |
+    | features       | featur                            | featur                            | feat                            |
+    | easily         | easili                            | eas                               | easy                            |
+    | picture        | pictur                            | pictur                            | pict                            |
+    | interpretation | interpret                         | interpres                         | interpret                       |
+    - Each stemmer gives different results. [Porter](glossary:porter-stemmer) cuts the least ([Lovins](glossary:lovins-stemmer) goes as far as the → th, [Paice](glossary:paice-stemmer) as far as picture → pict)
 
-14. Does stemming improve effectiveness?
+14. Does [stemming](glossary:stemming) improve effectiveness?
     - It depends on the query.
     - good case: [sightseeing tour san francisco] → \{tour, tours\}
-    - bad case: [operational AND research] (operations research) → Porter maps all of them to oper, so documents with operating or operative also match.
-    - The gain from grouping is recall (finding more); the cost is precision (also finding wrong ones).
+    - bad case: [operational AND research] (operations research) → [Porter](glossary:porter-stemmer) maps all of them to oper, so documents with operating or operative also match.
+    - The gain from grouping is [recall](glossary:recall) (finding more); the cost is [precision](glossary:precision) (also finding wrong ones).
 
 ## 2.3 Skip pointers
 
 1. Why we need them
    - The [intersection from ch1](/en/blog/cs-fundamentals/information-retrieval/information-retrieval-ch1-boolean-retrieval/#13-processing-boolean-queries) is linear in the list lengths O(x+y)
-   - Some postings lists have millions of entries, so even linear can be slow.
-   - **Skip pointers let the intersection skip postings that won't end up in the result, so it gets faster**
+   - Some [postings lists](glossary:postings-list) have millions of entries, so even linear can be slow.
+   - **[Skip pointers](glossary:skip-pointer) let the [intersection](glossary:postings-list-intersection) skip [postings](glossary:postings-list) that won't end up in the result, so it gets faster**
    - Two things to decide: where to put skips, and how to skip without making the result wrong
 
 2. Basic idea
    ![Intersection that rides a skip pointer to skip over 19 and 23](/static/images/information-retrieval-ch2-term-vocabulary-postings/skip-anim.svg)
-   - In the figure: gray arrow = skip pointer, yellow arrow = checked but not taken (target is larger than the other side), green arrow = taken
+   - In the figure: gray arrow = [skip pointer](glossary:skip-pointer), yellow arrow = checked but not taken (target is larger than the other side), green arrow = taken
    - e.g. p1 at 16, p2 at 41 → 16 &lt; 41, skip(16) = 28 ≤ 41 → jump to 28. 19 and 23 aren't even compared
-   - Some postings get one extra pointer that goes several entries ahead.
-   - Requirement: jump only when the skip target ≤ the other side's docID. Jumping past the other side could miss a match in between.
+   - Some [postings](glossary:postings-list) get one extra pointer that goes several entries ahead.
+   - Requirement: jump only when the skip target ≤ the other side's [docID](glossary:docid). Jumping past the other side could miss a match in between.
 
 3. Algorithm (IntersectWithSkips)
-   1. If the two docIDs are equal: add to answer, advance both by one (same as ch1)
+   1. If the two [docIDs](glossary:docid) are equal: add to answer, advance both by one (same as ch1)
    2. If not, move the smaller side
-      - If the smaller side has a skip and the skip target ≤ the other docID: keep taking skips while the condition holds (while, can happen several times in a row)
+      - If the smaller side has a skip and the skip target ≤ the other [docID](glossary:docid): keep taking skips while the condition holds (while, can happen several times in a row)
       - Otherwise: advance by one (same as ch1)
    3. When one side ends, return answer
    - `<=` instead of `<`: jumping to an equal value is a match, so nothing is lost
@@ -169,39 +169,39 @@ summary: 'Parsing documents (format, language, character set), document units, w
    | --------------------------- | --------------------- | ------------------------------------------------------ |
    | Many skips (narrow spacing) | A little              | Often. But more comparisons and more storage           |
    | Few skips (wide spacing)    | A lot                 | Rarely. The target is often larger than the other side |
-   - Heuristic: for a list of length P, place √P skips evenly. P = 16 → 4 skips, every 4 entries
-   - Ignores the distribution of query terms
+   - [Heuristic](glossary:heuristic): for a list of length P, place √P skips evenly. P = 16 → 4 skips, every 4 entries
+   - Ignores the distribution of query [terms](glossary:term)
    - Easy for a static index; hard for a dynamic one (documents added or deleted) because the skips have to be placed again
 
 5. They used to help a lot, but these days CPUs are fast so they don't help much.
 
 ## 2.4 Phrase queries
 
-1. What phrase queries are and why we need them
+1. What [phrase queries](glossary:phrase-query) are and why we need them
    - [stanford university] is when the two words must appear next to each other, in that order
    - "The inventor Stanford Ovshinsky never went to university" contains both, but shouldn't match.
-   - A large share of web queries are phrase queries.
-   - Conclusion: docIDs alone in the postings aren't enough.
-   - Solutions: biword index, positional index.
+   - A large share of web queries are [phrase queries](glossary:phrase-query).
+   - Conclusion: [docIDs](glossary:docid) alone in the [postings](glossary:postings-list) aren't enough.
+   - Solutions: [biword index](glossary:biword-index), [positional index](glossary:positional-index).
 
-2. Biword index
-   - Index every pair of adjacent words as a single term.
+2. [Biword index](glossary:biword-index)
+   - Index every pair of adjacent words as a single [term](glossary:term).
    - e.g. Friends, Romans, Countrymen → `friends romans`, `romans countrymen`
    - Two-word phrases can be answered right away.
    - Longer phrases: `"stanford university palo alto"` → `"stanford university" AND "university palo" AND "palo alto"`
-     - Even if all three are present there's no guarantee the four words are consecutive → false positive → the results have to be filtered again (post-filtering)
-   - **Why it's rarely used: false positives, index blowup**
+     - Even if all three are present there's no guarantee the four words are consecutive → [false positive](glossary:false-positive) → the results have to be filtered again ([post-filtering](glossary:postfiltering))
+   - **Why it's rarely used: [false positives](glossary:false-positive), [index blowup](glossary:index-blowup)**
 
-3. Positional index
-   - A more efficient alternative to biwords
+3. [Positional index](glossary:positional-index)
+   - A more efficient alternative to [biwords](glossary:biword-index)
 
    ![Positional index: intersect documents, then compare positions inside the document](/static/images/information-retrieval-ch2-term-vocabulary-postings/positional-index.svg)
-   - In the figure: top table = step 1 (docID intersection, one row is one posting), bottom = step 2 (inside doc 4, find to position + 1 = be position)
+   - In the figure: top table = step 1 ([docID](glossary:docid) [intersection](glossary:postings-list-intersection), one row is one posting), bottom = step 2 (inside doc 4, find to position + 1 = be position)
 
-   |                  | One posting                                                     |
-   | ---------------- | --------------------------------------------------------------- |
-   | Normal index     | docID                                                           |
-   | Positional index | docID + the list of positions where it appears in that document |
+   |                                               | One posting                                                                       |
+   | --------------------------------------------- | --------------------------------------------------------------------------------- |
+   | Normal index                                  | [docID](glossary:docid)                                                           |
+   | [Positional index](glossary:positional-index) | [docID](glossary:docid) + the list of positions where it appears in that document |
 
    ```text
    to, 993427:
@@ -215,14 +215,14 @@ summary: 'Parsing documents (format, language, character set), document units, w
      5: <14, 19, 101>
    ```
 
-   - `to, 993427`: 993427 = df / `4: <8, 16, ...>` = the 8th and 16th words of doc 4 are to
+   - `to, 993427`: 993427 = [df](glossary:document-frequency) / `4: <8, 16, ...>` = the 8th and 16th words of doc 4 are to
    - Processing the query `"to be or not to be"`
-     1. Intersect docIDs (same as ch1) → documents containing both are candidates
+     1. [Intersect](glossary:postings-list-intersection) [docIDs](glossary:docid) (same as ch1) → documents containing both are candidates
      2. Compare positions inside each candidate: if to is at i, be is at i+1
      3. Doc 4: to 429, be 430, to 433, be 434 → to be or not to be from 429 → **match**
 
-4. Proximity search
-   - With a positional index, [Westlaw](/en/blog/cs-fundamentals/information-retrieval/information-retrieval-ch1-boolean-retrieval/#13-processing-boolean-queries)'s `/k` also works
+4. [Proximity search](glossary:proximity-query)
+   - With a [positional index](glossary:positional-index), [Westlaw](/en/blog/cs-fundamentals/information-retrieval/information-retrieval-ch1-boolean-retrieval/#13-processing-boolean-queries)'s `/k` also works
    - `employment /4 place`: the two words within 4 words of each other
      - "Employment agencies that place healthcare workers ..." → hit (1st and 4th: distance 3)
      - "Employment agencies that have learned to adapt now place ..." → not a hit (1st and 9th: distance 8)
@@ -232,19 +232,19 @@ summary: 'Parsing documents (format, language, character set), document units, w
 5. PositionalIntersect(p1, p2, k)
 
    ![pp1, pp2 and l moving inside one document to find position pairs within k](/static/images/information-retrieval-ch2-term-vocabulary-postings/positional-intersect-anim.svg)
-   - p1, p2 = pointers to documents (docIDs) / pp1, pp2 = pointers into that document's position lists
-   - In the figure: green band = pp1 position ± k, l = term 2 positions that came inside the band, answer = (term 1 position, term 2 position) pairs
+   - p1, p2 = pointers to documents ([docIDs](glossary:docid)) / pp1, pp2 = pointers into that document's position lists
+   - In the figure: green band = pp1 position ± k, l = [term](glossary:term) 2 positions that came inside the band, answer = ([term](glossary:term) 1 position, [term](glossary:term) 2 position) pairs
    - **The outside is the [ch1 Intersect](/en/blog/cs-fundamentals/information-retrieval/information-retrieval-ch1-boolean-retrieval/#13-processing-boolean-queries) as is; once the same document is found, compare positions inside it**
    - l = the list of pp2 positions within k of the current pp1 position (used like a window)
    - Push pp2 forward and add it to l if within k; stop once it goes too far past pp1
    - When pp1 moves forward, drop the values at the front of l that are now farther than k
-   - For each value left in l, add (docID, pp1 position, pp2 position) to answer
+   - For each value left in l, add ([docID](glossary:docid), pp1 position, pp2 position) to answer
 
-6. Combination scheme
-   - Mix biword + positional
-   - Index only very frequent biwords (Michael Jackson, Britney Spears) as terms → answered right away without comparing positions, so it's fast
-   - All other phrases use positional intersection
-   - Williams et al. (2004): faster than positional alone, uses 26% more space
+6. [Combination scheme](glossary:combination-scheme)
+   - Mix [biword](glossary:biword-index) + [positional](glossary:positional-index)
+   - Index only very frequent [biwords](glossary:biword-index) (Michael Jackson, Britney Spears) as [terms](glossary:term) → answered right away without comparing positions, so it's fast
+   - All other phrases use [positional](glossary:positional-index) [intersection](glossary:postings-list-intersection)
+   - Williams et al. (2004): faster than [positional](glossary:positional-index) alone, uses 26% more space
 
-7. Positional queries are expensive at Google
-   - Every posting's position list has to be read, and position comparison runs once more after the docID intersection
+7. [Positional](glossary:positional-index) queries are expensive at Google
+   - Every posting's position list has to be read, and position comparison runs once more after the [docID](glossary:docid) [intersection](glossary:postings-list-intersection)

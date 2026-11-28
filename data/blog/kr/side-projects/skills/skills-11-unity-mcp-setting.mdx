@@ -5,147 +5,131 @@ tags: ['Skills']
 draft: false
 aiGenerated: true
 summary: '패키지 한 줄 추가부터 서버 대기, VS Code 리로드까지 Unity MCP 연결을 한 번에 끝내는 스킬'
+level: 2
 ---
+
+## 0. 들어가며
 
 > 시리즈 11편. 스킬이 무엇이고 왜 따로 뺐는지는 [CH0. 스킬 개요](/kr/blog/side-projects/skills/skills-00-overview/)에 있다.
 
-## 한 줄 요약
+[Unity](glossary:unity) 프로젝트를 [Claude Code](glossary:claude-code)와 연결하려면 단계를 순서대로 밟아야 한다. 패키지를 넣고, [Unity](glossary:unity)가 그걸 받게 하고, [Unity](glossary:unity) 안의 [MCP server](glossary:mcp-server)가 뜨는 걸 확인하고, 그 다음에야 [VS Code](glossary:vs-code) 창을 다시 불러온다. 순서가 하나라도 어긋나면 도구가 안 들어온다.
 
-Unity 프로젝트를 Claude Code와 연결하려면 다섯 단계를 순서대로 해야 한다. 패키지를 넣고, Unity가 그걸 받게 하고, Unity 안의 서버가 뜨는 걸 확인하고, 그 다음에야 VS Code 창을 다시 불러온다. 순서가 하나라도 어긋나면 도구가 안 들어온다. `unity-mcp-setting`은 이 순서를 에이전트가 대신 밟게 하는 스킬이다. 본문 49줄에 PowerShell 스크립트 두 개(63줄, 72줄)가 붙어 있고, dotfiles 레포 안에서 이 폴더를 건드린 커밋은 2개다. 글쓰기 규칙보다 실행 절차에 가까운 스킬이라, 스크립트 135줄이 본문 49줄보다 길다(숫자는 [숫자로 보기](#숫자로-보기)).
+식당으로 비유하면 새 지점을 열고 첫 손님을 받기까지의 절차다. 주방 설비를 들이고, 본점 장부에 지점을 올리고, 주방에 불이 들어올 때까지 기다린 뒤에야 홀 문을 연다. 불이 켜지기 전에 홀 문을 열면 손님은 빈 메뉴판만 받는다. 주방은 [Unity Editor](glossary:unity-editor) 안에서 도는 [MCP server](glossary:mcp-server), 설비 들이기는 [UPM](glossary:upm) [dependency](glossary:dependency) 추가, 본점 장부에 올리기는 [Claude Code](glossary:claude-code) 쪽 [MCP client](glossary:mcp-client) 등록, 홀 문 열기는 [VS Code](glossary:vs-code) 창 리로드다.
 
-## 1. 일곱 단계
+`unity-mcp-setting`은 이 순서를 에이전트가 대신 밟게 하는 스킬이다. 본문 49줄에 [PowerShell](glossary:powershell) 스크립트 두 개(63줄, 72줄)가 붙어 있고, dotfiles 레포 안에서 이 폴더를 건드린 커밋은 2개다. 글쓰기 규칙보다 실행 절차에 가까운 스킬이라, 스크립트 135줄이 본문 49줄보다 길다(숫자는 [7. 스킬 규모와 타임아웃 값](#7-스킬-규모와-타임아웃-값)).
 
-비유하면 새 가게에 전화를 개통하는 일이다. 주소를 확인하고, 전화기를 주문하고, 내 휴대폰에 번호를 저장하고, 가게가 문을 열 때까지 기다렸다가, 마지막에 전화를 건다.
+## 1. 스킬의 일곱 단계
 
 ![unity-mcp-setting의 7단계: target check, add package, register server, already connected?, focus Unity, wait for server, reload VS Code](/static/images/skills-11-unity-mcp-setting/flow.svg)
 
 _unity-mcp-setting의 7단계_
 
-용어로 옮기면 가게는 Unity Editor 안에서 도는 **MCP 서버**, 전화기 주문은 **UPM(Unity Package Manager) 의존성** 추가, 번호 저장은 Claude Code 쪽 **MCP 클라이언트 등록**, 전화를 거는 건 VS Code 창 **리로드**다. MCP 자체는 [Model Context Protocol](/kr/blog/cs-fundamentals/ai/ai-07-01-ai-agent/#model-context-protocol-mcp) 글에 정리해 뒀다.
+스킬이 다루는 건 [Unity Editor](glossary:unity-editor) 안에서 도는 [MCP server](glossary:mcp-server), [UPM](glossary:upm)(Unity Package Manager) [dependency](glossary:dependency) 추가, [Claude Code](glossary:claude-code) 쪽 [MCP client](glossary:mcp-client) 등록, [VS Code](glossary:vs-code) 창 리로드 넷이다. [MCP](glossary:mcp) 자체는 [Model Context Protocol](/kr/blog/cs-fundamentals/ai/ai-07-01-ai-agent/#model-context-protocol-mcp) 글에 정리해 뒀다.
 
 스킬 본문의 순서는 이렇다.
 
-1. 인자로 온 경로나 현재 폴더에 `Packages/manifest.json`이 있는지 본다. 없으면 Unity 프로젝트가 아니라고 알리고 멈춘다.
+1. 인자로 온 경로나 현재 폴더에 `Packages/manifest.json`이 있는지 본다. 없으면 [Unity](glossary:unity) 프로젝트가 아니라고 알리고 멈춘다.
 2. `manifest.json`의 `dependencies` 맨 앞에 패키지 한 줄을 넣는다. 이미 있으면 건너뛴다.
-3. `claude mcp get unityMCP`가 실패하면 서버를 등록한다.
-4. ToolSearch로 `unity`를 찾아 `manage_scene` 같은 Unity 도구가 이미 세션에 있으면 리로드할 필요가 없다고 알리고 멈춘다.
-5. Unity 창을 앞으로 가져와 패키지 임포트를 시작시킨다.
-6. 서버가 뜰 때까지 최대 300초 기다린다.
-7. VS Code 창을 리로드한다.
+3. `claude mcp get unityMCP`가 실패하면 [MCP server](glossary:mcp-server)를 등록한다.
+4. ToolSearch로 `unity`를 찾아 `manage_scene` 같은 [Unity](glossary:unity) 도구가 이미 세션에 있으면 리로드할 필요가 없다고 알리고 멈춘다.
+5. [Unity](glossary:unity) 창을 앞으로 가져와 패키지 임포트를 시작시킨다.
+6. [MCP server](glossary:mcp-server)가 뜰 때까지 최대 300초 기다린다.
+7. [VS Code](glossary:vs-code) 창을 리로드한다.
 
-1~4는 Claude Code의 기본 도구(파일 편집, 셸)로 끝나고, 5~7은 스킬 폴더의 스크립트가 맡는다. 2번에서 넣는 줄은 이것이다.
+1~4는 [Claude Code](glossary:claude-code)의 기본 도구(파일 편집, 셸)로 끝나고, 5~7은 스킬 폴더의 스크립트가 맡는다. 2번에서 넣는 줄은 이것이다.
 
 ```json:Packages/manifest.json
 "com.coplaydev.unity-mcp": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main",
 ```
 
-UPM은 Git URL을 의존성으로 받는다. `?path=`는 레포 안의 패키지 폴더, `#main`은 브랜치다. 버전 태그가 아니라 브랜치를 가리키므로 Unity가 패키지를 다시 받을 때마다 그 시점의 `main`이 들어온다. 이렇게 둔 이유는 기록 없음.
+[UPM](glossary:upm)은 [Git URL](glossary:git-url-dependency)을 [dependency](glossary:dependency)로 받는다. `?path=`는 레포 안의 패키지 폴더, `#main`은 브랜치다. 버전 태그가 아니라 브랜치를 가리키므로 [Unity](glossary:unity)가 패키지를 다시 받을 때마다 그 시점의 `main`이 들어온다. 이렇게 둔 이유는 기록 없음.
 
 스킬 끝의 주의 두 줄도 이 파일 이야기다. `manifest.json`은 프로젝트가 쓰는 패키지 목록 전체라서 `.gitignore`에 넣지 않고, 커밋은 내가 시킬 때만 한다. 성공 판정은 리로드 뒤 `/mcp` 목록에서 `unityMCP`가 Connected로 보이는지다.
 
 ## 2. 순서가 중요한 이유
 
-비유하면 가게 문이 열리기 전에 전화를 걸면 신호만 가다 끊긴다. 그리고 한 번 끊긴 전화는 가게가 문을 연 뒤에도 다시 걸어야 한다.
-
-용어로는 **세션 시작 시점의 도구 목록 로딩**이다. Claude Code는 세션이 시작될 때 등록된 MCP 서버에 붙어 도구 목록을 받아 온다. 그 순간 Unity 쪽 서버가 아직 안 떠 있으면 도구가 없는 채로 세션이 굳는다. 서버가 나중에 떠도 같은 세션엔 안 들어오고, VS Code 창을 리로드해서 확장과 세션을 새로 띄워야 들어온다.
+원인은 **세션 시작 시점의 도구 목록 로딩**이다. [Claude Code](glossary:claude-code)는 세션이 시작될 때 등록된 [MCP server](glossary:mcp-server)에 붙어 도구 목록을 받아 온다. 그 순간 [Unity](glossary:unity) 쪽 [MCP server](glossary:mcp-server)가 아직 안 떠 있으면 도구가 없는 채로 세션이 굳는다. [MCP server](glossary:mcp-server)가 나중에 떠도 같은 세션엔 안 들어오고, [VS Code](glossary:vs-code) 창을 리로드해서 확장과 세션을 새로 띄워야 들어온다.
 
 수동 절차를 적어 둔 안내 문서(`~/projects/unity-projects/mcp-guide.md`, 2,245바이트, 마지막 수정 2026-10-03)에 이 순서가 한 줄로 남아 있다.
 
-> 4번 다음에 5번. 서버가 켜지기 전에 리로드하면 도구가 안 들어온다.
+> 4번 다음에 5번. [MCP server](glossary:mcp-server)가 켜지기 전에 리로드하면 도구가 안 들어온다.
 
-여기서 4번이 "서버가 켜져 있는지 확인", 5번이 "`Reload Window`"다. 수동 절차는 사람이 Unity 창과 VS Code 창을 오가며 이 순서를 지켜야 했다. 스킬은 "서버 확인"을 스크립트(6단계)로, "리로드"를 키 입력 자동화(7단계)로 바꿔서 순서를 기계가 지키게 했다. 같은 문서가 `/unity-mcp-setting`을 "빠른 방법"으로 먼저 안내하고 있으니, 스킬은 늦어도 2026-10-03에는 있었다. 정확히 언제 만들었는지는 기록 없음. dotfiles 레포 첫 커밋(2026-10-06)에 세 파일이 다 들어 있다.
+여기서 4번이 "[MCP server](glossary:mcp-server)가 켜져 있는지 확인", 5번이 "`Reload Window`"다. 수동 절차는 사람이 [Unity](glossary:unity) 창과 [VS Code](glossary:vs-code) 창을 오가며 이 순서를 지켜야 했다. 스킬은 "[MCP server](glossary:mcp-server) 확인"을 스크립트(6단계)로, "리로드"를 키 입력 자동화(7단계)로 바꿔서 순서를 기계가 지키게 했다. 같은 문서가 `/unity-mcp-setting`을 "빠른 방법"으로 먼저 안내하고 있으니, 스킬은 늦어도 2026-10-03에는 있었다. 정확히 언제 만들었는지는 기록 없음. dotfiles 레포 첫 커밋(2026-10-06)에 세 파일이 다 들어 있다.
 
-## 3. 서버 등록은 폴더 스코프
+## 3. 서버 등록은 local 스코프
 
-비유하면 단골 가게 번호를 휴대폰 전체 즐겨찾기에 넣으면, 그 가게와 상관없는 곳에서도 매번 "연결 안 됨" 알림이 뜬다. 그래서 그 동네에 있을 때만 보이는 메모에 적었다.
-
-용어로는 **MCP scope**다. `user` 스코프는 모든 폴더의 세션에 서버를 붙이고, `local` 스코프는 등록한 폴더에서만 붙인다. 3단계의 명령은 이것이다.
+[MCP server](glossary:mcp-server) 등록 범위는 **[MCP scope](glossary:mcp)**로 정한다. `user` [scope](glossary:mcp)는 모든 폴더의 세션에 [MCP server](glossary:mcp-server)를 붙이고, `local` [scope](glossary:mcp)는 등록한 폴더에서만 붙인다. 3단계의 명령은 이것이다.
 
 ```bash
 claude mcp add --scope local --transport http unityMCP http://127.0.0.1:8080/mcp
 ```
 
-처음엔 `user` 스코프였다. 2026-10-15 커밋에서 바뀌었고, 바뀐 줄의 이유가 스킬 본문에 그대로 있다.
+처음엔 `user` [scope](glossary:mcp)였다. 2026-10-15 커밋에서 바뀌었고, 바뀐 줄의 이유가 스킬 본문에 그대로 있다.
 
-> user 스코프는 쓰지 않는다. Unity를 열지 않은 폴더에서도 매 세션 연결 실패가 뜬다.
+> user [scope](glossary:mcp)는 쓰지 않는다. [Unity](glossary:unity)를 열지 않은 폴더에서도 매 세션 연결 실패가 뜬다.
 
-같은 커밋에서 서버 이름도 `UnityMCP`에서 `unityMCP`로 바뀌었다. 지금은 `mcp/sync.mjs`와 VS Code `mcp.json`도 `unityMCP`를 쓴다. 이 변경은 Unity 하나만의 일이 아니라, Claude Code의 로컬 MCP를 전부 user 스코프에서 빼고 필요한 폴더에만 거는 정리의 일부였다. 그 규칙은 [에이전트 환경 글의 MCP 절](/kr/blog/side-projects/devblog/devblog-04-agent-environment/#9-mcp)에 있다. `~/projects/unity-projects`는 `mcp/sync.mjs`가 이미 local 스코프로 등록해 두므로, 그 바로 아래 프로젝트에서는 3단계가 할 일이 없다.
+같은 커밋에서 [MCP server](glossary:mcp-server) 이름도 `UnityMCP`에서 `unityMCP`로 바뀌었다. 지금은 `mcp/sync.mjs`와 [VS Code](glossary:vs-code) `mcp.json`도 `unityMCP`를 쓴다. 이 변경은 [Unity](glossary:unity) 하나만의 일이 아니라, [Claude Code](glossary:claude-code)의 로컬 [MCP](glossary:mcp)를 전부 user [scope](glossary:mcp)에서 빼고 필요한 폴더에만 거는 정리의 일부였다. 그 규칙은 [에이전트 환경 글의 MCP 절](/kr/blog/side-projects/devblog/devblog-04-agent-environment/#9-mcp)에 있다. `~/projects/unity-projects`는 `mcp/sync.mjs`가 이미 local [scope](glossary:mcp)로 등록해 두므로, 그 바로 아래 프로젝트에서는 3단계가 할 일이 없다.
 
-## 4. 내 프로젝트의 서버인가
+## 4. 내 프로젝트의 서버인지 확인
 
-비유하면 전화를 걸었더니 누가 받긴 받았는데, 받은 사람이 우리 가게 직원인지 옆 가게 직원인지 모르는 상황이다. 옆 가게가 같은 번호를 쓰고 있을 수 있다.
+응답이 와도 그게 내 프로젝트의 [MCP server](glossary:mcp-server)인지는 모른다. 다른 [Unity](glossary:unity) 프로젝트가 같은 주소로 [MCP server](glossary:mcp-server)를 띄웠을 수 있다.
 
 ![wait-unity-mcp.ps1의 두 검사: endpoint 응답과 pid file, 결과에 따라 exit 0, 2, 1](/static/images/skills-11-unity-mcp-setting/wait-check.svg)
 
 _wait-unity-mcp.ps1이 5초마다 하는 두 검사_
 
-용어로는 **readiness check**와 **port ownership**이다. MCP for Unity 서버는 `http://127.0.0.1:8080/mcp` 고정 주소를 쓴다. Unity 프로젝트를 두 개 열면 둘이 같은 포트를 두고 다툰다. 그래서 `wait-unity-mcp.ps1`은 5초마다 두 가지를 본다.
+확인하는 건 **[readiness check](glossary:readiness-probe)**와 **[port ownership](glossary:port)**이다. [MCP for Unity](glossary:mcp-for-unity) [MCP server](glossary:mcp-server)는 `http://127.0.0.1:8080/mcp` 고정 주소를 쓴다. [Unity](glossary:unity) 프로젝트를 두 개 열면 둘이 같은 [port](glossary:port)를 두고 다툰다. 그래서 `wait-unity-mcp.ps1`은 5초마다 두 가지를 본다.
 
-- **endpoint**: MCP `initialize` 요청을 POST해서 HTTP 200이 오는지. 요청 하나당 타임아웃은 3초다.
-- **pid file**: 서버를 띄운 프로젝트는 `<project>/Library/MCPForUnity/RunState/mcp_http_8080.pid`를 남긴다. 이 파일이 대상 프로젝트에 있고, 적힌 PID의 프로세스가 살아 있는지.
+- **[endpoint](glossary:endpoint)**: [MCP](glossary:mcp) `initialize` 요청을 POST해서 HTTP 200이 오는지. 요청 하나당 [timeout](glossary:timeout)은 3초다.
+- **[pid file](glossary:pid-file)**: [MCP server](glossary:mcp-server)를 띄운 프로젝트는 `<project>/Library/MCPForUnity/RunState/mcp_http_8080.pid`를 남긴다. 이 파일이 대상 프로젝트에 있고, 적힌 PID의 프로세스가 살아 있는지.
 
-endpoint만 보면 다른 프로젝트가 띄운 서버도 성공으로 친다. 그래서 둘을 같이 보고, 결과를 종료 코드로 나눈다.
+[endpoint](glossary:endpoint)만 보면 다른 프로젝트가 띄운 [MCP server](glossary:mcp-server)도 성공으로 친다. 그래서 둘을 같이 보고, 결과를 [exit code](glossary:exit-code)로 나눈다.
 
-| 상태                                                 | 종료 코드 | 스킬이 하는 일                                   |
-| ---------------------------------------------------- | --------- | ------------------------------------------------ |
-| endpoint 응답, 대상 프로젝트 pid 있음                | 0         | 7단계로                                          |
-| endpoint 응답, 대상엔 없고 형제 폴더 프로젝트에 있음 | 2         | 그 프로젝트를 닫거나 서버를 끄라고 안내하고 멈춤 |
-| 300초 안에 확인 못 함                                | 1         | Unity 콘솔 에러 확인, 서버 Start 안내 후 멈춤    |
+| 상태                                                                      | [exit code](glossary:exit-code) | 스킬이 하는 일                                                                               |
+| ------------------------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------- |
+| [endpoint](glossary:endpoint) 응답, 대상 프로젝트 pid 있음                | 0                               | 7단계로                                                                                      |
+| [endpoint](glossary:endpoint) 응답, 대상엔 없고 형제 폴더 프로젝트에 있음 | 2                               | 그 프로젝트를 닫거나 [MCP server](glossary:mcp-server)를 끄라고 안내하고 멈춤                |
+| 300초 안에 확인 못 함                                                     | 1                               | [Unity](glossary:unity) 콘솔 에러 확인, [MCP server](glossary:mcp-server) Start 안내 후 멈춤 |
 
-형제 폴더를 보는 건 Unity 프로젝트가 `~/projects/unity-projects` 한 폴더 아래 나란히 있다는 전제다. 스크립트는 상태가 바뀔 때만 한 줄씩 출력해서, 5초마다 같은 줄이 쌓이지 않는다. 스킬은 PowerShell 도구 타임아웃을 360,000 ms로 주라고 적어 두었다. 스크립트 타임아웃 300초에 1분 여유를 둔 값이다. 타임아웃으로 멈춰도 `/unity-mcp-setting`을 다시 부르면 2단계는 건너뛰고 이어서 된다.
+형제 폴더를 보는 건 [Unity](glossary:unity) 프로젝트가 `~/projects/unity-projects` 한 폴더 아래 나란히 있다는 전제다. 스크립트는 상태가 바뀔 때만 한 줄씩 출력해서, 5초마다 같은 줄이 쌓이지 않는다. 스킬은 [PowerShell](glossary:powershell) 도구 [timeout](glossary:timeout)을 360,000 ms로 주라고 적어 두었다. 스크립트 [timeout](glossary:timeout) 300초에 1분 여유를 둔 값이다. [timeout](glossary:timeout)으로 멈춰도 `/unity-mcp-setting`을 다시 부르면 2단계는 건너뛰고 이어서 된다.
 
 ## 5. 창 찾기와 리로드
 
-비유하면 전화를 걸 때마다 내 휴대폰을 재부팅해야 하는데, 재부팅 버튼이 남의 손에 있다. 그래서 버튼을 누르기 전에 할 말을 먼저 다 한다.
-
-용어로는 **window focus**와 **키 입력 주입**이다. `window.ps1`은 Win32 API(`user32.dll`의 `EnumWindows`, `SetForegroundWindow`)로 창 제목을 훑어 프로젝트 폴더 이름이 들어간 VS Code나 Unity 창을 찾는다. 창 제목 패턴은 VS Code가 `<파일> - <폴더> - Visual Studio Code`, Unity가 `<폴더> - <씬> - ... - Unity 6.x` 형태다. Unity와 VS Code의 역할 구분은 [Unity 기본 구조 글](/kr/blog/dev/unity/unity-01-basics/#5-unity-editor와-vs-code의-역할)에 있다.
+이 단계는 **window focus**와 **키 입력 주입**으로 이뤄진다. `window.ps1`은 [Win32 API](glossary:win32-api)(`user32.dll`의 `EnumWindows`, `SetForegroundWindow`)로 창 제목을 훑어 프로젝트 폴더 이름이 들어간 [VS Code](glossary:vs-code)나 [Unity](glossary:unity) 창을 찾는다. 창 제목 패턴은 [VS Code](glossary:vs-code)가 `<파일> - <폴더> - Visual Studio Code`, [Unity](glossary:unity)가 `<폴더> - <씬> - ... - Unity 6.x` 형태다. [Unity](glossary:unity)와 [VS Code](glossary:vs-code)의 역할 구분은 [Unity 기본 구조 글](/kr/blog/dev/unity/unity-01-basics/#5-unity-editor와-vs-code-역할)에 있다.
 
 스크립트 주석에 남은 우회가 두 개 있다.
 
-- 백그라운드 프로세스는 Windows의 포커스 이동 제한 때문에 다른 창을 앞으로 못 가져올 수 있다. 그래서 `SetForegroundWindow` 전에 Alt 키를 한 번 눌렀다 뗀다. 400 ms 뒤 실제 앞 창이 대상과 다르면 종료 코드 2로 실패를 알린다.
-- 리로드는 `Ctrl+Shift+P`로 명령 팔레트를 열고 `Developer: Reload Window`를 넣은 뒤 Enter를 보낸다. 이 명령 이름을 키 입력으로 치면 한글 IME가 켜져 있을 때 글자가 깨지므로, 클립보드에 넣고 `Ctrl+V`로 붙인다. 원래 클립보드 내용은 먼저 저장했다가 끝나면 되돌린다.
+- 백그라운드 프로세스는 Windows의 포커스 이동 제한 때문에 다른 창을 앞으로 못 가져올 수 있다. 그래서 `SetForegroundWindow` 전에 Alt 키를 한 번 눌렀다 뗀다. 400 ms 뒤 실제 앞 창이 대상과 다르면 [exit code](glossary:exit-code) 2로 실패를 알린다.
+- 리로드는 `Ctrl+Shift+P`로 [command palette](glossary:command-palette)를 열고 `Developer: Reload Window`를 넣은 뒤 Enter를 보낸다. 이 명령 이름을 키 입력으로 치면 한글 [IME](glossary:ime)가 켜져 있을 때 글자가 깨지므로, [clipboard](glossary:clipboard)에 넣고 `Ctrl+V`로 붙인다. 원래 [clipboard](glossary:clipboard) 내용은 먼저 저장했다가 끝나면 되돌린다.
 
-리로드는 VS Code 안에서 도는 Claude Code 세션 자체를 끊는다. 그래서 스킬은 7단계를 **마지막 도구 호출**로 못 박고, 그 전에 결과(패키지 추가 여부, 서버 확인, 곧 리로드)를 먼저 말하게 한다. 리로드 뒤엔 새 세션이 뜨고, 새 세션은 서버가 떠 있는 상태에서 시작하니 도구 목록에 Unity 도구가 들어온다. 키 입력이 실패하면(종료 코드가 0이 아니면) `Ctrl+Shift+P` → `Developer: Reload Window`를 직접 하라고 안내한다.
+리로드는 [VS Code](glossary:vs-code) 안에서 도는 [Claude Code](glossary:claude-code) 세션 자체를 끊는다. 그래서 스킬은 7단계를 **마지막 도구 호출**로 못 박고, 그 전에 결과(패키지 추가 여부, [MCP server](glossary:mcp-server) 확인, 곧 리로드)를 먼저 말하게 한다. 리로드 뒤엔 새 세션이 뜨고, 새 세션은 [MCP server](glossary:mcp-server)가 떠 있는 상태에서 시작하니 도구 목록에 [Unity](glossary:unity) 도구가 들어온다. 키 입력이 실패하면([exit code](glossary:exit-code)가 0이 아니면) `Ctrl+Shift+P` → `Developer: Reload Window`를 직접 하라고 안내한다.
 
-## 6. 한계
+## 6. 알려진 한계
 
-비유하면 이 개통 절차는 한 동네, 한 통신사에서만 통한다.
+**플랫폼 [dependency](glossary:dependency)**이 한계다. 5~7단계의 스크립트는 [PowerShell](glossary:powershell)과 [Win32 API](glossary:win32-api), `System.Windows.Forms.SendKeys`에 기대고 있어서 Windows에서만 돈다. dotfiles는 Windows와 Mac이 같이 쓰지만, Mac에는 `~/projects/unity-projects` 폴더가 없어서 `unityMCP` 등록도 없다. Mac에서 쓸 일이 생기면 창 제어 부분을 따로 만들어야 한다.
 
-용어로는 **플랫폼 의존성**이다. 5~7단계의 스크립트는 PowerShell과 Win32 API, `System.Windows.Forms.SendKeys`에 기대고 있어서 Windows에서만 돈다. dotfiles는 Windows와 Mac이 같이 쓰지만, Mac에는 `~/projects/unity-projects` 폴더가 없어서 `unityMCP` 등록도 없다. Mac에서 쓸 일이 생기면 창 제어 부분을 따로 만들어야 한다.
-
-포트는 8080 하나로 고정이라, Unity 프로젝트를 동시에 여러 개 열고 각각 연결하는 방법은 없다. 스킬은 4절의 종료 코드 2로 충돌을 알려줄 뿐이다.
+[Port](glossary:port)는 8080 하나로 고정이라, [Unity](glossary:unity) 프로젝트를 동시에 여러 개 열고 각각 연결하는 방법은 없다. 스킬은 4절의 [exit code](glossary:exit-code) 2로 충돌을 알려줄 뿐이다.
 
 이 스킬을 실제로 몇 번 돌렸는지는 기록 없음. worklog와 메모리 변경 이력에는 등록 방식이 바뀐 기록(2026-10-15)만 있고 실행 기록은 없다.
 
-## 숫자로 보기
+## 7. 스킬 규모와 타임아웃 값
 
 2026-11-28 기준.
 
-| 항목                     | 값                                   | 출처                 |
-| ------------------------ | ------------------------------------ | -------------------- |
-| `SKILL.md`               | 49줄, 3,433바이트                    | `wc`                 |
-| `wait-unity-mcp.ps1`     | 63줄, 2,723바이트                    | `wc`                 |
-| `window.ps1`             | 72줄, 3,617바이트                    | `wc`                 |
-| 이 스킬 폴더를 바꾼 커밋 | 2개 (2026-10-06 첫 커밋, 2026-10-15) | dotfiles `git log`   |
-| 2026-10-15 변경          | `SKILL.md` +4줄 −3줄                 | dotfiles `git show`  |
-| 수동 안내 문서           | 2,245바이트, 마지막 수정 2026-10-03  | `mcp-guide.md`       |
-| 단계                     | 7개                                  | `SKILL.md`           |
-| 서버 대기                | 최대 300초, 5초 간격, 요청당 3초     | `wait-unity-mcp.ps1` |
-| PowerShell 도구 타임아웃 | 360,000 ms                           | `SKILL.md`           |
-| 리로드 키 입력 사이 대기 | 600 ms, 400 ms, 300 ms               | `window.ps1`         |
-| 실행 횟수                | 기록 없음                            |                      |
+| 항목                                                               | 값                                   | 출처                 |
+| ------------------------------------------------------------------ | ------------------------------------ | -------------------- |
+| `SKILL.md`                                                         | 49줄, 3,433바이트                    | `wc`                 |
+| `wait-unity-mcp.ps1`                                               | 63줄, 2,723바이트                    | `wc`                 |
+| `window.ps1`                                                       | 72줄, 3,617바이트                    | `wc`                 |
+| 이 스킬 폴더를 바꾼 커밋                                           | 2개 (2026-10-06 첫 커밋, 2026-10-15) | dotfiles `git log`   |
+| 2026-10-15 변경                                                    | `SKILL.md` +4줄 −3줄                 | dotfiles `git show`  |
+| 수동 안내 문서                                                     | 2,245바이트, 마지막 수정 2026-10-03  | `mcp-guide.md`       |
+| 단계                                                               | 7개                                  | `SKILL.md`           |
+| [MCP server](glossary:mcp-server) 대기                             | 최대 300초, 5초 간격, 요청당 3초     | `wait-unity-mcp.ps1` |
+| [PowerShell](glossary:powershell) 도구 [timeout](glossary:timeout) | 360,000 ms                           | `SKILL.md`           |
+| 리로드 키 입력 사이 대기                                           | 600 ms, 400 ms, 300 ms               | `window.ps1`         |
+| 실행 횟수                                                          | 기록 없음                            |                      |
 
-## 용어 정리
+## 8. 느낀 점
 
-| 용어                                                                             | 뜻                                                                        |
-| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [MCP](/kr/blog/cs-fundamentals/ai/ai-07-01-ai-agent/#model-context-protocol-mcp) | 에이전트가 외부 프로그램을 도구로 쓰게 하는 프로토콜                      |
-| MCP for Unity                                                                    | Unity Editor 안에 MCP 서버를 띄워 씬·에셋 조작을 도구로 내주는 패키지     |
-| UPM                                                                              | Unity Package Manager. `Packages/manifest.json`의 의존성을 받아 오는 도구 |
-| [MCP scope](/kr/blog/side-projects/devblog/devblog-04-agent-environment/#9-mcp)  | MCP 등록이 적용되는 범위. `user`는 모든 폴더, `local`은 등록한 폴더만     |
-| readiness check                                                                  | 서버가 요청을 받을 준비가 됐는지 실제 요청을 보내 확인하는 일             |
-| pid file                                                                         | 프로세스가 자기 PID를 적어 두는 파일. 누가 포트를 잡았는지 가리는 데 씀   |
-| exit code                                                                        | 프로세스가 끝날 때 돌려주는 숫자. 0은 성공, 그 밖은 실패 종류             |
-| window focus                                                                     | 키 입력을 받을 창을 앞으로 가져오는 일                                    |
-| IME                                                                              | 한글처럼 조합해서 입력하는 문자를 처리하는 입력기                         |
-| Reload Window                                                                    | VS Code 창을 다시 불러와 확장과 그 안의 세션을 새로 시작하는 명령         |
+스킬은 "[MCP server](glossary:mcp-server) 확인"을 스크립트로, "리로드"를 키 입력 자동화로 바꿔서 순서를 기계가 지키게 했다.

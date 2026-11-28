@@ -1,132 +1,206 @@
 ---
-title: 'Stairno 4. Building Payments (Test Mode)'
+title: 'Stairno 4. Building Payments and the Production Rehearsal'
 date: '2026-10-20'
 tags: ['Stairno']
 draft: false
-summary: 'Roadmap step 4, the build. Putting Toss Payments and PayPal behind an adapter and building one-time payments, card registration (billing keys), subscriptions with automatic renewal, refunds, webhooks, payment mail and re-downloads, in order and by rules. Why the work moved to Git Flow midway, v0.4.0 and v0.4.1'
+summary: 'Building Toss Payments and PayPal behind an adapter, then closing step 4 with 10 production rehearsal scenarios'
+level: 3
 ---
 
-> The first half of roadmap step 4: building payments in test mode up to the first release (`v0.4.0`). The production rehearsal has its own post, [part 4a](/en/blog/side-projects/stairno/stairno-04a-payment-rehearsal/). The big picture is in [Stairno 0. The whole roadmap](/en/blog/side-projects/stairno/stairno-00-roadmap/).
+## 0. Introduction
 
-## In one line
+This is roadmap step 4. I added payments to the shared API, then checked that they really work in production before closing the step. The big picture is in [Stairno 0. The whole roadmap](/en/blog/side-projects/stairno/stairno-00-roadmap/). In payments a mistake is a money incident, so rules came before code. And since passing tests guarantee neither production addresses nor notices, I ran a separate rehearsal that plays scenarios in production.
 
-From the afternoon to the night of 18 October, payments were added to the shared API. When a site creates an order, the API talks to the payment provider, and once the payment is done it records an [entitlement](/en/blog/dev/payments/payments-00-basics/#entitlement) saying "this person may use this product". Cards are registered once in the account center, and subscriptions renew automatically every day. Everything is in [test mode](/en/blog/dev/payments/payments-00-basics/#test-mode), so no real money moves.
+In restaurant terms, the site is the dining room, the API is the kitchen, and the cashier is the payment company. A guest places an order and pays, the kitchen talks only to the cashier, and once the bill is settled it hands out an entry ticket. Register a regular's card once and it is charged every month on its own, and before opening day the staff play guests and run a whole day in advance. The cashier is the [payment provider](glossary:payment-gateway) (here [Toss Payments](glossary:toss-payments) and [PayPal](glossary:paypal)), the entry ticket is the [entitlement](glossary:entitlement), the regular's card is the [billing key](glossary:billing-key), the monthly charge is [subscription](glossary:subscription) renewal, the interpreter at the cashier is the [adapter](glossary:adapter-pattern), and the dress rehearsal is the rehearsal.
 
-## 1. What gets built
+From the afternoon to the night of 18 October I built payments in [sandbox](glossary:sandbox) and shipped `v0.4.0` and `v0.4.1`. In the early hours of 20 October I ran 10 scenarios in production. Right at the start it turned out that sign-in from other sites had been broken since launch day. 8 passed on the first night and the last two the next day, and step 4 closed on 22 October with `v0.4.3`. No real money moved.
 
-| Provider      | Currency         | What was built                                                                                                                                                                                                            |
-| ------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Toss Payments | Korean won (KRW) | One-time payments, card registration ([billing keys](/en/blog/dev/payments/payments-00-basics/#billing-key)), automatic subscription charges, cancellation, [webhooks](/en/blog/dev/payments/payments-00-basics/#webhook) |
-| PayPal        | US dollars (USD) | One-time payments, refunds, webhooks                                                                                                                                                                                      |
+## 1. What gets built, and by what rules
 
-The account center screens get card registration, deletion and choosing the default card, order history, cancelling and resuming subscriptions, and downloading purchased desktop programs again. Receipts, failed renewal notices and refund results go out by mail.
+| [Payment provider](glossary:payment-gateway) | Currency         | What was built                                                                                                                                                                  |
+| -------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Toss Payments](glossary:toss-payments)      | Korean won (KRW) | One-time payments, card registration ([billing key](glossary:billing-key)), automatic [subscription](glossary:subscription) charges, cancellation, [webhooks](glossary:webhook) |
+| [PayPal](glossary:paypal)                    | US dollars (USD) | One-time payments, [refunds](glossary:refund), [webhooks](glossary:webhook)                                                                                                     |
 
-Switching to real payments is designed to take **nothing but swapping the test keys for real keys and adding the business details**. That switch is step 9, after business registration.
+The account center gets card registration, deletion and choosing the default card, order history, cancelling and resuming [subscriptions](glossary:subscription), and downloading purchased programs again. Receipts, failed renewal notices and [refund](glossary:refund) results go out by mail. Switching to real payments is designed to take nothing but swapping the test keys for real keys and adding the business details. That switch is step 9, after business registration. All the rules are in the repo's working rules, and the AI agent follows them too.
 
-## 2. Rules set first
+1. **Providers live only behind an [adapter](glossary:adapter-pattern).** The order code knows only common operations like "approve" and "cancel", not whether it is [Toss Payments](glossary:toss-payments) or [PayPal](glossary:paypal). Tests run on a [fake adapter](glossary:test-double) instead of a real provider and can create situations like "decline the next payment" or "pretend the provider is down" at will
+2. **Amounts are an integer plus a currency.** 1,000 won is `1000 KRW` and 1 dollar is `100 USD` (cents). No decimal arithmetic, and won and dollars are never added together
+3. **There is no code that takes card numbers.** The [payment provider](glossary:payment-gateway)'s screen takes them. We keep only the encrypted [billing key](glossary:billing-key), the card issuer and the last four digits
+4. **The server re-checks the amount.** If the amount sent by the browser differs from the order amount, it is refused and no approval request goes out
+5. **[Webhooks](glossary:webhook) are [idempotent](glossary:idempotency).** The same notice arriving twice is processed once
+6. **Orders follow a [state machine](glossary:state-machine).** Only allowed moves happen
+7. **A [kill switch](glossary:kill-switch) turns off payments only.** In an outage, sign-in stays up and only payments stop
+8. **No personal data in logs.** Order numbers and provider numbers instead of emails, [tokens](glossary:token) or card data
 
-In payments, a mistake is a money incident. So rules came before code. They are all written in the repo's working rules, and the AI agent follows them too.
+## 2. Build order and the path of one payment
 
-1. **Providers live only behind an [adapter](/en/blog/dev/payments/payments-00-basics/#adapter).** The order code knows only common operations like "approve payment" and "cancel", not whether it is Toss or PayPal. Tests run on a fake adapter instead of a real provider, creating situations like "decline the next payment" or "pretend the provider is down" at will
-2. **Amounts are an integer plus a currency.** 1,000 won is `1000 KRW` and 1 dollar is `100 USD` (cents). [No decimal arithmetic](/en/blog/dev/payments/payments-00-basics/#writing-amounts), and won and dollars are never added together
-3. **There is no code that takes card numbers.** The [provider's screen](/en/blog/dev/payments/payments-00-basics/#payment-window) takes them. We keep only the billing key (encrypted, at that), the card issuer and the last four digits
-4. **The server re-checks the amount.** If the amount sent by the browser differs from the order amount, it is refused and no approval request goes to the provider
-5. **Webhooks are [idempotent](/en/blog/dev/payments/payments-00-basics/#idempotency).** The same notice arriving twice is processed once
-6. **Orders follow the [state machine](/en/blog/dev/payments/payments-00-basics/#order-state-machine).** Only allowed moves happen
-7. **A [switch](/en/blog/dev/payments/payments-00-basics/#payment-switch) that turns off payments only.** In an outage, sign-in stays up and only payments stop
-8. **No personal data in logs.** Order numbers and provider numbers instead of emails, tokens or card data
+One feature per PR, test first, in this order.
 
-## 3. Build order
+| Order | Built                                                                                                              | What it does                                                                                                                                                                                                |
+| ----- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Payment DB design                                                                                                  | Tables for products, prices, orders, payments, cards, [subscriptions](glossary:subscription), [entitlements](glossary:entitlement), [refund](glossary:refund) requests, [webhook](glossary:webhook) records |
+| 2     | [Adapter](glossary:adapter-pattern), [fake adapter](glossary:test-double), [state machine](glossary:state-machine) | The frame for talking to providers, and the rules for how an order moves                                                                                                                                    |
+| 3     | Product registration command, [kill switch](glossary:kill-switch)                                                  | The operator registers products with a command. No admin screen                                                                                                                                             |
+| 4     | Site identity, order API                                                                                           | A site says "I am a registered Stairno site" and creates orders                                                                                                                                             |
+| 5-7   | [Toss Payments](glossary:toss-payments) approval, [webhooks](glossary:webhook), [PayPal](glossary:paypal)          | Check and finalize a payment that comes back. [PayPal](glossary:paypal) goes to the approval screen, returns and captures                                                                                   |
+| 8-10  | Card registration and deletion, account deletion hook, payment methods screen                                      | The registration window issues a [billing key](glossary:billing-key), stored encrypted. Deleting an account also deletes the keys stored at the provider                                                    |
+| 11-13 | [Billing key](glossary:billing-key) charges, starting a [subscription](glossary:subscription), default card change | Charge the default card right away and open the [subscription](glossary:subscription). Changing the default card had left [subscriptions](glossary:subscription) tied to the old one, fixed separately      |
+| 14-15 | Daily automatic renewal, cancel and resume                                                                         | Once a day [cron](glossary:cron) charges [subscriptions](glossary:subscription) whose period has ended. Cancelling is account center only                                                                   |
+| 16-17 | [Entitlement](glossary:entitlement) lookup, download link                                                          | A site asks "may this person use this product?". The buyer gets a 10-minute download address                                                                                                                |
+| 18-20 | [Refund](glossary:refund) request and operator [refund](glossary:refund) command, payment mail, order history      | The operator checks and [refunds](glossary:refund) by command. Mail goes out once per order and kind                                                                                                        |
 
-One feature per PR. Each went in in this order, test first.
+Here is one purchase of a 1,000 won program. (Labs does not exist yet, so the rehearsal site in section 6 stands in for it.)
 
-| Order | Built                                           | In plain words                                                                                                               |
-| ----- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| 1     | Payment DB design                               | Tables for products, prices, orders, payments, cards, subscriptions, entitlements, refund requests, webhook records          |
-| 2     | Adapter, fake adapter, state machine            | The frame for talking to providers, and the rules for how an order moves                                                     |
-| 3     | Product registration command, payment switch    | The operator registers products with a command. No admin screen                                                              |
-| 4     | Site identity, order API                        | A site says "I am a registered Stairno site" and creates orders                                                              |
-| 5     | Toss payment approval                           | Check and finalize a payment that comes back from the payment window                                                         |
-| 6     | Toss webhooks                                   | Receive payment status notices from Toss                                                                                     |
-| 7     | PayPal payments                                 | Dollar payments. Go to the approval screen, come back and finalize (capture)                                                 |
-| 8     | Card registration and deletion                  | Toss card registration window → billing key issued → stored encrypted                                                        |
-| 9     | Billing keys deleted with the account           | Deleting an account also deletes the card keys stored at the provider                                                        |
-| 10    | Payment methods screen                          | Register cards, pick the default, delete them in the account center                                                          |
-| 11    | Billing key charges                             | Charge a saved card                                                                                                          |
-| 12    | Starting a subscription                         | Buying a subscription product charges the default card right away and opens the subscription                                 |
-| 13    | Subscriptions follow the default card           | Missing at first. Changing the default card left subscriptions tied to the old one, so it was fixed separately               |
-| 14    | Daily automatic renewal                         | Once a day, [cron](/en/blog/dev/cloudflare/cloudflare-00-basics/#cron-triggers) charges subscriptions whose period has ended |
-| 15    | Cancelling and resuming subscriptions           | Account center only. A site cannot cancel on the user's behalf                                                               |
-| 16    | Entitlement lookup                              | A site asks "may this person use this product?"                                                                              |
-| 17    | Download links                                  | Buyers get a download address valid for 10 minutes                                                                           |
-| 18    | Refund requests and the operator refund command | A site requests a refund, and the operator reviews it and refunds with a command                                             |
-| 19    | Payment mail                                    | Receipts, failed renewals, refund results. Once per order per kind                                                           |
-| 20    | Order history and re-download screens           | My orders and downloadable programs in the account center                                                                    |
+1. The site sends its site [token](glossary:token) and the buyer's [token](glossary:token) together and creates an order. The API reads the price from the DB and makes the order `pending`. The site does not set prices, and an unpaid order expires after 30 minutes
+2. The user enters a card and authenticates in the [Toss Payments](glossary:toss-payments) window. No money has moved yet
+3. The site sends the API "finalize this". The API checks in order whether it is this site's order, whether the payment number was already handled (if so it returns the first result as is), whether the order is still `pending`, and **whether the amount equals the order's**. If not, the order is set to `failed` and no approval request goes to [Toss Payments](glossary:toss-payments)
+4. The API asks [Toss Payments](glossary:toss-payments) to approve. The money moves here, and the approved amount is compared once more
+5. Payment done, order `fulfilled` and [entitlement](glossary:entitlement) created are recorded in one go, and a receipt goes out in the user's language
+6. When the [webhook](glossary:webhook) arrives later the payment is already handled, so nothing changes. If the user closed the window after step 2, this [webhook](glossary:webhook) does steps 3-5
 
-## 4. The path a single payment actually takes
-
-Say a user buys a 1,000 won program on Labs. (Labs does not exist yet, so for now the rehearsal site from [part 4a](/en/blog/side-projects/stairno/stairno-04a-payment-rehearsal/) takes its place.)
-
-1. **The site creates an order.** The site sends its own identity (a [site token](/en/blog/dev/auth/auth-00-basics/#token)) together with the buyer's (a user token). The API reads the product price from the DB and creates the order as `pending`. The site does not set the price. If it is not paid within 30 minutes, it expires
-2. **The Toss payment window opens.** The user enters a card and authenticates. No money has left yet
-3. **The user comes back to the site.** Toss sends them back to the site with a payment number and the amount attached
-4. **The site asks the API to "finalize this".** The API checks, in order:
-   - Is this order really this site's?
-   - Is this payment number already processed? (If so, it returns the first result as is)
-   - Is the order still `pending`?
-   - **Does the amount match the order?** If not, the order is set to `failed` and refused. No approval request goes to Toss
-5. **The API asks Toss for approval.** This is when money leaves. The amount Toss approved is compared once more
-6. **Payment done, order `fulfilled`, entitlement created.** All three are recorded at once
-7. **A receipt** goes out in the user's language
-8. **Later, Toss's webhook** arrives. The payment is already processed, so nothing changes. If the user had closed the window at step 3, this webhook would do step 6 instead
-
-## 5. What came up along the way
+## 3. What I ran into while building
 
 ### No interactive transactions
 
-Normally "write the payment record + change the order state + create the entitlement" is bundled into one [transaction](/en/blog/dev/devops/devops-00-basics/#transaction). But the way Workers connects to Neon (an HTTP connection) treats each request separately, so a transaction spanning several requests cannot be held open.
+Normally the payment record, the order status and the [entitlement](glossary:entitlement) go into one [transaction](glossary:database-transaction). But the HTTP connection from Cloudflare [Workers](glossary:cloudflare-workers) to [Neon](glossary:neon) treats each request separately, so a [transaction](glossary:database-transaction) spanning several requests cannot be opened. So every state change is written as one [SQL](glossary:sql) statement with the condition "change it only if the order is in one of these states". The allowed-state list is generated from the [state machine](glossary:state-machine) table. Even if two requests try to change the same order at once, only the one that gets there first succeeds.
 
-So every state change is written as **a single SQL statement**, with the condition "change it only if the order is in one of these states". The list of allowed states is generated from the state machine table. If two requests try to change the same order at once, only the first succeeds, and the other no longer matches the condition, so nothing happens.
+### Webhooks: verify before saving
 
-### Webhooks: verify before storing
-
-Storing "received" first and verifying later seems natural for webhooks. But then a forged notice could claim a genuine notice's event number first, and when the genuine one arrives, it is discarded as "already received". So the order is **verify → store → process**. Toss's payment notices have no signature, so on receiving one the API asks Toss directly about that payment and trusts only the state Toss reports.
+Saving "received" first lets a forged notice take a real notice's event number, and when the real one arrives it is discarded as "already received". So the order is verify, save, process. [Toss Payments](glossary:toss-payments) payment notices carry no signature, so on receipt we ask [Toss Payments](glossary:toss-payments) directly about that payment and trust only the status it answers with.
 
 ### Signing download links ourselves
 
-Download files live in Cloudflare [R2](/en/blog/dev/cloudflare/cloudflare-00-basics/#r2). Making a "10-minute download address" in R2 needs one more separate key, and I did not want more secrets. So the download address is the API's own address, and the API itself signs "this file, until this time". When the user comes to that address, the API checks the signature and the time and streams the file.
+Files live in [R2](glossary:cloudflare-r2). Making a 10-minute download address in [R2](glossary:cloudflare-r2) needs one more key, and I did not want more [secrets](glossary:secret). So the address is the API's own, and the API signs "this file, until this time". When the user arrives it checks signature and time and streams the file.
 
-### Telling declines apart from outages
+### Telling a decline from an outage
 
-"Card over its limit" is a decline, and "the Toss server does not answer" is an outage. A decline closes the order as `failed` and tells the user, but an outage must leave the order as it is so that it can be retried. I went through the error codes in the Toss documentation one by one, and the adapter now separates the two by code.
+"Card limit exceeded" is a decline: close the order as `failed` and tell the user. "The provider's server is not answering" is an outage: leave the order and allow a retry. I checked the error codes in the docs one by one so the [adapter](glossary:adapter-pattern) tells the two apart by code.
 
-## 6. A change midway: Git Flow
+## 4. Why I moved to Git Flow midway
 
-Up to step 3, a PR that passed [CI](/en/blog/dev/devops/devops-00-basics/#ci) went straight into `main`, and `main` went straight to production. With payments coming in, that felt risky. A half-finished payment feature reaching production weighs very differently from one word changing on the sign-in screen.
+Up to step 3, a PR that passed [CI](glossary:ci) went straight to `main`, and `main` went straight to production. With payments half in, going to production is not the same weight as a changed letter on the sign-in screen. On the evening of 18 October, with over 20 payment PRs in, I moved to [Git Flow](glossary:git-flow).
 
-So on the evening of 18 October, after more than 20 payment PRs, the work moved to [Git Flow](/en/blog/dev/devops/devops-00-basics/#git-flow).
+- Everyday work collects in `develop`, and going into `develop` does not deploy
+- When one roadmap step ends, a `release` branch is cut and sent to `main`, and that is the single deploy
+- An urgent production bug is fixed with a [hotfix](glossary:hotfix) that touches only the production version
+- The middle number of the [version number](glossary:semantic-versioning) is the roadmap step. The first release of step 4 is `v0.4.0`
 
-- Everyday work collects in `develop`. Landing in `develop` does not reach production
-- **When a roadmap step ends**, a `release` branch goes to `main`. That is the one deploy
-- An urgent production bug gets fixed on the production version alone with a `hotfix`
-- The middle number of the [version number](/en/blog/dev/devops/devops-00-basics/#version-number) is the roadmap step. The first release of step 4 is `v0.4.0`
+Checks come in layers: only the changed tests per commit, all of [CI](glossary:ci) when pushing to `develop`, [CI](glossary:ci) required to reach `main`, tests once more right before deploy, then the rehearsal in production. That last layer is section 6 onward, because the address the [payment provider](glossary:payment-gateway) returns to and the [webhook](glossary:webhook) can only be truly checked in production.
 
-Checks were split into layers too: only the changed tests on my computer for each commit → the full CI on pushes to `develop` → CI required on the way to `main` → tests once more right before deploying → a [rehearsal](/en/blog/dev/devops/devops-00-basics/#rehearsal) in production. The last layer is [part 4a](/en/blog/side-projects/stairno/stairno-04a-payment-rehearsal/). The provider's return to our server and the webhooks can only be truly checked in production.
+## 5. v0.4.0 and v0.4.1
 
-## 7. v0.4.0, and then v0.4.1
+Around 10 pm, with payment mail, order history and the re-download screen in, I shipped `v0.4.0`. Then I saw that the account center was scattered across profile, devices, connected sites, payment methods, [subscriptions](glossary:subscription), orders, downloads and deletion. I compared the account screens of Google, Microsoft, Apple, GitHub and Kakao and changed it.
 
-Around 10 p.m., with payment mail, order history and the re-download screen in, the first release `v0.4.0` went to production.
+- Four blocks on one page: account, payment, my products, security. Clicking the left contents scrolls there and marks the block in view
+- Account deletion at the very bottom, hard to press by mistake
+- Password change, which was missing. Changing it signs out every other device and sends a "your password was changed" mail
+- Country/region and time zone (order dates shown in it), profile photo
 
-Then I looked at the account center screens again. Profile, devices, connected sites, payment methods, subscriptions, orders, downloads and deletion were scattered over separate pages, and it was hard to find what was where. After comparing the account screens of Google, Microsoft, Apple, GitHub and Kakao, I changed it like this.
+Birthday, gender, phone number and address are not collected. Not collecting personal data you have no feature for is [data minimization](glossary:data-minimization), a principle of the Korean privacy law, and it also leaves less to leak. Just after midnight I shipped `v0.4.1`, and that is the build. What remained was checking it works in production.
 
-- **Four groups on one page**: account management → payments → my products → security. Clicking the left-hand menu scrolls to that spot, and the menu marks the group currently in view
-- **Account deletion at the very bottom**, at the end of the security group. A hard place to click by accident
-- **Password change** was missing. Added. Changing it signs out every other device and sends a "your password was changed" email, so you know right away if it was not you
-- **Country/region and time zone**. Order dates are shown in the person's time zone
-- **Profile photo**
+## 6. A rehearsal-only site
 
-Birthday, gender, phone number and address are **not collected.** Not collecting personal data that no feature uses is a principle of Korea's Personal Information Protection Act (data minimization), and it also means less to leak.
+Tests run in a fake [payment provider](glossary:payment-gateway), a fake DB and a fake server. But whether the user who finished paying returns to the real site address, whether [webhooks](glossary:webhook) reach the real server and whether mail reaches a real mailbox can only be confirmed in production. So step 4 closes only after the scenarios are run one by one and the [acceptance checklist](glossary:acceptance-criteria) is filled in.
 
-Just after midnight it went out as `v0.4.1`. That is the end of building step 4. What remains is checking that it **really works in production**.
+The catch was that creating an order needs a site connected to the API. An order request needs both a site [token](glossary:token) and the buyer's [token](glossary:token), the return address must be that site's https address, and the payment window opens on the site's page. The first site, Labs, is step 5. In step 3 I deferred a similar case with "check it once a site exists", but not this time. If something broke while attaching payments to Labs, I could not tell whether it was a bug in the payment API or in Labs.
 
-Next: [Stairno 4a. The production payment rehearsal](/en/blog/side-projects/stairno/stairno-04a-payment-rehearsal/)
+So I built a one-page [Worker](glossary:cloudflare-workers) that only rehearses, at `experiments/payment-rehearsal` in the repo.
+
+- It signs in exactly like a real Stairno site, with [OIDC](glossary:oidc) (including [PKCE](glossary:pkce)), and receives a site [token](glossary:token)
+- Buttons: sign in, one-time product order (won via [Toss Payments](glossary:toss-payments), dollars via [PayPal](glossary:paypal)), confirm payment, confirm payment with the amount halved, start a [subscription](glossary:subscription), look up orders and [entitlements](glossary:entitlement). There is no card number field
+- The site password (`client_secret`) lives only as this [Worker](glossary:cloudflare-workers)'s [secret](glossary:secret)
+- **The API has no rehearsal exceptions or back doors at all.** The rehearsal only means something if it takes the same road as a real site. The tool stays in the repo and is rerun on every release that changes the payment path
+
+Setup was: deploy the tool to Cloudflare, register it in the account center as an [OIDC](glossary:oidc) site and put the issued name and password into its [secrets](glossary:secret), register two products (1,000 won and 1 dollar one-time) and a monthly [subscription](glossary:subscription) (1,000 won), check the [webhook](glossary:webhook) addresses in the [Toss Payments](glossary:toss-payments) and [PayPal](glossary:paypal) dashboards, and create a rehearsal account. I also wrote a script that reads the production DB. Roles: I enter cards and passwords and change dashboard settings, and the AI agent presses buttons and checks results (responses, DB records, mail).
+
+Two things snagged. The site password issued at the first registration was printed in the working conversation log as is, so I deleted that registration and registered again, and confirmed that signing in with the deleted password is refused (`invalid_client`). Also, a DB account made in the [Neon](glossary:neon) console joins the admin group automatically, so "read permission only" had no effect. Instead the script opens its [transaction](glossary:database-transaction) as a [read-only transaction](glossary:read-only-transaction), which blocks writes at the source. It prints no emails, [tokens](glossary:token) or card keys.
+
+## 7. A 404 on the first button
+
+I pressed sign in in the rehearsal tool and the account center's `/sign-in` was a [404](glossary:http-status-code). That page is where other sites land when they press "Sign in with Stairno". Since launch day on 18 October no site had been able to sign in with Stairno, and nobody knew because no site was attached. It was exactly the check I had deferred to step 5 in step 3.
+
+The cause: the account center prefixes addresses with a language ([i18n](glossary:i18n)), and [Astro](glossary:astro)'s setting was "prefix every page with a language", which renders a page without one and then turns it into a [404](glossary:http-status-code). The [OIDC](glossary:oidc) sign-in address is the language-less `/sign-in` that other sites send without knowing the user's language. Screen tests render a page in isolation, so address handling from the language setting never enters. "`/sign-in` renders the form" passed, while "this address is alive in the production build" was checked by no one.
+
+In [Astro](glossary:astro), the only thing that can answer outside the language prefix is an address injected separately by an extension (integration). So I added `/sign-in` that way and sent the request to the sign-in page in the user's language (`/ko/sign-in` etc.) with a [302](glossary:http-status-code). Addresses that must answer without a language are tested as a list, and I started a real build to check that `/sign-in` gives a [302](glossary:http-status-code) and other addresses still give a [404](glossary:http-status-code).
+
+## 8. Mail pointing at a deleted address, and v0.4.2
+
+Preparing "press the button in the mail sent when a renewal fails", I saw that the button pointed at `/billing`. That is an address I deleted myself when `v0.4.1` in section 5 made the account center one page. While changing the screen layout I had not looked at the links inside mail. I changed it to the payment block of the new structure (`/ko/#payment-methods`).
+
+I bundled the two fixes onto the production `v0.4.1` as [hotfix](glossary:hotfix) `v0.4.2`, with none of the other changes piled up in `develop`. [CI](glossary:ci), usually a few minutes, took close to 40 minutes that day because [GitHub Actions](glossary:github-actions) was slow, so push to merge took an hour. `v0.4.2` reached production around 1:30 am, and after checking `/sign-in` I restarted the rehearsal.
+
+## 9. A secret nobody had kept
+
+The original value of the production server's `BETTER_AUTH_SECRET` was nowhere. Not in the [password manager](glossary:password-manager), not on my computer, and Cloudflare [Workers](glossary:cloudflare-workers) does not show a [secret](glossary:secret) again once it is set. The [signing key](glossary:jwks) that signs sign-in [tokens](glossary:token) (JWKS) is stored encrypted in the DB with this value, so nothing I had could decrypt it.
+
+Before launch the only users were me and a test account, so I replaced the value.
+
+1. Save the new value in the [password manager](glossary:password-manager) first
+2. Put it into Cloudflare with [wrangler](glossary:wrangler) (`wrangler secret put`)
+3. Delete the [signing key](glossary:jwks) encrypted with the old value from the DB
+4. Fetch the [public key](glossary:jwks) address once so a new [signing key](glossary:jwks) is created, and check that it decrypts with the new value
+
+Changing this value signs out every login and invalidates every download link already out. With users I would have had to announce it first. A [secret](glossary:secret) written down nowhere is a lost [secret](glossary:secret), and I moved this procedure into the operations doc.
+
+## 10. Results of the 10 scenarios
+
+Cards used [Toss Payments](glossary:toss-payments) test cards, and [PayPal](glossary:paypal) used a [sandbox](glossary:sandbox) buyer account.
+
+| Order | Scenario                                                        | What was checked                                                                                           | Result            |
+| ----- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ----------------- |
+| 1     | [Toss Payments](glossary:toss-payments) one-time payment        | Order `fulfilled`, [entitlement](glossary:entitlement) created, receipt mail                               | Pass              |
+| 2     | Amount tampering                                                | Halving the amount is refused ([422](glossary:http-status-code)), order `failed`, no approval request sent | Pass              |
+| 3     | Cancel and [refund](glossary:refund)                            | Order `refunded`, [entitlement](glossary:entitlement) revoked, [refund](glossary:refund) mail              | Pass              |
+| 4     | Register and delete a card                                      | Last 4 digits shown, deleting also deletes the provider's [billing key](glossary:billing-key)              | Pass              |
+| 5     | Start a [subscription](glossary:subscription)                   | Charged the default card at once, `active`, [entitlement](glossary:entitlement) end = period end           | Pass              |
+| 6     | Three failed renewals, expiry                                   | Mail on each failure, `expired` on the fourth attempt                                                      | Pass (21 October) |
+| 7     | [PayPal](glossary:paypal) payment and [refund](glossary:refund) | `fulfilled` to `refunded`, [webhook](glossary:webhook) signature check passed                              | Pass              |
+| 8     | Resend a [webhook](glossary:webhook)                            | Sending the same notice again adds no record and leaves the order ([idempotent](glossary:idempotency))     | Pass              |
+| 9     | Turn the [kill switch](glossary:kill-switch) off                | Sign-in works and only ordering gives a [503](glossary:http-status-code)                                   | Pass              |
+| 10    | Mail in two languages                                           | Switched the account to English and redid 1 and 3                                                          | Pass (21 October) |
+
+### Moving refund requests into the account center
+
+Scenario 3 exposed a gap in the design. The procedure said "request a [refund](glossary:refund) in the account center", but the account center had no [refund](glossary:refund) button. The [requirements spec](glossary:srs) had [refund](glossary:refund) requests come from the site and the account center only show status, so the code matched the spec and the procedure was wrong. I made the rehearsal pass by adding a "request [refund](glossary:refund)" button to the tool.
+
+But from the user's side, whichever site they bought from, requesting in the account center that holds the order history is natural, and building a [refund](glossary:refund) screen on every site is the "same work many times" that [Stairno 0](/en/blog/side-projects/stairno/stairno-00-roadmap/#1-four-sites-one-account) set out to avoid. So I changed the decision on the spot and wrote it into the plan.
+
+- [Refund](glossary:refund) requests are taken on the order detail in the account center. Sending a reason makes a request, and it does not [refund](glossary:refund) immediately
+- The operator approves or rejects, and the result goes out by mail. The path for a site to submit a request stays as an entrance
+- The [refund](glossary:refund) policy text lives on the selling site, and the account center links to it
+- The spec is fixed first, then built, in the next release
+
+## 11. The last two (21 October)
+
+**Scenario 10.** I switched the account language to English and redid 1 and 3 with an easy-pay method. The order became `fulfilled` and an English receipt arrived, and requesting a [refund](glossary:refund) and approving it by operator command gave `refunded`, [entitlement](glossary:entitlement) revoked and an English [refund](glossary:refund) mail. Mail language follows the account language at the moment of sending, so the first night's Korean result could not prove the English side.
+
+**Scenario 6.** The [Toss Payments](glossary:toss-payments) test environment approves every payment whatever the card, so failures had to be made. The official way, a test marker on the request, needs an API change and breaks the "no rehearsal exceptions" rule. So I changed only the rehearsal data in the production DB so the stored [billing key](glossary:billing-key) and customer number no longer matched, and [Toss Payments](glossary:toss-payments) genuinely refused with "customer information does not match" (`NOT_MATCHES_CUSTOMER_KEY`). I changed the daily renewal [cron](glossary:cron) to every minute for a while, and since a retry normally waits three days after the last attempt, I set "last attempt date" back three days for each retry. Our side took this as a payment decline, not an outage, and handled it with a failed order and an English mail, and the mail button went to the account center payment section fixed in section 8.
+
+| Attempt       | [Subscription](glossary:subscription) state | Failure count |
+| ------------- | ------------------------------------------- | ------------- |
+| First renewal | `past_due`                                  | 1             |
+| Retry 1       | `past_due`                                  | 2             |
+| Retry 2       | `past_due`                                  | 3             |
+| Retry 3       | `expired`                                   | 4             |
+
+After `expired`, the [subscription](glossary:subscription) [entitlement](glossary:entitlement) still looked set to its original expiry (a month later). The rehearsal had moved only the period end and left the [entitlement](glossary:entitlement) expiry alone, and in reality by the time a renewal fails that time has already passed.
+
+I added a per-minute [Cron Triggers](glossary:cron-triggers) entry in the dashboard and waited 15 minutes with nothing happening, and only after losing 30 minutes did I open the logs. When [cron](glossary:cron) runs, the API writes one `renewal run` line even with nothing to renew, and since adding the per-minute [cron](glossary:cron) there was not a single one. That morning at 9:00 (midnight UTC) there was, so the original [cron](glossary:cron) was fine. The cause: I pressed "Add" in the add window and never pressed "Save". The first run came about 8 minutes after Save. The procedure now says "Save after Add, reload and check that it stayed".
+
+## 12. Closing step 4 (22 October)
+
+With the rehearsal all passed, cleanup and the release were still left.
+
+- **Cleanup.** I deleted the check script that read the production DB, the connection file, and the allow rule that ran it without asking, and removed the temporary DB account in the [Neon](glossary:neon) console. The rehearsal tool stays
+- **Shared docs.** The source is the repo's markdown, and Google Docs are aligned once when a step ends. I did not upload anew to keep the links and fixed only the changed places in the same documents. The [design spec](glossary:sdd) was three lines, the plan a few table rows and three decisions, the test and deployment doc a whole rehearsal section and all the [acceptance checklist](glossary:acceptance-criteria) results, and the [requirements spec](glossary:srs) was already correct. With a three-day step that was fine, and a longer one needs one more alignment midway
+- **[Refund](glossary:refund) procedure.** Look at open [refund](glossary:refund) requests in the DB, judge by the site's [refund](glossary:refund) policy and approve or reject by operator command. Checking the code, refunding by hand in the [payment provider](glossary:payment-gateway)'s dashboard makes the [webhook](glossary:webhook) set the order to refunded but does not close the open [refund](glossary:refund) request. So the procedure says "do not [refund](glossary:refund) by hand in the dashboard"
+- **[Webhook](glossary:webhook) replay.** A [webhook](glossary:webhook) that failed while processing stays in the DB as failed and the answer is an error, so the [payment provider](glossary:payment-gateway) resends it ([Toss Payments](glossary:toss-payments) up to seven times over 3 days 19 hours). After fixing the cause and deploying, resend from the dashboard and you are done, and scenario 8 already showed it is handled without duplicates
+- **v0.4.3.** It shipped what had piled up in `develop`: removing the underline on order-list links, the [refund](glossary:refund) request button in the rehearsal tool, and one [flaky test](glossary:flaky-test). The test that checks a forged [billing key](glossary:billing-key) is refused changes the second-to-last character of the [ciphertext](glossary:ciphertext) to `A` (to `B` if it is already `A`), but it decided "is it already `A`" by looking at the neighboring character. When the character to change is already `A`, nothing changes, decryption succeeds and the test fails. That is about 1 in 64. I fixed it to look at the very character it changes
+- **Two issues left open.** I wrote "Closes #209, closes #211" in the `v0.4.2` PR body, yet two [GitHub issues](glossary:github-issues) stayed open. GitHub closes issues with that keyword only when the PR merges into the [default branch](glossary:default-branch). This repo's [default branch](glossary:default-branch) is `develop` and release PRs go to `main`, so the keyword does nothing. I confirmed the fixes in production and closed them by hand
+
+What remains is the [refund](glossary:refund) request in the account center and keep-me-signed-in (both spec first), plus three bugs found in the rehearsal: the hub account menu's "sign in" link points at an address that does not exist, "connected sites" in the account center is still empty after an [OIDC](glossary:oidc) sign-in, and a refunded order shows the [refund](glossary:refund) mark twice in the list. Then comes step 5, stairnolabs.com, where the production experiment step 13 deferred from step 3 and the "[token](glossary:token) refresh fails after account deletion" check also get done. Real payments come after business registration and contracts, and before that I recheck the move to a paid [Workers](glossary:cloudflare-workers) plan and the business details in the terms.
+
+## 13. Reflection
+
+Passing tests do not make an address alive: the check I put off because there was no site to attach had blocked sign-in for nearly two days, and it only surfaced once a real site was attached in production.

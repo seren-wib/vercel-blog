@@ -31,57 +31,57 @@ summary: 'sync, semaphores, monitors'
 
 ## 1. spinlock만으로는 부족하다
 
-- 다른 스레드가 lock을 잡고 있으면 계속 기다려야 함
-- busy waiting이라 CPU 낭비가 큼
-- 아주 짧은 critical section에만 적합함
+- 다른 [Thread](glossary:thread)가 [lock](glossary:lock)을 잡고 있으면 계속 기다려야 함
+- [busy waiting](glossary:busy-waiting)이라 CPU 낭비가 큼
+- 아주 짧은 [critical section](glossary:critical-section)에만 적합함
 
 ## 2. Interrupt disable/enable도 한계가 있다
 
-- 너무 원시적인 방식(단순 mutual exclusion(critical section안에 못들어가게 하기)만 해줌)
-- critical section에서 인터럽트 계속 꺼두기 어려움
-- 고수준 동기화 문제를 직접 해결해주지 않음
+- 너무 원시적인 방식(단순 [mutual exclusion](glossary:mutual-exclusion)([critical section](glossary:critical-section)안에 못들어가게 하기)만 해줌)
+- [critical section](glossary:critical-section)에서 [Interrupt](glossary:interrupt) 계속 꺼두기 어려움
+- 고수준 [Synchronization](glossary:synchronization) 문제를 직접 해결해주지 않음
 
 ## 3. 그래서 뭐가 필요하나?
 
-- 기다리는 스레드 block시키기
-- critical section 안에서도 인터럽트 켜두기
-- 고수준 동기화 사용하기
+- 기다리는 [Thread](glossary:thread) [block](glossary:blocking)시키기
+- [critical section](glossary:critical-section) 안에서도 [Interrupt](glossary:interrupt) 켜두기
+- 고수준 [Synchronization](glossary:synchronization) 사용하기
 
 # 2. 고수준 동기화
 
 ## 0. 목적
 
-- 단순 mutual exclusion 이상을 제공
+- 단순 [mutual exclusion](glossary:mutual-exclusion) 이상을 제공
 - 기다림을 효율적으로 처리
-- 복잡한 동기화 패턴을 쉽게 표현
+- 복잡한 [Synchronization](glossary:synchronization) 패턴을 쉽게 표현
 
 ## 1. Semaphores
 
-- 세마포어는 보통 스핀락을 이용해 구현되어있음
+- [Semaphore](glossary:semaphore)는 보통 [Spinlock](glossary:spinlock)을 이용해 구현되어있음
 
-1. binary semaphores: lock, mutex처럼 사용됨, value가 1개 뿐, critical section에 하나만 들어오는걸 보장함
+1. [binary semaphores](glossary:binary-semaphore): [lock](glossary:lock), [mutex](glossary:mutex)처럼 사용됨, value가 1개 뿐, [critical section](glossary:critical-section)에 하나만 들어오는걸 보장함
 
-2. counting semaphores: 일반적으로 세마포어라고 부르는 것, value가 N(N>1)인 것, N개의 동일 자원을 관리
+2. [counting semaphores](glossary:counting-semaphore): 일반적으로 [Semaphore](glossary:semaphore)라고 부르는 것, value가 N(N>1)인 것, N개의 동일 자원을 관리
 
 ## 2. Monitors
 
-언어차원에서 제공하는 동기화 구조
+언어차원에서 제공하는 [Synchronization](glossary:synchronization) 구조
 
 # 3. Semaphores
 
-- lock보다 한단계 높은 동기화 도구
+- [lock](glossary:lock)보다 한단계 높은 [Synchronization](glossary:synchronization) 도구
 - 한번에 하나만 들어와에 더해서 자리가 있으면 들어와의 느낌
-- **busy waiting를 하지 않는다.(계속 CPU쓰면서 lock 열렸는지 확인하지 않는다)**
+- **[busy waiting](glossary:busy-waiting)를 하지 않는다.(계속 CPU쓰면서 [lock](glossary:lock) 열렸는지 확인하지 않는다)**
 
 ## 1. Wait(S): 값을 감소
 
-- 세마포어가 열려있으면 critical section안에 넣고 value -1
-- 세마포어가 닫혀있으면 세마포어 waiting큐에 달아놓고 block 시킴
+- [Semaphore](glossary:semaphore)가 열려있으면 [critical section](glossary:critical-section)안에 넣고 value -1
+- [Semaphore](glossary:semaphore)가 닫혀있으면 [Semaphore](glossary:semaphore) [Wait queue](glossary:wait-queue)에 달아놓고 [block](glossary:blocking) 시킴
 
 ## 2. Signam(S): 값을 증가
 
-- 세마포어 열기(value + 1)
-- 세마포어 waiting queue에서 block되어있는거 unblock시키기
+- [Semaphore](glossary:semaphore) 열기(value + 1)
+- [Semaphore](glossary:semaphore) [waiting queue](glossary:wait-queue)에서 [block](glossary:blocking)되어있는거 unblock시키기
 
 ## 3. 구현 예시
 
@@ -120,27 +120,27 @@ void signal (semaphore S) {
 4. S.value--
    1 → 0
 5. S.value가 0 이상이므로 T1은 통과
-   → critical section 진입
+   → [critical section](glossary:critical-section) 진입
 6. T2가 들어가려 함
 7. T2가 wait(S) 호출
 8. S.value--
    0 → -1
 9. S.value < 0 이므로 T2는 못 들어감
-   → semaphore waiting queue에 들어감
-   → blocked 상태가 됨
-10. T1의 critical section 작업이 끝남
+   → [semaphore](glossary:semaphore) [waiting queue](glossary:wait-queue)에 들어감
+   → [blocked](glossary:blocking) 상태가 됨
+10. T1의 [critical section](glossary:critical-section) 작업이 끝남
 11. T1이 signal(S) 호출
 12. S.value++
     -1 → 0
-13. S.value &lt;= 0 이므로 기다리는 thread가 있다는 뜻
-    → semaphore waiting queue에서 T2를 꺼냄
+13. S.value &lt;= 0 이므로 기다리는 [thread](glossary:thread)가 있다는 뜻
+    → [semaphore](glossary:semaphore) [waiting queue](glossary:wait-queue)에서 T2를 꺼냄
     → wakeup(T2)
-14. T2는 blocked 상태에서 ready 상태가 됨
-    → ready queue로 이동
-15. scheduler가 T2에게 CPU를 주면
+14. T2는 [blocked](glossary:blocking) 상태에서 ready 상태가 됨
+    → [ready queue](glossary:ready-queue)로 이동
+15. [scheduler](glossary:scheduler)가 T2에게 CPU를 주면
     T2는 wait(S)를 다시 처음부터 호출하는 게 아니라,
     block() 이후 지점부터 이어서 실행됨
-16. T2가 critical section에 진입
+16. T2가 [critical section](glossary:critical-section)에 진입
 
 ## 5. 세마포어의 문제점
 
@@ -216,7 +216,7 @@ Q = 1
 
 ### 2. starvation
 
-- 특정 스레드가 못일어나고 계속 block되어있는 것
+- 특정 [Thread](glossary:thread)가 못일어나고 계속 [block](glossary:blocking)되어있는 것
 
 ```
 예시
@@ -226,11 +226,11 @@ waiting queue = [T1, T2, T3]
 정상 흐름이라면 T1, T2, T3가 모두 깨어나야하는데 스케쥴링 정책이 이상하거나 우선순위 문제 때문에 특정 스레드가 깨어나지 못함
 ```
 
-- 해결책: fairness: FIFO queue(먼저 온 큐 먼저 깨우기), aging(오래기다린거 우선순위 높이기)
+- 해결책: fairness: [FIFO](glossary:fifo) queue(먼저 온 큐 먼저 깨우기), [aging](glossary:aging)(오래기다린거 우선순위 높이기)
 
 ### 3. Priority Inversion
 
-- 우선순위가 높은 thread가, 우선순위가 낮은 thread 때문에 기다리게 되는 상황
+- 우선순위가 높은 [thread](glossary:thread)가, 우선순위가 낮은 [thread](glossary:thread) 때문에 기다리게 되는 상황
 
 ```
 예시
@@ -248,8 +248,8 @@ L이 실행되지 못하니 H도 못 깨어남
 
 1. 전역변수처럼 사용된다 - 코드가 복잡해질수록 뭐가 뭔지 헷갈리기 쉬워진다
 2. 용도가 섞인다
-   - 세마포어는 두가지 용도로 사용가능하다
-     1. Critical Section 보호
+   - [Semaphore](glossary:semaphore)는 두가지 용도로 사용가능하다
+     1. [Critical Section](glossary:critical-section) 보호
      2. 실행 순서나 조건 맞추기
 3. 올바른 사용을 강제해주지 않는다.
 
@@ -257,22 +257,22 @@ L이 실행되지 못하니 H도 못 깨어남
 
 ## 1. Bounded-Buffer Problem
 
-- 생산자와 소비자가 같은 버퍼를 공유하는 상황
-- producer: 버퍼에 데이터 넣기
-- consumer: 버퍼에 데이터 사용하기
+- [Producer](glossary:producer-consumer)와 [Consumer](glossary:producer-consumer)가 같은 버퍼를 공유하는 상황
+- [producer](glossary:producer-consumer): 버퍼에 데이터 넣기
+- [consumer](glossary:producer-consumer): 버퍼에 데이터 사용하기
 - buffer: 둘이 공유하는 공간(버퍼의 크기는 무한하지 않다)
   **생산량이 소비량보다 많으면? 소비량이 생산량 보다 많으면? 마구마구 생산해서 큐가 꽉차면 count라는 전역변수를 사용해서 더이상 안채우기, 반대도 마찬가지**
 
 ## 2. Dining-Philosophers Problem
 
-- 원형 식탁에서 모두가 오른쪽 젓가락을 잡으면 왼쪽 젓가락은 아무도 못잡아서 아무도 밥을 못먹는 상황이 만들어짐(**deadlock상황이 발생**)
+- 원형 식탁에서 모두가 오른쪽 젓가락을 잡으면 왼쪽 젓가락은 아무도 못잡아서 아무도 밥을 못먹는 상황이 만들어짐(**[deadlock](glossary:deadlock)상황이 발생**)
 
 ## 3. Readers-Writers Problem
 
 # 5. Monitor
 
-- 모니터는 그냥 라이브러리 함수 하나가 아니라, 프로그래밍 언어가 제공하는 구조. Java synchronized, C# lock과 같은
-- 동기화 코드를 사람이 매번 직접 쓰는 게 아니라, 컴파일러와 런타임이 도와준다
+- [Monitor](glossary:monitor)는 그냥 라이브러리 함수 하나가 아니라, 프로그래밍 언어가 제공하는 구조. Java [synchronized](glossary:synchronized), C# [lock](glossary:lock)과 같은
+- [Synchronization](glossary:synchronization) 코드를 사람이 매번 직접 쓰는 게 아니라, 컴파일러와 런타임이 도와준다
 
 ```java
 synchronized void add1() {
@@ -284,10 +284,10 @@ synchronized void add1() {
 // → lock release
 ```
 
-- 세마포어를 사람이 직접 관리하기 어려워서 나온 구조
-- 공유데이터 + 데이터를 다루는 함수 + 동기화 규칙을 한 덩어리로 묶은 것
+- [Semaphore](glossary:semaphore)를 사람이 직접 관리하기 어려워서 나온 구조
+- 공유데이터 + 데이터를 다루는 함수 + [Synchronization](glossary:synchronization) 규칙을 한 덩어리로 묶은 것
 - 공유데이터에 직접 접근하지 못하게 감싼다
-- 한 번에 하나의 thread만 모니터 안의 procedure를 실행할 수 있게 보장
+- 한 번에 하나의 [thread](glossary:thread)만 [Monitor](glossary:monitor) 안의 procedure를 실행할 수 있게 보장
 
 ```
 구조
@@ -314,7 +314,7 @@ Monitor
 └─ 실수를 줄이기 쉬움
 ```
 
-1. Encapsulation
+1. [Encapsulation](glossary:encapsulation)
    공유 데이터를 procedure 안에 숨김
-2. Mutual exclusion
-   한 번에 하나의 thread만 monitor 내부 실행
+2. [Mutual exclusion](glossary:mutual-exclusion)
+   한 번에 하나의 [thread](glossary:thread)만 [monitor](glossary:monitor) 내부 실행

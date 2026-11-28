@@ -5,53 +5,50 @@ tags: ['Skills']
 draft: false
 aiGenerated: true
 summary: 'A skill that records web app demos with Playwright, adding a real-looking mouse pointer and typing one key at a time'
+level: 2
 ---
-
-> Part 10 of the skills series. What a skill is and why these rules were split out is in [CH0. Skills Overview](/en/blog/side-projects/skills/skills-00-overview/).
 
 ## 0. Introduction
 
-`demo-recording` is the [skill](/en/blog/side-projects/devblog/devblog-04-agent-environment/#3-pulling-out-what-is-needed) an AI agent opens when it records a web app demo: a video for a README, a presentation, or a screen recording for this blog. Code drives the browser, but the goal is a video that looks like a person moving the mouse and typing on the keyboard.
+> Part 10 of the [skills](glossary:agent-skill) series. What a [skill](glossary:agent-skill) is and why these rules were split out is in [CH0. Skills Overview](/en/blog/side-projects/skills/skills-00-overview/).
 
-The skill folder holds `SKILL.md`, the recorder `record.mjs`, the checking tool `frames.mjs`, and one example scenario. The code that draws the pointer and types lives outside the skill, in a shared module called `human.cjs`. Sizes and commit counts are collected in the [By the numbers](#by-the-numbers) table at the end.
+`demo-recording` is the [skill](/en/blog/side-projects/devblog/devblog-04-agent-environment/#3-pulling-out-what-is-needed) an AI agent opens when it records a web app demo: a video for a [README](glossary:readme), a presentation, or a screen recording for this blog. Code drives the browser, but the goal is a video that looks like a person moving the mouse and typing on the keyboard.
 
-This skill was the first of five requested together on 2026-11-18 (demo recording, video editing, slides, front-end design, image generation). Why the other four came in that order is not recorded.
+In restaurant terms, a demo video is a promo video for a restaurant. If you only film an automatic ordering machine picking dishes by itself, nobody sees how a guest orders. So you draw up a running order before the shoot, draw in the hand the camera cannot see, and make the hand's movement and the ordering voice look human. Where the automatic rig cannot go, the kitchen, a person films by hand. The ordering machine is [headless browser](glossary:headless-browser) [automation](glossary:browser-automation), the running order is the scene list, the drawn-in hand is the pointer overlay, the hand's movement is a mouse path built from a [cubic Bezier curve](glossary:cubic-bezier-curve), the ordering voice is keystroke timing, and the kitchen is the [OS screen recorder](glossary:screencast).
+
+The [skill](glossary:agent-skill) folder holds `SKILL.md`, the recorder `record.mjs`, the checking tool `frames.mjs`, and one example scenario. The code that draws the pointer and types lives outside the [skill](glossary:agent-skill), in a shared module called `human.cjs`. Sizes and [commit](glossary:git-commit) counts are in the table in [section 10](#10-limits-and-numbers). This [skill](glossary:agent-skill) was the first of five requested together on 2026-11-18 (demo recording, video editing, slides, front-end design, image generation). Why the other four came in that order is not recorded.
 
 ## 1. What plain recording looks like
 
-Think of a screen operated by an invisible person. Buttons press themselves, text appears in a field all at once, and you never see what pressed where.
+[Playwright](glossary:playwright) can save a page as video with `browser.newContext({ recordVideo })`. But a video made by driving a [headless browser](glossary:headless-browser) with [browser automation](glossary:browser-automation) does not contain the OS mouse pointer, because only the page's own pixels are captured. Buttons press themselves, text appears in a field all at once, and you never see what pressed where. On top of that, the automation APIs do not move like a person.
 
 ![Plain recording compared with recording plus human.cjs](/static/images/skills-10-demo-recording/plain-vs-human.svg)
 
-_Left: Playwright `recordVideo` alone. Right: with `human.cjs` on top_
+_Left: [Playwright](glossary:playwright) `recordVideo` alone. Right: with `human.cjs` on top_
 
-In real terms the invisible person is **headless browser automation**. Playwright can save a page as video with `browser.newContext({ recordVideo })`. That video does not contain the OS mouse pointer, because only the page's own pixels are captured. On top of that, the automation APIs do not move like a person.
+| API                    | Default behavior                                                    | What the video shows                |
+| ---------------------- | ------------------------------------------------------------------- | ----------------------------------- |
+| `page.mouse.move(x,y)` | Sends the event straight to the target (`steps` = 1)                | Even with a pointer, it teleports   |
+| `locator.click()`      | Clicks the element's center                                         | No sign of where the click landed   |
+| `locator.fill(text)`   | Sets the value in one go                                            | The whole text appears at once      |
+| `page.mouse.wheel`     | Sends the whole distance in one [wheel event](glossary:wheel-event) | The page jumps instead of scrolling |
 
-| API                    | Default behavior                                     | What the video shows                |
-| ---------------------- | ---------------------------------------------------- | ----------------------------------- |
-| `page.mouse.move(x,y)` | Sends the event straight to the target (`steps` = 1) | Even with a pointer, it teleports   |
-| `locator.click()`      | Clicks the element's center                          | No sign of where the click landed   |
-| `locator.fill(text)`   | Sets the value in one go                             | The whole text appears at once      |
-| `page.mouse.wheel`     | Sends the whole distance in one wheel event          | The page jumps instead of scrolling |
+The [skill](glossary:agent-skill)'s first paragraph states exactly this: no pointer, text appearing all at once, so the pointer "teleports". The fix has three parts: draw a pointer inside the page ([section 3](#3-pointer-overlay)), move the real mouse along a curve ([section 4](#4-curved-mouse-movement)), and type one key at a time ([section 5](#5-typing-one-key-at-a-time)).
 
-The skill's first paragraph states exactly this: no pointer, text appearing all at once, so the pointer "teleports". The fix has three parts: draw a pointer inside the page ([section 3](#3-pointer-overlay)), move the real mouse along a curve ([section 4](#4-curved-mouse-movement)), and type one key at a time ([section 5](#5-typing-one-key-at-a-time)).
-
-Click effects (a ring that spreads out on each click) were left out on purpose. When the skill was first built, the direction was set to look like a real mouse pointer and a real keyboard, and the skill keeps that as "No click effects". The pointer only changes shape, like the OS one.
+Click effects (a ring that spreads out on each click) were left out on purpose. When the [skill](glossary:agent-skill) was first built, the direction was set to look like a real mouse pointer and a real keyboard, and the [skill](glossary:agent-skill) keeps that as "No click effects". The pointer only changes shape, like the OS one.
 
 ## 2. Scene list first
 
-Think of storyboarding before a shoot. If the camera starts rolling first, you decide what to show while filming, and that hesitation stays in the footage.
+Before the shoot, a scene list comes first. If recording starts first, you decide what to show while filming, and that hesitation stays in the footage. The script that comes from the scene list is the scenario file. Section 1 of the [skill](glossary:agent-skill) is titled "Scenario first".
 
 ![demo-recording workflow: README, scene list, scenario.mjs, record.mjs, frames.mjs](/static/images/skills-10-demo-recording/pipeline.svg)
 
 _README → scene list → scenario.mjs → record.mjs → frames.mjs_
 
-In real terms the storyboard is the **scene list** and the script is the **scenario file**. Section 1 of the skill is titled "Scenario first".
-
-1. Read the target project's README or feature list, and look at the running app.
+1. Read the target project's [README](glossary:readme) or feature list, and look at the running app.
 2. Split the demo into 3–7 scenes, one line each: what is shown, which action, about how long.
-3. If the video will be public (README, presentation, blog), show the list and get it confirmed first. For a quick check, just record.
-4. Turn the list into a scenario file. The file goes in the target project, not in the skill folder (e.g. `docs/demo/<name>.mjs`).
+3. If the video will be public ([README](glossary:readme), presentation, blog), show the list and get it confirmed first. For a quick check, just record.
+4. Turn the list into a scenario file. The file goes in the target project, not in the [skill](glossary:agent-skill) folder (e.g. `docs/demo/<name>.mjs`).
 
 A scenario file exports `meta` (file name and first page URL) and one default function. The example `examples/wikipedia.mjs` has five scenes: type a query on the Wikipedia main page, pick a suggestion, and scroll the article twice.
 
@@ -67,7 +64,7 @@ export default async function (demo) {
 }
 ```
 
-Inside a scenario only the `demo` object is used: `demo.click`, `demo.type`, `demo.scroll`, `demo.pause`, and `demo.page` (the Playwright page) for anything else. The skill's rule is that clicks and input always go through `demo.click` and `demo.type`, because calling `locator.click()` directly makes the pointer teleport. Scenes are separated by 500–1500 ms pauses. Apps behind a login use only a test account from the project's seed files, on localhost.
+Inside a scenario only the `demo` object is used: `demo.click`, `demo.type`, `demo.scroll`, `demo.pause`, and `demo.page` (the [Playwright](glossary:playwright) page) for anything else. The [skill](glossary:agent-skill)'s rule is that clicks and input always go through `demo.click` and `demo.type`, because calling `locator.click()` directly makes the pointer teleport. Scenes are separated by 500–1500 ms pauses. Apps behind a login use only a test account from the project's [seed](glossary:seed-data) files, on [localhost](glossary:localhost).
 
 Recording is one command.
 
@@ -75,13 +72,11 @@ Recording is one command.
 node ~/.claude/skills/demo-recording/record.mjs docs/demo/landing.mjs --size 1280x720
 ```
 
-It launches the installed Google Chrome with `channel: 'chrome'`, so no browser download is needed. Without Chrome it falls back to Playwright's bundled Chromium. The result is one JSON line (`video`, `bytes`, `seconds`, `failed`). The video is saved even if the scenario throws partway through, so the video itself shows where it stopped.
+It launches the installed [Google Chrome](glossary:google-chrome) with `channel: 'chrome'`, so no browser download is needed. Without [Chrome](glossary:google-chrome) it falls back to [Playwright](glossary:playwright)'s bundled [Chromium](glossary:chromium). The result is one JSON line (`video`, `bytes`, `seconds`, `failed`). The video is saved even if the scenario throws partway through, so the video itself shows where it stopped.
 
 ## 3. Pointer overlay
 
-Think of laying a clear film over the video and drawing an arrow on it. The camera cannot capture the mouse, so the mouse is drawn inside the screen.
-
-In real terms this is a **pointer overlay**. `cursorScript()` attaches one SVG pointer to the page DOM with `position: fixed` and moves it with real `mousemove` events. The function is registered with `context.addInitScript`, so it runs before page scripts and again after every navigation. The last position is kept in `sessionStorage`, so a new page starts with the pointer in the same place.
+The camera cannot capture the mouse, so the mouse is drawn inside the screen. This is the pointer overlay. `cursorScript()` attaches one [SVG](glossary:svg) pointer to the page [DOM](glossary:dom) with `position: fixed` and moves it with real `mousemove` events. The function is registered with `context.addInitScript`, so it runs before page scripts and again after every navigation. The last position is kept in [sessionStorage](glossary:sessionstorage), so a new page starts with the pointer in the same place.
 
 There are three pointer shapes. It first checks `getComputedStyle(el).cursor` of the element under the mouse, and when that is `auto`, decides by element type.
 
@@ -91,155 +86,123 @@ There are three pointer shapes. It first checks `getComputedStyle(el).cursor` of
 | hand   | `cursor: pointer`, or over a link, button, `select`, `summary`        |
 | I-beam | `cursor: text`, or over a text `input`, `textarea`, `contenteditable` |
 
-On 2026-11-25 a bug showed up here. On a page with an iframe (a site that embeds a code editor in an iframe), the video showed two pointers. The init script runs separately in the top document and in each iframe document, so each document draws its own pointer. When a mouse path bulged past the top edge, the top document drew its pointer while the iframe was still showing its own. Two changes fixed it.
+On 2026-11-25 a bug showed up here. On a page with an [iframe](glossary:iframe) (a site that embeds a code editor in an [iframe](glossary:iframe)), the video showed two pointers. The init script runs separately in the top document and in each [iframe](glossary:iframe) document, so each document draws its own pointer. When a mouse path bulged past the top edge, the top document drew its pointer while the [iframe](glossary:iframe) was still showing its own. Two changes fixed it.
 
-- A document hides its pointer when the mouse leaves it or sits on a child iframe. A new document's pointer starts hidden and appears only after its first `mousemove`.
-- Every point on a mouse path is clamped to the viewport.
+- A document hides its pointer when the mouse leaves it or sits on a child [iframe](glossary:iframe). A new document's pointer starts hidden and appears only after its first `mousemove`.
+- Every point on a mouse path is [clamped](glossary:clamp) to the [viewport](glossary:viewport).
 
 ## 4. Curved mouse movement
 
-Think of the arc a wrist draws. A hand does not travel between two points in a ruler-straight line; it starts slow, speeds up in the middle, and slows down again on arrival. Sometimes it overshoots the target slightly and comes back.
+A hand does not travel between two points in a straight line. It starts slow, speeds up in the middle, and slows down again on arrival, and sometimes it overshoots the target slightly and comes back. That path is a [cubic Bezier curve](glossary:cubic-bezier-curve), slow-fast-slow is [easing](glossary:easing), and going past and back is [overshoot](glossary:overshoot). The `leg()` function in `human.cjs` builds one move like this.
 
 ![cubic Bezier leg: from, c1, c2, to, overshoot](/static/images/skills-10-demo-recording/bezier-leg.svg)
 
-_One move is a cubic Bezier curve with its two control points pushed sideways_
-
-In real terms the wrist's arc is a **cubic Bezier curve**, slow-fast-slow is **easing**, and going past and back is **overshoot**. The `leg()` function in `human.cjs` builds one move like this.
+_One move is a [cubic Bezier curve](glossary:cubic-bezier-curve) with its two control points pushed sideways_
 
 1. Compute the distance `dist` between start and target, and the unit vector perpendicular to the direction of travel (the normal).
 2. The amount of bend, `bend`, is 8–30% of `dist`, at most 160 px, to a random side.
 3. Control point `c1` sits 20–40% along the path and `c2` 60–80% along, each pushed along the normal by `bend`.
-4. Duration is `min(1300, 220 + dist × 0.7~1.05)` ms. Longer moves take longer, a formula modeled loosely on Fitts's law.
-5. About every 18 ms it sends one `page.mouse.move`, with an easeInOut (cubic) curve on progress. Every point except the last gets up to 1.2 px of tremor (hand-shake noise).
+4. Duration is `min(1300, 220 + dist × 0.7~1.05)` ms. Longer moves take longer, a formula modeled loosely on [Fitts's law](glossary:fittss-law).
+5. About every 18 ms it sends one `page.mouse.move`, with an [easeInOut](glossary:easing) (cubic) curve on progress. Every point except the last gets up to 1.2 px of tremor (hand-shake noise).
 
 `move()` wraps `leg()`. For distances over 250 px, with 35% probability it first goes 2–5% past the target, pauses 60–140 ms, then returns to the target at 2.5× speed. `hover()` aims not at the element's exact center but at a random point inside its box (20–80% across, 25–75% down).
 
-Timing follows the clock instead of fixed sleeps. Each `page.mouse.move` round trip takes time too, so for each point it computes "arrive by this moment" and sleeps only for what is left. The first version (code that lived inside `record.mjs`) was an eased straight line; the curve, tremor, and overshoot came in on 11-25 when the code moved into the shared module.
+Timing follows the clock instead of fixed sleeps. Each `page.mouse.move` round trip takes time too, so for each point it computes "arrive by this moment" and sleeps only for what is left. The first version (code that lived inside `record.mjs`) was an eased straight line; the curve, tremor, and [overshoot](glossary:overshoot) came in on 11-25 when the code moved into the shared module.
 
 ## 5. Typing one key at a time
 
-Think of a person's typing habits. One person types at roughly the same speed, but each gap between letters differs a little, a capital letter lags a beat because of Shift, and there is a short pause after each word.
+One person types at roughly the same speed, but each gap between letters differs a little, a capital letter lags a beat because of Shift, and there is a short pause after each word. Keystroke timing imitates that distribution of gaps. `type()` clicks the field, then sends one character at a time with `page.keyboard.type(ch)`. The base gap (`baseDelay`) is picked once per page between 75 and 120 ms, so one session keeps one tempo. Each character's gap is set like this.
 
-In real terms this is **keystroke timing**. `type()` clicks the field, then sends one character at a time with `page.keyboard.type(ch)`. The base gap (`baseDelay`) is picked once per page between 75 and 120 ms, so one session keeps one tempo. Each character's gap is set like this.
+| Rule                    | Change to the gap                                                               |
+| ----------------------- | ------------------------------------------------------------------------------- |
+| Base                    | `baseDelay × e^(noise)`, roughly [log-normal](glossary:log-normal-distribution) |
+| Capital or symbol       | add 0.3–0.7 × `baseDelay` (Shift)                                               |
+| Character after a space | add 0.4–1.2× (a beat between words)                                             |
+| After `.` `,` `!`       | add 1–2.5× (end of a phrase)                                                    |
+| Same key repeated       | multiply by 0.8                                                                 |
+| Run of 4–9 characters   | multiply by 0.5–0.75 (a short fast burst)                                       |
+| 5% chance               | add 2–5× (hesitation)                                                           |
+| Floor                   | 22 ms                                                                           |
 
-| Rule                    | Change to the gap                           |
-| ----------------------- | ------------------------------------------- |
-| Base                    | `baseDelay × e^(noise)`, roughly log-normal |
-| Capital or symbol       | add 0.3–0.7 × `baseDelay` (Shift)           |
-| Character after a space | add 0.4–1.2× (a beat between words)         |
-| After `.` `,` `!`       | add 1–2.5× (end of a phrase)                |
-| Same key repeated       | multiply by 0.8                             |
-| Run of 4–9 characters   | multiply by 0.5–0.75 (a short fast burst)   |
-| 5% chance               | add 2–5× (hesitation)                       |
-| Floor                   | 22 ms                                       |
-
-Scrolling works the same way. `scroll(dy)` does not jump; it sends wheel events of 40–90 px each, and when less than 200 px is left it scales each step by 0.6 so the scroll slows at the end. The first version used fixed 60 px steps.
+Scrolling works the same way. `scroll(dy)` does not jump; it sends [wheel events](glossary:wheel-event) of 40–90 px each, and when less than 200 px is left it scales each step by 0.6 so the scroll slows at the end. The first version used fixed 60 px steps.
 
 ## 6. The shared module human.cjs
 
-Think of one person's hand habits being borrowed in two places. The same hand moves in a scripted shoot and when the agent uses a browser day to day.
-
 ![record.mjs and Playwright MCP both loading human.cjs](/static/images/skills-10-demo-recording/shared-module.svg)
 
-_One `human.cjs`, loaded by both the recorder and Playwright MCP_
+_One `human.cjs`, loaded by both the recorder and [Playwright](glossary:playwright) MCP_
 
-In real terms the hand habits are a **shared module**, and day-to-day browser use is **Playwright [MCP](/en/blog/side-projects/devblog/devblog-04-agent-environment/#9-mcp)**. At first (11-18) all the pointer and movement code was inside `record.mjs`. On 11-25 it moved to `claude/playwright/human.cjs` in the personal config repo, and `record.mjs` went from 9,280 B to 4,449 B.
+At first (11-18) all the pointer and movement code was inside `record.mjs`. To give the scripted recording and the agent's everyday browsing through [Playwright](glossary:playwright) [MCP](/en/blog/side-projects/devblog/devblog-04-agent-environment/#9-mcp) the same hand habits, it moved on 11-25 to `claude/playwright/human.cjs` in the personal config repo as a shared module. `record.mjs` went from 9,280 B to 4,449 B.
 
 `human.cjs` has two entry points.
 
 - `attach(page)`: builds an object with `move`, `hover`, `click`, `type`, `press`, and `scroll`, and attaches it as `page.human`. `record.mjs` wraps this object as the `demo` object it passes to the scenario.
-- `initPage({ page })`: the init function Playwright MCP calls for every new tab. MCP loads the file named in the environment variable `PLAYWRIGHT_MCP_INIT_PAGE`. The install scripts set it (on Windows `install.ps1` sets a user environment variable; on macOS `install.sh` writes `~/.zshenv` and `launchctl`).
+- `initPage({ page })`: the init function [Playwright](glossary:playwright) [MCP](glossary:mcp) calls for every new tab. [MCP](glossary:mcp) loads the file named in the [environment variable](glossary:environment-variable) `PLAYWRIGHT_MCP_INIT_PAGE`. The install scripts set it (on Windows `install.ps1` sets a user [environment variable](glossary:environment-variable); on macOS `install.sh` writes `~/.zshenv` and `launchctl`).
 
-So when the agent operates a site through Playwright MCP, calling `page.human.click('e12')` inside `browser_run_code` gives the same curved moves and typing. A bare MCP snapshot ref like `e12` is turned into an `aria-ref=e12` locator. The agents' shared instructions include a line saying to click, type, and scroll in Playwright MCP through `page.human`.
+So when the agent operates a site through [Playwright](glossary:playwright) [MCP](glossary:mcp), calling `page.human.click('e12')` inside `browser_run_code` gives the same curved moves and typing. A bare [MCP](glossary:mcp) snapshot ref like `e12` is turned into an `aria-ref=e12` [locator](glossary:locator). The agents' shared instructions include a line saying to click, type, and scroll in [Playwright](glossary:playwright) [MCP](glossary:mcp) through `page.human`.
 
-The design reason is maintainability. The movement and typing rules live in one file, so a single fix, like the iframe bug in section 3, fixes both recording and MCP browsing.
+The design reason is maintainability. The movement and typing rules live in one file, so a single fix, like the [iframe](glossary:iframe) bug in section 3, fixes both recording and [MCP](glossary:mcp) browsing.
 
 ## 7. Checking before sending
 
-Think of pulling a few frames from the film before editing. Without watching the whole video, you check that the pointer was captured and that there is a moment with half-typed text.
-
-In real terms this is **frame sampling**. `frames.mjs` works without ffmpeg. It writes an HTML file containing a single `<video>` next to the recording, opens it in Chrome, moves `currentTime` to the requested seconds, and screenshots the `video` element. A `file://` video cannot load from `about:blank`, so the HTML is also a `file://` page. WebM files sometimes have empty duration metadata; in that case it seeks to the end to learn the length.
+Frame sampling checks the pointer was captured and that there is a moment with half-typed text, without watching the whole video. `frames.mjs` works without [ffmpeg](glossary:ffmpeg). It writes an HTML file containing a single `<video>` next to the recording, opens it in [Chrome](glossary:google-chrome), moves `currentTime` to the requested seconds, and screenshots the `video` element. A `file://` video cannot load from `about:blank`, so the HTML is also a `file://` page. [WebM](glossary:webm) files sometimes have empty duration metadata; in that case it seeks to the end to learn the length.
 
 ```bash
 node ~/.claude/skills/demo-recording/frames.mjs demo.webm 2 5 8
 ```
 
-The skill says to open 3–5 frames and confirm three things: the pointer is visible in every frame, a typing frame shows half-typed text, and the last frame is the right page. Then report the length, size, and what was checked, and send the video.
+The [skill](glossary:agent-skill) says to open 3–5 frames and confirm three things: the pointer is visible in every frame, a typing frame shows half-typed text, and the last frame is the right page. Then report the length, size, and what was checked, and send the video.
 
-This check was run on the Wikipedia example the day the skill was built. Results are in the [By the numbers](#by-the-numbers) table. The pointer was visible in all 8 frames, and the checks found a frame with the query typed up to "Playwr", the hand shape over a link, and the I-beam over the input field.
+This check was run on the Wikipedia example the day the [skill](glossary:agent-skill) was built. Results are in the table in [section 10](#10-limits-and-numbers). The pointer was visible in all 8 frames, and the checks found a frame with the query typed up to "Playwr", the hand shape over a link, and the I-beam over the input field.
 
 ## 8. Recording agent work
 
-Think of an unscripted documentary shoot. Instead of filming planned scenes, it films the agent actually working.
-
-In real terms this is a **screencast**. It is a section added to the skill on 11-25 on how to record a Playwright MCP session.
+This films the agent actually working, with no script. It is a section added to the [skill](glossary:agent-skill) on 11-25 on how to record a [Playwright](glossary:playwright) [MCP](glossary:mcp) session as a [screencast](glossary:screencast).
 
 - Inside `browser_run_code`, start with `page.screencast.start(...)`, do the work in later calls, then end with `page.screencast.stop()`. The page object persists between calls, so one recording spans several calls.
-- The output is VP9 WebM, which the default Windows player may not open. Convert to H.264 MP4 before sending. A 195-second video went from a 34 MB WebM to a 4.3 MB MP4.
-- Capturing the window with ffmpeg `gdigrab` gives a black frame, because Chrome composites on the GPU. That is why screencast is used.
-- Screencast needs Playwright's own ffmpeg binary. When it was missing, copying a system ffmpeg built with libvpx to that path worked (Windows, 11-25).
+- The output is [VP9](glossary:vp9) [WebM](glossary:webm), which the default Windows player may not open. Convert to [H.264](glossary:h264) [MP4](glossary:mp4) before sending. A 195-second video went from a 34 MB [WebM](glossary:webm) to a 4.3 MB [MP4](glossary:mp4).
+- Capturing the window with [ffmpeg](glossary:ffmpeg) `gdigrab` gives a black frame, because [Chrome](glossary:google-chrome) composites on the GPU. That is why [screencast](glossary:screencast) is used.
+- [Screencast](glossary:screencast) needs [Playwright](glossary:playwright)'s own [ffmpeg](glossary:ffmpeg) binary. When it was missing, copying a system [ffmpeg](glossary:ffmpeg) built with libvpx to that path worked (Windows, 11-25).
 
 ```bash
 ffmpeg -i x.webm -c:v libx264 -crf 23 -pix_fmt yuv420p -movflags +faststart x.mp4
 ```
 
-The skill also has a workaround for when MCP started without `PLAYWRIGHT_MCP_INIT_PAGE` and `page.human` is missing. `require` and `import` are blocked inside `browser_run_code`, so wrap `human.cjs` into a single `async (page) => ...` function in a file and run it through the `filename` argument. `page.human` then stays for the rest of the session.
+The [skill](glossary:agent-skill) also has a workaround for when [MCP](glossary:mcp) started without `PLAYWRIGHT_MCP_INIT_PAGE` and `page.human` is missing. `require` and `import` are blocked inside `browser_run_code`, so wrap `human.cjs` into a single `async (page) => ...` function in a file and run it through the `filename` argument. `page.human` then stays for the rest of the session.
 
 ## 9. OS recording instead
 
-Think of filming by hand where the automated rig cannot go.
-
-In real terms this is the **OS screen recorder** fallback. Some things Playwright cannot drive: native apps, the Unity or Roblox editor, sites that block automation, and flows that need the user's own login. In those cases a person follows the scene list by hand and the OS recorder captures it.
+Some things [Playwright](glossary:playwright) cannot drive: native apps, the Unity or Roblox editor, sites that block automation, and flows that need the user's own login. In those cases a person follows the scene list by hand and the [OS screen recorder](glossary:screencast) captures it.
 
 | OS      | How                                                                                 |
 | ------- | ----------------------------------------------------------------------------------- |
 | macOS   | `Cmd+Shift+5` → Record Selected Portion, about 1280×720. Show clicks only if wanted |
 | Windows | `Win+Alt+R` (Game Bar) or Snipping Tool's record mode                               |
 
-Computer-use can drive a native app, but even then the recording comes from the OS recorder.
+[Computer-use](glossary:computer-use) can drive a native app, but even then the recording comes from the [OS screen recorder](glossary:screencast).
 
-## 10. Limits and next steps
+## 10. Limits and numbers
 
-- The skill's `.webm` output is designed as the input of the next step, a video editing skill (ffmpeg + Remotion). That is why it adds no titles or cuts. As of 2026-11-28 that editing skill does not exist yet.
-- On macOS there is an open issue where the Playwright MCP process does not receive `PLAYWRIGHT_MCP_INIT_PAGE`, so `page.human` is not attached. The shell has the value, but the MCP process environment had 0 entries for it. The plan is to fully restart the app and check again.
-- As of 2026-11-28 no record of a real project demo made with this skill was found in the work logs. The recorded runs are the Wikipedia example and one MCP screencast.
-
-## By the numbers
+- The [skill](glossary:agent-skill)'s `.webm` output is designed as the input of the next step, a video editing [skill](glossary:agent-skill) ([ffmpeg](glossary:ffmpeg) + [Remotion](glossary:remotion)). That is why it adds no titles or cuts. As of 2026-11-28 that editing [skill](glossary:agent-skill) does not exist yet.
+- On macOS there is an open issue where the [Playwright](glossary:playwright) [MCP](glossary:mcp) process does not receive `PLAYWRIGHT_MCP_INIT_PAGE`, so `page.human` is not attached. The shell has the value, but the [MCP](glossary:mcp) process environment had 0 entries for it. The plan is to fully restart the app and check again.
+- As of 2026-11-28 no record of a real project demo made with this [skill](glossary:agent-skill) was found in the work logs. The recorded runs are the Wikipedia example and one [MCP](glossary:mcp) [screencast](glossary:screencast).
 
 As of 2026-11-28. Sources: `git log` and `git cat-file -s` in the personal config repo, `wc -c` and `wc -l`, and measurements left in the work logs.
 
-| Item                                | Value                                                          |
-| ----------------------------------- | -------------------------------------------------------------- |
-| `SKILL.md`                          | 6,581 B, 87 lines                                              |
-| `SKILL.md` size over time           | 4,914 → 5,212 → 6,352 → 6,581 B                                |
-| Commits to the skill folder         | 4 (2026-11-18 to 2026-11-25)                                   |
-| `record.mjs`                        | 9,280 B (11-18) → 4,449 B, 109 lines (11-25)                   |
-| `human.cjs`                         | 10,167 B (first commit 11-25) → 11,206 B, 229 lines, 3 commits |
-| `frames.mjs`                        | 2,334 B, 53 lines                                              |
-| `examples/wikipedia.mjs`            | 1,105 B, 30 lines                                              |
-| Playwright                          | 1.65.1 (installed locally in the skill folder)                 |
-| Wikipedia example recording (11-18) | 19.5 s, 5,701,392 B WebM                                       |
-| Example frame check                 | pointer visible in 8 of 8 frames                               |
-| MCP screencast conversion (11-25)   | 195 s, 34 MB WebM → 4.3 MB MP4                                 |
+| Item                                                                       | Value                                                                                                        |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `SKILL.md`                                                                 | 6,581 B, 87 lines                                                                                            |
+| `SKILL.md` size over time                                                  | 4,914 → 5,212 → 6,352 → 6,581 B                                                                              |
+| [Commits](glossary:git-commit) to the [skill](glossary:agent-skill) folder | 4 (2026-11-18 to 2026-11-25)                                                                                 |
+| `record.mjs`                                                               | 9,280 B (11-18) → 4,449 B, 109 lines (11-25)                                                                 |
+| `human.cjs`                                                                | 10,167 B (first [commit](glossary:git-commit) 11-25) → 11,206 B, 229 lines, 3 [commits](glossary:git-commit) |
+| `frames.mjs`                                                               | 2,334 B, 53 lines                                                                                            |
+| `examples/wikipedia.mjs`                                                   | 1,105 B, 30 lines                                                                                            |
+| [Playwright](glossary:playwright)                                          | 1.65.1 (installed locally in the [skill](glossary:agent-skill) folder)                                       |
+| Wikipedia example recording (11-18)                                        | 19.5 s, 5,701,392 B [WebM](glossary:webm)                                                                    |
+| Example frame check                                                        | pointer visible in 8 of 8 frames                                                                             |
+| [MCP](glossary:mcp) [screencast](glossary:screencast) conversion (11-25)   | 195 s, 34 MB [WebM](glossary:webm) → 4.3 MB [MP4](glossary:mp4)                                              |
 
-## Glossary
+## 11. Reflection
 
-| Term                                                                                               | Meaning                                                                    |
-| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| [Skill](/en/blog/side-projects/devblog/devblog-04-agent-environment/#3-pulling-out-what-is-needed) | An agent rule file read only for a specific task (`SKILL.md`)              |
-| Playwright                                                                                         | A library that drives a browser from code                                  |
-| headless                                                                                           | Running a browser without a visible window                                 |
-| `recordVideo`                                                                                      | A Playwright context option that saves the page as WebM                    |
-| scene list                                                                                         | A recording plan of 3–7 scenes, one line each                              |
-| scenario file                                                                                      | A `.mjs` file that turns the scene list into `demo` calls                  |
-| pointer overlay                                                                                    | A pointer drawn in the page DOM, since the OS pointer is not captured      |
-| init script                                                                                        | A script that runs in every document before the page's own scripts         |
-| cubic Bezier curve                                                                                 | A curve defined by start and end points plus two control points            |
-| easing                                                                                             | A function that changes speed over time; here slow-fast-slow               |
-| overshoot                                                                                          | Going slightly past the target and coming back                             |
-| tremor                                                                                             | Small random jitter added to each path point                               |
-| keystroke timing                                                                                   | The distribution of gaps between key presses                               |
-| [MCP](/en/blog/side-projects/devblog/devblog-04-agent-environment/#9-mcp)                          | A connection that lets an agent use outside tools (Model Context Protocol) |
-| `page.human`                                                                                       | The human-like input object `human.cjs` attaches to a Playwright page      |
-| screencast                                                                                         | Playwright's API for recording a page (`page.screencast`)                  |
-| frame sampling                                                                                     | Checking a video by pulling a few frames as images                         |
+With the movement and typing rules in one `human.cjs` file, fixing the [iframe](glossary:iframe) pointer bug once fixed recording and [MCP](glossary:mcp) browsing together.

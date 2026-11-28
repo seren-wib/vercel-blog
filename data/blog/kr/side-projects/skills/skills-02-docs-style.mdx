@@ -5,41 +5,42 @@ tags: ['Skills']
 draft: false
 aiGenerated: true
 summary: '계획 문서, 선택지 비교, 공개 문서, 학교 보고서를 쓸 때 여는 docs-style 스킬 정리'
+level: 1
 ---
+
+## 0. 들어가며
 
 > 스킬 연재 2편. 스킬이 뭔지, 왜 지침 파일에서 따로 뺐는지는 [CH0. 스킬 개요](/kr/blog/side-projects/skills/skills-00-overview/)에 있다.
 
-## 한 줄 요약
+문서 규칙(계획 문서, 보고서 형식, 공개 문서의 언어, [Google Docs](glossary:google-docs) 이미지 요령)이 전역 메모리 파일 여러 곳에 흩어져 있었다. 문서를 쓸 때만 필요한 규칙이라, 그때만 열리는 [Agent skill](glossary:agent-skill) 하나로 모았다.
 
-`docs-style`은 문서를 쓰기 직전에 여는 스킬이다. 계획 문서와 체크리스트, 선택지 비교, 공개 레포 문서의 언어, 파일 형식, 학교 보고서 빌드, Google Docs 함정까지 여섯 묶음의 규칙이 들어 있다. 처음엔 전역 메모리에 흩어져 있던 규칙을 옮겨 온 것이고, 2주 동안 커밋 7번을 거치며 학교 보고서 원본을 Google Docs에서 로컬 파일로 바꿨다. 크기 변화는 아래 "숫자로 보기" 표에 있다.
+식당으로 비유하면 주방 벽에 요리 종류별 레시피 카드를 붙여 두고, 그 요리를 할 때만 해당 카드를 꺼내 보는 것이다. 카드 묶음이 `docs-style` [Agent skill](glossary:agent-skill), 요리 종류가 문서 종류, 카드 한 장이 `SKILL.md`의 `##` 절이다.
+
+`docs-style`은 문서를 쓰기 직전에 여는 [Agent skill](glossary:agent-skill)이다. 계획 문서와 체크리스트, 선택지 비교, 공개 레포 문서의 언어, 파일 형식, 학교 보고서 빌드, [Google Docs](glossary:google-docs) 함정까지 여섯 묶음의 규칙이 들어 있다. 2주 동안 [Commit](glossary:commit) 7번을 거치며 학교 보고서 원본을 [Google Docs](glossary:google-docs)에서 로컬 파일로 바꿨다. 크기 변화는 7절 표에 있다.
 
 ## 1. 스킬이 다루는 자리
-
-비유하면 문서 종류별로 서식을 끼워 둔 바인더다. 글을 쓰기 전에 그 문서에 맞는 칸만 펼쳐 본다.
 
 ![docs-style이 다루는 여섯 묶음과 다른 스킬로 넘기는 두 자리](/static/images/skills-02-docs-style/skill-map.svg)
 
 _docs-style이 다루는 여섯 묶음과 다른 스킬로 넘기는 두 자리_
 
-바인더의 칸은 `SKILL.md`의 `##` 절이다. 에이전트는 평소엔 frontmatter의 `description` 한 줄만 보고, 계획 문서, 체크리스트, 선택지 표, README·CONTRIBUTING, 제출용 보고서를 쓰려 할 때 본문을 연다.
+에이전트는 평소엔 frontmatter의 `description` 한 줄만 보고, 계획 문서, 체크리스트, 선택지 표, [README](glossary:readme)·[CONTRIBUTING.md](glossary:contributingmd), 제출용 보고서를 쓰려 할 때 본문을 연다.
 
-이 스킬은 2026-11-13 커밋으로 생겼다. 그 전까지 같은 규칙은 전역 메모리 파일(`report-doc-format`, 공개 문서 언어 규칙, Google Docs 이미지 요령 등)에 따로 있었다. 커밋 메시지가 남긴 이유는 한 가지다. 한 종류의 일에서만 쓰는 규칙이니, 그 일이 나올 때만 열리게 하자는 것이다. 보고서 형식 규칙이 처음 생긴 이유는 옛 메모리 파일에 "과제 문서에서 항목마다 지적받음"으로 남아 있다.
+이 [Agent skill](glossary:agent-skill)은 2026-11-13 [Commit](glossary:commit)으로 생겼다. 그 전까지 같은 규칙은 전역 메모리 파일(`report-doc-format`, 공개 문서 언어 규칙, [Google Docs](glossary:google-docs) 이미지 요령 등)에 따로 있었다. [Commit](glossary:commit) 메시지가 남긴 이유는 한 가지다. 한 종류의 일에서만 쓰는 규칙이니, 그 일이 나올 때만 열리게 하자는 것이다. 보고서 형식 규칙이 처음 생긴 이유는 옛 메모리 파일에 "과제 문서에서 항목마다 지적받음"으로 남아 있다.
 
-다른 스킬과 겹치는 곳은 포인터 한 줄로 넘긴다.
+다른 [Agent skill](glossary:agent-skill)과 겹치는 곳은 포인터 한 줄로 넘긴다.
 
-- 단계 문서(SPMP, SRS, SDD, STP, SIP, SMP)와 결정 기록은 `project-docs` 스킬. 결정 기록을 SDD 안에 두는 이유는 [Project Docs 2](/kr/blog/side-projects/project-docs/project-docs-02-decision-records/)에 있다.
-- README 레이아웃은 `readme-style` 스킬([CH3](/kr/blog/side-projects/skills/skills-03-readme-style/)).
-- 블로그 글은 `blog-post` 스킬([CH1](/kr/blog/side-projects/skills/skills-01-blog-post/)).
+- 단계 문서([SPMP](glossary:spmp), [SRS](glossary:srs), [SDD](glossary:sdd), [STP](glossary:stp), [SIP](glossary:sip), [SMP](glossary:smp))와 [Decision record](glossary:decision-record)는 `project-docs` [Agent skill](glossary:agent-skill). [Decision record](glossary:decision-record)를 [SDD](glossary:sdd) 안에 두는 이유는 [Project Docs 2](/kr/blog/side-projects/project-docs/project-docs-00-overview/#5-결정-기록은-sdd-안에)에 있다.
+- [README](glossary:readme) 레이아웃은 `readme-style` [Agent skill](glossary:agent-skill)([CH3](/kr/blog/side-projects/skills/skills-03-readme-style/)).
+- 블로그 글은 `blog-post` [Agent skill](glossary:agent-skill)([CH1](/kr/blog/side-projects/skills/skills-01-blog-post/)).
 
 ## 2. 계획 문서와 체크리스트
-
-비유하면 냉장고에 붙이는 할 일 메모다. 사람별로 찢어 나누지 않고, 한 장에 적어 두고 끝난 줄에 체크만 한다.
 
 ![사람별로 나눈 목록 대신 체크하며 지워 가는 TODO list 하나](/static/images/skills-02-docs-style/todo-list.svg)
 
 _사람별로 나눈 목록 대신 체크하며 지워 가는 TODO list 하나_
 
-메모 한 장은 **TODO list** 하나, 체크는 Markdown task list의 `- [x]`다. 규칙은 셋이다.
+계획 문서는 **TODO list** 하나로 쓰고, 끝난 항목은 [Markdown](glossary:markdown) [Task list](glossary:task-list)의 `- [x]`로 체크한다. 규칙은 셋이다.
 
 - 사람 이름을 넣지 않는다. 내 이름도 마찬가지다. "담당 ○○○", "○○이 할 것" 같은 줄은 안 쓴다.
 - 목록은 하나다. "해 둔 것 / 누가 할 것"으로 나누지 않고, 끝난 항목은 그 자리에서 체크한다. 묶음은 단계나 장소로만 나눈다("준비", "학교에서 (PC마다)", "확인"). 기기가 중요하면 앞에 붙인다("데스크탑:").
@@ -49,124 +50,90 @@ _사람별로 나눈 목록 대신 체크하며 지워 가는 TODO list 하나_
 
 ## 3. 선택지 비교
 
-비유하면 장단점 저울이다. 한쪽 접시에 무거운 추 여러 개를 "약간 번거로움" 하나로 뭉쳐 올리면 저울이 거짓말을 한다.
-
 **option comparison** 표나 목록을 쓸 때 규칙은 둘이다.
 
 - 의미 있는 단점은 하나에 불릿 하나씩, 구체적인 결과까지 적는다. 비용 여러 개를 부드러운 한 마디로 줄이지 않는다.
 - 끝내기 전에, 채팅에서 그 안의 비용으로 말한 것이 문서에도 다 들어갔는지 대조한다.
 
-두 번째 규칙은 비교가 대화에서 먼저 일어난다는 데서 나온다. 대화에서 말한 비용이 문서로 옮겨지며 빠지면, 나중에 문서만 보는 사람은 그 비용을 모른다. 이 규칙이 생긴 구체적인 사건은 기록에 없다. 버린 안의 이유를 결정 기록에 남기는 형식은 [Project Docs 2의 항목 모양](/kr/blog/side-projects/project-docs/project-docs-02-decision-records/#4-항목-하나의-모양)에 있다.
+두 번째 규칙은 비교가 대화에서 먼저 일어난다는 데서 나온다. 대화에서 말한 비용이 문서로 옮겨지며 빠지면, 나중에 문서만 보는 사람은 그 비용을 모른다. 이 규칙이 생긴 구체적인 사건은 기록에 없다. 버린 안의 이유를 [Decision record](glossary:decision-record)에 남기는 형식은 [Project Docs 2의 항목 모양](/kr/blog/side-projects/project-docs/project-docs-00-overview/#5-결정-기록은-sdd-안에)에 있다.
 
 ## 4. 언어와 파일 형식
 
-비유하면 손님용 안내문과 서류 봉투 규격이다. 처음 오는 손님이 읽는 안내문은 누구나 읽는 언어로 쓰고, 서류는 정해진 봉투에 넣어 보낸다.
-
 **언어** 규칙:
 
-- 방문자가 처음 읽는 공개 문서(README, CONTRIBUTING, SECURITY, CHANGELOG, PR 템플릿)는 영어로 쓰고, 레포 문서에 그렇게 적어 둔다.
-- 계획 문서(`docs/specs/`), 그 Google Docs 사본, CLAUDE.md, 커밋·PR 언어는 레포 자체 규칙을 따른다.
+- 방문자가 처음 읽는 공개 문서([README](glossary:readme), [CONTRIBUTING.md](glossary:contributingmd), SECURITY, [Changelog](glossary:changelog), [Pull request](glossary:pull-request) 템플릿)는 영어로 쓰고, 레포 문서에 그렇게 적어 둔다.
+- 계획 문서(`docs/specs/`), 그 [Google Docs](glossary:google-docs) 사본, [CLAUDE.md](glossary:claudemd), [Commit](glossary:commit)·[Pull request](glossary:pull-request) 언어는 레포 자체 규칙을 따른다.
 
 **파일 형식** 규칙은 2026-11-27에 들어갔다.
 
-- 문서는 docx, 시트는 xlsx로 로컬에서 만든다. 나는 그 파일을 Drive에서 Google Docs·Sheets로 열어 본다.
-- 산출물을 새 네이티브 Google Doc·Sheet로 만들지 않는다. 이미 있는 것은 그대로 둔다.
-- 예외: 레포 안 Markdown, `project-docs`의 레포 → Google Docs 동기화([Project Docs 4](/kr/blog/side-projects/project-docs/project-docs-04-docs-sync/)), 팀원이 같이 고치는 문서.
-- 맥에서는 iCloud Drive의 `UNIV/` 폴더가 Drive의 "컴퓨터 → mac → UNIV"로 보인다. Google Drive for desktop이 이 맥에 추가한 폴더는 그것 하나뿐이었고(2026-11-27 확인), Drive API는 그 사본을 `canEdit: false`로 보고한다. 윈도우 쪽은 확인 안 했다.
+- 문서는 [DOCX](glossary:docx), 시트는 [XLSX](glossary:xlsx)로 로컬에서 만든다. 나는 그 파일을 [Drive](glossary:google-drive)에서 [Google Docs](glossary:google-docs)·Sheets로 열어 본다.
+- 산출물을 새 네이티브 [Google Docs](glossary:google-docs)·Sheets 문서로 만들지 않는다. 이미 있는 것은 그대로 둔다.
+- 예외: 레포 안 [Markdown](glossary:markdown), `project-docs`의 레포 → [Google Docs](glossary:google-docs) 동기화([Project Docs 4](/kr/blog/side-projects/project-docs/project-docs-04-docs-sync/)), 팀원이 같이 고치는 문서.
+- 맥에서는 iCloud Drive의 `UNIV/` 폴더가 [Drive](glossary:google-drive)의 "컴퓨터 → mac → UNIV"로 보인다. [Google Drive](glossary:google-drive) for desktop이 이 맥에 추가한 폴더는 그것 하나뿐이었고(2026-11-27 확인), [Drive](glossary:google-drive) API는 그 사본을 `canEdit: false`로 보고한다. 윈도우 쪽은 확인 안 했다.
 
 ## 5. 학교 보고서 빌드
 
-비유하면 원고와 조판기를 내 책상에 두고, 제본은 그때그때 새로 하는 방식이다. 고칠 때 제본된 책에 볼펜으로 덧쓰지 않고 원고를 고쳐 다시 찍는다.
-
 ![HTML 원본과 빌드 스크립트로 docx와 PDF를 만들고, Google Docs 원본은 버린 build pipeline](/static/images/skills-02-docs-style/report-pipeline.svg)
 
-_HTML 원본과 빌드 스크립트로 docx와 PDF를 만들고, Google Docs 원본은 버린 build pipeline_
+_[HTML](glossary:html) 원본과 [build script](glossary:build)로 [DOCX](glossary:docx)와 [PDF](glossary:pdf)를 만들고, [Google Docs](glossary:google-docs) 원본은 버린 [Build pipeline](glossary:build-pipeline)_
 
-원고는 **HTML body**, 조판기는 **build script**, 제본은 **docx**와 그걸 변환한 **PDF**다.
+보고서는 원본 [HTML](glossary:html) body 하나를 [build script](glossary:build)로 [DOCX](glossary:docx)로 바꾸고, 그걸 [PDF](glossary:pdf)로 변환하는 흐름이다. 고칠 때는 [DOCX](glossary:docx)를 덧쓰지 않고 원본을 고쳐 다시 만든다.
 
-- 원본은 로컬에 둔다. HTML 본문 하나와 빌드 스크립트 하나(`hwN-body.html` + `hwN-docx-build.js`)이고, 스크립트는 npm 패키지 `docx`와 `node-html-parser`로 docx를 만든다. 그림은 파일 경로로 참조한다.
-- PDF는 폰트를 바꾼 사본을 `soffice`로 변환한다(바탕 → AppleMyungjo, Consolas → Menlo, 맑은 고딕 → Apple SD Gothic Neo). 폰트를 바꾸는 이유는 스킬에 적혀 있지 않다(기록 없음).
+- 원본은 로컬에 둔다. [HTML](glossary:html) 본문 하나와 [build script](glossary:build) 하나(`hwN-body.html` + `hwN-docx-build.js`)이고, 스크립트는 [npm](glossary:npm) 패키지 `docx`와 `node-html-parser`로 [DOCX](glossary:docx)를 만든다. 그림은 파일 경로로 참조한다.
+- [PDF](glossary:pdf)는 폰트를 바꾼 사본을 `soffice`로 변환한다(바탕 → AppleMyungjo, Consolas → Menlo, 맑은 고딕 → Apple SD Gothic Neo). 폰트를 바꾸는 이유는 [Agent skill](glossary:agent-skill)에 적혀 있지 않다(기록 없음).
 - 과목 폴더의 `CLAUDE.md`가 있으면 그게 이 절보다 우선이다.
 
 ### Google Docs 원본을 버린 이유
 
-처음 규칙(2026-11-13)은 보고서를 Google Docs로 만들어 PDF로 내보내는 거였다. 2026-11-25에 기본값을 로컬 원본으로 바꿨고, 스킬에 남은 이유는 클라우드 컴퓨팅 과제에서 잰 세 가지다.
+처음 규칙(2026-11-13)은 보고서를 [Google Docs](glossary:google-docs)로 만들어 [PDF](glossary:pdf)로 내보내는 거였다. 2026-11-25에 기본값을 로컬 원본으로 바꿨고, [Agent skill](glossary:agent-skill)에 남은 이유는 클라우드 컴퓨팅 과제에서 잰 세 가지다.
 
-- 스크린샷이 든 Doc은 `read_doc` 한 번에 400k자를 넘게 돌려준다. 로컬 HTML 원본은 약 30k자다.
+- 스크린샷이 든 Doc은 `read_doc` 한 번에 400k자를 넘게 돌려준다. 로컬 [HTML](glossary:html) 원본은 약 30k자다.
 - 고칠 때마다 읽기, 쓰기, 다시 확인을 반복해야 한다.
 - 변환하면 목차의 heading id가 빠지고, API로는 되살릴 수 없다.
 
-같은 결론은 그보다 먼저 과목 폴더 쪽 메모리에 있었다. 2026-10-04 HW3를 Google Docs로 고쳐 보다가 docx로 돌아갔다는 기록이 있고, 그 뒤로 클라우드 컴퓨팅 보고서는 과목 `CLAUDE.md`의 예외로 로컬 docx였다. 11-25 커밋은 그 예외를 기본값으로 올리고 예외 문장을 지웠다. 텍스트만 있는 보고서도 로컬로 만든다. 팀원이 같이 고치는 문서만 Google Docs에 남는다.
+같은 결론은 그보다 먼저 과목 폴더 쪽 메모리에 있었다. 2026-10-04 HW3를 [Google Docs](glossary:google-docs)로 고쳐 보다가 [DOCX](glossary:docx)로 돌아갔다는 기록이 있고, 그 뒤로 클라우드 컴퓨팅 보고서는 과목 `CLAUDE.md`의 예외로 로컬 [DOCX](glossary:docx)였다. 11-25 [Commit](glossary:commit)은 그 예외를 기본값으로 올리고 예외 문장을 지웠다. 텍스트만 있는 보고서도 로컬로 만든다. 팀원이 같이 고치는 문서만 [Google Docs](glossary:google-docs)에 남는다.
 
 ### 페이지 규칙
 
-- 1쪽 표지: CBNU 로고, 제목, 과목, 제출일, 작성자. 작성자는 GitHub 핸들이나 역할로 쓰고 실명은 안 쓴다. 로고 줄은 2026-11-17에 그날 받은 문서 지시 13개를 스킬과 대조해서 빠진 5개 중 하나로 들어갔다.
+- 1쪽 표지: CBNU 로고, 제목, 과목, 제출일, 작성자. 작성자는 GitHub 핸들이나 역할로 쓰고 실명은 안 쓴다. 로고 줄은 2026-11-17에 그날 받은 문서 지시 13개를 [Agent skill](glossary:agent-skill)과 대조해서 빠진 5개 중 하나로 들어갔다.
 - 2쪽 목차: 들여쓰기한 헤딩, 쪽 번호 없음.
 - 큰 덩어리(다이어그램 절, 스키마·표 명세, 알고리즘 하나하나)는 page break로 시작한다. 헤딩이 쪽 맨 아래 혼자 남지 않게 헤딩에 keep-with-next를 건다.
 - 헤딩 레벨은 무게를 따른다. Class Diagram이나 DB 스키마 같은 큰 구성 요소를 작은 하위 주제와 같은 레벨에 두지 않는다. 하위 절 번호는 2-2-1 식이다.
-- 그림은 docx 안에 이미지로 넣는다. 링크나 경로를 그림 자리에 두지 않는다. SVG 다이어그램은 로컬에서 PNG로 렌더해서 넣는다.
+- 그림은 [DOCX](glossary:docx) 안에 이미지로 넣는다. 링크나 경로를 그림 자리에 두지 않는다. [SVG](glossary:svg) 다이어그램은 로컬에서 [PNG](glossary:png)로 렌더해서 넣는다.
 - 절 이름은 과제 안내의 표현을 그대로 쓴다("와이어프레임"이 아니라 "사용자 인터페이스 명세 및 설계").
 - 단계 문서로 만드는 보고서는 따로 원본을 둔다. `project-docs` 동기화가 덮어쓰는 Docs는 고치지 않는다.
-- 다 만들면 PDF 전 페이지를 렌더해서 직접 본 뒤 보고한다.
+- 다 만들면 [PDF](glossary:pdf) 전 페이지를 렌더해서 직접 본 뒤 보고한다.
 
 ## 6. Google Docs 함정
 
-비유하면 복사기 사용법 메모다. 원본을 아무 종이에나 올리면 안 먹고, 정해진 규격으로 한 번 복사해서 넣어야 한다.
-
 ![public repo의 SVG를 weserv로 PNG 변환해 insertInlineImage로 넣는 순서](/static/images/skills-02-docs-style/svg-to-docs.svg)
 
-_public repo의 SVG를 weserv로 PNG 변환해 insertInlineImage로 넣는 순서_
+_public repo의 [SVG](glossary:svg)를 weserv로 [PNG](glossary:png) 변환해 insertInlineImage로 넣는 순서_
 
-복사기는 이미지 변환 프록시 **images.weserv.nl**, 규격은 Google Docs API `insertInlineImage`가 받는 형식이다. 보고서 원본이 로컬로 옮겨 간 뒤에도, 팀원과 같이 고치는 Doc이나 동기화 대상 Doc에서는 이 함정을 그대로 만난다.
+이미지 변환 [Proxy](glossary:proxy) **images.weserv.nl**와 [Google Docs API](glossary:google-docs-api) `insertInlineImage`가 받는 형식이 이 절의 주인공이다. 보고서 원본이 로컬로 옮겨 간 뒤에도, 팀원과 같이 고치는 Doc이나 동기화 대상 Doc에서는 이 함정을 그대로 만난다.
 
-- `insertInlineImage`는 public URL의 PNG·JPEG·GIF만 받는다. public GitHub 레포의 SVG는 `https://images.weserv.nl/?url=raw.githubusercontent.com/<owner>/<repo>/<sha>/<path>.svg&output=png&w=1600`로 바꿔 넣는다. 경로에 `main` 대신 commit SHA를 쓰는데, weserv가 URL 단위로 캐시해서 `main`이면 옛 그림이 나올 수 있어서다. 넣기 전에 curl로 받아서 본다. 한글이 든 drawio SVG도 잘 나온다.
-- Mermaid 원본을 물어보지 않고 mermaid.ink에 보내지 않는다. 데이터를 외부에 올리는 셈이라, 로컬에서 렌더한다.
+- `insertInlineImage`는 public URL의 [PNG](glossary:png)·JPEG·GIF만 받는다. public GitHub 레포의 [SVG](glossary:svg)는 `https://images.weserv.nl/?url=raw.githubusercontent.com/<owner>/<repo>/<sha>/<path>.svg&output=png&w=1600`로 바꿔 넣는다. 경로에 `main` 대신 [Commit hash](glossary:commit-hash)를 쓰는데, weserv가 URL 단위로 [Cache](glossary:cache)해서 `main`이면 옛 그림이 나올 수 있어서다. 넣기 전에 curl로 받아서 본다. 한글이 든 [draw.io](glossary:drawio) [SVG](glossary:svg)도 잘 나온다.
+- [Mermaid](glossary:mermaid) 원본을 물어보지 않고 mermaid.ink에 보내지 않는다. 데이터를 외부에 올리는 셈이라, 로컬에서 렌더한다.
 - 인라인 이미지 크기를 바꾸려면 지우고 새 `objectSize`로 다시 넣는다. 가로 420~440pt × 세로 300pt 정도면 가로 다이어그램 둘이 한 쪽에 들어간다.
 - `read_file_content`는 표 안의 굵은 글씨를 `\*\*text\*\*`로 보여 준다. 진짜 별표가 아니다.
-- `read_doc` 결과가 1 MB를 넘으면 파일로 저장된다. node로 꺼내서 첫 HEADING_1 뒤부터 본문을 찾는다(목차 줄이 헤딩을 반복해서). 마지막 확인은 PDF로 내보내 전 페이지 렌더다.
+- `read_doc` 결과가 1 MB를 넘으면 파일로 저장된다. node로 꺼내서 첫 HEADING_1 뒤부터 본문을 찾는다(목차 줄이 헤딩을 반복해서). 마지막 확인은 [PDF](glossary:pdf)로 내보내 전 페이지 렌더다.
 
-## 7. 정리
+## 7. 스킬 크기 변화
 
-| 묶음        | 핵심 규칙                                   |
-| ----------- | ------------------------------------------- |
-| 계획 문서   | 이름 없음, TODO list 하나, 체크로 끝냄      |
-| 팀 문서     | 고치기 전에 누구 것·어디·무엇을 보고        |
-| 선택지 비교 | 단점마다 불릿 하나, 채팅 내용과 대조        |
-| 언어        | 공개 문서 영어, 나머지는 레포 규칙          |
-| 파일 형식   | 문서 docx, 시트 xlsx, 새 Google Doc 안 만듦 |
-| 학교 보고서 | 로컬 HTML → docx → PDF, 전 페이지 렌더 확인 |
-| Google Docs | SVG는 weserv PNG, SHA 경로, Mermaid는 로컬  |
+2026-11-28 기준. 출처는 dotfiles 레포 `git log -- claude/skills/docs-style`과 각 [Commit](glossary:commit)의 `git show <커밋>:claude/skills/docs-style/SKILL.md | wc -c`.
 
-스킬 자체가 이 규칙을 따라 바뀌어 왔다. 원본을 바꾼 이유(400k자 대 30k자, 빠지는 heading id)는 잰 값으로 남아 있고, 그 값이 다시 바뀌면 규칙도 다시 연다.
+| 날짜       | 바뀐 것                                                                                             | 크기 (bytes) | 줄 수 |
+| ---------- | --------------------------------------------------------------------------------------------------- | ------------ | ----- |
+| 2026-11-13 | 전역 메모리에서 옮겨 새로 만듦                                                                      | 3,412        | 37    |
+| 2026-11-13 | 팀 문서 절 추가                                                                                     | 3,555        | 40    |
+| 2026-11-13 | 과목 `CLAUDE.md` 우선 줄 추가                                                                       | 3,686        | 41    |
+| 2026-11-16 | [Decision record](glossary:decision-record)를 `project-docs`로 넘기는 절                            | 3,932        | 44    |
+| 2026-11-17 | 표지 CBNU 로고, 단계 문서 보고서 따로                                                               | 4,077        | 45    |
+| 2026-11-25 | 보고서 원본 [Google Docs](glossary:google-docs) → 로컬 [DOCX](glossary:docx)                        | 4,877        | 48    |
+| 2026-11-27 | 문서 [DOCX](glossary:docx)·시트 [XLSX](glossary:xlsx), [Drive](glossary:google-drive)에서 보는 위치 | 5,497        | 52    |
 
-## 숫자로 보기
+[Commit](glossary:commit) 7번, 2주 동안 3,412 → 5,497 bytes(+2,085, 약 1.6배). 가장 큰 변화는 11-25의 +800 bytes다.
 
-2026-11-28 기준. 출처는 dotfiles 레포 `git log -- claude/skills/docs-style`과 각 커밋의 `git show <커밋>:claude/skills/docs-style/SKILL.md | wc -c`.
+## 8. 느낀 점
 
-| 날짜       | 바뀐 것                                  | 크기 (bytes) | 줄 수 |
-| ---------- | ---------------------------------------- | ------------ | ----- |
-| 2026-11-13 | 전역 메모리에서 옮겨 새로 만듦           | 3,412        | 37    |
-| 2026-11-13 | 팀 문서 절 추가                          | 3,555        | 40    |
-| 2026-11-13 | 과목 `CLAUDE.md` 우선 줄 추가            | 3,686        | 41    |
-| 2026-11-16 | 결정 기록을 `project-docs`로 넘기는 절   | 3,932        | 44    |
-| 2026-11-17 | 표지 CBNU 로고, 단계 문서 보고서 따로    | 4,077        | 45    |
-| 2026-11-25 | 보고서 원본 Google Docs → 로컬 docx      | 4,877        | 48    |
-| 2026-11-27 | 문서 docx·시트 xlsx, Drive에서 보는 위치 | 5,497        | 52    |
-
-커밋 7번, 2주 동안 3,412 → 5,497 bytes(+2,085, 약 1.6배). 가장 큰 변화는 11-25의 +800 bytes다.
-
-## 용어 정리
-
-| 용어                                                                                     | 뜻                                                                 |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| 스킬                                                                                     | 특정 작업 때만 열리는 지침 묶음. 평소엔 `description` 한 줄만 보임 |
-| TODO list                                                                                | 할 일을 한 목록에 두고 끝난 항목을 체크하는 형식                   |
-| option comparison                                                                        | 선택지마다 장단점을 나란히 적은 표나 목록                          |
-| [decision record](/kr/blog/side-projects/project-docs/project-docs-02-decision-records/) | 고른 것, 버린 것, 이유를 날짜와 함께 남긴 항목                     |
-| build script                                                                             | 원본 파일로 결과물(docx)을 다시 만드는 스크립트                    |
-| page break                                                                               | 다음 내용을 새 쪽에서 시작하게 하는 문서 구분자                    |
-| keep-with-next                                                                           | 헤딩을 다음 문단과 같은 쪽에 붙여 두는 문단 속성                   |
-| heading id                                                                               | 목차 링크가 가리키는 헤딩의 고유 식별자                            |
-| `insertInlineImage`                                                                      | Google Docs API에서 본문에 이미지를 넣는 요청                      |
-| images.weserv.nl                                                                         | URL의 이미지를 받아 형식·크기를 바꿔 주는 공개 이미지 프록시       |
-| [Docs sync](/kr/blog/side-projects/project-docs/project-docs-04-docs-sync/)              | 레포 Markdown 원본을 Google Docs로 한 방향으로 맞추는 작업         |
+[Agent skill](glossary:agent-skill) 자체가 이 규칙을 따라 바뀌어 왔고, 원본을 바꾼 이유(400k자 대 30k자, 빠지는 heading id)는 잰 값으로 남아 있어서 그 값이 다시 바뀌면 규칙도 다시 연다.

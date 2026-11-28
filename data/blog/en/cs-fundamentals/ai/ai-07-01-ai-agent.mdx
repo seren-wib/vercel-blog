@@ -26,31 +26,31 @@ A software system that perceives its environment, makes a plan, and uses tools t
 
 ## 1. Plain LLM vs Agentic LLM (LLM-based agent)
 
-| Category              | Plain LLM                   | Agentic LLM                                          |
-| --------------------- | --------------------------- | ---------------------------------------------------- |
-| Basic behavior        | Generates a single response | Performs a task over multiple steps                  |
-| Use of external tools | Not possible or limited     | Possible (search, calculation, code execution, etc.) |
-| Problem-solving style | Reacts to the given input   | Sets goals and proceeds proactively                  |
-| Execution flow        | One-shot                    | Runs in a repeated loop until the goal is met        |
+| Category              | Plain [LLM](glossary:llm)   | [Agentic LLM](glossary:ai-agent)                                     |
+| --------------------- | --------------------------- | -------------------------------------------------------------------- |
+| Basic behavior        | Generates a single response | Performs a task over multiple steps                                  |
+| Use of external tools | Not possible or limited     | Possible (search, calculation, code execution, etc.)                 |
+| Problem-solving style | Reacts to the given input   | Sets goals and proceeds proactively                                  |
+| Execution flow        | One-shot                    | Runs in a repeated [loop](glossary:agent-loop) until the goal is met |
 
 ## 2. Types of agents
 
 - Evolution 1 > 5
 
-1. Simple-Reflex Agent
+1. [Simple-Reflex Agent](glossary:simple-reflex-agent)
    - When a condition is seen, takes a predefined action
    - Changes direction when it hits a wall
-2. Model-based Reflex Agent
+2. [Model-based Reflex Agent](glossary:model-based-reflex-agent)
    - Current input + internal state/world model → choose action
    - Moves while remembering wall positions and where it has been
-3. Goal-based Agent
+3. [Goal-based Agent](glossary:goal-based-agent)
    - Actions are judged by whether they achieve the goal
    - Moves toward the goal of cleaning the whole room
-4. Utility-based Agent
+4. [Utility-based Agent](glossary:utility-based-agent)
    - Chooses the action with the highest satisfaction/utility among possible actions
    - Chooses the optimal path considering battery, time and efficiency
-5. LLM-based Agent / Agentic LLM
-   - An agent that uses an LLM like a brain and adds tools, memory and planning to perform tasks
+5. [LLM-based Agent](glossary:ai-agent) / [Agentic LLM](glossary:ai-agent)
+   - An agent that uses an [LLM](glossary:llm) like a brain and adds tools, [memory](glossary:agent-memory) and [planning](glossary:planning) to perform tasks
    - Understands complex instructions like "Clean the living room first, go over dusty spots twice, and if the battery runs low, recharge and continue", makes a plan, and carries it out using tools and sensors
 
 ## 3. Components of an agent
@@ -68,8 +68,8 @@ A software system that perceives its environment, makes a plan, and uses tools t
 
 ### 3. Memory
 
-- Short-term memory: the current session
-- Long-term memory: things like user preferences
+- [Short-term memory](glossary:agent-memory): the current session
+- [Long-term memory](glossary:agent-memory): things like user preferences
 
 ### 4. Planning
 
@@ -77,8 +77,8 @@ A software system that perceives its environment, makes a plan, and uses tools t
 
 ### 5. Runtime
 
-- Connects the LLM, Tools, Memory and Planning and makes them work
-- Manages the agent loop and handles the event queue, asynchronous execution and error recovery
+- Connects the [LLM](glossary:llm), Tools, [Memory](glossary:agent-memory) and [Planning](glossary:planning) and makes them work
+- Manages the [agent loop](glossary:agent-loop) and handles the event [queue](glossary:queue), asynchronous execution and error recovery
 
 #### The basic agent loop
 
@@ -113,7 +113,7 @@ Strong for games and optimization problems, but needs an evaluation function.
 
 ## 4. Agent runtime
 
-Infrastructure that coordinates LLM calls, tool execution, memory management, error handling, loop control and so on
+Infrastructure that coordinates [LLM](glossary:llm) calls, tool execution, [memory](glossary:agent-memory) management, error handling, [loop](glossary:agent-loop) control and so on
 
 ### 1. Characteristics when moving from the cloud to a local environment
 
@@ -130,16 +130,16 @@ Infrastructure that coordinates LLM calls, tool execution, memory management, er
 ### 2. Main elements of an agent runtime
 
 1. Event system
-   - event loop, queue system
-2. Context management
-3. Routing
-4. Tool use
-   - MCP(Model Context Protocol)
+   - [event loop](glossary:event-loop), [queue](glossary:queue) system
+2. [Context management](glossary:context-engineering)
+3. [Routing](glossary:routing)
+4. [Tool use](glossary:tool-calling)
+   - [MCP(Model Context Protocol)](glossary:mcp)
 5. Capability extension
-   - Skills, hooks
+   - [Skills](glossary:skill), [hooks](glossary:hook)
 6. UI and collaboration
    - External channels
-   - Agent-to-agent communication: A2A(agent-to-agent), ACP(agent communication protocol)
+   - Agent-to-agent communication: [A2A](glossary:a2a)(agent-to-agent), [ACP](glossary:acp)(agent communication protocol)
 
 #### Flow
 
@@ -163,11 +163,11 @@ A user request comes in
 
 ### Model Context Protocol (MCP)
 
-- A standard protocol that connects LLM applications with external data sources and tools
+- A standard protocol that connects [LLM](glossary:llm) applications with external data sources and tools
 - Acts as a common interface between AI models and external systems
-- The traditional API approach needs a separate connection for each tool
-- MCP lets various tools be connected in a uniform way
-- A concept that standardizes an agent's Tool Use and Context connections
+- The traditional [API](glossary:api) approach needs a separate connection for each tool
+- [MCP](glossary:mcp) lets various tools be connected in a uniform way
+- A concept that standardizes an agent's [Tool Use](glossary:tool-calling) and Context connections
 
 #### MCP structure
 
@@ -209,7 +209,7 @@ Reads the result and answers the user
 
 ##### SSE(Server-Sent Events)
 
-- HTTP-based
+- [HTTP](glossary:http)-based
 - Accessed via a URL
 - The server must already be running
 - Suited to remote/always-on servers
@@ -227,8 +227,8 @@ Claude Host
 
 - Based on standard input/output
 - The Host launches the local process directly
-- Not an HTTP service
-- Suited to local tools or CLI-based MCP servers
+- Not an [HTTP](glossary:http) service
+- Suited to local tools or CLI-based [MCP servers](glossary:mcp-server)
 
 ###### Example
 
@@ -247,11 +247,11 @@ Lets different agents publish their capabilities, communicate directly with othe
 
 #### Differences from MCP
 
-- MCP
-  - Agent ↔ tools / data / APIs
+- [MCP](glossary:mcp)
+  - Agent ↔ tools / data / [APIs](glossary:api)
   - The agent holds tools in its hand
   - Vertical connection
-- A2A
+- [A2A](glossary:a2a)
   - Agent ↔ agent
   - Agents hand work to each other
   - Horizontal connection
@@ -260,7 +260,7 @@ Lets different agents publish their capabilities, communicate directly with othe
 
 An agent's self-description
 
-Expresses the agent's capabilities and connection info in JSON.
+Expresses the agent's capabilities and connection info in [JSON](glossary:json).
 
 - Example
 
@@ -286,23 +286,23 @@ Expresses the agent's capabilities and connection info in JSON.
 
 ### LangChain
 
-LangChain is an open-source framework for developing LLM applications.
+[LangChain](glossary:langchain) is an open-source framework for developing [LLM](glossary:llm) applications.
 
-It supports LLM connections, prompt templates, chain composition, external data connections, memory management and more.
+It supports [LLM](glossary:llm) connections, [prompt](glossary:prompt) templates, chain composition, external data connections, [memory](glossary:agent-memory) management and more.
 
-- RAG(Retrieval-Augmented Generation): generation augmented by retrieval
+- [RAG(Retrieval-Augmented Generation)](glossary:rag): generation augmented by retrieval
 
-- Example of building a RAG workflow with the LangChain framework:
-  - Load documents with a Document Loader,
-  - split them with a Splitter,
-  - store them as embeddings in a Vector Database,
-  - and retrieve documents related to the question to use in the LLM's answer.
+- Example of building a [RAG](glossary:rag) workflow with the [LangChain](glossary:langchain) framework:
+  - Load documents with a [Document Loader](glossary:document-loader),
+  - split them with a [Splitter](glossary:text-splitter),
+  - store them as [embeddings](glossary:embedding) in a [Vector Database](glossary:vector-database),
+  - and retrieve documents related to the question to use in the [LLM](glossary:llm)'s answer.
 
-- LangChain basic structure: PromptTemplate + LLM + Chain
+- [LangChain](glossary:langchain) basic structure: PromptTemplate + [LLM](glossary:llm) + Chain
 
 ### LangGraph
 
-If LangChain is "a framework for connecting LLM task components", LangGraph is a framework for controlling that workflow more explicitly as a graph structure
+If [LangChain](glossary:langchain) is "a framework for connecting [LLM](glossary:llm) task components", [LangGraph](glossary:langgraph) is a framework for controlling that workflow more explicitly as a graph structure
 
 - Automatically saves state after each task > the agent remembers previous conversation history and state
 - Researcher: a node in charge of gathering information
@@ -338,7 +338,7 @@ Examples:
 
 - Receive user input
 - Search documents
-- Generate an LLM answer
+- Generate an [LLM](glossary:llm) answer
 - Run code
 - Test
 - Review
@@ -366,7 +366,7 @@ Examples:
 
 # Prompt Engineering
 
-Prompt: a sentence containing the information passed to a language model
+[Prompt](glossary:prompt): a sentence containing the information passed to a language model
 
 ## 1. Prompt components
 
@@ -389,7 +389,7 @@ Prompt: a sentence containing the information passed to a language model
 5. Identify the given text and classify the sentiment to respond with as positive, negative ...
 6. Subclassify within the given sentiment (if negative: anger, irritation, annoyance, etc.)
 
-- Prompts have no fixed format; if expressed consistently, the language model can understand them
+- [Prompts](glossary:prompt) have no fixed format; if expressed consistently, the language model can understand them
 
 ## 2. General principles of prompt design
 
@@ -533,10 +533,10 @@ A:
 
 #### Zero-shot CoT (2022)
 
-- No examples; add the sentence below at the end of the first prompt
+- No examples; add the sentence below at the end of the first [prompt](glossary:prompt)
   - "Let's think step by step." (trigger sentence/magic sentence)
 
-- To get the answer out, apply a prompt that adds the sentence below to the prompt and output
+- To get the answer out, apply a [prompt](glossary:prompt) that adds the sentence below to the [prompt](glossary:prompt) and output
   - "Therefore, the answer (arabic numerals) is"
 
 ```
@@ -548,7 +548,7 @@ Let's think step by step.
 
 ### 4. Self-Consistency (2022) technique
 
-Generate several results with the same prompt, and the user or ChatGPT picks the good one
+Generate several results with the same [prompt](glossary:prompt), and the user or ChatGPT picks the good one
 
 ### 5. Tree of thoughts (ToT, 2023) prompting
 
@@ -603,7 +603,7 @@ After the model generates a response to the given input, it repeatedly evaluates
 
 ### 8. Reflexion
 
-ReAct with self-evaluation, self-reflection and memory added
+[ReAct](glossary:react) with self-evaluation, self-reflection and [memory](glossary:agent-memory) added
 
 ```
 a define the task,

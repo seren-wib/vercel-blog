@@ -3,61 +3,60 @@ title: 'CH3. readme-style: 공개 레포 README를 한 양식으로'
 date: '2026-11-28'
 tags: ['Skills']
 draft: false
+level: 2
 aiGenerated: true
 summary: '공개 레포 README의 절 순서, 배지, 진짜 출력으로 만든 터미널 그림 규칙을 스킬 하나로 묶은 이야기'
 ---
 
-> 스킬 연재 3편. 스킬이 뭔지, 왜 지침 파일 대신 스킬로 뺐는지는 [CH0. 스킬 개요](/kr/blog/side-projects/skills/skills-00-overview/)에 있다.
+## 0. 들어가며
 
-## 한 줄 요약
+> [skill](glossary:agent-skill) 연재 3편. [skill](glossary:agent-skill)이 뭔지, 왜 지침 파일 대신 [skill](glossary:agent-skill)로 뺐는지는 [CH0. 스킬 개요](/kr/blog/side-projects/skills/skills-00-overview/)에 있다.
 
-2026-10-11, 나는 agent-commonplace 레포의 README를 쓰고 나서 앞으로 공개 레포 README는 전부 이 양식으로 쓰기로 했다. 같은 날 그 README를 뼈대로 뽑아 `readme-style` 스킬을 만들었다. 스킬은 파일 세 개, 241줄이고, 만든 뒤로 한 번도 고치지 않았다. 지금 내 공개 레포 중 다섯 개가 이 양식을 따르고, 터미널 그림을 그리는 스크립트는 블로그 글 9편에서 그림 31장을 만들었다.
+2026-10-11, 나는 agent-commonplace 레포의 [README](glossary:readme)를 쓰고 나서 그 [README](glossary:readme)가 맘에 들어, 앞으로 공개 레포 [README](glossary:readme)는 전부 이 양식으로 쓰기로 했다.
+
+식당으로 비유하면 체인점마다 같은 메뉴판 양식을 쓰는 것이다. 메뉴판의 칸 순서는 [README](glossary:readme)의 section order, 새 지점이 채워 넣는 빈 메뉴판은 template, 개업 전에 레시피대로 처음부터 한 번 만들어 보는 시식은 Quickstart를 throwaway environment에서 실행해 보는 검증, 메뉴 사진은 실제 명령의 [stdout](glossary:stdout)으로 그린 터미널 그림이다.
+
+같은 날 그 [README](glossary:readme)를 뼈대로 뽑아 `readme-style` [skill](glossary:agent-skill)을 만들었다. [skill](glossary:agent-skill)은 파일 세 개, 241줄(9,878바이트)이고, 만든 뒤로 한 번도 고치지 않았다. 지금 내 공개 레포 중 다섯 개가 이 양식을 따르고, 터미널 그림을 그리는 스크립트는 블로그 글 9편에서 그림 31장을 만들었다.
 
 ## 1. 스킬이 하는 일
-
-비유하면 이력서 양식이다. 칸 순서가 정해져 있으면 쓰는 사람은 내용만 고민하면 되고, 읽는 사람은 어디를 보면 되는지 안다.
 
 ![README 16개 절, 네 묶음: Landing, Why와 Quickstart, How it works, Reference](/static/images/skills-03-readme-style/section-order.svg)
 
 _README 16개 절, 네 묶음: Landing, Why와 Quickstart, How it works, Reference_
 
-용어로는 README의 **section order**(절 순서)와 **template**(뼈대 파일)을 정한 스킬이다. 스킬 폴더에는 파일이 세 개 있다.
+이 [skill](glossary:agent-skill)은 [README](glossary:readme)의 **section order**(절 순서)와 **template**(뼈대 파일)을 정한다. [skill](glossary:agent-skill) 폴더에는 파일이 세 개 있다.
 
-- **`SKILL.md`**: 절 16개의 순서, 이미지 규칙, 끝내기 전 확인할 것.
-- **`template.md`**: 자리표시자(`<repo-name>`, `<owner>/<repo>`)만 채우면 되는 README 뼈대.
-- **`terminal-svg.js`**: 명령의 실제 출력을 터미널 창 모양 SVG로 바꾸는 스크립트.
+- **`SKILL.md`**: 절 16개의 순서, 이미지 규칙, 끝내기 전 확인할 것(40줄).
+- **`template.md`**: 자리표시자(`<repo-name>`, `<owner>/<repo>`)만 채우면 되는 [README](glossary:readme) 뼈대(144줄).
+- **`terminal-svg.js`**: 명령의 실제 출력을 터미널 창 모양 [SVG](glossary:svg)로 바꾸는 스크립트(57줄).
 
-절 순서는 위 그림처럼 네 묶음으로 읽힌다. 위쪽은 처음 온 사람이 보는 자리(nav row, 소개 문단, 배지), 가운데는 설치하는 사람이 따라 하는 자리(Quickstart), 아래쪽은 막힌 사람이 찾아오는 자리(FAQ)다. README는 영어로 쓰고, 로고는 따로 말하지 않으면 넣지 않는다. 공개 문서를 영어로 쓰는 규칙 자체는 [CH2. docs-style](/kr/blog/side-projects/skills/skills-02-docs-style/)에 있다.
+절 순서는 위 그림처럼 네 묶음으로 읽힌다. 위쪽은 처음 온 사람이 보는 자리(nav row, 소개 문단, [Badge](glossary:badge)), 가운데는 설치하는 사람이 따라 하는 자리(Quickstart), 아래쪽은 막힌 사람이 찾아오는 자리(FAQ)다. [README](glossary:readme)는 영어로 쓰고, 로고는 따로 말하지 않으면 넣지 않는다. 공개 문서를 영어로 쓰는 규칙 자체는 [CH2. docs-style](/kr/blog/side-projects/skills/skills-02-docs-style/)에 있다.
 
-스킬이 열리는 때는 description에 적혀 있다. README를 쓰거나, 다시 쓰거나, 레포를 공개하려고 준비할 때다. 지침 파일에는 "`readme-style`(README)" 한 단어만 목록에 있고, 본문은 그때만 읽힌다.
+[skill](glossary:agent-skill)이 열리는 때는 description에 적혀 있다. [README](glossary:readme)를 쓰거나, 다시 쓰거나, 레포를 공개하려고 준비할 때다. 지침 파일에는 "`readme-style`([README](glossary:readme))" 한 단어만 목록에 있고, 본문은 그때만 읽힌다.
 
 ## 2. 양식이 생긴 날
 
-비유하면 맘에 든 집 한 채를 보고 그 설계도를 그대로 떠 둔 것이다.
+2026-10-11에 나는 agent-commonplace [README](glossary:readme)를 썼다. 이 [README](glossary:readme)는 airllm 프로젝트의 [README](glossary:readme) 구성을 본떴다. 다 쓰고 보니 맘에 들어서, 앞으로 [README](glossary:readme)는 이 양식으로 쓰기로 했다. 그날 밤 그 [README](glossary:readme)에서 내용을 빼고 구조만 남겨 `template.md`로, 쓰면서 지킨 규칙을 `SKILL.md`로 옮겼다.
 
-2026-10-11에 나는 agent-commonplace README를 썼다. 이 README는 airllm 프로젝트의 README 구성을 본떴다. 다 쓰고 보니 맘에 들어서, 앞으로 README는 이 양식으로 쓰기로 했다. 그날 밤 그 README에서 내용을 빼고 구조만 남겨 `template.md`로, 쓰면서 지킨 규칙을 `SKILL.md`로 옮겼다.
+같은 커밋에 전역 메모리 파일도 하나 생겼다. "[README](glossary:readme)를 쓸 땐 이 [skill](glossary:agent-skill)을 열라"는 한 줄짜리 규칙이었다. 2026-11-13에 전역 메모리에 있던 작업 규칙을 전부 지침 파일과 [skill](glossary:agent-skill)로 옮기면서 이 메모리 파일은 지워졌고, 지금은 지침 파일의 [skill](glossary:agent-skill) 목록 한 줄로만 남아 있다.
 
-같은 커밋에 전역 메모리 파일도 하나 생겼다. "README를 쓸 땐 이 스킬을 열라"는 한 줄짜리 규칙이었다. 2026-11-13에 전역 메모리에 있던 작업 규칙을 전부 지침 파일과 스킬로 옮기면서 이 메모리 파일은 지워졌고, 지금은 지침 파일의 스킬 목록 한 줄로만 남아 있다.
+| 날짜       | 일                                                                                                  |
+| ---------- | --------------------------------------------------------------------------------------------------- |
+| 2026-10-11 | agent-commonplace [README](glossary:readme) 작성, 같은 날 [skill](glossary:agent-skill) 첫 커밋     |
+| 2026-10-15 | stairno.com [README](glossary:readme) 첫 커밋                                                       |
+| 2026-10-17 | account.stairno.com, stairno-ui [README](glossary:readme) 첫 커밋                                   |
+| 2026-11-13 | 전역 메모리의 [README](glossary:readme) 규칙 삭제, 지침 파일 [skill](glossary:agent-skill) 목록으로 |
+| 2026-11-17 | random-idea-generator [README](glossary:readme) 첫 커밋                                             |
 
-| 날짜       | 일                                                      |
-| ---------- | ------------------------------------------------------- |
-| 2026-10-11 | agent-commonplace README 작성, 같은 날 스킬 첫 커밋     |
-| 2026-10-15 | stairno.com README 첫 커밋                              |
-| 2026-10-17 | account.stairno.com, stairno-ui README 첫 커밋          |
-| 2026-11-13 | 전역 메모리의 README 규칙 삭제, 지침 파일 스킬 목록으로 |
-| 2026-11-17 | random-idea-generator README 첫 커밋                    |
-
-스킬 폴더를 건드린 커밋은 처음 만든 커밋 하나뿐이다. 다른 스킬 두 개가 이 스킬을 가리킨다. `docs-style`은 "README 배치는 `readme-style`"이라고 넘기고, [project-docs 연재](/kr/blog/side-projects/project-docs/project-docs-00-overview/)의 스킬은 레포 문서 칸에서 README를 이 스킬로 쓴다고 적어 둔다.
+[skill](glossary:agent-skill) 폴더를 건드린 커밋은 처음 만든 커밋 하나뿐이다. 다른 [skill](glossary:agent-skill) 두 개가 이 [skill](glossary:agent-skill)을 가리킨다. `docs-style`은 "[README](glossary:readme) 배치는 `readme-style`"이라고 넘기고, [project-docs 연재](/kr/blog/side-projects/project-docs/project-docs-00-overview/)의 [skill](glossary:agent-skill)은 레포 문서 칸에서 [README](glossary:readme)를 이 [skill](glossary:agent-skill)로 쓴다고 적어 둔다.
 
 ## 3. 첫 화면의 규칙
 
-비유하면 가게 간판이다. 간판에 없는 메뉴를 적으면 손님은 들어왔다가 나간다.
+[README](glossary:readme) 첫 화면은 세 가지로 끝난다.
 
-README 첫 화면은 세 가지로 끝난다.
-
-- **nav row**: 제목 바로 밑에 굵은 앵커 링크를 `|`로 이은 한 줄. Quickstart, How it works, Configuration, FAQ 같은 절로 바로 간다.
+- **nav row**: 제목 바로 밑에 굵은 [Anchor link](glossary:anchor-link)를 `|`로 이은 한 줄. Quickstart, How it works, Configuration, FAQ 같은 절로 바로 간다.
 - **intro paragraph**: 한 문단. 무엇을 하는지, 누구를 위한지, 다른 것과 뭐가 다른지 한 줄을 굵게 쓴다. 홍보 문구는 넣지 않는다.
-- **badges**: shields.io 배지 두 줄. 첫 줄은 프로젝트 사실(별 수, CI 상태, 버전, 라이선스, 런타임 버전, 플랫폼), 둘째 줄은 지원하는 것과 PR 환영.
+- **badges**: [shields.io](glossary:shieldsio) [Badge](glossary:badge) 두 줄. 첫 줄은 프로젝트 사실(별 수, [CI](glossary:ci) 상태, 버전, [Open-source license](glossary:open-source-license), 런타임 버전, 플랫폼), 둘째 줄은 지원하는 것과 [PR](glossary:pull-request) 환영.
 
 ```md
 # <repo-name>
@@ -65,103 +64,72 @@ README 첫 화면은 세 가지로 끝난다.
 [**Quickstart**](#quickstart) | [**How it works**](#how-it-works) | [**FAQ**](#faq)
 ```
 
-배지 규칙에서 제일 중요한 건 "사실이고, 깨지거나 0으로 보이지 않는 배지만"이다. 후원자가 없는데 sponsors 배지를 달거나, 채팅방이 없는데 chat 배지를 달면 첫 화면에 빈칸이 생긴다. 그래서 빈 배지는 아예 넣지 않는다. 다만 별 수 배지와 Star History 그래프는 GitHub 레포가 있어야 그려지므로, 푸시 전에는 비어 보인다는 걸 보고에 같이 적게 했다.
+[Badge](glossary:badge) 규칙에서 제일 중요한 건 "사실이고, 깨지거나 0으로 보이지 않는 [Badge](glossary:badge)만"이다. 후원자가 없는데 sponsors [Badge](glossary:badge)를 달거나, 채팅방이 없는데 chat [Badge](glossary:badge)를 달면 첫 화면에 빈칸이 생긴다. 그래서 빈 [Badge](glossary:badge)는 아예 넣지 않는다. 다만 별 수 [Badge](glossary:badge)와 [Star History](glossary:star-history) 그래프는 GitHub 레포가 있어야 그려지므로, 푸시 전에는 비어 보인다는 걸 보고에 같이 적게 했다.
 
-그 아래는 `## Updates`(최신순, `[YYYY/MM/DD] **vX.Y.Z, 요약.**`), Star History 그래프, 목차가 이어진다. nav row와 목차의 앵커가 실제 헤딩과 맞는지는 끝내기 전에 확인한다.
+그 아래는 `## Updates`(최신순, `[YYYY/MM/DD] **vX.Y.Z, 요약.**`), [Star History](glossary:star-history) 그래프, 목차가 이어진다. nav row와 목차의 [Anchor link](glossary:anchor-link)가 실제 헤딩과 맞는지는 끝내기 전에 확인한다.
 
 ## 4. Quickstart는 직접 따라 한다
 
-비유하면 요리책을 내기 전에 레시피대로 처음부터 한 번 만들어 보는 것이다. 써 둔 순서로 안 되면 책이 틀린 거다.
-
-용어로는 README의 Quickstart를 **throwaway environment**(버리는 환경)에서 글자 그대로 실행해 보는 검증이다. 스킬의 "Before finishing" 절이 이걸 요구한다.
+[README](glossary:readme)의 Quickstart는 **throwaway environment**에서 글자 그대로 실행해 보는 검증을 거친다. [skill](glossary:agent-skill)의 "Before finishing" 절이 이걸 요구한다.
 
 - `HOME`을 임시 폴더로 덮어써서 내 실제 설정을 건드리지 않는다.
-- 원격 저장소가 필요하면 로컬 bare repo를 만들어 대신 쓴다.
-- 단계가 실패하면 README나 코드를 고치고, 모든 단계가 통과할 때까지 다시 한다.
+- 원격 저장소가 필요하면 로컬 [bare repo](glossary:bare-repository)를 만들어 대신 쓴다.
+- 단계가 실패하면 [README](glossary:readme)나 코드를 고치고, 모든 단계가 통과할 때까지 다시 한다.
 - 끝나면 무엇을 확인했고 무엇을 못 했는지 보고한다.
 
-Quickstart 자체의 모양도 정해져 있다. `### Requirements` 다음에 `### 1. …`처럼 번호 붙은 단계가 오고, 단계마다 명령 코드 블록이 있다. 사람들이 절대 틀리면 안 되는 한 가지는 `> [!IMPORTANT]` 알림 하나로 띄운다. 마지막 단계는 "잘 됐는지 확인"이고, 거기 터미널 그림이 들어간다.
+Quickstart 자체의 모양도 정해져 있다. `### Requirements` 다음에 `### 1. …`처럼 번호 붙은 단계가 오고, 단계마다 명령 코드 블록이 있다. 사람들이 절대 틀리면 안 되는 한 가지는 `> [!IMPORTANT]` [GitHub alert](glossary:github-alert) 하나로 띄운다. 마지막 단계는 "잘 됐는지 확인"이고, 거기 터미널 그림이 들어간다.
 
 FAQ도 같은 생각에서 나온다. 헤딩을 `### 1. <정확한 에러 문구>`로 쓰면 막힌 사람이 에러를 복사해서 페이지 안 검색으로 바로 찾는다. 그 아래에 원인과 고치는 명령을 둔다.
 
-이 규칙들이 왜 생겼는지, 예를 들어 Quickstart를 안 따라 해 봐서 틀린 적이 있었는지는 기록이 없다(기록 없음). 스킬 첫 커밋부터 들어 있었다.
+이 규칙들이 왜 생겼는지, 예를 들어 Quickstart를 안 따라 해 봐서 틀린 적이 있었는지는 기록이 없다(기록 없음). [skill](glossary:agent-skill) 첫 커밋부터 들어 있었다.
 
 ## 5. 터미널 그림은 진짜 출력만
 
-비유하면 사진은 실제로 찍은 것만 쓰고, 합성은 하지 않는다는 원칙이다.
-
 ![터미널 그림 만들기: 명령 실행, output.txt, terminal-svg.js, out.svg, headless 렌더 검수](/static/images/skills-03-readme-style/terminal-pipeline.svg)
 
-_터미널 그림 만들기: 명령 실행, output.txt, terminal-svg.js, out.svg, headless 렌더 검수_
+_터미널 그림 만들기: 명령 실행, output.txt, terminal-svg.js, out.svg, [headless](glossary:headless-browser) 렌더 검수_
 
-용어로는 실제 명령의 **stdout**을 파일로 받아 SVG로 렌더하는 파이프라인이다. 촬영이 명령 실행, 필름이 `output.txt`, 현상이 `terminal-svg.js`, 검수가 headless 브라우저 렌더다.
+이 파이프라인은 실제 명령의 **[stdout](glossary:stdout)**을 파일로 받아 [SVG](glossary:svg)로 렌더한다. 순서는 명령 실행, `output.txt`, `terminal-svg.js`, [headless](glossary:headless-browser) 브라우저 렌더 검수다.
 
 1. 명령을 진짜로 실행한다. 필요하면 4절의 버리는 환경에서 한다.
 2. 출력을 텍스트 파일로 받고, 홈 경로를 `~`로 바꾼다.
 3. `node ~/.claude/skills/readme-style/terminal-svg.js <output.txt> <out.svg> [title] [command]`로 그린다.
 4. Windows에서는 `msedge --headless=new --screenshot=<png>`로 PNG를 찍어 직접 열어 본다. 글자가 상자를 넘치거나 줄이 겹치면 고친다.
 
-스크립트는 57줄이고 Node 내장 `fs`만 쓴다. 하는 일은 단순하다. 창 크기는 폭 900px 고정에 높이는 줄 수에 맞추고, 맨 위에 macOS 창처럼 빨강·노랑·초록 점 세 개를 그린다. 그리고 줄마다 정규식 몇 개로 색을 입힌다.
+스크립트는 57줄이고 [Node](glossary:nodejs) 내장 `fs`만 쓴다. 하는 일은 단순하다. 창 크기는 폭 900px 고정에 높이는 줄 수에 맞추고, 맨 위에 macOS 창처럼 빨강·노랑·초록 점 세 개를 그린다. 그리고 줄마다 [Regular expression](glossary:regular-expression) 몇 개로 색을 입힌다.
 
 - `Label   value`처럼 생긴 줄의 라벨은 파랑.
 - `ok`, `passed`, `synced`, `done` 같은 단어는 초록.
 - `error`, `failed`, `fatal`은 빨강.
-- 줄 맨 앞의 ISO 시각은 회색.
+- 줄 맨 앞의 [ISO 8601](glossary:iso-8601) 시각은 회색.
 - Windows 경로의 `\`는 `/`로 바꾼다.
 
-아래 그림이 이 스크립트로 그린 실제 출력이다. 스킬 폴더에서 `wc -l`을 돌린 결과를 그대로 넣었다.
+아래 그림이 이 스크립트로 그린 실제 출력이다. [skill](glossary:agent-skill) 폴더에서 `wc -l`을 돌린 결과를 그대로 넣었다.
 
 ![terminal-svg.js로 그린 wc -l 출력: SKILL.md 40줄, template.md 144줄, terminal-svg.js 57줄, 합계 241줄](/static/images/skills-03-readme-style/terminal-wc.svg)
 
 _terminal-svg.js로 그린 wc -l 출력: SKILL.md 40줄, template.md 144줄, terminal-svg.js 57줄, 합계 241줄_
 
-출력을 지어내지 않는 규칙은 스킬에 "Never invent output"으로 박혀 있다. README의 그림은 사용자가 그대로 따라 쳤을 때 보게 될 화면이라는 약속이기 때문이다.
+출력을 지어내지 않는 규칙은 [skill](glossary:agent-skill)에 "Never invent output"으로 박혀 있다. [README](glossary:readme)의 그림은 사용자가 그대로 따라 쳤을 때 보게 될 화면이라는 약속이기 때문이다.
 
-같은 규칙의 다이어그램 쪽 절반도 있다. README용 SVG는 `docs/images/`에 두고, 그림마다 연회색 배경 카드(`#f6f8fa` 채움, `#d0d7de` 테두리, 둥근 모서리 16)를 깐다. GitHub 다크 모드에서도 글씨가 배경에 묻히지 않게 하려는 것이다. 접근성을 위해 `role="img"`와 `aria-label`을 붙이고, 본문에는 가운데 정렬해서 넣는다.
+같은 규칙의 다이어그램 쪽 절반도 있다. [README](glossary:readme)용 [SVG](glossary:svg)는 `docs/images/`에 두고, 그림마다 연회색 배경 카드(`#f6f8fa` 채움, `#d0d7de` 테두리, 둥근 모서리 16)를 깐다. GitHub [Dark mode](glossary:dark-mode)에서도 글씨가 배경에 묻히지 않게 하려는 것이다. [Accessibility](glossary:accessibility)를 위해 `role="img"`와 `aria-label`을 붙이고, 본문에는 가운데 정렬해서 넣는다.
 
 ## 6. 이 양식을 쓴 곳
 
-비유하면 같은 양식으로 낸 서류 다섯 장이다. 칸은 같은데 내용 길이는 프로젝트마다 다르다.
+2026-11-28 기준으로 내 공개 레포는 22개이고, 그중 5개는 [Fork](glossary:fork)다. 남은 17개 중 `## Star History`와 번호 붙은 FAQ가 둘 다 있는 [README](glossary:readme), 즉 이 양식을 따르는 [README](glossary:readme)는 5개다. 값은 [GitHub API](glossary:github-api)로 [README](glossary:readme)를 받아 헤딩을 센 것이다. 출처는 [skill](glossary:agent-skill) 폴더 `wc`, dotfiles `git log`, 각 레포 [README](glossary:readme), 블로그 레포의 `public/static/images/` grep이다.
 
-2026-11-28 기준으로 내 공개 레포는 22개이고, 그중 5개는 포크다. 남은 17개 중 `## Star History`와 번호 붙은 FAQ가 둘 다 있는 README, 즉 이 양식을 따르는 README는 5개다. 값은 GitHub API로 README를 받아 헤딩을 센 것이다.
+| 레포                  | [README](glossary:readme) 첫 커밋 | [README](glossary:readme) 커밋 수 | `##` 절 | FAQ 항목 | `<details>` | [SVG](glossary:svg) |
+| --------------------- | --------------------------------- | --------------------------------- | ------- | -------- | ----------- | ------------------- |
+| agent-commonplace     | 2026-10-11                        | 1                                 | 15      | 11       | 6           | 3                   |
+| stairno.com           | 2026-10-15                        | 10                                | 12      | 6        | 4           | 2                   |
+| account.stairno.com   | 2026-10-17                        | 6                                 | 13      | 11       | 2           | 2                   |
+| stairno-ui            | 2026-10-17                        | 6                                 | 12      | 10       | 6           | 2                   |
+| random-idea-generator | 2026-11-17                        | 1                                 | 12      | 6        | 3           | 0                   |
 
-| 레포                  | README 첫 커밋 | README 커밋 수 | `##` 절 | FAQ 항목 | `<details>` | SVG |
-| --------------------- | -------------- | -------------- | ------- | -------- | ----------- | --- |
-| agent-commonplace     | 2026-10-11     | 1              | 15      | 11       | 6           | 3   |
-| stairno.com           | 2026-10-15     | 10             | 12      | 6        | 4           | 2   |
-| account.stairno.com   | 2026-10-17     | 6              | 13      | 11       | 2           | 2   |
-| stairno-ui            | 2026-10-17     | 6              | 12      | 10       | 6           | 2   |
-| random-idea-generator | 2026-11-17     | 1              | 12      | 6        | 3           | 0   |
+나머지 12개 [README](glossary:readme)에는 두 절이 없다. 그중 stairnoworks.com, stairnolabs.com, stairnogames.com 셋은 [README](glossary:readme)가 101바이트 이하인 자리표시자다. GitHub 프로필 [README](glossary:readme)는 일부러 다른 형식을 쓴다. 그건 [CH4. profile-edit](/kr/blog/side-projects/skills/skills-04-profile-edit/)에서 다룬다.
 
-나머지 12개 README에는 두 절이 없다. 그중 stairnoworks.com, stairnolabs.com, stairnogames.com 셋은 README가 101바이트 이하인 자리표시자다. GitHub 프로필 README는 일부러 다른 형식을 쓴다. 그건 [CH4. profile-edit](/kr/blog/side-projects/skills/skills-04-profile-edit/)에서 다룬다.
+`terminal-svg.js`는 [README](glossary:readme) 밖에서도 쓰였다. 2026-11-08에 해커톤 연재를 쓰면서, 원격 서버 작업이라 사진이 거의 없으니 주요 명령의 실제 출력을 그때그때 저장해 두고 이 스크립트로 그리기로 했다. 학교·Tailscale IP, MAC 주소, 계정 이름, 원래 호스트 이름은 가리고 그렸다. 그 결과 [Woowangthon 7](/kr/blog/hackathon/woowangthon/woowangthon-07-leader-vllm/)부터 15편까지 9편에 터미널 그림 31장이 들어갔다. 블로그 글 자체의 규칙은 [CH1. blog-post](/kr/blog/side-projects/skills/skills-01-blog-post/)에 있다.
 
-`terminal-svg.js`는 README 밖에서도 쓰였다. 2026-11-08에 해커톤 연재를 쓰면서, 원격 서버 작업이라 사진이 거의 없으니 주요 명령의 실제 출력을 그때그때 저장해 두고 이 스크립트로 그리기로 했다. 학교·Tailscale IP, MAC 주소, 계정 이름, 원래 호스트 이름은 가리고 그렸다. 그 결과 [Woowangthon 7](/kr/blog/hackathon/woowangthon/woowangthon-07-leader-vllm/)부터 15편까지 9편에 터미널 그림 31장이 들어갔다. 블로그 글 자체의 규칙은 [CH1. blog-post](/kr/blog/side-projects/skills/skills-01-blog-post/)에 있다.
+## 7. 느낀 점
 
-## 숫자로 보기
-
-2026-11-28 기준. 출처는 스킬 폴더 `wc`, dotfiles `git log`, GitHub API로 받은 각 레포 README, 블로그 레포의 `public/static/images/` grep.
-
-| 항목                                  | 값                        |
-| ------------------------------------- | ------------------------- |
-| 스킬 파일                             | 3개, 241줄, 9,878바이트   |
-| `SKILL.md` / `template.md` / 스크립트 | 40줄 / 144줄 / 57줄       |
-| 스킬 폴더를 고친 커밋                 | 1개 (첫 커밋, 2026-10-11) |
-| README 절 순서                        | 16개                      |
-| 이 양식을 따르는 공개 레포            | 5개 (포크 뺀 17개 중)     |
-| `terminal-svg.js`로 그린 블로그 그림  | 31장, 9편                 |
-
-## 용어 정리
-
-| 용어                                                       | 뜻                                                           |
-| ---------------------------------------------------------- | ------------------------------------------------------------ |
-| nav row                                                    | 제목 바로 밑에 주요 절로 가는 앵커 링크를 한 줄로 이은 것    |
-| badge                                                      | shields.io가 그려 주는 작은 상태 그림. 버전, CI, 라이선스 등 |
-| Star History                                               | star-history.com이 그리는 GitHub 별 수 추이 그래프           |
-| Quickstart                                                 | 설치부터 동작 확인까지 번호 붙은 최소 단계                   |
-| GitHub alert                                               | `> [!IMPORTANT]`처럼 쓰는 강조 상자                          |
-| `<details>`                                                | 눌러야 펼쳐지는 HTML 접기 블록                               |
-| throwaway environment                                      | 확인용으로 만들고 버리는 환경. 실제 설정을 건드리지 않는다   |
-| bare repo                                                  | 작업 폴더 없이 git 이력만 있는 저장소. 원격 대신 쓸 수 있다  |
-| stdout                                                     | 명령이 화면에 내보내는 표준 출력                             |
-| headless browser                                           | 창을 띄우지 않고 렌더만 하는 브라우저. 스크린샷 확인에 쓴다  |
-| [skill](/kr/blog/side-projects/skills/skills-00-overview/) | 필요할 때만 열리는 작업별 지침 묶음                          |
+지금 내 공개 레포 중 다섯 개가 이 양식을 따르고, [skill](glossary:agent-skill)은 만든 뒤로 한 번도 고치지 않았다.

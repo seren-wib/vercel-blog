@@ -26,13 +26,13 @@ summary: 'sync, critical section, locks'
 
 # Syncrhonization
 
-**When several threads access one shared resource, how do we handle it?**
+**When several [threads](glossary:thread) access one shared resource, how do we handle it?**
 
-- Thread execution can be interleaved arbitrarily, and each thread can run at a different speed
+- [Thread](glossary:thread) execution can be interleaved arbitrarily, and each [thread](glossary:thread) can run at a different speed
 
 ### Problem: what happens if 1,000,000 won is withdrawn at the same time from two different ATMs (a situation that writes, not just reads)? (p.5)
 
-- **This problem situation itself is called a race condition**
+- **This problem situation itself is called a [race condition](glossary:race-condition)**
 - In other words, you don't always get the same result; it depends on execution timing
 
 ### The context switch problem.
@@ -59,15 +59,15 @@ So the result may not be the ideal one
 
 ## What threads share and what they don't?
 
-- Shared: code, global/static data, heap
-- Not shared: stack
-  - **Don't pass the address of a local variable on another thread's stack. Why: each thread has its own stack, but if you pass a pointer, other threads can access that address too**
+- Shared: code, global/static data, [heap](glossary:heap)
+- Not shared: [stack](glossary:stack)
+  - **Don't pass the address of a [local variable](glossary:local-variable) on another [thread](glossary:thread)'s [stack](glossary:stack). Why: each [thread](glossary:thread) has its own [stack](glossary:stack), but if you pass a [pointer](glossary:pointer), other [threads](glossary:thread) can access that address too**
 
 **The real criterion is whether multiple execution flows can access the same memory location**
 
 ## Critical Section
 
-**A piece of code that touches a shared resource accessible by multiple threads**
+**A piece of code that touches a shared resource accessible by multiple [threads](glossary:thread)**
 
 ```c
 int withdraw(account, amount) {
@@ -79,26 +79,26 @@ int withdraw(account, amount) {
 }
 ```
 
-- When one thread is in the critical section, we need to keep other threads from entering. Otherwise a race condition occurs.
+- When one [thread](glossary:thread) is in the [critical section](glossary:critical-section), we need to keep other [threads](glossary:thread) from entering. Otherwise a [race condition](glossary:race-condition) occurs.
 
 ## Requirements for a Critical Section
 
 ### 1.mutual exclusion
 
-- When one thread is in the critical section, block other threads from entering
+- When one [thread](glossary:thread) is in the [critical section](glossary:critical-section), block other [threads](glossary:thread) from entering
 
 ### 2. Progress in synchronization
 
-1. If a thread is inside the critical section, it must finish and leave within a reasonable time
-2. A thread outside the critical section must not prevent other threads from entering the critical section.
+1. If a [thread](glossary:thread) is inside the [critical section](glossary:critical-section), it must finish and leave within a reasonable time
+2. A [thread](glossary:thread) outside the [critical section](glossary:critical-section) must not prevent other [threads](glossary:thread) from entering the [critical section](glossary:critical-section).
 
 ### 3/ bounded waiting
 
-- If a thread is waiting to enter the critical section, it must eventually get in.
+- If a [thread](glossary:thread) is waiting to enter the [critical section](glossary:critical-section), it must eventually get in.
 
 ### 4. performance
 
-- Once inside the critical section, leave as quickly as possible
+- Once inside the [critical section](glossary:critical-section), leave as quickly as possible
 
 ## Mechanisms for meeting the critical section requirements
 
@@ -112,31 +112,31 @@ int withdraw(account, amount) {
 
 ## Locks
 
-**Just lock the door**
+**Just [lock](glossary:lock) the door**
 
 ### case1: the lock is free
 
-1. No thread is running the critical section
-2. Some thread calls acquire()
-3. The lock is switched to the "held" state
+1. No [thread](glossary:thread) is running the [critical section](glossary:critical-section)
+2. Some [thread](glossary:thread) calls acquire()
+3. The [lock](glossary:lock) is switched to the "held" state
 4. acquire() returns
-5. That thread runs the critical section code
+5. That [thread](glossary:thread) runs the [critical section](glossary:critical-section) code
 
 ### case2: the lock is held
 
-1. Some thread is already running the critical section
-2. Another thread calls acquire()
+1. Some [thread](glossary:thread) is already running the [critical section](glossary:critical-section)
+2. Another [thread](glossary:thread) calls acquire()
 3. acquire() does not return right away
-4. With a spinlock, it keeps checking while it waits
-5. With a mutex, it goes into the waiting queue and sleeps
+4. With a [spinlock](glossary:spinlock), it keeps checking while it waits
+5. With a [mutex](glossary:mutex), it goes into the [waiting queue](glossary:wait-queue) and sleeps
 
 ### When the critcial section work is done
 
 1. Call release()
-2. Switch the lock to the free state
-3. If there are waiting threads, wake one up
-4. The woken thread completes acquire
-5. That thread enters the critical section
+2. Switch the [lock](glossary:lock) to the free state
+3. If there are waiting [threads](glossary:thread), wake one up
+4. The woken [thread](glossary:thread) completes acquire
+5. That [thread](glossary:thread) enters the [critical section](glossary:critical-section)
 
 ### Problem
 
@@ -151,14 +151,14 @@ l->held = 0;
 }
 ```
 
-- So the acquire function for the lock would itself need a lock, recursively.
-- That's why we need an atomic operation (bundle it atomically so no context switch can happen in between)
+- So the acquire function for the [lock](glossary:lock) would itself need a [lock](glossary:lock), recursively.
+- That's why we need an [atomic operation](glossary:atomic-operation) (bundle it atomically so no [context switch](glossary:context-switch) can happen in between)
 
 ### Characteristics
 
-- You must call acquire() to enter the critical section
-- Waiting on a lock is either spinning with a spinlock (keeps using the CPU) or blocking with a mutex (uses less CPU)
-- Problem with spinlocks: they keep checking whether the lock has been released, so they eat a lot of CPU.
+- You must call acquire() to enter the [critical section](glossary:critical-section)
+- Waiting on a [lock](glossary:lock) is either spinning with a [spinlock](glossary:spinlock) (keeps using the [CPU](glossary:cpu)) or blocking with a [mutex](glossary:mutex) (uses less [CPU](glossary:cpu))
+- Problem with [spinlocks](glossary:spinlock): they keep checking whether the [lock](glossary:lock) has been released, so they eat a lot of [CPU](glossary:cpu).
 
 ## Three ways to fix the problem with locks
 
@@ -166,21 +166,21 @@ l->held = 0;
 
 - Assume reading/writing a single variable is atomic
 
-1. Dekker's algorithm
-2. Peterson's algorithm
-3. Lamport's bakery algorithm (for more than two processes)
+1. [Dekker's algorithm](glossary:dekkers-algorithm)
+2. [Peterson's algorithm](glossary:petersons-algorithm)
+3. [Lamport's bakery](glossary:lamports-bakery-algorithm) algorithm (for more than two [processes](glossary:process))
 
 ### 2. Hardware support
 
-- Atomic instructions
-  - A context switch causes the problem, so bundle the whole thing into one
-    - Examples: test-and-set, swap
+- [Atomic instructions](glossary:atomic-operation)
+  - A [context switch](glossary:context-switch) causes the problem, so bundle the whole thing into one
+    - Examples: [test-and-set](glossary:test-and-set), swap
 
 ### 3. Turn interrupts off
 
-- With interrupts off, timer interrupts don't come in.
-- Without timer interrupts, no forced context switch happens.
-- Without a context switch, the current thread can run the critical section to the end.
+- With [interrupts](glossary:interrupt) off, timer [interrupts](glossary:interrupt) don't come in.
+- Without timer [interrupts](glossary:interrupt), no forced [context switch](glossary:context-switch) happens.
+- Without a [context switch](glossary:context-switch), the current [thread](glossary:thread) can run the [critical section](glossary:critical-section) to the end.
 
 ```c
 void acquire (struct lock *l) {
@@ -193,10 +193,10 @@ void release (struct lock *l) {
 
 #### Why can't turning interrupts off be the solution?
 
-1. It only works in the kernel.
-   - Then can't the OS provide it as a system call? -> No. Why: security issues and bugs
-2. It isn't enough on a multiprocessor
-   - Turning off CPU0's interrupts doesn't stop the threads on CPU1
+1. It only works in the [kernel](glossary:kernel).
+   - Then can't the OS provide it as a [system call](glossary:system-call)? -> No. Why: security issues and bugs
+2. It isn't enough on a [multiprocessor](glossary:multiprocessor)
+   - Turning off CPU0's [interrupts](glossary:interrupt) doesn't stop the [threads](glossary:thread) on CPU1
 3. If the critcial section is long, important events can be missed.
 
 ## Early algorithm (to fix the acquire problem)

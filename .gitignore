@@ -54,3 +54,6 @@ yarn-error.log*
 
 # pyodide runtime, copied from node_modules by scripts/copy-pyodide.mjs
 /public/static/pyodide/
+
+# glossary JSON, built from data/glossary/*.jsonl by scripts/glossary.mjs
+/public/glossary/

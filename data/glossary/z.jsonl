@@ -1,0 +1,9 @@
+{"term":"Z-order","categories":["computer-systems"],"ko":"Z 순서. GUI에서 창이 앞뒤로 겹쳐 쌓이는 순서이다.","en":"The front-to-back stacking order of windows or elements in a GUI."}
+{"term":"Zenodo","categories":["information-retrieval"],"ko":"Zenodo. CERN이 운영하는 연구 산출물 저장소로, 동료 심사 없이 업로드를 받고 DOI를 준다.","en":"A CERN-run open repository for research outputs that accepts uploads without peer review and assigns DOIs."}
+{"term":"Zero dependencies","categories":["software-engineering"],"ko":"무의존성. 서드파티 패키지 없이 언어와 런타임의 내장 기능만으로 동작하는 것이다.","en":"Running on built-in language and runtime features alone, with no third-party packages."}
+{"term":"Zero-shot CoT","categories":["ai"],"ko":"Zero-shot Chain-of-Thought. 예시 없이 \"단계별로 생각해 보자\" 같은 문장을 붙여 단계적 추론을 끌어내는 프롬프팅이다.","en":"Zero-shot chain-of-thought, eliciting step-by-step reasoning without examples by appending a trigger such as \"Let's think step by step\"."}
+{"term":"Zero-shot prompting","categories":["ai"],"ko":"제로샷 프롬프팅. 예시 없이 지시문만으로 모델에 작업을 시키는 방식이다.","en":"Prompting a model with instructions only, without any examples."}
+{"term":"Zigbee","categories":["network","hardware"],"ko":"Zigbee. 센서 네트워크와 IoT에 쓰는 저전력 근거리 무선 표준이다.","en":"A low-power, short-range wireless standard used in sensor networks and IoT."}
+{"term":"ZIP","categories":["computer-systems"],"ko":"ZIP. 여러 파일을 압축해 한 파일로 묶는 아카이브 형식이다. .pptx, .docx도 XML을 담은 ZIP이다.","en":"A compressed archive format that bundles many files into one; .pptx and .docx files are ZIP archives of XML."}
+{"term":"Zipf's law","categories":["information-retrieval"],"ko":"지프의 법칙. 단어 빈도가 순위에 반비례한다는 경험 법칙으로, 로그-로그 그래프에서 직선이 된다.","en":"The empirical law that a term's frequency is inversely proportional to its rank, giving a straight line on a log-log plot."}
+{"term":"Zone index","categories":["information-retrieval"],"ko":"존 색인. 제목, 본문, 앵커 텍스트 같은 문서 영역을 따로 색인하는 방식이다.","en":"An index that indexes document regions such as title, body and anchor text separately."}

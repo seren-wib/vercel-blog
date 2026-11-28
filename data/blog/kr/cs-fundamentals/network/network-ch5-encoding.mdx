@@ -48,14 +48,14 @@ data  D ┃   ①          ②
       A ┃   ③          ④
 ```
 
-1. digital data → digital signal: Encoding (이번 챕터 2부)
-2. digital data → analog signal: Modulation (이번 챕터 3부)
-3. analog data → digital signal: Digitization = PCM, Delta Modulation (4부)
+1. digital data → digital signal: [Encoding](glossary:line-coding) (이번 챕터 2부)
+2. digital data → analog signal: [Modulation](glossary:modulation) (이번 챕터 3부)
+3. analog data → digital signal: [Digitization](glossary:digitization) = [PCM](glossary:pcm), [Delta Modulation](glossary:delta-modulation) (4부)
 4. analog data → analog signal: 옛날 AM/FM 라디오. 이 챕터에선 안 다룸.
 
 ## 1-2 정의
 
-1. Encoding 경로
+1. [Encoding](glossary:line-coding) 경로
 
 ```
 g(t) ──[Encoder]── x(t) ──[채널]── x(t) ──[Decoder]── g(t)
@@ -63,10 +63,10 @@ digital/analog      digital              digital      digital/analog
 ```
 
 g(t): 원본 데이터
-x(t): 인코딩된 디지털 신호 (사각파 같은 것)
+x(t): [Encoding](glossary:line-coding)된 디지털 신호 (사각파 같은 것)
 출력은 시간 영역 그래프로 표현됨
 
-2. Modulation 경로
+2. [Modulation](glossary:modulation) 경로
 
 ```
 m(t) ──[Modulator]── s(t) ──[채널]── s(t) ──[Demodulator]── m(t)
@@ -76,24 +76,24 @@ digital/analog  ↑     analog                analog          digital/analog
 ```
 
 m(t): 메시지 (보내고 싶은 데이터)
-fc(t): 캐리어 (반송파, 일정한 sin 파동)
-s(t): 변조된 아날로그 신호
-S(f): 주파수 영역에서 본 모양 (캐리어 주파수 fc 주변에 봉우리)
+fc(t): [carrier](glossary:carrier) (일정한 sin 파동)
+s(t): [modulation](glossary:modulation)된 아날로그 신호
+S(f): [frequency](glossary:frequency) 영역에서 본 모양 ([carrier](glossary:carrier) [frequency](glossary:frequency) fc 주변에 봉우리)
 
 ## 1-3 좋은 인코딩의 5가지 평가 기준
 
-| 기준                                     | 무엇을 보는가                          | 왜 중요한가                                                                                                                             |
-| ---------------------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Signal spectrum**                      | 전송 파워가 대역폭의 어디에 분포하는가 | 가운데로 모아야 효율적. DC component(0Hz 근처)이 있으면 transformer 같은 부품을 통과하지 못함                                           |
-| **Clocking**                             | 송수신측이 비트 경계를 어떻게 맞추는가 | 외부 클럭을 따로 둘지, 신호 자체에 동기 정보를 심을지 결정                                                                              |
-| **Error detection**                      | 에러를 어떻게 검출하는가               | 본질적으로 상위 레이어(data link control)의 책임. 단, 인코딩 자체로 일부 검출 가능한 경우도 있음 (예: Bipolar-AMI의 polarity violation) |
-| **Signal interference & noise immunity** | 노이즈 환경에서 잘 살아남는가          | 같은 SNR에서도 코드에 따라 BER이 다름                                                                                                   |
-| **Cost & complexity**                    | 구현 비용은 얼마나 드는가              | signaling rate가 높을수록 비용 증가                                                                                                     |
+| 기준                                     | 무엇을 보는가                                                   | 왜 중요한가                                                                                                                                                                               |
+| ---------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **[Signal spectrum](glossary:spectrum)** | 전송 파워가 [bandwidth](glossary:bandwidth)의 어디에 분포하는가 | 가운데로 모아야 효율적. [DC component](glossary:dc-component)(0Hz 근처)이 있으면 [transformer](glossary:transformer) 같은 부품을 통과하지 못함                                            |
+| **[Clocking](glossary:clocking)**        | 송수신측이 비트 경계를 어떻게 맞추는가                          | 외부 [clock](glossary:clocking)을 따로 둘지, 신호 자체에 동기 정보를 심을지 결정                                                                                                          |
+| **Error detection**                      | 에러를 어떻게 검출하는가                                        | 본질적으로 상위 레이어(data link control)의 책임. 단, [Encoding](glossary:line-coding) 자체로 일부 검출 가능한 경우도 있음 (예: [Bipolar-AMI](glossary:bipolar-ami)의 polarity violation) |
+| **Signal interference & noise immunity** | 노이즈 환경에서 잘 살아남는가                                   | 같은 [SNR](glossary:snr)에서도 코드에 따라 [BER](glossary:ber)이 다름                                                                                                                     |
+| **Cost & complexity**                    | 구현 비용은 얼마나 드는가                                       | signaling rate가 높을수록 비용 증가                                                                                                                                                       |
 
 ### 핵심 포인트
 
-- **Signal spectrum의 "no DC component"** 가 5장 전체의 숨은 주제. NRZ-L → AMI → Manchester → Scrambling으로 가는 흐름 자체가 "DC 어떻게 없앨까"의 진화 과정.
-- **Clocking** 도 마찬가지. NRZ-L의 동기 문제 → Manchester의 self-clocking → Scrambling의 절충안.
+- **[Signal spectrum](glossary:spectrum)의 "no [DC component](glossary:dc-component)"** 가 5장 전체의 숨은 주제. [NRZ-L](glossary:nrz) → [AMI](glossary:bipolar-ami) → [Manchester](glossary:manchester-encoding) → [Scrambling](glossary:scrambling)으로 가는 흐름 자체가 "DC 어떻게 없앨까"의 진화 과정.
+- **[Clocking](glossary:clocking)** 도 마찬가지. [NRZ-L](glossary:nrz)의 동기 문제 → [Manchester](glossary:manchester-encoding)의 [self-clocking](glossary:self-clocking) → [Scrambling](glossary:scrambling)의 절충안.
 - Error detection이 **data link control 계층의 책임**이라는 건 6장의 입구. 5장은 "신호 만들기", 6장은 "데이터 검증".
 
 ## 1-4 Differential Encoding
@@ -113,11 +113,11 @@ S(f): 주파수 영역에서 본 모양 (캐리어 주파수 fc 주변에 봉우
 
 ### Differential Encoding 적용처
 
-| 스킴                    | Differential이 어떻게 적용되는가                                    |
-| ----------------------- | ------------------------------------------------------------------- |
-| NRZI                    | 1일 때 transition, 0이면 유지                                       |
-| Differential Manchester | 비트 시작 지점의 transition 유무로 데이터 표현 (있으면 0, 없으면 1) |
-| DPSK                    | 이전 신호 대비 phase 변화로 데이터 표현                             |
+| 스킴                                                        | Differential이 어떻게 적용되는가                                    |
+| ----------------------------------------------------------- | ------------------------------------------------------------------- |
+| [NRZI](glossary:nrzi)                                       | 1일 때 transition, 0이면 유지                                       |
+| [Differential Manchester](glossary:differential-manchester) | 비트 시작 지점의 transition 유무로 데이터 표현 (있으면 0, 없으면 1) |
+| [DPSK](glossary:dpsk)                                       | 이전 신호 대비 [phase](glossary:phase) 변화로 데이터 표현           |
 
 # 2. Digital → Digital Encoding
 
@@ -125,10 +125,10 @@ S(f): 주파수 영역에서 본 모양 (캐리어 주파수 fc 주변에 봉우
 
 - 디지털데이터 -> 디지털 신호 로 변환하는 4가지 방법을 배운다
 
-1. NRZ계열
-2. Multilevel Binary
-3. Manchester 계열
-4. Scrambling
+1. [NRZ](glossary:nrz)계열
+2. [Multilevel Binary](glossary:multilevel-binary)
+3. [Manchester](glossary:manchester-encoding) 계열
+4. [Scrambling](glossary:scrambling)
 
 ## 2-1 NRZ(No Return to Zero) 계열
 
@@ -145,7 +145,7 @@ S(f): 주파수 영역에서 본 모양 (캐리어 주파수 fc 주변에 봉우
   2. 효율적. 1비트당 신호 변화가 최소 (0이나 1이 연속되면 변화 없음).
 
 - 단점 — 두 가지
-  1. DC component 존재: 0이나 1이 많이 나오면 평균 전압이 0이 아닌 값으로 치우침. → transformer 같은 부품을 통과하지 못함.
+  1. [DC component](glossary:dc-component) 존재: 0이나 1이 많이 나오면 평균 전압이 0이 아닌 값으로 치우침. → [transformer](glossary:transformer) 같은 부품을 통과하지 못함.
      - 예를 들어
      ```
      신호:  H H H H
@@ -157,7 +157,7 @@ S(f): 주파수 영역에서 본 모양 (캐리어 주파수 fc 주변에 봉우
 
 ### NRZI (Nonreturn to Zero Inverted, "invert on ones")
 
-- Differential encoding의 첫 등장
+- [Differential encoding](glossary:differential-encoding)의 첫 등장
 - 비트 시작 지점에 transition(전압 변화)이 있느냐 없느냐로 데이터 표현.
   - 0 = no transition (이전 전압 그대로 유지)
   - 1 = transition (low→high 또는 high→low로 뒤집힘)
@@ -166,61 +166,61 @@ S(f): 주파수 영역에서 본 모양 (캐리어 주파수 fc 주변에 봉우
 
 ### NRZ-L vs NRZI 비교
 
-| 항목           | NRZ-L                 | NRZI                                 |
-| -------------- | --------------------- | ------------------------------------ |
-| 0의 표현       | high level            | no transition                        |
-| 1의 표현       | low level             | transition                           |
-| 인코딩 방식    | level encoding        | differential encoding                |
-| 동기 손실 조건 | 0 또는 1이 길게 연속  | 0이 길게 연속 (1은 매번 변하니까 OK) |
-| 노이즈 내성    | 약함 (threshold 비교) | 강함 (transition 검출)               |
+| 항목                                  | [NRZ-L](glossary:nrz) | [NRZI](glossary:nrzi)                                   |
+| ------------------------------------- | --------------------- | ------------------------------------------------------- |
+| 0의 표현                              | high level            | no transition                                           |
+| 1의 표현                              | low level             | transition                                              |
+| [Encoding](glossary:line-coding) 방식 | level encoding        | [differential encoding](glossary:differential-encoding) |
+| 동기 손실 조건                        | 0 또는 1이 길게 연속  | 0이 길게 연속 (1은 매번 변하니까 OK)                    |
+| 노이즈 내성                           | 약함 (threshold 비교) | 강함 (transition 검출)                                  |
 
 ## 2-2 Multilevel Binary
 
-- NRZ는 2개의 전압 레벨(high, low)만 사용. Multilevel Binary는 3개의 전압 레벨 사용
+- [NRZ](glossary:nrz)는 2개의 전압 레벨(high, low)만 사용. [Multilevel Binary](glossary:multilevel-binary)는 3개의 전압 레벨 사용
   - 양전압(+), 0(no signal), 음전압(−).
-- NRZ-L이 가진 두 단점(DC component, 동기 문제)을 일부 해결하기 위해서.
+- [NRZ-L](glossary:nrz)이 가진 두 단점([DC component](glossary:dc-component), 동기 문제)을 일부 해결하기 위해서.
 
 ### Bipolar-AMI
 
-- 정의 (AMI = Alternate Mark Inversion)
+- 정의 ([AMI](glossary:bipolar-ami) = Alternate Mark Inversion)
 - 0 = no line signal (전압 0, 아무것도 없음)
 - 1 = positive 또는 negative pulse
   - 연속된 1들은 polarity가 교대로 나타남 (첫 1이 +면 다음 1은 -)
 
 ### 장점
 
-| 장점                                          | 의미                                                                                                |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| No loss of sync if a long string of 1s occurs | 1이 연속해도 매번 polarity가 바뀌니까 transition이 계속 발생 → 동기 유지됨 (NRZ-L의 단점 일부 해결) |
-| No net DC component                           | 1이 +/− 교대로 나오니까 평균 전압이 0에 가까움 → transformer 통과 가능                              |
-| Lower bandwidth                               | 같은 데이터레이트에서 NRZ보다 좁은 대역폭으로 전송 가능                                             |
-| Easy error detection                          | 1이 +/− 교대 규칙을 어기면 = 에러 발생 → 인코딩 자체로 일부 에러 검출 가능                          |
+| 장점                                          | 의미                                                                                                                |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| No loss of sync if a long string of 1s occurs | 1이 연속해도 매번 polarity가 바뀌니까 transition이 계속 발생 → 동기 유지됨 ([NRZ-L](glossary:nrz)의 단점 일부 해결) |
+| No net [DC component](glossary:dc-component)  | 1이 +/− 교대로 나오니까 평균 전압이 0에 가까움 → [transformer](glossary:transformer) 통과 가능                      |
+| Lower [bandwidth](glossary:bandwidth)         | 같은 데이터레이트에서 [NRZ](glossary:nrz)보다 좁은 [bandwidth](glossary:bandwidth)로 전송 가능                      |
+| Easy error detection                          | 1이 +/− 교대 규칙을 어기면 = 에러 발생 → [Encoding](glossary:line-coding) 자체로 일부 에러 검출 가능                |
 
 ### 단점
 
 - 0이 길게 연속되면 여전히 동기 문제. 0은 "no signal"이라서 신호가 없는 시간이 길어지면 수신측이 비트 경계를 잃음.
-  - 이 단점 때문에 나중에 Scrambling(2.4) 이 등장
+  - 이 단점 때문에 나중에 [Scrambling](glossary:scrambling)(2.4) 이 등장
 
 ### Pseudoternary
 
-- 정의 — Bipolar-AMI의 거울상
+- 정의 — [Bipolar-AMI](glossary:bipolar-ami)의 거울상
 - 0 = positive 또는 negative pulse (교대)
 - 1 = no line signal
-- AMI랑 0과 1의 역할이 정확히 뒤바뀐 거
+- [AMI](glossary:bipolar-ami)랑 0과 1의 역할이 정확히 뒤바뀐 거
 
 ## Bipolar-AMI vs Pseudoternary
 
-| 항목        | Bipolar-AMI                     | Pseudoternary           |
-| ----------- | ------------------------------- | ----------------------- |
-| 0의 표현    | no line signal                  | +/− 교대 펄스           |
-| 1의 표현    | +/− 교대 펄스                   | no line signal          |
-| 본질적 우열 | 없음 — 어느 한쪽이 더 낫지 않음 | 없음                    |
-| 사용처      | 일부 application의 기반         | 일부 application의 기반 |
+| 항목        | [Bipolar-AMI](glossary:bipolar-ami) | [Pseudoternary](glossary:pseudoternary) |
+| ----------- | ----------------------------------- | --------------------------------------- |
+| 0의 표현    | no line signal                      | +/− 교대 펄스                           |
+| 1의 표현    | +/− 교대 펄스                       | no line signal                          |
+| 본질적 우열 | 없음 — 어느 한쪽이 더 낫지 않음     | 없음                                    |
+| 사용처      | 일부 application의 기반             | 일부 application의 기반                 |
 
 ## 2-3 Manchester 계열
 
 - 매 비트 중간에 transition을 무조건 강제로 넣자. 0이든 1이든
-- 신호가 항상 변하니까 동기 손실이 절대 없음. 신호 자체가 클럭 역할까지 함
+- 신호가 항상 변하니까 동기 손실이 절대 없음. 신호 자체가 [clock](glossary:clocking) 역할까지 함
 
 ### Manchester
 
@@ -230,48 +230,48 @@ S(f): 주파수 영역에서 본 모양 (캐리어 주파수 fc 주변에 봉우
 - low → high transition = 1
 - high → low transition = 0
 - 중간 transition의 두 가지 역할
-  1. Clockin(비트경계맞추기): 매 비트 중간에 무조건 변화가 있으니, 수신측이 그걸 보고 비트 경계 추적
+  1. [Clocking](glossary:clocking)(비트경계맞추기): 매 비트 중간에 무조건 변화가 있으니, 수신측이 그걸 보고 비트 경계 추적
   2. Data: 변화의 방향(올라가는지 내려가는지)이 비트 값을 결정
-  - → 한 transition으로 클럭 + 데이터 동시 전달. self-clocking.
+  - → 한 transition으로 [clock](glossary:clocking) + 데이터 동시 전달. [self-clocking](glossary:self-clocking).
 - 장점
   - 동기 손실 없음
-  - DC component 없음
+  - [DC component](glossary:dc-component) 없음
 
-- 단점: 1비트당 transition 2번 필요 → 신호가 2배 빠르게 변해야 함 → 대역폭 2배 필요 → 비쌈
+- 단점: 1비트당 transition 2번 필요 → 신호가 2배 빠르게 변해야 함 → [bandwidth](glossary:bandwidth) 2배 필요 → 비쌈
 
 ### Differential Manchester
 
-- Manchester + differential encoding
+- [Manchester](glossary:manchester-encoding) + [differential encoding](glossary:differential-encoding)
 
-- 매 비트 중간에 transition이 항상 있음 → clocking 전용
+- 매 비트 중간에 transition이 항상 있음 → [clocking](glossary:clocking) 전용
 - 비트 시작 지점의 transition 유무로 데이터 표현
 - 시작할 때(한 비트의 시작) 시작비트가 0이면 transition. high이던 low이던
 
 ### Manchester vs Differential Manchester
 
-| 항목                 | Manchester             | Differential Manchester         |
-| -------------------- | ---------------------- | ------------------------------- |
-| 비트 중간 transition | 있음 (clocking + data) | 있음 (clocking 전용)            |
-| 비트 시작 transition | 의미 없음              | 데이터 (있으면 0, 없으면 1)     |
-| 0의 표현             | 중간에 high → low      | 시작에 transition 있음          |
-| 1의 표현             | 중간에 low → high      | 시작에 transition 없음          |
-| 인코딩 방식          | level (방향이 의미)    | differential (변화 유무가 의미) |
-| 노이즈 내성          | 보통                   | 더 강함                         |
-| 대역폭               | 2배 필요               | 2배 필요                        |
+| 항목                                  | [Manchester](glossary:manchester-encoding)  | [Differential Manchester](glossary:differential-manchester) |
+| ------------------------------------- | ------------------------------------------- | ----------------------------------------------------------- |
+| 비트 중간 transition                  | 있음 ([clocking](glossary:clocking) + data) | 있음 ([clocking](glossary:clocking) 전용)                   |
+| 비트 시작 transition                  | 의미 없음                                   | 데이터 (있으면 0, 없으면 1)                                 |
+| 0의 표현                              | 중간에 high → low                           | 시작에 transition 있음                                      |
+| 1의 표현                              | 중간에 low → high                           | 시작에 transition 없음                                      |
+| [Encoding](glossary:line-coding) 방식 | level (방향이 의미)                         | differential (변화 유무가 의미)                             |
+| 노이즈 내성                           | 보통                                        | 더 강함                                                     |
+| [Bandwidth](glossary:bandwidth)       | 2배 필요                                    | 2배 필요                                                    |
 
 ## 2-4 Scrambling
 
-- 그냥 AMI 같은 효율적인 방식 쓰면서, 0이 길게 연속되는 부분만 다른 패턴으로 바꿔치기하면 안 되나? 에서 나온 아이디어
+- 그냥 [AMI](glossary:bipolar-ami) 같은 효율적인 방식 쓰면서, 0이 길게 연속되는 부분만 다른 패턴으로 바꿔치기하면 안 되나? 에서 나온 아이디어
 
 ### 핵심 매커니즘
 
-- 평소엔 AMI 같은 기존 방식 그대로 사용 (대역폭 효율 유지)
+- 평소엔 [AMI](glossary:bipolar-ami) 같은 기존 방식 그대로 사용 ([bandwidth](glossary:bandwidth) 효율 유지)
 - 0이 너무 많이 연속되면 (예: 8개 연속) → 그 구간을 미리 약속된 다른 비트 패턴으로 강제 치환
 - 수신측은 그 패턴을 알아보고 → 다시 원래 0 연속으로 복원
 
 ### 치환 패턴이 만족해야 하는 조건
 
-- 수신측 클럭 동기 유지할 transition 충분히 제공(신호가 너무 오래 안 바뀌면, 수신측이 "지금 몇 번째 비트인지"를 잃어버리니까, 일부러 중간중간 전압 변화가 생기게 만든다는 뜻)
+- 수신측 [clock](glossary:clocking) 동기 유지할 transition 충분히 제공(신호가 너무 오래 안 바뀌면, 수신측이 "지금 몇 번째 비트인지"를 잃어버리니까, 일부러 중간중간 전압 변화가 생기게 만든다는 뜻)
 - 수신측이 그 패턴을 알아보고 원본으로 복원 가능해야 함
 - 원본과 같은 길이 (data rate penalty 없음)
 
@@ -279,42 +279,42 @@ S(f): 주파수 영역에서 본 모양 (캐리어 주파수 fc 주변에 봉우
 
 | 목표                                         | 의미                                              |
 | -------------------------------------------- | ------------------------------------------------- |
-| No DC component                              | transformer 통과 가능하게                         |
+| No [DC component](glossary:dc-component)     | [transformer](glossary:transformer) 통과 가능하게 |
 | No long sequences of zero level line signals | 0 연속을 차단해서 동기 유지                       |
 | No reduction in data rate                    | 치환 패턴이 원본과 같은 길이 → 데이터 처리량 유지 |
 | Error detection capability                   | 치환 패턴 자체에 에러 검출 기능 내장              |
 
 ### 두가지 대표 방식
 
-1. B8ZS (Bipolar with 8-Zeros Substitution)
+1. [B8ZS](glossary:b8zs) (Bipolar with 8-Zeros Substitution)
 
-- AMI 기반
-- 0이 8개 연속되면 → 그 8비트를 2개의 code violation(AMI 규칙 위반 펄스)을 포함한 특별 패턴으로 치환
+- [AMI](glossary:bipolar-ami) 기반
+- 0이 8개 연속되면 → 그 8비트를 2개의 [code violation](glossary:code-violation)([AMI](glossary:bipolar-ami) 규칙 위반 펄스)을 포함한 특별 패턴으로 치환
 - 북미에서 주로 사용
 
-2. HDB3 (High-Density Bipolar 3-zeros)
+2. [HDB3](glossary:hdb3) (High-Density Bipolar 3-zeros)
 
-- AMI 기반
-- 0이 4개 연속되면 → 그 4비트를 1개의 code violation을 포함한 특별 패턴으로 치환
+- [AMI](glossary:bipolar-ami) 기반
+- 0이 4개 연속되면 → 그 4비트를 1개의 [code violation](glossary:code-violation)을 포함한 특별 패턴으로 치환
 - 유럽/일본에서 주로 사용
 
-| 항목                      | B8ZS         | HDB3         |
-| ------------------------- | ------------ | ------------ |
-| 기반 인코딩               | Bipolar-AMI  | Bipolar-AMI  |
-| 치환 트리거               | 0이 8개 연속 | 0이 4개 연속 |
-| 치환 시 code violation 수 | 2개          | 1개          |
-| 주 사용 지역              | 북미         | 유럽/일본    |
+| 항목                                                 | [B8ZS](glossary:b8zs)               | [HDB3](glossary:hdb3)               |
+| ---------------------------------------------------- | ----------------------------------- | ----------------------------------- |
+| 기반 [Encoding](glossary:line-coding)                | [Bipolar-AMI](glossary:bipolar-ami) | [Bipolar-AMI](glossary:bipolar-ami) |
+| 치환 트리거                                          | 0이 8개 연속                        | 0이 4개 연속                        |
+| 치환 시 [code violation](glossary:code-violation) 수 | 2개                                 | 1개                                 |
+| 주 사용 지역                                         | 북미                                | 유럽/일본                           |
 
-- code violation이란?
-  - AMI 규칙: "1은 +/− 교대로." → 이 규칙을 일부러 깨뜨린 펄스를 의미
+- [code violation](glossary:code-violation)이란?
+  - [AMI](glossary:bipolar-ami) 규칙: "1은 +/− 교대로." → 이 규칙을 일부러 깨뜨린 펄스를 의미
   - 이게 error detection capability의 메커니즘
     - 치환 규칙을 어긴 신호가 도착하면 → 에러로 즉시 검출
 
 # 3. Digital data -> Analog signal encoding (Modulation)
 
-**carrier라는 기본 sine wave가 있고, 그 sine wave의 성질 중 하나를 바꿔서 0과 1을 표현한다.**
+**[carrier](glossary:carrier)라는 기본 sine wave가 있고, 그 sine wave의 성질 중 하나를 바꿔서 0과 1을 표현한다.**
 
-- ASK, FSK, PSK, QAM이 있다.
+- [ASK](glossary:ask), [FSK](glossary:fsk), [PSK](glossary:psk), [QAM](glossary:qam)이 있다.
 
 ```
 sine wave의 형태
@@ -329,25 +329,25 @@ f  = frequency, 주파수
 
 ## 3-1 ASK
 
-- 진폭 A를 바꿔서 0/1 표현
-- 0이면 carrier를 약하게 보내거나 아예 안 보내고, 1이면 크게 보내는 방식
-- 0을 carrier 없음으로 표현하는 ASK를 **OOK**, On-Off Keying이라고 해.
-  - 1 = carrier ON
-  - 0 = carrier OFF
-- 문제는 진폭은 노이즈에 약하다는 거. 통신 중에 신호 세기가 조금만 흔들려도 "이게 큰 진폭인지 작은 진폭인지" 애매함. 그래서 ASK는 단순하지만 안정성은 별로
+- [Amplitude](glossary:amplitude) A를 바꿔서 0/1 표현
+- 0이면 [carrier](glossary:carrier)를 약하게 보내거나 아예 안 보내고, 1이면 크게 보내는 방식
+- 0을 [carrier](glossary:carrier) 없음으로 표현하는 [ASK](glossary:ask)를 **[OOK](glossary:ook)**, On-Off Keying이라고 해.
+  - 1 = [carrier](glossary:carrier) ON
+  - 0 = [carrier](glossary:carrier) OFF
+- 문제는 [amplitude](glossary:amplitude)는 노이즈에 약하다는 거. 통신 중에 신호 세기가 조금만 흔들려도 "이게 큰 [amplitude](glossary:amplitude)인지 작은 [amplitude](glossary:amplitude)인지" 애매함. 그래서 [ASK](glossary:ask)는 단순하지만 안정성은 별로
 
 ## 3-2 FSK
 
-- 주파수 f를 바꿔서 0/1 표현
+- [Frequency](glossary:frequency) f를 바꿔서 0/1 표현
 
 ### Bfsk: Binary FSK라서, binary data인 0과 1을 표현하기 위해 두 개의 주파수만 써
 
-- 1 = 높은 주파수
-- 0 = 낮은 주파수
+- 1 = 높은 [frequency](glossary:frequency)
+- 0 = 낮은 [frequency](glossary:frequency)
 
 ### MFSK: Multiple FSK: 주파수를 2개보다 많이 쓴다
 
-예를 들어 주파수를 4개를 쓰면
+예를 들어 [frequency](glossary:frequency)를 4개를 쓰면
 
 ```
 MFSK, M = 4:
@@ -358,98 +358,98 @@ MFSK, M = 4:
 11 = f4
 ```
 
-- 한 symbol에 여러 bit를 담으니까 bandwidth efficiency가 좋아짐.
-- 단점은 주파수 간격이 좁거나 노이즈가 있으면 헷갈리기 쉬워진다.
-- 주파수가 높다는 건 같은 시간 안에 파동이 더 많이 출렁인다는 뜻
+- 한 [symbol](glossary:symbol)에 여러 bit를 담으니까 [bandwidth](glossary:bandwidth) efficiency가 좋아짐.
+- 단점은 [frequency](glossary:frequency) 간격이 좁거나 노이즈가 있으면 헷갈리기 쉬워진다.
+- [Frequency](glossary:frequency)가 높다는 건 같은 시간 안에 파동이 더 많이 출렁인다는 뜻
 
 ## 3-3 PSK
 
-- 위상 φ를 바꿔서 0/1 표현
-- 진폭이나 주파수를 바꾸는 게 아니라, sine wave의 위상, 쉽게 말하면 파동의 시작 위치를 바꿈.
-- 0 = 기준 위상(sin 파형)
-- 1 = 180도 뒤집힌 위상(-sin 파형)
-- PSK는 진폭이 조금 흔들려도 위상 차이를 보면 되니까 상대적으로 안정적
+- [Phase](glossary:phase) φ를 바꿔서 0/1 표현
+- [Amplitude](glossary:amplitude)이나 [frequency](glossary:frequency)를 바꾸는 게 아니라, sine wave의 [phase](glossary:phase), 쉽게 말하면 파동의 시작 위치를 바꿈.
+- 0 = 기준 [phase](glossary:phase)(sin 파형)
+- 1 = 180도 뒤집힌 [phase](glossary:phase)(-sin 파형)
+- [PSK](glossary:psk)는 [amplitude](glossary:amplitude)가 조금 흔들려도 [phase](glossary:phase) 차이를 보면 되니까 상대적으로 안정적
 
-다만 PSK도 기준 phase를 알아야 한다.  
+다만 [PSK](glossary:psk)도 기준 [phase](glossary:phase)를 알아야 한다.  
 수신측이 "이게 원래 0° 기준에서 얼마나 돌아간 건지"를 비교해야 하기 때문. 그래서 기준을 잡는 일이 중요.
-여기서 바로 이어지는 게 DPSK
+여기서 바로 이어지는 게 [DPSK](glossary:dpsk)
 
 ### DPSK
 
-- **이전 phase와 비교해서 phase가 바뀌었는지로 판단**
-  DPSK는 절대 phase를 직접 보지 않는다.
-  이전 신호의 phase와 비교해서 바뀌었는지 안 바뀌었는지를 본다.
+- **이전 [phase](glossary:phase)와 비교해서 [phase](glossary:phase)가 바뀌었는지로 판단**
+  [DPSK](glossary:dpsk)는 절대 [phase](glossary:phase)를 직접 보지 않는다.
+  이전 신호의 [phase](glossary:phase)와 비교해서 바뀌었는지 안 바뀌었는지를 본다.
 
-처음 phase를 0°라고 잡고, 비트열이 0 1 1 0이면 이렇게 된다.
+처음 [phase](glossary:phase)를 0°라고 잡고, 비트열이 0 1 1 0이면 이렇게 된다.
 
-초기 phase: 0°
+초기 [phase](glossary:phase): 0°
 
-bit 0 → phase 유지 → 0°
-bit 1 → phase 180° 변경 → 180°
-bit 1 → phase 180° 변경 → 0°
-bit 0 → phase 유지 → 0°
+bit 0 → [phase](glossary:phase) 유지 → 0°
+bit 1 → [phase](glossary:phase) 180° 변경 → 180°
+bit 1 → [phase](glossary:phase) 180° 변경 → 0°
+bit 0 → [phase](glossary:phase) 유지 → 0°
 
 표로 보면
 
 bit: 0 1 1 0
-phase: 0° 180° 0° 0°
+[phase](glossary:phase): 0° 180° 0° 0°
 
 여기서 중요한 건, 1 = 항상 180° 파형이 아니라는 것.
-1은 이전 phase에서 바꾼다는 뜻
+1은 이전 [phase](glossary:phase)에서 바꾼다는 뜻
 
 ### QPSK
 
 - Quadrature Phase Shift Keying.
-- phase를 4개 사용한다.
-- 1 symbol이 2bit를 표현한다.
-- 예: 00, 01, 11, 10을 서로 다른 4개의 phase에 매핑한다.
-- BPSK보다 bandwidth efficiency가 좋다.
-- 단점은 phase 상태가 늘어나므로 수신측이 더 정밀하게 phase를 구분해야 한다는 점이다.
+- [phase](glossary:phase)를 4개 사용한다.
+- 1 [symbol](glossary:symbol)이 2bit를 표현한다.
+- 예: 00, 01, 11, 10을 서로 다른 4개의 [phase](glossary:phase)에 매핑한다.
+- [BPSK](glossary:bpsk)보다 [bandwidth](glossary:bandwidth) efficiency가 좋다.
+- 단점은 [phase](glossary:phase) 상태가 늘어나므로 수신측이 더 정밀하게 [phase](glossary:phase)를 구분해야 한다는 점이다.
 
 ### OQPSK
 
-- Offset QPSK.
-- QPSK의 변형이다.
-- I 성분과 Q 성분이 동시에 바뀌지 않도록 한쪽을 반 symbol time만큼 지연시킨다.
-- 일반 QPSK에서는 I/Q가 동시에 바뀌면 180° phase jump가 생길 수 있다.
-- OQPSK는 변화 시점을 어긋나게 해서 큰 phase jump를 막고, phase 변화 폭을 줄인다.
+- Offset [QPSK](glossary:qpsk).
+- [QPSK](glossary:qpsk)의 변형이다.
+- I 성분과 Q 성분이 동시에 바뀌지 않도록 한쪽을 반 [symbol](glossary:symbol) time만큼 지연시킨다.
+- 일반 [QPSK](glossary:qpsk)에서는 I/Q가 동시에 바뀌면 180° [phase](glossary:phase) jump가 생길 수 있다.
+- [OQPSK](glossary:oqpsk)는 변화 시점을 어긋나게 해서 큰 [phase](glossary:phase) jump를 막고, [phase](glossary:phase) 변화 폭을 줄인다.
 - 결과적으로 신호 변화가 더 부드럽고, 무선 송신에서 증폭기 비선형성에 더 강하다.
 
 ## modulation schemes 성능 비교
 
 핵심 기준은 두 개
 
-1. Bandwidth
-   → 얼마나 넓은 주파수 대역을 먹는가
+1. [Bandwidth](glossary:bandwidth)
+   → 얼마나 넓은 [frequency](glossary:frequency) 대역을 먹는가
 
-2. Noise / Bit error rate
+2. Noise / [Bit error rate](glossary:ber)
    → 잡음이 있을 때 얼마나 덜 틀리는가
 
 ## Digital-to-Analog Modulation 성능 비교
 
-- ASK/PSK의 bandwidth는 bit rate와 직접 관련된다.
-- FSK는 서로 다른 frequency 간격이 필요하므로 bandwidth 부담이 생긴다.
-- 노이즈 성능은 대체로 ASK < FSK < PSK 순으로 좋다.
-- PSK/QPSK는 ASK/FSK보다 BER 성능이 좋은 편이다.
-- MFSK, MPSK는 tradeoff가 따른다.
-  - 한 symbol에 더 많은 bit를 담을 수 있어서 bandwidth efficiency는 좋아진다.
+- [ASK](glossary:ask)/[PSK](glossary:psk)의 [bandwidth](glossary:bandwidth)는 [bit rate](glossary:bit-rate)와 직접 관련된다.
+- [FSK](glossary:fsk)는 서로 다른 [frequency](glossary:frequency) 간격이 필요하므로 [bandwidth](glossary:bandwidth) 부담이 생긴다.
+- 노이즈 성능은 대체로 [ASK](glossary:ask) < [FSK](glossary:fsk) < [PSK](glossary:psk) 순으로 좋다.
+- [PSK](glossary:psk)/[QPSK](glossary:qpsk)는 [ASK](glossary:ask)/[FSK](glossary:fsk)보다 [BER](glossary:ber) 성능이 좋은 편이다.
+- [MFSK](glossary:mfsk), MPSK는 tradeoff가 따른다.
+  - 한 [symbol](glossary:symbol)에 더 많은 bit를 담을 수 있어서 [bandwidth](glossary:bandwidth) efficiency는 좋아진다.
   - 대신 구분해야 할 신호 상태가 많아져 noise에 더 취약해진다.
 
 ## 3-5 QAM
 
-- ASK와 PSK를 합친 쪽
-- 진폭도 바꾸고 위상도 바꿔서 한 번의 신호 상태에 여러 비트를 담음
-- 예를 들어 단순한 ASK/FSK/PSK는 보통 한 symbol에 1비트만 담는다고 보면 되는데, QAM은 한 symbol에 2비트, 4비트, 6비트 같은 식으로 더 많이 담을 수 있다. 그래서 대역폭 효율이 좋아짐. 대신 구분해야 하는 신호 상태가 많아지니까 노이즈에는 더 예민해진다
+- [ASK](glossary:ask)와 [PSK](glossary:psk)를 합친 쪽
+- [Amplitude](glossary:amplitude)도 바꾸고 [phase](glossary:phase)도 바꿔서 한 번의 신호 상태에 여러 비트를 담음
+- 예를 들어 단순한 [ASK](glossary:ask)/[FSK](glossary:fsk)/[PSK](glossary:psk)는 보통 한 [symbol](glossary:symbol)에 1비트만 담는다고 보면 되는데, [QAM](glossary:qam)은 한 [symbol](glossary:symbol)에 2비트, 4비트, 6비트 같은 식으로 더 많이 담을 수 있다. 그래서 [bandwidth](glossary:bandwidth) 효율이 좋아짐. 대신 구분해야 하는 신호 상태가 많아지니까 노이즈에는 더 예민해진다
 
-예를 들어 16-QAM이면 symbol 상태가 16개야.
+예를 들어 16-[QAM](glossary:qam)이면 [symbol](glossary:symbol) 상태가 16개야.
 
-16-QAM:
+16-[QAM](glossary:qam):
 서로 다른 신호 상태 16개
 = 2^4
-= 한 symbol에 4비트 표현 가능
+= 한 [symbol](glossary:symbol)에 4비트 표현 가능
 
-- QAM의 장점
-- 같은 시간에 더 많은 bit를 보낼 수 있어서 bandwidth efficiency가 좋아진다.
+- [QAM](glossary:qam)의 장점
+- 같은 시간에 더 많은 bit를 보낼 수 있어서 [bandwidth](glossary:bandwidth) efficiency가 좋아진다.
 
 - 단점
 - 신호 상태를 많이 만들수록 각각의 상태들이 서로 가까워져 노이즈 발생이 늘어남.
@@ -460,8 +460,8 @@ phase: 0° 180° 0° 0°
 신호 상태 많음:
 점들 사이가 가깝다 → 구분 어려움 → noise에 약함
 
-QAM은 보통 constellation diagram으로 설명한다.
-각 점 하나가 하나의 symbol
+[QAM](glossary:qam)은 보통 [constellation diagram](glossary:constellation-diagram)으로 설명한다.
+각 점 하나가 하나의 [symbol](glossary:symbol)
 
 ```
 16-QAM 예시:
@@ -485,60 +485,60 @@ phase = atan(Q / I)
 
 **연속적인 아날로그 파형을 어떻게 0과 1의 디지털 신호로 바꾸냐**
 
-- 이걸 Digitization이라 한다.
-- 대표방식: PCM, Delta Modulation
+- 이걸 [Digitization](glossary:digitization)이라 한다.
+- 대표방식: [PCM](glossary:pcm), [Delta Modulation](glossary:delta-modulation)
 
 ## 4-1 PCM(Pulse Code Modulation)
 
-PCM은 세 단계
+[PCM](glossary:pcm)은 세 단계
 
-1. Sampling
+1. [Sampling](glossary:sampling)
    - 아날로그 사인파 특정 간격마다 점찍기
-   - Sampling theorem: 아날로그 파형을 충분히 자주 찍으면, 찍은 점들만 가지고도 원래 곡선을 다시 그릴 수 있다
-     - 최고 주파수 = B
-     - 필요 sampling rate > 2B
-   - PAM은 Sampling 직후의 상태, sample을 pulse 높이로 표현한 것
-2. Quantization
+   - [Sampling theorem](glossary:sampling-theorem): 아날로그 파형을 충분히 자주 찍으면, 찍은 점들만 가지고도 원래 곡선을 다시 그릴 수 있다
+     - 최고 [frequency](glossary:frequency) = B
+     - 필요 [sampling](glossary:sampling) rate > 2B
+   - [PAM](glossary:pam)은 [Sampling](glossary:sampling) 직후의 상태, sample을 pulse 높이로 표현한 것
+2. [Quantization](glossary:quantization)
    - 디지털 시스템은 무한히 세밀한 값을 그대로 못 다뤄. 그래서 가까운 정해진 단계(quantized code numbe)로 반올림
-   - Quantization error 반올림 해서 생기는 정보 손실
+   - [Quantization error](glossary:quantization-error) 반올림 해서 생기는 정보 손실
    - level을 많이 두면 오차는 준다
    - 하지만 level이 많아지면 각 sample을 표현하는 bit 수도 늘어나.
-   - PCM bit rate = sampling rate × sample당 bit 수
+   - [PCM](glossary:pcm) [bit rate](glossary:bit-rate) = [sampling](glossary:sampling) rate × sample당 bit 수
    - ex:
    - 8000 samples/sec × 8 bits/sample
    - = 64000 bits/sec
-   - = 64 kbps
+   - = 64 [kbps](glossary:bit-rate)
 
-3. Encoding
-   - Quantization된 숫자를 binary code로 바꾸는 거
+3. [Encoding](glossary:line-coding)
+   - [Quantization](glossary:quantization)된 숫자를 binary code로 바꾸는 거
    - 1 → 0001
    - - 예: 16 levels = 2^4 → sample당 4bit.
-   - 여기서 중요한 건, PCM의 Encoding은 Manchester나 NRZ 같은 line encoding이랑 다르다는 것.
+   - 여기서 중요한 건, [PCM](glossary:pcm)의 [Encoding](glossary:line-coding)은 [Manchester](glossary:manchester-encoding)나 [NRZ](glossary:nrz) 같은 [line encoding](glossary:line-coding)이랑 다르다는 것.
 
 ### Nonlinear Coding
 
-- Linear quantization은 amplitude 전체 구간을 같은 간격의 level로 나눈다.
-- Nonlinear coding은 amplitude 구간별로 quantization 간격을 다르게 둔다.
-- 작은 amplitude 근처에는 level을 촘촘하게 배치해 작은 신호의 quantization error를 줄인다.
-- 큰 amplitude 쪽은 level 간격을 넓게 둬도 상대적으로 체감 오차가 작다.
+- Linear [quantization](glossary:quantization)은 [amplitude](glossary:amplitude) 전체 구간을 같은 간격의 level로 나눈다.
+- Nonlinear coding은 [amplitude](glossary:amplitude) 구간별로 [quantization](glossary:quantization) 간격을 다르게 둔다.
+- 작은 [amplitude](glossary:amplitude) 근처에는 level을 촘촘하게 배치해 작은 신호의 [quantization error](glossary:quantization-error)를 줄인다.
+- 큰 [amplitude](glossary:amplitude) 쪽은 level 간격을 넓게 둬도 상대적으로 체감 오차가 작다.
 - 음성 신호처럼 작은 신호 품질이 중요한 경우에 유리하다.
-- 관련 개념으로 companding이 있다.
+- 관련 개념으로 [companding](glossary:companding)이 있다.
 
 ## 4-2 DM(Delta Modulation)
 
-- Delta Modulation은 analog signal을 계단형 staircase function으로 근사하는 방식이다.
+- [Delta Modulation](glossary:delta-modulation)은 analog signal을 계단형 staircase function으로 근사하는 방식이다.
 - sample 값 자체를 저장하지 않고, 이전 근사값보다 올라갈지 내려갈지만 저장한다.
 - 올라가면 1, 내려가면 0으로 표현한다.
-- 각 sampling interval마다 1bit만 생성하므로 PCM보다 구조가 단순하다.
-- 단점은 신호가 급격히 변하면 계단이 따라가지 못하는 slope overload distortion이 생긴다는 점이다. -> ADM으로 완화 가능
-- 신호가 거의 평평할 때도 계단이 위아래로 흔들리면서 granular noise가 생길 수 있다.
+- 각 [sampling](glossary:sampling) interval마다 1bit만 생성하므로 [PCM](glossary:pcm)보다 구조가 단순하다.
+- 단점은 신호가 급격히 변하면 계단이 따라가지 못하는 [slope overload distortion](glossary:slope-overload-distortion)이 생긴다는 점이다. -> [ADM](glossary:adm)으로 완화 가능
+- 신호가 거의 평평할 때도 계단이 위아래로 흔들리면서 [granular noise](glossary:granular-noise)가 생길 수 있다.
 
 ### 추가자료 ADM(Advanced Delta Modulation)
 
-- slope overload distortion 완화
-- DM은 step size가 고정되어 있다.
-- ADM은 변화 방향에 따라 step size를 바꾼다.
+- [slope overload distortion](glossary:slope-overload-distortion) 완화
+- [DM](glossary:delta-modulation)은 step size가 고정되어 있다.
+- [ADM](glossary:adm)은 변화 방향에 따라 step size를 바꾼다.
 - 같은 방향이 연속되면 신호가 급하게 변한다고 보고 step size를 키운다.
 - 방향이 바뀌면 신호 변화가 완만하거나 꺾였다고 보고 step size를 줄인다.
 - p = 3/2, q = 2/3 이므로 step size는 커졌다가 줄면 원래 크기로 돌아올 수 있다.
-- ADM은 DM보다 원래 데이터와의 오차를 줄일 수 있다.
+- [ADM](glossary:adm)은 [DM](glossary:delta-modulation)보다 원래 데이터와의 오차를 줄일 수 있다.

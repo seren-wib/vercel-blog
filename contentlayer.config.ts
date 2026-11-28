@@ -8,6 +8,7 @@ import { fromHtmlIsomorphic } from 'hast-util-from-html-isomorphic'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import { remarkAlert } from 'remark-github-blockquote-alert'
+import { remarkGlossaryLinks } from './plugins/remark-glossary-links'
 import {
   remarkExtractFrontmatter,
   remarkCodeTitles,
@@ -194,6 +195,8 @@ export const Blog = defineDocumentType(() => ({
     layout: { type: 'string' },
     bibliography: { type: 'string' },
     canonicalUrl: { type: 'string' },
+    // 1 beginner, 2 intermediate, 3 advanced; non-course posts only
+    level: { type: 'number' },
   },
   computedFields: {
     ...computedFields,
@@ -286,6 +289,7 @@ export default makeSource({
       remarkMath,
       remarkImgToJsx,
       remarkAlert,
+      remarkGlossaryLinks,
     ],
     rehypePlugins: [
       rehypeSlug,

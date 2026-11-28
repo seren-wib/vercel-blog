@@ -2,11 +2,20 @@
 title: 'MySQL Cheatsheet (macOS)'
 date: '2026-10-09'
 tags: ['SQL']
-summary: 'MySQL installation and service management, connecting, DBs/tables, CRUD, backups, user privileges, password reset'
+summary: 'Commands for MySQL from install to connecting, CRUD, backups, privileges and password reset'
+level: 1
 draft: false
 ---
 
+## 0. Introduction
+
 > For personal reference. Expanded from the original: `3-1/오픈소스 웹소프트웨어/mysql-test/mysql-setup.md`.
+
+I collected the commands I look up when using [MySQL](glossary:mysql), from installation to password reset, on one page.
+
+In restaurant terms, the [MySQL](glossary:mysql) server is a stockroom, and [CRUD](glossary:crud) is how you ask the keeper to look up, add, change and remove stock. The key to the stockroom is the [Privilege](glossary:privilege) given to a user, and a full copy of the stock ledger is a [Database dump](glossary:database-dump).
+
+The page runs through installation and service management, connecting, databases and tables, [CRUD](glossary:crud), running files and [backups](glossary:backup), users and [privileges](glossary:privilege), cautions, password reset and troubleshooting.
 
 ---
 
@@ -119,7 +128,7 @@ DROP USER 'app'@'localhost';
 
 ## 7. Cautions
 
-- The `root` password is **global to the PC**: it affects every project using the same MySQL.
+- The `root` password is **global to the PC**: it affects every project using the same [MySQL](glossary:mysql).
 - After changing the password, each project's `.env` / DB config file must be updated too.
 - `UPDATE` / `DELETE` **apply to every row if you forget `WHERE`**. Make a habit of checking the targets with `SELECT` before running them.
 - `DROP` / `TRUNCATE` are hard to undo. Back up first.
@@ -156,7 +165,7 @@ FLUSH PRIVILEGES;
 exit
 ```
 
-> Default password policy: requires a combination of uppercase + lowercase + digits + special characters.
+> Default [password policy](glossary:password-policy): requires a combination of uppercase + lowercase + digits + special characters.
 > Lowering it with `validate_password.policy = LOW` allows simple passwords too.
 
 ### 4) Clean up and restart
@@ -187,9 +196,15 @@ lsof -i :3306
 brew services list
 ```
 
-| Symptom                         | Cause/Fix                                                |
-| ------------------------------- | -------------------------------------------------------- |
-| `Access denied for user 'root'` | Wrong password → reset as in section 8                   |
-| `Can't connect ... socket`      | Server not running → `brew services start mysql`         |
-| Garbled Korean text (`???`)     | Set the DB/table charset to `utf8mb4`                    |
-| `Unknown database`              | Check the name with `SHOW DATABASES;`, `CREATE DATABASE` |
+| Symptom                         | Cause/Fix                                                       |
+| ------------------------------- | --------------------------------------------------------------- |
+| `Access denied for user 'root'` | Wrong password → reset as in section 8                          |
+| `Can't connect ... socket`      | Server not running → `brew services start mysql`                |
+| Garbled Korean text (`???`)     | Set the DB/table [charset](glossary:character-set) to `utf8mb4` |
+| `Unknown database`              | Check the name with `SHOW DATABASES;`, `CREATE DATABASE`        |
+
+---
+
+## 10. Reflection
+
+Without `WHERE`, `UPDATE` and `DELETE` apply to every row, so check the targets with `SELECT` before running them.

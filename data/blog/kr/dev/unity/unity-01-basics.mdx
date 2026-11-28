@@ -1,35 +1,21 @@
 ---
-title: 'Unity 기본 구조 정리'
+title: 'Unity 1. 기본 구조와 Input 오류'
 date: '2026-05-10'
 tags: ['Unity']
 draft: false
-summary: 'Scene, GameObject, Component 중심의 Unity 기본 구조 개요'
+summary: 'Scene, GameObject, Component 구조와 Input System 오류 해결'
+level: 1
 ---
 
-- [Unity 기본 구조 정리](#unity-기본-구조-정리)
-  - [1. 프로젝트 기본 폴더 구조](#1-프로젝트-기본-폴더-구조)
-    - [Scenes](#scenes)
-    - [Scripts](#scripts)
-    - [Sprites](#sprites)
-    - [Prefabs](#prefabs)
-  - [2. Project - Scene - GameObject 구조](#2-project---scene---gameobject-구조)
-    - [Project](#project)
-    - [Scene](#scene)
-    - [GameObject](#gameobject)
-  - [3. GameObject와 Component](#3-gameobject와-component)
-  - [4. C# Script는 어떻게 붙는가](#4-c-script는-어떻게-붙는가)
-  - [5. Unity Editor와 VS Code의 역할](#5-unity-editor와-vs-code의-역할)
-  - [6. 배경과 구조물은 어떻게 만드는가](#6-배경과-구조물은-어떻게-만드는가)
-  - [7. 전체 정리](#7-전체-정리)
+## 0. 들어가며
 
-# Unity 기본 구조 정리
+[Unity](glossary:unity)를 처음 열면 폴더, 화면, 코드가 어디서 만나는지 보이지 않아서 기본 구조부터 정리했다. 정리하다가 [Input System](glossary:input-system) 설정 때문에 이동 코드가 막혀서 그 해결도 같이 적었다.
 
-Unity는 코드만으로 게임을 만드는 방식이 아니라,
-**Scene 안에 GameObject를 배치하고, GameObject에 Component를 붙여 기능을 만드는 방식**으로 동작한다.
+식당으로 비유하면 영업 중인 홀 하나가 한 번에 열리는 공간이고, 홀 안의 자리 하나하나가 손님이든 직원이든 존재하는 대상이다. 각 자리에 역할을 붙여서 일을 시키고, 자주 쓰는 자리 구성은 카드로 저장해 둔다. 역할을 시키는 지시서는 따로 쓴다. 홀은 [Scene](glossary:scene), 자리는 [GameObject](glossary:gameobject), 역할은 [Component](glossary:component), 저장해 둔 카드는 [Prefab](glossary:prefab), 지시서는 [C#](glossary:c) Script다. 이 글에서는 폴더 구조, [Scene](glossary:scene)과 [GameObject](glossary:gameobject), [Component](glossary:component)와 Script, 배경 만드는 법을 정리하고 Input 오류를 고친다.
 
-## 1. 프로젝트 기본 폴더 구조
+## 1. 프로젝트 폴더 구조
 
-Unity 프로젝트에서 주로 사용하는 폴더는 `Assets` 안에 있다.
+[Unity](glossary:unity) 프로젝트에서 직접 다루는 폴더는 `Assets` 안에 있다.
 
 ```
 Assets/
@@ -39,248 +25,48 @@ Assets/
 └─ Prefabs/
 ```
 
-### Scenes
+- `Scenes`: [Scene](glossary:scene) 파일. `.unity` 하나가 [Scene](glossary:scene) 하나다.
+- `Scripts`: [C#](glossary:c) 코드 파일. 파일만으로는 실행되지 않고, [Unity Editor](glossary:unity-editor)에서 [GameObject](glossary:gameobject)에 [Component](glossary:component)로 붙여야 돈다.
+- `Sprites`: 2D 이미지 [Sprite](glossary:sprite). 이미지일 뿐이라 움직임, 충돌, 체력 같은 기능은 없다. 화면에 보이려면 [GameObject](glossary:gameobject)에 [SpriteRenderer](glossary:spriterenderer)가 필요하다.
+- `Prefabs`: [GameObject](glossary:gameobject) 구성을 재사용 가능한 원본으로 저장한 파일. 오브젝트를 `Prefabs` 폴더로 드래그하면 만들어진다.
 
-`Scene`은 게임 전체가 아니라, 게임 안에서 한 번에 불러오는 **오브젝트 묶음**이다.
+[Prefab](glossary:prefab)은 Script와 이미지를 하나로 합치지 않는다. 붙어 있는 [Component](glossary:component) 목록, 각 설정값, 참조하는 [Asset](glossary:asset)(`player.png`, `PlayerMove.cs`)을 저장한다.
 
-예를 들어 게임이 커지면 다음처럼 씬을 나눌 수 있다.
+## 2. Project, Scene, GameObject
 
-```
-Assets/Scenes/
-├─ MainMenu.unity
-├─ GameScene.unity
-└─ GameOver.unity
-```
+계층은 `Project` > `Scene` > `GameObject` > `Component`다. Project는 게임 전체이고 `Assets/`, `Packages/`, `ProjectSettings/`를 가진다.
 
-각 씬은 자기 안에 필요한 GameObject들을 따로 가진다.
-
-```
-GameScene
-├─ Main Camera
-├─ Player
-├─ Enemy
-└─ UI
-```
-
-즉, `Player` 같은 오브젝트는 독립된 파일로 따로 저장되는 것이 아니라, 현재 씬 파일 안에 저장된다.
-
-```
-Assets/Scenes/SampleScene.unity
-└─ 이 안에 Player 오브젝트 정보가 저장됨
-```
-
-### Scripts
-
-`Scripts` 폴더에는 C# 코드 파일을 저장한다.
-
-```
-Assets/Scripts/
-└─ PlayerMove.cs
-```
-
-스크립트는 GameObject에 붙여서 동작을 만들 때 사용한다.
-
-예를 들어 `PlayerMove.cs`를 `Player` 오브젝트에 붙이면, 그 오브젝트가 코드에 따라 움직인다.
-
-여기서 중요한 점은 스크립트 파일이 혼자 실행되는 것이 아니라,
-Unity Editor에서 GameObject에 Component로 붙어야 실행된다는 것이다.
-
-### Sprites
-
-`Sprite`는 2D 오브젝트에 붙이는 이미지 리소스다.
-
-예를 들어 플레이어 이미지가 있다면 다음처럼 저장할 수 있다.
-
-```
-Assets/Sprites/
-└─ player.png
-```
-
-Sprite 자체는 단순한 이미지일 뿐이다.
-움직임, 충돌, 체력 같은 기능은 없다.
-
-Sprite를 화면에 보이게 하려면 GameObject에 `SpriteRenderer` 컴포넌트가 필요하다.
-
-```
-Player
-├─ Transform
-└─ SpriteRenderer
-   └─ player.png를 화면에 표시
-```
-
-### Prefabs
-
-`Prefab`은 GameObject의 구성을 재사용 가능한 원본 파일로 저장한 것이다.
-
-예를 들어 `Player` 오브젝트가 다음과 같이 구성되어 있다고 하자.
-
-```
-Player
-├─ Transform
-├─ SpriteRenderer
-│  └─ player.png
-├─ Rigidbody2D
-├─ BoxCollider2D
-└─ PlayerMove.cs
-```
-
-이 오브젝트를 `Prefabs` 폴더로 드래그하면 `Player.prefab` 파일이 만들어진다.
-
-```
-Assets/Prefabs/
-└─ Player.prefab
-```
-
-Prefab은 스크립트나 이미지를 실제로 하나로 합치는 것이 아니다.
-정확히는 **어떤 컴포넌트가 붙어 있는지, 어떤 Sprite와 Script를 참조하는지, 각 값이 무엇인지**를 저장한다.
-
-```
-Player.prefab
-├─ GameObject 이름
-├─ 붙어 있는 Component 목록
-├─ Component의 설정값
-└─ 참조하는 에셋
-   ├─ player.png
-   └─ PlayerMove.cs
-```
-
-즉, Prefab은 "완성된 오브젝트 구성 정보"를 저장한 재사용 원본이다.
-
-## 2. Project - Scene - GameObject 구조
-
-Unity 구조는 다음처럼 이해할 수 있다.
-
-```
-Project
-└─ Scene
-   └─ GameObject
-      └─ Component
-```
-
-### Project
-
-`Project`는 게임 전체를 의미한다.
-
-```
-First2DGame/
-├─ Assets/
-├─ Packages/
-└─ ProjectSettings/
-```
-
-프로젝트 안에는 씬, 스크립트, 이미지, 사운드, 설정 파일 등이 들어간다.
-
-### Scene
-
-`Scene`은 게임 안에서 한 번에 불러오는 오브젝트 묶음이다.
-
-예를 들어 메뉴 화면, 실제 게임 화면, 게임오버 화면을 각각 다른 씬으로 나눌 수 있다.
-
-```
-Project
-├─ MainMenu Scene
-├─ Game Scene
-└─ GameOver Scene
-```
-
-단, 작은 게임은 씬 하나만으로도 만들 수 있다.
-
-처음에는 `SampleScene` 하나 안에 Player, Enemy, UI 등을 모두 넣고 시작해도 된다.
+[Scene](glossary:scene)은 한 번에 불러오는 오브젝트 묶음이다. 화면 이미지가 아니라 "어떤 오브젝트가 어디에 어떤 [Component](glossary:component)로 있는지"를 저장한 파일이다. 화면은 [Scene](glossary:scene) 안의 [Camera](glossary:camera)가 찍어서 [Game View](glossary:game-view)에 보여준다. 작은 게임은 `SampleScene` 하나에 전부 넣어도 되고, 커지면 `MainMenu`, `GameScene`, `GameOver`처럼 나눈다.
 
 ```
 SampleScene
 ├─ Main Camera
 ├─ Player
 ├─ Enemy
-├─ Wall
 └─ UI
 ```
 
-씬은 화면 이미지 자체가 아니다.
-씬은 "어떤 오브젝트들이 존재하고, 어디에 있고, 어떤 컴포넌트를 갖는지"를 저장하는 파일이다.
+`Player` 같은 오브젝트는 독립 파일이 아니라 [Scene](glossary:scene) 파일(`SampleScene.unity`) 안에 저장된다. 그래서 [VS Code](glossary:vs-code)에는 `Player.cs`가 없고 `PlayerMove.cs`만 코드 파일로 보인다.
 
-화면에 실제로 보이는 결과는 Scene 안의 `Camera`가 찍어서 보여준다.
+[GameObject](glossary:gameobject)는 빈 껍데기이고 기능은 [Component](glossary:component)가 만든다. `Player`라는 이름은 필수가 아니라서 `Hero`로 바꿔도 되고, 중요한 건 어떤 [Component](glossary:component)가 붙어 있는지다.
 
-```
-Scene
-├─ Player
-├─ Enemy
-└─ Camera
-   └─ Game View에 화면을 보여줌
-```
+## 3. Component 조합
 
-### GameObject
+오브젝트는 [Component](glossary:component)의 조합이다. `Player`는 이렇게 구성한다.
 
-`GameObject`는 씬 안에 존재하는 객체다.
+| [Component](glossary:component)                                    | 역할                                                                     |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| [Transform](glossary:transform)                                    | 위치, 회전, 크기. 모든 [GameObject](glossary:gameobject)에 기본으로 있다 |
+| @@spriterenderer@@[Sprite](glossary:sprite)Renderer@@/@@           | 2D 이미지를 화면에 표시                                                  |
+| [Rigidbody2D](glossary:rigidbody2d)                                | 2D [physics engine](glossary:2d-physics-engine)의 영향을 받게 함         |
+| Box[Collider](glossary:collider)2D ([Collider](glossary:collider)) | 충돌 범위                                                                |
+| PlayerMove.cs                                                      | 직접 쓴 이동 코드                                                        |
 
-예를 들면 다음과 같다.
+기능을 만드는 순서는 늘 같다. [GameObject](glossary:gameobject) 만들기, [Component](glossary:component) 붙이고 값 설정, [C#](glossary:c) Script 쓰기, Script를 [GameObject](glossary:gameobject)에 붙이기, 실행해서 확인.
 
-```
-Player
-Enemy
-Bullet
-Wall
-Camera
-UI
-```
+## 4. Script가 붙는 방식
 
-GameObject는 빈 껍데기에 가깝고, 실제 기능은 Component를 붙여서 만든다.
-
-예를 들어 Player는 단순히 이름만 있는 객체가 아니라, 여러 Component가 붙은 객체다.
-
-```
-Player
-├─ Transform
-├─ SpriteRenderer
-└─ PlayerMove.cs
-```
-
-여기서 `Player`라는 이름은 필수가 아니다.
-`Hero`, `Character`, `MyBox` 같은 이름으로 바꿔도 된다.
-
-중요한 것은 이름이 아니라, 어떤 Component가 붙어 있는지다.
-
-## 3. GameObject와 Component
-
-Unity에서 오브젝트는 Component들의 조합으로 만들어진다.
-
-예를 들어 `Player`는 다음처럼 구성할 수 있다.
-
-```
-Player
-├─ Transform
-├─ SpriteRenderer
-├─ Rigidbody2D
-├─ BoxCollider2D
-└─ PlayerMove.cs
-```
-
-각 Component의 역할은 다음과 같다.
-
-| Component      | 역할                                                   |
-| -------------- | ------------------------------------------------------ |
-| Transform      | 위치, 회전, 크기 정보. 모든 GameObject에 기본으로 존재 |
-| SpriteRenderer | 2D 이미지를 화면에 표시                                |
-| Rigidbody2D    | 2D 물리 엔진의 영향을 받게 함                          |
-| BoxCollider2D  | 충돌 범위 설정                                         |
-| PlayerMove.cs  | 직접 작성한 이동 코드                                  |
-
-즉, Unity에서 기능을 만든다는 것은 보통 다음 과정을 반복하는 것이다.
-
-```
-GameObject 만들기
-→ 필요한 Component 붙이기
-→ Component 값 설정하기
-→ C# Script 작성하기
-→ Script를 GameObject에 붙이기
-→ 실행해서 확인하기
-```
-
-## 4. C# Script는 어떻게 붙는가
-
-`PlayerMove.cs` 같은 스크립트는 C# 코드 파일이다.
-
-예를 들어 다음 코드는 플레이어 이동을 담당한다.
+[MonoBehaviour](glossary:monobehaviour)를 상속한 클래스가 [GameObject](glossary:gameobject)에 [Component](glossary:component)로 붙는다.
 
 ```csharp
 using UnityEngine;
@@ -300,128 +86,46 @@ public class PlayerMove : MonoBehaviour
 }
 ```
 
-이 코드는 파일로만 존재하면 아무 일도 하지 않는다.
+`Update()`는 매 [Frame](glossary:frame) 불린다. [Time.deltaTime](glossary:delta-time)을 곱해서 Frame 속도와 상관없이 같은 속도로 움직이게 한다. 코드의 `transform`은 이 Script가 붙은 [GameObject](glossary:gameobject)의 [Transform](glossary:transform)이다. 이름으로 오브젝트를 찾는 게 아니라 자기가 붙은 [GameObject](glossary:gameobject)를 기준으로 동작하므로, 같은 Script를 Enemy에 붙이면 Enemy가 움직인다.
 
-Unity Editor에서 `Player` GameObject에 `PlayerMove.cs`를 Component로 붙여야 실행된다.
+## 5. Unity Editor와 VS Code 역할
 
-```
-Player
-├─ Transform
-├─ SpriteRenderer
-└─ PlayerMove.cs
-```
+@@unity-editor@@[Unity](glossary:unity) Editor@@/@@는 [Scene](glossary:scene) 편집, [GameObject](glossary:gameobject) 생성, [Component](glossary:component) 추가, [Sprite](glossary:sprite)·[Prefab](glossary:prefab)·[Collider](glossary:collider)·[Camera](glossary:camera) 설정, 실행 테스트를 맡는다. [VS Code](glossary:vs-code)는 [C#](glossary:c) Script와 게임 로직 작성을 맡는다.
 
-`PlayerMove.cs`가 Player에 붙어 있으면, 코드 안의 `transform`은 Player의 Transform을 의미한다.
+## 6. 배경과 구조물
 
-즉, 아래 코드는 "이 스크립트가 붙어 있는 GameObject의 위치를 바꿔라"라는 뜻이다.
+모든 걸 [GameObject](glossary:gameobject)로 만들지는 않는다.
 
-```csharp
-transform.position += direction * speed * Time.deltaTime;
-```
+| 종류                         | 방법                                                     |
+| ---------------------------- | -------------------------------------------------------- |
+| 움직이고 행동하는 것         | [GameObject](glossary:gameobject) + Script               |
+| 반복 배치되는 바닥, 벽, 배경 | [Tilemap](glossary:tilemap)                              |
+| 이미지로만 보이는 큰 배경    | @@spriterenderer@@[Sprite](glossary:sprite)Renderer@@/@@ |
 
-그래서 같은 스크립트를 Enemy에 붙이면 Enemy가 움직이고, Player에 붙이면 Player가 움직인다.
+바닥 타일 1000개를 [GameObject](glossary:gameobject) 1000개로 만들면 낭비라서, `Grid` 아래 `Ground Tilemap`, `Wall Tilemap`을 두고 [Tilemap](glossary:tilemap) 하나가 타일 데이터를 관리하게 한다. 벽 500개면 `Wall_001`~`Wall_500` [GameObject](glossary:gameobject) 500개 대신 [Tilemap](glossary:tilemap) [GameObject](glossary:gameobject) 하나다.
 
-코드는 특정 이름의 객체를 자동으로 찾는 것이 아니라,
-**자기 자신이 붙어 있는 GameObject를 기준으로 동작한다.**
+## 7. Input System 오류 해결
 
-## 5. Unity Editor와 VS Code의 역할
+4번 코드를 실행하자 `UnityEngine.Input`을 읽는 줄에서 아래 오류가 났다.
 
-Unity Editor와 VS Code는 역할이 다르다.
-
-| Unity Editor                          | VS Code        |
-| ------------------------------------- | -------------- |
-| Scene 편집                            | C# Script 작성 |
-| GameObject 생성                       | 게임 로직 작성 |
-| Component 추가                        |                |
-| Sprite, Prefab, Collider, Camera 설정 |                |
-| 게임 실행 테스트                      |                |
-
-예를 들어 `Player` 오브젝트 자체는 VS Code에서 `Player.cs` 파일로 보이지 않는다.
-왜냐하면 `Player`는 `SampleScene.unity` 안에 저장된 GameObject 데이터이기 때문이다.
-
-반면 `PlayerMove.cs`는 실제 C# 코드 파일이므로 VS Code에서 볼 수 있다.
-
-```
-Assets/
-├─ Scenes/
-│  └─ SampleScene.unity   ← Player 오브젝트 정보 저장
-└─ Scripts/
-   └─ PlayerMove.cs       ← Player의 행동 코드
+```text
+You are trying to read Input using the UnityEngine.Input class, but you have switched active Input handling to Input System package in Player Settings.
 ```
 
-## 6. 배경과 구조물은 어떻게 만드는가
+원인은 프로젝트가 [Input System](glossary:input-system) 패키지만 쓰도록 설정돼 있어서, 옛 [Input Manager](glossary:input-manager) 방식인 `UnityEngine.Input`이 꺼져 있었던 것이다. [Player Settings](glossary:player-settings)에서 Active Input Handling을 `Both`로 바꾸면 둘 다 쓸 수 있다.
 
-모든 것을 독립 GameObject로 만들 필요는 없다.
+1. `Edit` > `Project Settings` > `Player`를 연다.
 
-| 종류                         | 방법                |
-| ---------------------------- | ------------------- |
-| 움직이고 행동하는 것         | GameObject + Script |
-| 반복 배치되는 바닥, 벽, 배경 | Tilemap             |
-| 이미지로만 보이는 큰 배경    | SpriteRenderer      |
+   ![Player Settings 화면](/static/images/unity-err/player.png)
 
-예를 들어 2D 맵은 보통 Tilemap으로 만든다.
+2. `Other Settings`로 이동한다.
 
-```
-SampleScene
-├─ Main Camera
-├─ Grid
-│  ├─ Ground Tilemap
-│  └─ Wall Tilemap
-├─ Player
-└─ EnemySpawner
-```
+   ![Other Settings 화면](/static/images/unity-err/other-setting.png)
 
-바닥 타일 1000개를 각각 GameObject로 만들면 낭비가 심하다.
-그래서 Tilemap 하나가 많은 타일 데이터를 관리하게 만든다.
+3. `Active Input Handling` 값을 `Both`로 바꾼다.
 
-**나쁜 방식**
+   ![Active Input Handling 설정 화면](/static/images/unity-err/active-input.png)
 
-```
-Wall_001 GameObject
-Wall_002 GameObject
-Wall_003 GameObject
-...
-Wall_500 GameObject
-```
+## 8. 느낀 점
 
-**좋은 방식**
-
-```
-Wall Tilemap GameObject
-└─ wall tile 500개 데이터
-```
-
-## 7. 전체 정리
-
-Unity의 핵심 구조는 다음과 같다.
-
-| 개념       | 설명                                 |
-| ---------- | ------------------------------------ |
-| Project    | 게임 전체                            |
-| Scene      | 한 번에 불러오는 오브젝트 묶음       |
-| GameObject | 씬 안에 있는 객체                    |
-| Component  | GameObject에 붙는 기능               |
-| Script     | 직접 만든 Component                  |
-| Sprite     | 2D 이미지 리소스                     |
-| Prefab     | GameObject 구성을 저장한 재사용 원본 |
-
-처음에는 다음 흐름만 이해하면 된다.
-
-1. Scene 안에 Player GameObject를 만든다.
-2. Player에 SpriteRenderer를 붙여 화면에 보이게 한다.
-3. PlayerMove.cs를 작성한다.
-4. Player에 PlayerMove.cs를 Component로 붙인다.
-5. 실행하면 Unity가 매 프레임 Update()를 호출한다.
-6. 코드가 Player의 transform.position을 바꾼다.
-7. Unity가 바뀐 위치를 화면에 다시 그린다.
-
-결론적으로 Unity 개발은 다음 반복이다.
-
-```
-GameObject 만들기
-→ Component 붙이기
-→ Script 작성하기
-→ GameObject에 Script 붙이기
-→ Prefab으로 재사용하기
-→ Scene 안에서 테스트하기
-```
+처음에는 이 반복만 이해하면 된다. [GameObject](glossary:gameobject) 만들기, [Component](glossary:component) 붙이기, Script 쓰고 붙이기, [Prefab](glossary:prefab)으로 재사용하기, [Scene](glossary:scene) 안에서 테스트하기.

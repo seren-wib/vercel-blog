@@ -6,14 +6,14 @@ draft: false
 summary: 'Deploying OpenStack with Kolla-Ansible all-in-one (stable/2026.2, aarch64 images, a veth pair as the external interface, enable_haproxy no), creating cirros and mycirros instances from the dashboard, server create·stop·start with the openstack CLI and virsh console in nova_libvirt, a record of the three-level nested deployment inside a Rocky VM failing through a chain of timeouts (healthcheck, ovs-vsctl, keepalived, uwsgi, Docker API), cirros pci=nomsi, glance CORS, building the p67 setup with network namespaces, veth, a bridge, routing, IP forwarding and masquerade, exercises (OpenStack services and their roles, the benefits of containers seen through the Spotify case, the Figure 15.12 setup with netns3 added)'
 ---
 
-This homework covers the labs in chapters 13 to 15 of the textbook. The first half deploys OpenStack on a single node with Kolla-Ansible and creates instances from the dashboard and the command-line tools. The second half builds a container network (the setup on slide p67) by hand with Linux network namespaces. I first installed OpenStack inside a Rocky VM as the slides do, but gave up after running the deployment 8 times over more than 6 hours. That process is written up separately in [section 5](#5-problems-during-the-lab).
+This homework covers the labs in chapters 13 to 15 of the textbook. The first half deploys [OpenStack](glossary:openstack) on a single node with [Kolla-Ansible](glossary:kolla-ansible) and creates [instances](glossary:instance) from the [dashboard](glossary:horizon) and the command-line tools. The second half builds a [container](glossary:container) network (the setup on slide p67) by hand with Linux network namespaces. I first installed [OpenStack](glossary:openstack) inside a [Rocky](glossary:rocky-linux) [VM](glossary:vm) as the slides do, but gave up after running the deployment 8 times over more than 6 hours. That process is written up separately in [section 5](#5-problems-during-the-lab).
 
 # 0. Lab Environment
 
-I used the same Ubuntu host as since HW2 (Ubuntu 24.04 aarch64 on UTM on an Apple M3 Mac, 9.7GiB of memory, 6 vCPUs). Because the host is aarch64, I used aarch64 builds of every image, and I noted under each figure where commands differ from the slides.
+I used the same [Ubuntu](glossary:ubuntu) host as since HW2 ([Ubuntu](glossary:ubuntu) 24.04 [aarch64](glossary:arm64) on [UTM](glossary:utm) on an Apple M3 Mac, 9.7GiB of memory, 6 [vCPUs](glossary:vcpu)). Because the host is [aarch64](glossary:arm64), I used [aarch64](glossary:arm64) builds of every image, and I noted under each figure where commands differ from the slides.
 
-- **OpenStack**: Installed directly on the Ubuntu host instead of adding one more VM level. Installing it inside a Rocky VM makes a three-level nesting of Mac → UTM → Ubuntu → KVM → Rocky, and the deployment never finished because of timeouts.
-- **Linux containers**: Done in a Rocky Linux 10.2 aarch64 VM, `lxc.cloud.org`, created on the host's KVM.
+- **[OpenStack](glossary:openstack)**: Installed directly on the [Ubuntu](glossary:ubuntu) host instead of adding one more [VM](glossary:vm) level. Installing it inside a [Rocky](glossary:rocky-linux) [VM](glossary:vm) makes a three-level [nesting](glossary:nested-virtualization) of Mac → [UTM](glossary:utm) → [Ubuntu](glossary:ubuntu) → [KVM](glossary:kvm) → [Rocky](glossary:rocky-linux), and the deployment never finished because of [timeouts](glossary:timeout).
+- **Linux [containers](glossary:container)**: Done in a [Rocky Linux](glossary:rocky-linux) 10.2 [aarch64](glossary:arm64) [VM](glossary:vm), `lxc.cloud.org`, created on the host's [KVM](glossary:kvm).
 
 ```text
 Ubuntu host yoosung-vm (enp0s1 192.168.64.4 = internal VIP, dashboard http://192.168.64.4)
@@ -23,23 +23,23 @@ Ubuntu host yoosung-vm (enp0s1 192.168.64.4 = internal VIP, dashboard http://192
 └─ KVM ─ lxc.cloud.org (Rocky 10.2)  ← network namespace lab
 ```
 
-| Slides                                                    | This environment                                                                             |
-| --------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| x86 PC → VirtualBox → Rocky Linux (2 levels)              | M3 Mac → UTM → installed directly on the Ubuntu host (2 levels)                              |
-| 2 NICs enp0s3·enp0s8                                      | One NIC enp0s1 + veth pair veth0↔veth1 for the external network                              |
-| firewalld·SELinux·chronyd settings                        | Host libvirt stopped, ufw·timedatectl checked                                                |
-| `dnf install`                                             | `apt-get install` (Ubuntu names of the same packages)                                        |
-| kolla-ansible `stable/2026.1`, rocky images               | `stable/2026.2`, ubuntu images + tag suffix `-aarch64`                                       |
-| Separate internal VIP address + haproxy                   | `enable_haproxy: "no"`, VIP = host IP                                                        |
-| cirros-0.5.1-x86_64                                       | cirros-0.5.1-aarch64, with a copy that has `pci=nomsi` in the kernel arguments for instances |
-| Dashboard VNC console                                     | "Log" tab (aarch64 cirros outputs to serial)                                                 |
-| External interface for the container lab enp0s3 10.0.2.15 | enp1s0 192.168.122.16 (libvirt NAT)                                                          |
+| Slides                                                                             | This environment                                                                                                  |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| x86 PC → VirtualBox → [Rocky Linux](glossary:rocky-linux) (2 levels)               | M3 Mac → [UTM](glossary:utm) → installed directly on the [Ubuntu](glossary:ubuntu) host (2 levels)                |
+| 2 NICs enp0s3·enp0s8                                                               | One NIC enp0s1 + [veth](glossary:veth) pair veth0↔veth1 for the external network                                  |
+| [firewalld](glossary:firewalld)·[SELinux](glossary:selinux)·chronyd settings       | Host [libvirt](glossary:libvirt) stopped, [ufw](glossary:ufw)·timedatectl checked                                 |
+| `dnf install`                                                                      | `apt-get install` ([Ubuntu](glossary:ubuntu) names of the same packages)                                          |
+| kolla-ansible `stable/2026.1`, rocky images                                        | `stable/2026.2`, ubuntu images + tag suffix `-aarch64`                                                            |
+| Separate internal [VIP](glossary:virtual-ip) address + [haproxy](glossary:haproxy) | `enable_haproxy: "no"`, [VIP](glossary:virtual-ip) = host IP                                                      |
+| cirros-0.5.1-x86_64                                                                | cirros-0.5.1-aarch64, with a copy that has `pci=nomsi` in the kernel arguments for [instances](glossary:instance) |
+| [Dashboard](glossary:horizon) [VNC](glossary:vnc) console                          | "Log" tab ([aarch64](glossary:arm64) [cirros](glossary:cirros) outputs to [serial](glossary:serial-console))      |
+| External interface for the [container](glossary:container) lab enp0s3 10.0.2.15    | enp1s0 192.168.122.16 ([libvirt](glossary:libvirt) [NAT](glossary:nat))                                           |
 
 # 1. Preparing the OpenStack Installation
 
 ## Interface for the External Network
 
-The slides hand enp0s8, one of two NICs, entirely over to the neutron external network. This host has only one NIC, enp0s1, and handing it over would cut off access to the host, so I created a veth pair with NetworkManager and used one end (veth1) as the external interface.
+The slides hand enp0s8, one of two NICs, entirely over to the [neutron](glossary:neutron) external network. This host has only one NIC, enp0s1, and handing it over would cut off access to the host, so I created a [veth](glossary:veth) pair with [NetworkManager](glossary:networkmanager) and used one end (veth1) as the external interface.
 
 ```bash
 ip -br addr | grep -v vnet
@@ -50,11 +50,11 @@ ip -br link show type veth
 
 ![Creating the veth pair](/static/images/cloud-computing-hw7-openstack-linux-container/01.webp)
 
-_Host interfaces and creating the veth pair for the external network. veth1 takes the place of enp0s8 in the slides_
+_Host interfaces and creating the [veth](glossary:veth) pair for the external network. veth1 takes the place of enp0s8 in the slides_
 
 ## Preparing the Host
 
-Kolla runs libvirt in the `nova_libvirt` container, and if the libvirt installed on the host in HW6 is still running, prechecks stops. I turned off every libvirt unit on the host and checked the firewall and time synchronization. Units given as a glob are not disabled, so I listed them one by one.
+[Kolla](glossary:kolla-ansible) runs [libvirt](glossary:libvirt) in the `nova_libvirt` [container](glossary:container), and if the [libvirt](glossary:libvirt) installed on the host in HW6 is still running, prechecks stops. I turned off every [libvirt](glossary:libvirt) unit on the host and checked the firewall and time synchronization. Units given as a glob are not disabled, so I listed them one by one.
 
 ```bash
 sudo systemctl disable --now libvirt-guests.service libvirtd.service virtlockd.service virtlogd.service \
@@ -67,7 +67,7 @@ timedatectl | grep -E 'synchronized|NTP'
 
 ![Preparing the host](/static/images/cloud-computing-hw7-openstack-linux-container/02.webp)
 
-_Stopping the host's libvirt services, confirming the firewall is inactive, checking time synchronization. Corresponds to slides 16–17_
+_Stopping the host's [libvirt](glossary:libvirt) services, confirming the firewall is inactive, checking time synchronization. Corresponds to slides 16–17_
 
 ```bash
 sudo apt-get update
@@ -76,7 +76,7 @@ sudo apt-get install -y git python3-dev python3-venv libffi-dev gcc libssl-dev w
 
 ![Installing dependencies](/static/images/cloud-computing-hw7-openstack-linux-container/03.webp)
 
-_Installing dependency packages. The same packages installed with apt-get instead of dnf as in the slides_
+_Installing dependency packages. The same packages installed with [apt-get](glossary:apt) instead of [dnf](glossary:dnf) as in the slides_
 
 ## The cirros Image and Kolla-Ansible
 
@@ -90,9 +90,9 @@ pip install -U pip
 
 ![cirros and the virtual environment](/static/images/cloud-computing-hw7-openstack-linux-container/04.webp)
 
-_Downloading the cirros image and creating a Python virtual environment. The host is aarch64, so cirros-0.5.1-aarch64-disk.img is used_
+_Downloading the [cirros](glossary:cirros) image and creating a Python [virtual environment](glossary:python-virtual-environment). The host is [aarch64](glossary:arm64), so cirros-0.5.1-aarch64-disk.img is used_
 
-The slides use `stable/2026.1`, but when I looked up the Kolla images on quay.io, the 2026.1 aarch64 tags existed only for Debian and Ubuntu, and Rocky aarch64 was available from 2026.2. So I installed `stable/2026.2`.
+The slides use `stable/2026.1`, but when I looked up the [Kolla](glossary:kolla-ansible) [images](glossary:container-image) on quay.io, the 2026.1 [aarch64](glossary:arm64) tags existed only for Debian and [Ubuntu](glossary:ubuntu), and [Rocky](glossary:rocky-linux) [aarch64](glossary:arm64) was available from 2026.2. So I installed `stable/2026.2`.
 
 ```bash
 pip install git+https://opendev.org/openstack/kolla-ansible@stable/2026.2
@@ -106,13 +106,13 @@ kolla-genpwd
 
 ![Installing Kolla-Ansible](/static/images/cloud-computing-hw7-openstack-linux-container/05.webp)
 
-_Installing Kolla-Ansible and copying the configuration files to /etc/kolla_
+_Installing [Kolla-Ansible](glossary:kolla-ansible) and copying the configuration files to /etc/kolla_
 
 ![install-deps](/static/images/cloud-computing-hw7-openstack-linux-container/06.webp)
 
-_Installing the Ansible Galaxy dependencies with kolla-ansible install-deps_
+_Installing the [Ansible Galaxy](glossary:ansible) dependencies with kolla-ansible install-deps_
 
-`kolla-genpwd` fills `passwords.yml` with the service passwords. The dashboard admin password is the value of `keystone_admin_password`, and I masked the value when printing it.
+`kolla-genpwd` fills `passwords.yml` with the service passwords. The [dashboard](glossary:horizon) admin password is the value of `keystone_admin_password`, and I masked the value when printing it.
 
 ```bash
 grep keystone_admin_password passwords.yml | sed 's/: .*/: ********/'
@@ -126,10 +126,10 @@ _Generating passwords with kolla-genpwd. The admin password value is masked in t
 
 Five values changed compared with the slides.
 
-- `kolla_base_distro: "ubuntu"`: The host is Ubuntu, so I used the Ubuntu builds of the container images too.
+- `kolla_base_distro: "ubuntu"`: The host is [Ubuntu](glossary:ubuntu), so I used the [Ubuntu](glossary:ubuntu) builds of the [container images](glossary:container-image) too.
 - `network_interface: "enp0s1"`, `neutron_external_interface: "veth1"`
-- `enable_haproxy: "no"`, `kolla_internal_vip_address: "192.168.64.4"`: With a single node, I turned off the load balancer (haproxy·keepalived) and set the VIP to the host IP.
-- `openstack_tag_suffix: "-aarch64"`: With the default `""`, it pulls the `2026.2-ubuntu-noble` tag, which has no arm64 manifest.
+- `enable_haproxy: "no"`, `kolla_internal_vip_address: "192.168.64.4"`: With a single node, I turned off the load balancer ([haproxy](glossary:haproxy)·[keepalived](glossary:keepalived)) and set the [VIP](glossary:virtual-ip) to the host IP.
+- `openstack_tag_suffix: "-aarch64"`: With the default `""`, it pulls the `2026.2-ubuntu-noble` tag, which has no [arm64](glossary:arm64) manifest.
 
 ```bash
 sed -i -e 's/^#kolla_base_distro:.*/kolla_base_distro: "ubuntu"/' \
@@ -140,7 +140,7 @@ sed -i -e 's/^#kolla_base_distro:.*/kolla_base_distro: "ubuntu"/' \
 echo 'openstack_tag_suffix: "-aarch64"' >> globals.yml
 ```
 
-To upload images from the dashboard, glance has to allow the dashboard address through CORS.
+To upload images from the [dashboard](glossary:horizon), [glance](glossary:glance) has to allow the [dashboard](glossary:horizon) address through [CORS](glossary:cors).
 
 ```ini:/etc/kolla/config/glance.conf
 [cors]
@@ -150,7 +150,7 @@ allow_headers = Content-Type,X-Auth-Token,X-CSRFToken,X-Image-Meta-Checksum,Cont
 
 ![globals.yml](/static/images/cloud-computing-hw7-openstack-linux-container/08.webp)
 
-_globals.yml settings and the glance CORS setting. `http://localhost:8080` was added after connecting to the dashboard ([Problem 4](#problem-4-dashboard-image-upload-blocked-by-cors))_
+_globals.yml settings and the [glance](glossary:glance) [CORS](glossary:cors) setting. `http://localhost:8080` was added after connecting to the [dashboard](glossary:horizon) ([Problem 4](#problem-4-dashboard-image-upload-blocked-by-cors))_
 
 # 2. Deploying OpenStack
 
@@ -164,11 +164,11 @@ grep -A1 'PLAY RECAP' /root/deploy.log | tail -2
 
 ![bootstrap-servers](/static/images/cloud-computing-hw7-openstack-linux-container/09.webp)
 
-_bootstrap-servers succeeded (failed=0). Host preparation such as installing Docker_
+_bootstrap-servers succeeded (failed=0). Host preparation such as installing [Docker](glossary:docker)_
 
 ![prechecks](/static/images/cloud-computing-hw7-openstack-linux-container/10.webp)
 
-_prechecks succeeded (failed=0). The virtual environment lacked the Docker SDK and dbus-python, so `pip install docker dbus-python` was run first_
+_prechecks succeeded (failed=0). The [virtual environment](glossary:python-virtual-environment) lacked the [Docker](glossary:docker) SDK and dbus-python, so `pip install docker dbus-python` was run first_
 
 The deployment took 13 minutes 22 seconds and finished with ok=375, failed=0. On failure, service passwords can appear in plain text in the output, so I wrote the log to a file and printed only the result summary.
 
@@ -189,13 +189,13 @@ openstack service list
 
 ![post-deploy](/static/images/cloud-computing-hw7-openstack-linux-container/12.webp)
 
-_Installing the OpenStack client, generating clouds.yaml with post-deploy, setting OS_CLOUD=kolla-admin_
+_Installing the [OpenStack](glossary:openstack) client, generating clouds.yaml with post-deploy, setting OS_CLOUD=kolla-admin_
 
 ![service list](/static/images/cloud-computing-hw7-openstack-linux-container/13.webp)
 
 _openstack service list. 7 services registered_
 
-`init-runonce` is an example script that creates the external network, internal network, cirros image, key pair and flavors in one go. I passed the external network range as environment variables.
+`init-runonce` is an example script that creates the external network, internal network, [cirros](glossary:cirros) image, key pair and flavors in one go. I passed the external network range as environment variables.
 
 ```bash
 EXT_NET_CIDR='192.168.56.0/24' EXT_NET_RANGE='start=192.168.56.150,end=192.168.56.199' \
@@ -205,21 +205,21 @@ openstack flavor list
 
 ![init-runonce](/static/images/cloud-computing-hw7-openstack-linux-container/14.webp)
 
-_Creating the external network (public1), internal network (demo-net), cirros image, key pair and flavors with init-runonce_
+_Creating the external network (public1), internal network (demo-net), [cirros](glossary:cirros) image, key pair and flavors with init-runonce_
 
 ![flavor list](/static/images/cloud-computing-hw7-openstack-linux-container/15.webp)
 
-_openstack flavor list_
+_openstack [flavor](glossary:flavor) list_
 
 # 3. Creating Instances from the Dashboard
 
-I connected to the dashboard from a browser on the Mac through an SSH tunnel (`localhost:8080` → `192.168.64.4:80`). The username is admin and the password is `keystone_admin_password` in `passwords.yml`.
+I connected to the [dashboard](glossary:horizon) from a browser on the Mac through an [SSH tunnel](glossary:ssh-tunnel) (`localhost:8080` → `192.168.64.4:80`). The username is admin and the password is `keystone_admin_password` in `passwords.yml`.
 
-The cirros used for instances is not the original but a copy with `pci=nomsi` in the kernel arguments. The original hung at the disk detection stage during boot ([Problem 2](#problem-2-cirros-hangs-at-virtio_blk)).
+The [cirros](glossary:cirros) used for [instances](glossary:instance) is not the original but a copy with `pci=nomsi` in the kernel arguments. The original hung at the disk detection stage during boot ([Problem 2](#problem-2-cirros-hangs-at-virtio_blk)).
 
 ![Login](/static/images/cloud-computing-hw7-openstack-linux-container/16.webp)
 
-_Dashboard login screen_
+_[Dashboard](glossary:horizon) login screen_
 
 ![Overview](/static/images/cloud-computing-hw7-openstack-linux-container/17.webp)
 
@@ -229,19 +229,19 @@ _Overview screen after login_
 
 ![Launching the image](/static/images/cloud-computing-hw7-openstack-linux-container/18.webp)
 
-_"Launch" on the cirros image in the image list_
+_"Launch" on the [cirros](glossary:cirros) image in the image list_
 
 ![Details](/static/images/cloud-computing-hw7-openstack-linux-container/19.webp)
 
-_Entering the instance name stackvm-1 and a description_
+_Entering the [instance](glossary:instance) name stackvm-1 and a description_
 
 ![Source](/static/images/cloud-computing-hw7-openstack-linux-container/20.webp)
 
-_Source: the cirros image is allocated_
+_Source: the [cirros](glossary:cirros) image is allocated_
 
 ![Flavor](/static/images/cloud-computing-hw7-openstack-linux-container/21.webp)
 
-_Flavor: m1.tiny selected_
+_[Flavor](glossary:flavor): m1.tiny selected_
 
 ![Network](/static/images/cloud-computing-hw7-openstack-linux-container/22.webp)
 
@@ -255,7 +255,7 @@ _stackvm-1 created (Active, Running)_
 
 ![Creating an image](/static/images/cloud-computing-hw7-openstack-linux-container/24.webp)
 
-_Create Image: name mycirros, file upload, format QCOW2, shared_
+_Create Image: name mycirros, file upload, format [QCOW2](glossary:qcow2), shared_
 
 ![mycirros](/static/images/cloud-computing-hw7-openstack-linux-container/25.webp)
 
@@ -263,7 +263,7 @@ _mycirros registered (Active)_
 
 ![stackvm-2](/static/images/cloud-computing-hw7-openstack-linux-container/26.webp)
 
-_Creating instance stackvm-2 from mycirros_
+_Creating [instance](glossary:instance) stackvm-2 from mycirros_
 
 ![Source mycirros](/static/images/cloud-computing-hw7-openstack-linux-container/27.webp)
 
@@ -271,7 +271,7 @@ _Source: mycirros_
 
 ![Flavor m1.tiny](/static/images/cloud-computing-hw7-openstack-linux-container/28.webp)
 
-_Flavor: m1.tiny_
+_[Flavor](glossary:flavor): m1.tiny_
 
 ![Network demo-net](/static/images/cloud-computing-hw7-openstack-linux-container/29.webp)
 
@@ -279,11 +279,11 @@ _Network: demo-net_
 
 ![Two instances](/static/images/cloud-computing-hw7-openstack-linux-container/30.webp)
 
-_Two instances running_
+_Two [instances](glossary:instance) running_
 
 ![Console log](/static/images/cloud-computing-hw7-openstack-linux-container/31.webp)
 
-_Console output of stackvm-2. Booted up to the login prompt. aarch64 cirros outputs to serial instead of the display (VGA), so it was checked in the "Log" tab instead of the "Console" tab_
+_Console output of stackvm-2. Booted up to the login prompt. [aarch64](glossary:arm64) [cirros](glossary:cirros) outputs to [serial](glossary:serial-console) instead of the display ([VGA](glossary:vga)), so it was checked in the "Log" tab instead of the "Console" tab_
 
 # 4. Access with the Command-Line Tools
 
@@ -318,13 +318,13 @@ _Creating stackvm-3 with openstack server create (BUILD)_
 
 ![Three instances](/static/images/cloud-computing-hw7-openstack-linux-container/35.webp)
 
-_Three instances ACTIVE_
+_Three [instances](glossary:instance) ACTIVE_
 
 ![stop·start](/static/images/cloud-computing-hw7-openstack-linux-container/36.webp)
 
 _SHUTOFF with server stop, back to ACTIVE with server start_
 
-An instance is ultimately a domain of the libvirt inside the `nova_libvirt` container. Looking with `virsh` inside the container shows three of them, and `virsh console` attaches to the serial console.
+An [instance](glossary:instance) is ultimately a domain of the [libvirt](glossary:libvirt) inside the `nova_libvirt` [container](glossary:container). Looking with `virsh` inside the [container](glossary:container) shows three of them, and `virsh console` attaches to the [serial console](glossary:serial-console).
 
 ```bash
 docker exec nova_libvirt virsh list
@@ -333,59 +333,59 @@ docker exec -it nova_libvirt virsh console instance-00000005
 
 ![virsh list](/static/images/cloud-computing-hw7-openstack-linux-container/37.webp)
 
-_virsh list in the nova_libvirt container. Three instances running as libvirt domains_
+_[virsh](glossary:virsh) list in the nova_libvirt [container](glossary:container). Three [instances](glossary:instance) running as [libvirt](glossary:libvirt) domains_
 
 ![virsh console](/static/images/cloud-computing-hw7-openstack-linux-container/38.webp)
 
-_Connecting to stackvm-1 (instance-00000005) with virsh console, logging in, writing and checking hello.txt_
+_Connecting to stackvm-1 (instance-00000005) with [virsh](glossary:virsh) console, logging in, writing and checking hello.txt_
 
 # 5. Problems During the Lab
 
 ## Problem 1. Deployment Inside the Rocky VM Never Finished
 
-At first I created a Rocky VM (`openstack`, 8GiB, 4 vCPUs) as in the slides and installed all-in-one inside it. The slides have two levels, x86 PC → VirtualBox → Rocky, but in this environment it becomes three levels of nesting: Mac → UTM → Ubuntu → KVM → Rocky. On top of that, Kolla starts dozens of containers.
+At first I created a [Rocky](glossary:rocky-linux) [VM](glossary:vm) (`openstack`, 8GiB, 4 [vCPUs](glossary:vcpu)) as in the slides and installed all-in-one inside it. The slides have two levels, x86 PC → VirtualBox → [Rocky](glossary:rocky-linux), but in this environment it becomes three levels of [nesting](glossary:nested-virtualization): Mac → [UTM](glossary:utm) → [Ubuntu](glossary:ubuntu) → [KVM](glossary:kvm) → [Rocky](glossary:rocky-linux). On top of that, [Kolla](glossary:kolla-ansible) starts dozens of [containers](glossary:container).
 
 bootstrap-servers and prechecks passed. These were the measurements 37 minutes after deploy started.
 
-| Measurement                             | Value                         |
-| --------------------------------------- | ----------------------------- |
-| Rocky load average (4 vCPUs)            | 28–33, I/O wait 0             |
-| Ubuntu host CPU steal                   | 55–59%                        |
-| CPU of the VM process on the Mac        | 285%                          |
-| 50 runs of `/bin/true` (Ubuntu / Rocky) | 0.013 s / 0.908 s (about 70×) |
-| `python3 -c pass` (Rocky)               | 2.9 s                         |
+| Measurement                                                                                    | Value                                 |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------- |
+| [Rocky](glossary:rocky-linux) [load average](glossary:load-average) (4 [vCPUs](glossary:vcpu)) | 28–33, [I/O wait](glossary:io-wait) 0 |
+| [Ubuntu](glossary:ubuntu) host [CPU steal](glossary:cpu-steal)                                 | 55–59%                                |
+| CPU of the [VM](glossary:vm) process on the Mac                                                | 285%                                  |
+| 50 runs of `/bin/true` ([Ubuntu](glossary:ubuntu) / [Rocky](glossary:rocky-linux))             | 0.013 s / 0.908 s (about 70×)         |
+| `python3 -c pass` ([Rocky](glossary:rocky-linux))                                              | 2.9 s                                 |
 
-The bottleneck was neither disk nor network but the cost of going through three layers of virtualization every time a process is created. From then on, Kolla's timeout defaults broke one by one.
+The bottleneck was neither disk nor network but the cost of going through three layers of virtualization every time a process is created. From then on, [Kolla](glossary:kolla-ansible)'s [timeout](glossary:timeout) defaults broke one by one.
 
-| Run | Time        | Result                           | What broke and the fix                                                                                                                                                                     |
-| --- | ----------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | 12:29–13:20 | Stuck at rabbitmq for 25 minutes | The healthcheck `rabbitmq-diagnostics ping`, run every 30 seconds, never finished and 22 piled up → `enable_container_healthchecks: "no"`                                                  |
-| 2   | 13:28–13:55 | Failed (ok=33)                   | Containers created in run 1 kept their healthcheck settings and piled up again, `docker ps` 40 seconds → `kolla-ansible destroy` (3 min 26 s)                                              |
-| 3   | 14:00–14:37 | Failed (ok=204)                  | keystone bootstrap rc=1 after 4 min 59.8 s. The same command run by hand succeeded in 37 seconds                                                                                           |
-| 4   | 14:37–15:43 | Failed (ok=232)                  | `ovs-vsctl -t 5` didn't finish within 5 seconds, SIGALRM → `timeout: 60` on the openvswitch·ovn-controller roles                                                                           |
-| 5   | 15:46–16:25 | Failed (ok=287)                  | nova API 503. The keepalived check (2-second interval, FAULT after 2 failures) didn't finish in time, 49 FAULTs, each dropping the VIP for 20–40 seconds → interval 10, timeout 60, fall 6 |
-| 6   | 16:28–16:52 | Failed (ok=281)                  | Same 503 with 0 FAULTs. The nova_api uwsgi started while the VIP was missing in run 5 stayed in a `no python application found` state → `docker restart nova_api nova_metadata`            |
-| 7   | 16:56–17:49 | Failed (ok=343)                  | Docker API ReadTimeout (default 120 seconds) in the neutron restart handler. Load average 128–144, 3 min 41 s for one `docker ps -q` → `docker_client_timeout: 600`, worker count 1        |
-| 8   | 17:56–18:46 | Stopped                          | Most containers restarting because of changed settings, load average 113                                                                                                                   |
+| Run | Time        | Result                                                | What broke and the fix                                                                                                                                                                                                                                                        |
+| --- | ----------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 12:29–13:20 | Stuck at [rabbitmq](glossary:rabbitmq) for 25 minutes | The [healthcheck](glossary:health-check) `rabbitmq-diagnostics ping`, run every 30 seconds, never finished and 22 piled up → `enable_container_healthchecks: "no"`                                                                                                            |
+| 2   | 13:28–13:55 | Failed (ok=33)                                        | [Containers](glossary:container) created in run 1 kept their [healthcheck](glossary:health-check) settings and piled up again, `docker ps` 40 seconds → `kolla-ansible destroy` (3 min 26 s)                                                                                  |
+| 3   | 14:00–14:37 | Failed (ok=204)                                       | [keystone](glossary:keystone) bootstrap rc=1 after 4 min 59.8 s. The same command run by hand succeeded in 37 seconds                                                                                                                                                         |
+| 4   | 14:37–15:43 | Failed (ok=232)                                       | `ovs-vsctl -t 5` didn't finish within 5 seconds, SIGALRM → `timeout: 60` on the [openvswitch](glossary:open-vswitch)·ovn-controller roles                                                                                                                                     |
+| 5   | 15:46–16:25 | Failed (ok=287)                                       | [nova](glossary:nova) API 503. The [keepalived](glossary:keepalived) check (2-second interval, FAULT after 2 failures) didn't finish in time, 49 FAULTs, each dropping the [VIP](glossary:virtual-ip) for 20–40 seconds → interval 10, [timeout](glossary:timeout) 60, fall 6 |
+| 6   | 16:28–16:52 | Failed (ok=281)                                       | Same 503 with 0 FAULTs. The nova_api [uwsgi](glossary:uwsgi) started while the [VIP](glossary:virtual-ip) was missing in run 5 stayed in a `no python application found` state → `docker restart nova_api nova_metadata`                                                      |
+| 7   | 16:56–17:49 | Failed (ok=343)                                       | [Docker API](glossary:docker) ReadTimeout (default 120 seconds) in the [neutron](glossary:neutron) restart handler. [Load average](glossary:load-average) 128–144, 3 min 41 s for one `docker ps -q` → `docker_client_timeout: 600`, worker count 1                           |
+| 8   | 17:56–18:46 | Stopped                                               | Most [containers](glossary:container) restarting because of changed settings, [load average](glossary:load-average) 113                                                                                                                                                       |
 
 Run 7 reached ok=343, so a few more runs might have finished the deployment itself. I stopped there anyway for two reasons.
 
-- There is no `/dev/kvm` inside Rocky, so nova has to start instances with TCG (software emulation). With emulation on top of a place where process creation is 70 times slower, there was no telling whether the instance labs would work.
-- What the homework asks for is "the result of building OpenStack", and the Rocky VM in the slides is a means of building it.
+- There is no `/dev/kvm` inside [Rocky](glossary:rocky-linux), so [nova](glossary:nova) has to start [instances](glossary:instance) with [TCG](glossary:tcg) (software emulation). With emulation on top of a place where process creation is 70 times slower, there was no telling whether the [instance](glossary:instance) labs would work.
+- What the homework asks for is "the result of building [OpenStack](glossary:openstack)", and the [Rocky](glossary:rocky-linux) [VM](glossary:vm) in the slides is a means of building it.
 
-So I deleted the Rocky VM, removed one level, and installed directly on the Ubuntu host. Ubuntu has `/dev/kvm`, so nova uses KVM directly. With the same Kolla version, the first deployment finished with failed=0 in 13 minutes 22 seconds.
+So I deleted the [Rocky](glossary:rocky-linux) [VM](glossary:vm), removed one level, and installed directly on the [Ubuntu](glossary:ubuntu) host. [Ubuntu](glossary:ubuntu) has `/dev/kvm`, so [nova](glossary:nova) uses [KVM](glossary:kvm) directly. With the same [Kolla](glossary:kolla-ansible) version, the first deployment finished with failed=0 in 13 minutes 22 seconds.
 
 Three lessons remain.
 
-- Each added level of nesting breaks, in turn, timeout defaults that were assumed to be "long enough". The order was healthcheck 30 seconds → `ovs-vsctl` 5 seconds → keepalived 2 seconds → Docker API 120 seconds.
-- Kolla deploy does not restart containers whose settings haven't changed. A service that failed at startup (uwsgi that couldn't load the app) stays that way even if the deployment is run again, so it has to be restarted by hand.
+- Each added level of [nesting](glossary:nested-virtualization) breaks, in turn, [timeout](glossary:timeout) defaults that were assumed to be "long enough". The order was [healthcheck](glossary:health-check) 30 seconds → `ovs-vsctl` 5 seconds → [keepalived](glossary:keepalived) 2 seconds → [Docker API](glossary:docker) 120 seconds.
+- [Kolla](glossary:kolla-ansible) deploy does not restart [containers](glossary:container) whose settings haven't changed. A service that failed at startup ([uwsgi](glossary:uwsgi) that couldn't load the app) stays that way even if the deployment is run again, so it has to be restarted by hand.
 - Failure messages print the command line as is, and that command line contains service passwords in plain text. I wrote the log to a file and showed only PLAY RECAP on screen.
 
 ## Problem 2. cirros Hangs at virtio_blk
 
-The first instance created on the Ubuntu host hung during boot right after the `virtio_blk` message. CPU was at 100% and the guest clock didn't go past 9 seconds. cirros 0.6.3 was the same.
+The first [instance](glossary:instance) created on the [Ubuntu](glossary:ubuntu) host hung during boot right after the `virtio_blk` message. CPU was at 100% and the guest clock didn't go past 9 seconds. [cirros](glossary:cirros) 0.6.3 was the same.
 
-It is the same symptom as the MSI interrupt problem under nested virtualization that I hit when installing Rocky aarch64 on KVM in [HW6](/en/blog/cs-fundamentals/cloud-computing/cloud-computing-hw6-kvm-live-migration/#installing-a-rocky-vm-on-kvm). As then, adding `pci=nomsi` to the kernel arguments makes it use legacy interrupts instead of MSI. cirros aarch64 boots with GRUB from the EFI partition, so I copied the image, attached it to a block device with `qemu-nbd`, mounted the EFI partition, and appended `pci=nomsi` to the end of the kernel line in `EFI/ubuntu/grub.cfg`.
+It is the same symptom as the [MSI](glossary:msi) interrupt problem under [nested](glossary:nested-virtualization) virtualization that I hit when installing [Rocky](glossary:rocky-linux) [aarch64](glossary:arm64) on [KVM](glossary:kvm) in [HW6](/en/blog/cs-fundamentals/cloud-computing/cloud-computing-hw6-kvm-live-migration/#installing-a-rocky-vm-on-kvm). As then, adding `pci=nomsi` to the kernel arguments makes it use legacy interrupts instead of [MSI](glossary:msi). [cirros](glossary:cirros) [aarch64](glossary:arm64) boots with [GRUB](glossary:grub) from the [EFI partition](glossary:efi-system-partition), so I copied the image, attached it to a block device with `qemu-nbd`, mounted the [EFI partition](glossary:efi-system-partition), and appended `pci=nomsi` to the end of the kernel line in `EFI/ubuntu/grub.cfg`.
 
 ```bash
 modprobe nbd max_part=16
@@ -394,7 +394,7 @@ qemu-nbd --connect /dev/nbd0 /root/cirros-nomsi.img
 lsblk -o NAME,SIZE,FSTYPE,LABEL /dev/nbd0
 ```
 
-After mounting the EFI partition (vfat) and editing `grub.cfg`, I disconnected it and registered the image again.
+After mounting the [EFI partition](glossary:efi-system-partition) (vfat) and editing `grub.cfg`, I disconnected it and registered the image again.
 
 ```bash
 qemu-nbd --disconnect /dev/nbd0
@@ -402,11 +402,11 @@ openstack image delete cirros
 openstack image create --disk-format qcow2 --container-format bare --public --file /root/cirros-nomsi.img cirros
 ```
 
-After switching to this image, the login prompt appeared within 60 seconds. The mycirros uploaded from the dashboard is the same file.
+After switching to this image, the login prompt appeared within 60 seconds. The mycirros uploaded from the [dashboard](glossary:horizon) is the same file.
 
 ## Problem 3. docker and dbus Modules Missing in prechecks
 
-prechecks failed at the `import docker` and `import dbus` checks. Kolla-Ansible handles Docker and systemd with the virtual environment's Python, and the virtual environment didn't have the two packages. `dbus-python` needs to be built, so I installed the header packages first.
+prechecks failed at the `import docker` and `import dbus` checks. [Kolla-Ansible](glossary:kolla-ansible) handles [Docker](glossary:docker) and systemd with the [virtual environment](glossary:python-virtual-environment)'s Python, and the [virtual environment](glossary:python-virtual-environment) didn't have the two packages. `dbus-python` needs to be built, so I installed the header packages first.
 
 ```bash
 apt-get install -y libdbus-1-dev libglib2.0-dev pkg-config
@@ -415,7 +415,7 @@ pip install docker dbus-python
 
 ## Problem 4. Dashboard Image Upload Blocked by CORS
 
-When uploading mycirros from the dashboard, the browser sends the file directly to glance, and that request was blocked by CORS. Connecting from the Mac through an SSH tunnel made the origin `http://localhost:8080`, while glance only allowed the origin `http://192.168.64.4`. I added the tunnel address to `allowed_origin` in `glance.conf` and reconfigured glance only (34 seconds).
+When uploading mycirros from the [dashboard](glossary:horizon), the browser sends the file directly to [glance](glossary:glance), and that request was blocked by [CORS](glossary:cors). Connecting from the Mac through an [SSH tunnel](glossary:ssh-tunnel) made the [origin](glossary:origin) `http://localhost:8080`, while [glance](glossary:glance) only allowed the [origin](glossary:origin) `http://192.168.64.4`. I added the tunnel address to `allowed_origin` in `glance.conf` and reconfigured [glance](glossary:glance) only (34 seconds).
 
 ```bash
 kolla-ansible reconfigure -i ./all-in-one -t glance
@@ -423,11 +423,11 @@ kolla-ansible reconfigure -i ./all-in-one -t glance
 
 ## Problem 5. Empty VNC Console
 
-The dashboard "Console" tab only showed "Display output is not active". This is because aarch64 cirros outputs to the serial port, not the display (VGA). In the dashboard I viewed the serial output in the "Log" tab, and used `virsh console` for console input.
+The [dashboard](glossary:horizon) "Console" tab only showed "Display output is not active". This is because [aarch64](glossary:arm64) [cirros](glossary:cirros) outputs to the [serial](glossary:serial-console) port, not the display ([VGA](glossary:vga)). In the [dashboard](glossary:horizon) I viewed the [serial](glossary:serial-console) output in the "Log" tab, and used `virsh console` for console input.
 
 # 6. Linux Container Networking
 
-I cloned the Rocky Linux 10 VM to create `lxc.cloud.org` and followed the network namespace lab in slide Ch15 (pages 29–75) to build the setup in the p67 figure. It puts a bridge br0 (10.0.100.1) in the root network namespace, attaches namespaces netns1·netns2 with veth, and sends traffic out through NAT.
+I cloned the [Rocky Linux](glossary:rocky-linux) 10 [VM](glossary:vm) to create `lxc.cloud.org` and followed the [network namespace](glossary:network-namespace) lab in slide Ch15 (pages 29–75) to build the setup in the p67 figure. It puts a [bridge](glossary:linux-bridge) br0 (10.0.100.1) in the root [network namespace](glossary:network-namespace), attaches namespaces netns1·netns2 with [veth](glossary:veth), and sends traffic out through [NAT](glossary:nat).
 
 ```text
 Root network namespace (lxc.cloud.org)
@@ -440,7 +440,7 @@ Root network namespace (lxc.cloud.org)
 
 ![Root interfaces](/static/images/cloud-computing-hw7-openstack-linux-container/39.webp)
 
-_Root network namespace interfaces of the cloned VM lxc.cloud.org (Rocky Linux 10.2). lo, enp1s0, enp2s0_
+_Root [network namespace](glossary:network-namespace) interfaces of the cloned [VM](glossary:vm) lxc.cloud.org ([Rocky Linux](glossary:rocky-linux) 10.2). [lo](glossary:loopback), enp1s0, enp2s0_
 
 ```bash
 ip netns add netns1
@@ -451,13 +451,13 @@ ip netns exec netns1 ip link set dev lo up
 
 ![netns1](/static/images/cloud-computing-hw7-openstack-linux-container/40.webp)
 
-_ip netns add netns1. The new namespace has only lo, which is down, so even 127.0.0.1 is unreachable_
+_ip netns add netns1. The new [namespace](glossary:network-namespace) has only [lo](glossary:loopback), which is down, so even 127.0.0.1 is unreachable_
 
 ![lo up](/static/images/cloud-computing-hw7-openstack-linux-container/41.webp)
 
-_ping to 127.0.0.1 succeeds after bringing up lo in netns1_
+_[ping](glossary:ping) to 127.0.0.1 succeeds after bringing up [lo](glossary:loopback) in netns1_
 
-Running nginx inside the namespace shows that only the network is separated.
+Running [nginx](glossary:nginx) inside the [namespace](glossary:network-namespace) shows that only the network is separated.
 
 ```bash
 dnf install -y nginx
@@ -471,11 +471,11 @@ ip netns exec netns1 ss -nat | grep LISTEN
 
 ![Installing nginx](/static/images/cloud-computing-hw7-openstack-linux-container/42.webp)
 
-_Adding the nginx repository and installing it. Before it runs, connections to port 80 fail in both root and netns1_
+_Adding the [nginx](glossary:nginx) repository and installing it. Before it runs, connections to port 80 fail in both root and netns1_
 
 ![nginx in netns1](/static/images/cloud-computing-hw7-openstack-linux-container/43.webp)
 
-_Running nginx inside netns1. The process is visible from root too (the PID namespace is shared), but the response and LISTEN 0.0.0.0:80 exist only in netns1_
+_Running [nginx](glossary:nginx) inside netns1. The process is visible from root too (the PID namespace is shared), but the response and LISTEN 0.0.0.0:80 exist only in netns1_
 
 ## Connecting Namespaces with veth
 
@@ -491,11 +491,11 @@ ping -c 2 10.0.100.1
 
 ![Creating veth](/static/images/cloud-computing-hw7-openstack-linux-container/44.webp)
 
-_Creating a veth pair (veth1–veth2), moving veth1 to netns1 and assigning 10.0.100.1/10.0.100.2_
+_Creating a [veth](glossary:veth) pair (veth1–veth2), moving veth1 to netns1 and assigning 10.0.100.1/10.0.100.2_
 
 ![Root ↔ netns1](/static/images/cloud-computing-hw7-openstack-linux-container/45.webp)
 
-_After bringing up both ends, ping between root ↔ netns1 succeeds_
+_After bringing up both ends, [ping](glossary:ping) between root ↔ netns1 succeeds_
 
 ```bash
 ip netns add netns2
@@ -507,11 +507,11 @@ ip netns exec netns1 ping -c 2 10.0.100.2
 
 ![netns1 ↔ netns2](/static/images/cloud-computing-hw7-openstack-linux-container/46.webp)
 
-_Moving veth2 to a new namespace netns2 and assigning the address again. ping between netns1 ↔ netns2 succeeds_
+_Moving veth2 to a new [namespace](glossary:network-namespace) netns2 and assigning the address again. [ping](glossary:ping) between netns1 ↔ netns2 succeeds_
 
 ## Connecting Through a Bridge
 
-A veth pair only connects two ends. When there are more namespaces, a bridge goes in the root and the opposite end (brif) of each namespace's veth is plugged into the bridge.
+A [veth](glossary:veth) pair only connects two ends. When there are more namespaces, a [bridge](glossary:linux-bridge) goes in the root and the opposite end (brif) of each [namespace](glossary:network-namespace)'s [veth](glossary:veth) is plugged into the [bridge](glossary:linux-bridge).
 
 ```bash
 ip netns exec netns1 ip link delete veth1
@@ -529,7 +529,7 @@ ip netns exec netns2 ip link set dev veth2 up
 
 ![Creating br0](/static/images/cloud-computing-hw7-openstack-linux-container/47.webp)
 
-_Deleting the old veth, creating and bringing up bridge br0, creating veth pairs brif1–veth1 and brif2–veth2_
+_Deleting the old [veth](glossary:veth), creating and bringing up [bridge](glossary:linux-bridge) br0, creating [veth](glossary:veth) pairs brif1–veth1 and brif2–veth2_
 
 ![LOWERLAYERDOWN](/static/images/cloud-computing-hw7-openstack-linux-container/48.webp)
 
@@ -549,7 +549,7 @@ _Attaching brif1·brif2 to br0 and bringing them up. veth1·veth2 change to UP_
 
 ![Bridge ping](/static/images/cloud-computing-hw7-openstack-linux-container/50.webp)
 
-_ping between netns1 ↔ netns2 through br0 succeeds_
+_[ping](glossary:ping) between netns1 ↔ netns2 through br0 succeeds_
 
 ## Connecting to the Root Network Namespace
 
@@ -563,7 +563,7 @@ _From root, external (8.8.8.8) traffic works, but netns1·netns2 get Network is 
 
 _Root → 10.0.100.101/102 and netns → root (enp1s0 192.168.122.16) both fail_
 
-Giving br0 an address in the same range creates a 10.0.100.0/24 → br0 route in the root routing table, so root → netns works. For the opposite direction, each namespace needs a route to the root's range (192.168.122.0/24).
+Giving br0 an address in the same range creates a 10.0.100.0/24 → br0 route in the root [routing table](glossary:routing-table), so root → netns works. For the opposite direction, each [namespace](glossary:network-namespace) needs a route to the root's range (192.168.122.0/24).
 
 ```bash
 ip addr add 10.0.100.1/24 brd 10.0.100.255 dev br0
@@ -575,11 +575,11 @@ ip netns exec netns1 ping -c 2 192.168.122.16
 
 ![br0 address](/static/images/cloud-computing-hw7-openstack-linux-container/53.webp)
 
-_Checking the routing table and assigning 10.0.100.1/24 to br0. A route sending 10.0.100.0/24 to br0 is added_
+_Checking the [routing table](glossary:routing-table) and assigning 10.0.100.1/24 to br0. A route sending 10.0.100.0/24 to br0 is added_
 
 ![Root → netns](/static/images/cloud-computing-hw7-openstack-linux-container/54.webp)
 
-_ping from root → br0 (10.0.100.1), netns1 (.101), netns2 (.102) succeeds_
+_[ping](glossary:ping) from root → br0 (10.0.100.1), netns1 (.101), netns2 (.102) succeeds_
 
 ![netns1 route](/static/images/cloud-computing-hw7-openstack-linux-container/55.webp)
 
@@ -591,11 +591,11 @@ _Adding the same route to netns2_
 
 ![netns → root](/static/images/cloud-computing-hw7-openstack-linux-container/57.webp)
 
-_ping from netns1·netns2 → root (192.168.122.16) succeeds, external (8.8.8.8) still unreachable_
+_[ping](glossary:ping) from netns1·netns2 → root (192.168.122.16) succeeds, external (8.8.8.8) still unreachable_
 
 ## External Access with NAT
 
-Going outside needs three more things: a default route in the namespaces pointing to br0, IP forwarding in the root, and masquerade that rewrites the 10.0.100.0/24 source to the enp1s0 address.
+Going outside needs three more things: a [default route](glossary:default-gateway) in the namespaces pointing to br0, [IP forwarding](glossary:ip-forwarding) in the root, and [masquerade](glossary:masquerade) that rewrites the 10.0.100.0/24 source to the enp1s0 address.
 
 ```bash
 ip netns exec netns1 ip route add default via 10.0.100.1
@@ -609,21 +609,21 @@ ip netns exec netns1 ping -c 2 8.8.8.8
 
 ![default gateway](/static/images/cloud-computing-hw7-openstack-linux-container/58.webp)
 
-_Checking the root's default gateway (192.168.122.1, enp1s0); netns1·netns2 have no default route_
+_Checking the root's [default gateway](glossary:default-gateway) (192.168.122.1, enp1s0); netns1·netns2 have no [default route](glossary:default-gateway)_
 
 ![default via br0](/static/images/cloud-computing-hw7-openstack-linux-container/59.webp)
 
-_Adding default via 10.0.100.1 (br0) to netns1·netns2_
+_Adding [default via](glossary:default-gateway) 10.0.100.1 (br0) to netns1·netns2_
 
 ![Forwarding and masquerade](/static/images/cloud-computing-hw7-openstack-linux-container/60.webp)
 
-_Enabling IP forwarding, adding masquerade and a masquerade rule for the 10.0.100.0/24 source to firewalld, then reload_
+_Enabling [IP forwarding](glossary:ip-forwarding), adding [masquerade](glossary:masquerade) and a [masquerade](glossary:masquerade) rule for the 10.0.100.0/24 source to [firewalld](glossary:firewalld), then reload_
 
 ![8.8.8.8](/static/images/cloud-computing-hw7-openstack-linux-container/61.webp)
 
-_ping from netns1·netns2 → 8.8.8.8 succeeds_
+_[ping](glossary:ping) from netns1·netns2 → 8.8.8.8 succeeds_
 
-Traffic goes out by IP, but name resolution doesn't work. `ip netns exec` overlays the files in `/etc/netns/<name>/` on top of that namespace's `/etc`, so putting a `resolv.conf` there is enough.
+Traffic goes out by IP, but [name resolution](glossary:dns) doesn't work. `ip netns exec` overlays the files in `/etc/netns/<name>/` on top of that [namespace](glossary:network-namespace)'s `/etc`, so putting a `resolv.conf` there is enough.
 
 ```bash
 mkdir -p /etc/netns/netns1 /etc/netns/netns2
@@ -634,43 +634,43 @@ ip netns exec netns1 ping -c 2 google.com
 
 ![DNS](/static/images/cloud-computing-hw7-openstack-linux-container/62.webp)
 
-_ping to google.com fails because names don't resolve → nameserver 8.8.8.8 set in /etc/netns/netns1·netns2/resolv.conf_
+_[ping](glossary:ping) to google.com fails because names don't resolve → nameserver 8.8.8.8 set in /etc/netns/netns1·netns2/[resolv.conf](glossary:resolvconf)_
 
 ![google.com](/static/images/cloud-computing-hw7-openstack-linux-container/63.webp)
 
-_ping from netns1·netns2 → google.com succeeds. The p67 setup is complete_
+_[ping](glossary:ping) from netns1·netns2 → google.com succeeds. The p67 setup is complete_
 
 # 7. Exercises
 
 ## Ch13-5. OpenStack Services and Their Roles
 
-The OpenStack deployed above has 7 services registered in `openstack service list`. The dashboard (horizon) is a web UI with no API endpoint, so it is not in the list, but it was deployed and used alongside them.
+The [OpenStack](glossary:openstack) deployed above has 7 services registered in `openstack service list`. The [dashboard](glossary:horizon) ([horizon](glossary:horizon)) is a web UI with no API endpoint, so it is not in the list, but it was deployed and used alongside them.
 
-| Service (project) | Type           | Role                                                                                                                                                                                                                 |
-| ----------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| keystone          | identity       | Authentication and authorization. Manages users, projects and roles, issues tokens, and provides the list of the other services' API addresses (the service catalog). Every request has its keystone token checked.  |
-| nova              | compute        | Creating, starting, stopping and deleting instances. The scheduler picks the compute node to place an instance on, and nova controls the compute node's hypervisor (in this lab, KVM in the nova_libvirt container). |
-| glance            | image          | VM image store. Registers and keeps disk images such as cirros and mycirros, and hands images to nova when instances are created.                                                                                    |
-| neutron           | network        | Virtual networking. Creates networks, subnets, routers, ports, security groups and floating IPs, and connects instances to demo-net and the external network public1 with Open vSwitch.                              |
-| placement         | placement      | Resource inventory. Records the total and used vCPU, memory and disk of each compute node, and provides candidates when the nova scheduler looks for a node with enough resources left for a flavor.                 |
-| heat              | orchestration  | Orchestration. When a set of resources (a stack) such as servers, networks and volumes is declared in a HOT template (YAML), it creates, changes and deletes them in the right order.                                |
-| heat-cfn          | cloudformation | heat's AWS CloudFormation-compatible API. Accepts CloudFormation-format templates and requests from the cfn tools inside instances.                                                                                  |
-| horizon           | (dashboard)    | Web dashboard. Calls the APIs of the services above so tasks such as registering images and creating instances can be done from a browser.                                                                           |
+| Service (project)               | Type                            | Role                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [keystone](glossary:keystone)   | identity                        | Authentication and authorization. Manages users, projects and roles, issues tokens, and provides the list of the other services' API addresses (the [service catalog](glossary:service-catalog)). Every request has its [keystone](glossary:keystone) [token](glossary:token) checked.                                                       |
+| [nova](glossary:nova)           | compute                         | Creating, starting, stopping and deleting [instances](glossary:instance). The scheduler picks the compute node to place an [instance](glossary:instance) on, and [nova](glossary:nova) controls the compute node's [hypervisor](glossary:hypervisor) (in this lab, [KVM](glossary:kvm) in the nova_libvirt [container](glossary:container)). |
+| [glance](glossary:glance)       | image                           | [VM](glossary:vm) image store. Registers and keeps disk images such as [cirros](glossary:cirros) and mycirros, and hands images to [nova](glossary:nova) when [instances](glossary:instance) are created.                                                                                                                                    |
+| [neutron](glossary:neutron)     | network                         | Virtual networking. Creates networks, subnets, routers, ports, security groups and floating IPs, and connects [instances](glossary:instance) to demo-net and the external network public1 with [Open vSwitch](glossary:open-vswitch).                                                                                                        |
+| [placement](glossary:placement) | [placement](glossary:placement) | Resource inventory. Records the total and used [vCPU](glossary:vcpu), memory and disk of each compute node, and provides candidates when the [nova](glossary:nova) scheduler looks for a node with enough resources left for a [flavor](glossary:flavor).                                                                                    |
+| [heat](glossary:heat)           | orchestration                   | Orchestration. When a set of resources (a stack) such as servers, networks and volumes is declared in a [HOT template](glossary:hot) (YAML), it creates, changes and deletes them in the right order.                                                                                                                                        |
+| heat-cfn                        | cloudformation                  | [heat](glossary:heat)'s AWS CloudFormation-compatible API. Accepts CloudFormation-format templates and requests from the cfn tools inside [instances](glossary:instance).                                                                                                                                                                    |
+| [horizon](glossary:horizon)     | (dashboard)                     | Web dashboard. Calls the APIs of the services above so tasks such as registering images and creating [instances](glossary:instance) can be done from a browser.                                                                                                                                                                              |
 
-Besides these, MariaDB (each service's database), RabbitMQ (the message queue between nova's and neutron's internal components) and Memcached (token cache) are not OpenStack services but shared infrastructure components the services use.
+Besides these, [MariaDB](glossary:mariadb) (each service's database), [RabbitMQ](glossary:rabbitmq) (the [message queue](glossary:message-queue) between [nova](glossary:nova)'s and [neutron](glossary:neutron)'s internal components) and [Memcached](glossary:memcached) ([token](glossary:token) cache) are not [OpenStack](glossary:openstack) services but shared infrastructure components the services use.
 
 ## Ch14-3. A Case Where a Container-Based Service Is More Efficient
 
-I chose Spotify's move to Kubernetes as the case. Spotify ran its containers with Helios, an orchestration tool it built in-house, and then moved to Kubernetes. According to the CNCF case study, after the move Kubernetes' bin-packing and multi-tenancy raised CPU utilization 2–3 times on average, and the time to create a new service and get capacity ready for deployment dropped from nearly an hour to seconds or minutes. Doing the same thing with VMs would mean starting a full OS for every service, which would not reach this density and speed.
+I chose Spotify's move to [Kubernetes](glossary:kubernetes) as the case. Spotify ran its [containers](glossary:container) with Helios, an [orchestration](glossary:container-orchestration) tool it built in-house, and then moved to [Kubernetes](glossary:kubernetes). According to the CNCF case study, after the move [Kubernetes](glossary:kubernetes)' [bin-packing](glossary:bin-packing) and [multi-tenancy](glossary:multi-tenancy) raised CPU utilization 2–3 times on average, and the time to create a new service and get capacity ready for deployment dropped from nearly an hour to seconds or minutes. Doing the same thing with [VMs](glossary:vm) would mean starting a full OS for every service, which would not reach this density and speed.
 
 There are four reasons container-based services are better.
 
-- **Density (resource efficiency)**: Containers share the host kernel and only isolate (namespaces) and limit (cgroups) at the process level, so unlike VMs they don't keep a separate guest OS kernel, memory and boot disk per service. More services can therefore be packed tightly onto one node (bin-packing), and Spotify's 2–3× CPU utilization improvement is this effect.
-- **Performance overhead**: Felter et al. (2015) at IBM Research compared KVM VMs and Docker containers on the same hardware and reported that containers performed equal to or better than VMs in almost every measurement. This is because VM I/O goes through the hypervisor one more time, and they added that both need tuning for I/O-intensive workloads.
-- **Startup time and deployment speed**: Containers start processes without booting an OS, so they start in seconds. Services with hundreds of microservices deploy, scale and roll back often, and this speed led to Spotify's shorter service creation time.
-- **Portability and consistency**: The application and its libraries are bundled into one image, and the same image is used in development, testing and production. Images are smaller than VM images, so they are easier to pull from a registry and to version.
+- **Density (resource efficiency)**: [Containers](glossary:container) share the host kernel and only isolate (namespaces) and limit ([cgroups](glossary:cgroup)) at the process level, so unlike [VMs](glossary:vm) they don't keep a separate guest OS kernel, memory and boot disk per service. More services can therefore be packed tightly onto one node ([bin-packing](glossary:bin-packing)), and Spotify's 2–3× CPU utilization improvement is this effect.
+- **Performance overhead**: Felter et al. (2015) at IBM Research compared [KVM](glossary:kvm) [VMs](glossary:vm) and [Docker](glossary:docker) [containers](glossary:container) on the same hardware and reported that [containers](glossary:container) performed equal to or better than [VMs](glossary:vm) in almost every measurement. This is because [VM](glossary:vm) I/O goes through the [hypervisor](glossary:hypervisor) one more time, and they added that both need tuning for I/O-intensive workloads.
+- **Startup time and deployment speed**: [Containers](glossary:container) start processes without booting an OS, so they start in seconds. Services with hundreds of [microservices](glossary:microservices) deploy, scale and roll back often, and this speed led to Spotify's shorter service creation time.
+- **Portability and consistency**: The application and its libraries are bundled into one [image](glossary:container-image), and the same [image](glossary:container-image) is used in development, testing and production. [Images](glossary:container-image) are smaller than [VM](glossary:vm) images, so they are easier to pull from a [registry](glossary:container-registry) and to version.
 
-However, containers share the kernel, so their isolation is weaker than VMs. When mutually untrusted users share one host or a different OS kernel is needed, VMs are better, which is why running containers on top of VMs is common in practice.
+However, [containers](glossary:container) share the kernel, so their isolation is weaker than [VMs](glossary:vm). When mutually untrusted users share one host or a different OS kernel is needed, [VMs](glossary:vm) are better, which is why running [containers](glossary:container) on top of [VMs](glossary:vm) is common in practice.
 
 References
 
@@ -679,7 +679,7 @@ References
 
 ## Ch15-9. Building the Network Setup in Figure 15.12
 
-I attached a third namespace, netns3, in the same way to the setup built in section 6 (br0 + netns1·netns2 + NAT).
+I attached a third [namespace](glossary:network-namespace), netns3, in the same way to the setup built in section 6 (br0 + netns1·netns2 + [NAT](glossary:nat)).
 
 ```bash
 ip netns add netns3
@@ -700,7 +700,7 @@ _Namespaces netns1·netns2·netns3 and brif1·brif2·brif3 attached to br0_
 
 ![netns3 setup](/static/images/cloud-computing-hw7-openstack-linux-container/65.webp)
 
-_netns3 setup. veth3 10.0.100.103/24 UP, default via 10.0.100.1_
+_netns3 setup. veth3 10.0.100.103/24 UP, [default via](glossary:default-gateway) 10.0.100.1_
 
 I checked the four cases at once with a loop.
 
@@ -713,7 +713,7 @@ done; done
 
 ![Between namespaces](/static/images/cloud-computing-hw7-openstack-linux-container/66.webp)
 
-_(a) ping in all 6 directions between netns1·netns2·netns3, all 2 received_
+_(a) [ping](glossary:ping) in all 6 directions between netns1·netns2·netns3, all 2 received_
 
 ![Root and namespaces](/static/images/cloud-computing-hw7-openstack-linux-container/67.webp)
 
@@ -723,4 +723,4 @@ _(b) each netns → root (192.168.122.16), (c) root → each netns, all 2 receiv
 
 _(d) netns1·netns2·netns3 → google.com, all 0% packet loss_
 
-All four cases work. Namespaces on the same bridge are forwarded at L2 by br0, and root ↔ netns works because br0's 10.0.100.1 is in the same range. netns → external works because the root IP-forwards packets that reach br0 through the default route, and firewalld masquerade rewrites the source address to the enp1s0 address before sending them out.
+All four cases work. Namespaces on the same [bridge](glossary:linux-bridge) are forwarded at [L2](glossary:link-layer) by br0, and root ↔ netns works because br0's 10.0.100.1 is in the same range. netns → external works because the root IP-forwards packets that reach br0 through the [default route](glossary:default-gateway), and [firewalld](glossary:firewalld) [masquerade](glossary:masquerade) rewrites the source address to the enp1s0 address before sending them out.

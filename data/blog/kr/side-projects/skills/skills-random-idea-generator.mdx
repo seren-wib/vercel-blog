@@ -3,56 +3,58 @@ title: 'random-idea: 기술을 무작위로 뽑아 프로젝트 아이디어를 
 date: '2026-11-17'
 tags: ['Skills']
 draft: false
-summary: '기술 2,763개(17개 분야)에서 시드로 무작위 추첨하고, 뽑힌 기술을 전부 쓰는 프로젝트 아이디어를 Claude가 내는 스킬. 만든 이유, 비슷한 도구 조사, pick.mjs와 mulberry32 시드, 분야별 추첨, 설치, 출력 예시, 만들면서 바뀐 결정, 홍보처'
+level: 2
+summary: '기술 2,763개에서 시드로 무작위 추첨하고, 뽑힌 기술을 전부 쓰는 프로젝트 아이디어를 Claude가 내는 스킬'
 ---
 
-> 기술 목록에서 무작위로 몇 개를 뽑고, 그 조합으로 Claude와 프로젝트 아이디어를 내는 Claude 스킬 **random-idea**를 만든 기록. 레포는 [seren-wib/random-idea-generator](https://github.com/seren-wib/random-idea-generator)
-
-## 1. 왜 만들었나
+## 0. 들어가며
 
 - 사이드 프로젝트 아이디어는 늘 이미 아는 기술에서 출발함. 그러면 새로 손대 보는 기술이 거의 안 생김
 - 그래서 내 기술 목록에서 **무작위로 몇 개를 뽑고**, 그 조합으로 Claude와 아이디어를 내 보고 싶었음
-- 문제는 모델한테 "랜덤으로 골라"를 맡기면 진짜 랜덤이 아니라는 것. React, Docker, PostgreSQL처럼 이미 익숙한 이름으로 계속 쏠림
+- 문제는 모델한테 "랜덤으로 골라"를 맡기면 진짜 랜덤이 아니라는 것. [React](glossary:react), [Docker](glossary:docker), [PostgreSQL](glossary:postgresql)처럼 이미 익숙한 이름으로 계속 쏠림
 - 그러면 뽑기는 스크립트가 하고, Claude는 뽑힌 결과로 아이디어만 내면 됨
 
-### 비슷한 도구가 있나
+식당으로 비유하면 늘 먹던 메뉴만 시키는 손님에게 추첨기로 재료 몇 개를 뽑아 주고, 요리사가 그 재료를 전부 써서 요리를 내는 구조임. 여기서 손님은 나, 메뉴판은 `techs.json`, 추첨기는 [Seed](glossary:seed)가 있는 [PRNG](glossary:prng)인 [mulberry32](glossary:mulberry32), 요리사는 Claude, 이 식당 전체는 [Claude skill](glossary:claude-skill)임.
+
+기술 목록에서 무작위로 몇 개를 뽑고 그 조합으로 Claude와 프로젝트 아이디어를 내는 [Claude skill](glossary:claude-skill) **random-idea**를 만들었음. [Claude Code plugin](glossary:claude-code-plugin)으로도 설치됨. 레포는 [seren-wib/random-idea-generator](https://github.com/seren-wib/random-idea-generator)
+
+## 1. 비슷한 도구 조사
 
 만들기 전에 찾아본 것들 (2026-11-17 기준)
 
 - **StackRoulette** (⭐12): 웹 스택만 다루고, 2023-02 이후 멈춰 있음
 - **random-stack 류 레포**: 별 0~2개짜리 작은 레포들
 - **Hack Club What Should I Build?**, **onemillionideas**: 프로젝트 아이디어를 보여주는 사이트
-- **IdeaXApi**, **Pickproject**: 아이디어 생성에 LLM을 붙인 형태
-- **분야별 개수를 정해서 뽑는 것**("AI 하나, 하드웨어 하나, 프론트엔드 둘")은 못 찾았음. 그래서 직접 만들기로 함
+- **IdeaXApi**, **Pickproject**: 아이디어 생성에 [LLM](glossary:llm)을 붙인 형태
+- **분야별 개수를 정해서 뽑는 것**("AI 하나, 하드웨어 하나, [Frontend](glossary:frontend) 둘")은 못 찾았음. 그래서 직접 만들기로 함
 
-## 2. 만든 것
+## 2. 기술 목록 만들기
 
-- Claude 스킬이자 Claude Code 플러그인 `random-idea`. 공개 레포, MIT 라이선스, v0.1.0
-- Node 18 이상, 의존성 0. Windows, macOS, Linux에서 돎
-
-### 기술 목록
-
+- 공개 레포, [MIT License](glossary:mit-license), v0.1.0
+- [Node](glossary:nodejs) 18 이상, [Zero dependencies](glossary:zero-dependencies). Windows, macOS, Linux에서 돎
 - `skills/random-idea/assets/techs.json`에 기술 **2,763개**, 분야 **17종**
 - 항목마다 `name`(이름), `category`(분야), `what`(무엇인지), `uses`(주로 쓰는 곳), `hw`(하드웨어 표시) 다섯 칸
-- 하드웨어 표시는 분야와 따로 **203개**에 붙어 있음. 예를 들어 I2C는 분야가 Protocol/Standard지만 하드웨어 표시가 있음
+- 하드웨어 표시는 분야와 따로 **203개**에 붙어 있음. 예를 들어 [I2C](glossary:i2c)는 분야가 Protocol/Standard지만 하드웨어 표시가 있음
 
-| 분야                 | 개수 | 분야              |      개수 |
-| -------------------- | ---: | ----------------- | --------: |
-| Build/Tooling        |  407 | Algorithm/Theory  |       136 |
-| Infra/DevOps         |  345 | Language          |        90 |
-| Data/DB              |  258 | Mobile            |        74 |
-| Protocol/Standard    |  221 | Game              |        60 |
-| Backend              |  218 | Blockchain        |        58 |
-| Testing              |  188 | Design            |        46 |
-| Architecture/Pattern |  167 | Hardware/Embedded |        44 |
-| Frontend             |  166 |                   |           |
-| AI/ML                |  144 |                   |           |
-| Security             |  141 | **합계**          | **2,763** |
+| 분야                          | 개수 | 분야              |      개수 |
+| ----------------------------- | ---: | ----------------- | --------: |
+| Build/Tooling                 |  407 | Algorithm/Theory  |       136 |
+| Infra/DevOps                  |  345 | Language          |        90 |
+| Data/DB                       |  258 | Mobile            |        74 |
+| Protocol/Standard             |  221 | Game              |        60 |
+| [Backend](glossary:backend)   |  218 | Blockchain        |        58 |
+| Testing                       |  188 | Design            |        46 |
+| Architecture/Pattern          |  167 | Hardware/Embedded |        44 |
+| [Frontend](glossary:frontend) |  166 |                   |           |
+| AI/ML                         |  144 |                   |           |
+| Security                      |  141 | **합계**          | **2,763** |
 
-### 뽑기: `scripts/pick.mjs`
+## 3. 시드로 뽑기
 
-- 시드가 있는 난수 생성기 **mulberry32**로 뽑음. 같은 시드면 어느 컴퓨터, 어느 Node 버전에서도 같은 결과가 나옴
-- 결과는 Markdown 표와 시드 한 줄. 시드를 다시 넣으면 같은 추첨을 반복할 수 있음
+`scripts/pick.mjs`가 뽑음
+
+- [Seed](glossary:seed)가 있는 [PRNG](glossary:prng) **[mulberry32](glossary:mulberry32)**로 뽑음. 같은 [Seed](glossary:seed)면 어느 컴퓨터, 어느 [Node](glossary:nodejs) 버전에서도 같은 결과가 나옴
+- 결과는 [Markdown](glossary:markdown) 표와 [Seed](glossary:seed) 한 줄. [Seed](glossary:seed)를 다시 넣으면 같은 추첨을 반복할 수 있음
 
 ```bash
 node scripts/pick.mjs [options]
@@ -68,18 +70,18 @@ node scripts/pick.mjs [options]
 
 - `-n`과 `--from`은 같이 못 씀
 
-### Claude가 하는 일
+## 4. Claude가 아이디어를 내는 순서
 
 1. 요청 문장("AI 하나, 하드웨어 하나로 아이디어 줘")을 옵션으로 바꿔서 `pick.mjs`를 실행
-2. 뽑힌 표와 시드를 보여줌
+2. 뽑힌 표와 [Seed](glossary:seed)를 보여줌
 3. 아이디어 3개를 냄. 아이디어마다 뽑힌 기술을 어디에 쓰는지, 주말에 끝낼 수 있는 가장 작은 버전, 가장 막힐 것 같은 부분
 
-- **바꿔치기 금지.** 조합이 어색해 보여도 뽑힌 기술을 하나도 빼거나 다른 걸로 바꾸지 않게 스킬에 적어 둠. 데이터베이스나 호스팅처럼 따로 필요한 건 "also needed" 줄로 분리
-- **목록은 대화에 안 읽힘.** 500 KB짜리 `techs.json`은 스크립트만 읽고, 대화에는 뽑힌 줄만 들어감. 그래서 한 번 뽑는 데 토큰 몇백 개면 됨
+- **바꿔치기 금지.** 조합이 어색해 보여도 뽑힌 기술을 하나도 빼거나 다른 걸로 바꾸지 않게 [Claude skill](glossary:claude-skill)에 적어 둠. [Database](glossary:database)나 [Hosting](glossary:hosting)처럼 따로 필요한 건 "also needed" 줄로 분리
+- **목록은 대화에 안 읽힘.** 500 KB짜리 `techs.json`은 스크립트만 읽고, 대화에는 뽑힌 줄만 들어감. 그래서 한 번 뽑는 데 [Token](glossary:token) 몇백 개면 됨
 
-### 설치
+## 5. 설치
 
-Claude Code에서 마켓플레이스를 추가하고 플러그인을 설치
+[Claude Code](glossary:claude-code)에서 마켓플레이스를 추가하고 [Claude Code plugin](glossary:claude-code-plugin)을 설치
 
 ```bash
 claude plugin marketplace add seren-wib/random-idea-generator
@@ -90,11 +92,11 @@ claude plugin install random-idea@seren-wib
 ```
 
 - 새 세션을 열거나 열린 세션에서 `/reload-plugins`
-- 스킬이 `node`를 실행하므로 터미널에서 `node --version`이 돼야 함
+- [Claude skill](glossary:claude-skill)이 `node`를 실행하므로 터미널에서 `node --version`이 돼야 함
 
-### 출력 예시
+## 6. 출력 예시
 
-AI/ML 하나, 하드웨어 하나, 프론트엔드 둘
+AI/ML 하나, 하드웨어 하나, [Frontend](glossary:frontend) 둘
 
 ```bash
 node scripts/pick.mjs --from "AI/ML=1,Hardware/Embedded=1,Frontend=2" --seed 7
@@ -102,12 +104,12 @@ node scripts/pick.mjs --from "AI/ML=1,Hardware/Embedded=1,Frontend=2" --seed 7
 
 Seed: 7 (repeat this draw with --seed 7)
 
-| Name                 | Category          | What it is                                                               | Typical uses                            | Hardware |
-| -------------------- | ----------------- | ------------------------------------------------------------------------ | --------------------------------------- | -------- |
-| Adversarial Training | AI/ML             | Method that adds attack examples to training to make a model more robust | model defense, robustness improvement   |          |
-| ATmega328P           | Hardware/Embedded | 8-bit AVR MCU used in the Arduino Uno                                    | learning basic embedded, simple control | yes      |
-| WebUSB               | Frontend          | API for accessing USB devices from the browser                           | web-based firmware flashers             | yes      |
-| Relay                | Frontend          | Meta's GraphQL client                                                    | large-scale GraphQL apps                |          |
+| Name                                                  | Category                      | What it is                                                                | Typical uses                                 | Hardware |
+| ----------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------- | -------------------------------------------- | -------- |
+| [Adversarial Training](glossary:adversarial-training) | AI/ML                         | Method that adds attack examples to training to make a model more robust  | model defense, robustness improvement        |          |
+| [ATmega328P](glossary:atmega328p)                     | Hardware/Embedded             | 8-bit AVR [MCU](glossary:mcu) used in the [Arduino](glossary:arduino) Uno | learning basic embedded, simple control      | yes      |
+| [WebUSB](glossary:webusb)                             | [Frontend](glossary:frontend) | API for accessing USB devices from the browser                            | web-based firmware flashers                  | yes      |
+| [Relay](glossary:relay)                               | [Frontend](glossary:frontend) | Meta's [GraphQL](glossary:graphql) client                                 | large-scale [GraphQL](glossary:graphql) apps |          |
 
 전체에서 넷
 
@@ -117,34 +119,36 @@ node scripts/pick.mjs --seed 2026
 
 Seed: 2026 (repeat this draw with --seed 2026)
 
-| Name                        | Category      | What it is                        | Typical uses               | Hardware |
-| --------------------------- | ------------- | --------------------------------- | -------------------------- | -------- |
-| Kotlin Notebook             | Data/DB       | Kotlin notebook environment       | data analysis, prototyping |          |
-| GNU Make                    | Build/Tooling | Makefile-based build tool         | C/C++ builds, automation   |          |
-| Datadog Incident Management | Infra/DevOps  | Datadog incident response feature | incident response, on-call |          |
-| Alibaba Cloud               | Infra/DevOps  | Alibaba's cloud platform          | China-region services      |          |
+| Name                                                                            | Category      | What it is                                            | Typical uses                                   | Hardware |
+| ------------------------------------------------------------------------------- | ------------- | ----------------------------------------------------- | ---------------------------------------------- | -------- |
+| [Kotlin Notebook](glossary:kotlin-notebook)                                     | Data/DB       | Kotlin notebook environment                           | data analysis, prototyping                     |          |
+| [GNU Make](glossary:gnu-make)                                                   | Build/Tooling | Makefile-based build tool                             | C/C++ builds, automation                       |          |
+| [Datadog](glossary:datadog) [Incident Management](glossary:incident-management) | Infra/DevOps  | [Datadog](glossary:datadog) incident response feature | incident response, [on-call](glossary:on-call) |          |
+| [Alibaba Cloud](glossary:alibaba-cloud)                                         | Infra/DevOps  | Alibaba's cloud platform                              | China-region services                          |          |
 
-- 두 번째 예시처럼 인프라 둘에 노트북, 빌드 도구가 같이 나오는 조합은 직접 고를 때는 잘 안 나옴. 이런 조합이 나오게 하는 게 목적
+## 7. 만들면서 바뀐 결정
 
-## 3. 만들면서 바뀐 결정
-
-- **웹페이지 없이 CLI로.** 뽑기 화면은 만들지 않음. 아이디어는 어차피 Claude와 대화하면서 냄
-- **CLI 레포 대신 스킬 하나로.** 따로 설치하는 CLI 도구 대신 스킬 폴더 하나(`SKILL.md`, 스크립트, 목록)에 다 넣음
+- **웹페이지 없이 [CLI](glossary:cli)로.** 뽑기 화면은 만들지 않음. 아이디어는 어차피 Claude와 대화하면서 냄
+- **[CLI](glossary:cli) 레포 대신 [Claude skill](glossary:claude-skill) 하나로.** 따로 설치하는 [CLI](glossary:cli) 도구 대신 [Claude skill](glossary:claude-skill) 폴더 하나(`SKILL.md`, 스크립트, 목록)에 다 넣음
 - **아는 정도(known) 칸은 뺌.** 기술마다 아는지 표시해서 아는 것과 모르는 것의 비율로 뽑는 칸을 넣으려다 뺐음
-- **private → 공개, 영어로.** 처음엔 private 레포였다가 공개로 바꾸고, README와 목록을 영어로 씀
+- **private → 공개, 영어로.** 처음엔 private 레포였다가 공개로 바꾸고, [README](glossary:readme)와 목록을 영어로 씀
 
-## 4. 어디에 알릴까
+## 8. 홍보할 곳
 
-Claude 스킬·플러그인을 모아 두는 곳들. 별 수는 2026-11-17 기준
+[Claude skill](glossary:claude-skill)·[Claude Code plugin](glossary:claude-code-plugin)을 모아 두는 곳들. 별 수는 2026-11-17 기준
 
-| 곳                                                                                      | 규모   | 올리는 방법과 조건                                                                             |
-| --------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------- |
-| Anthropic 공식 플러그인 디렉터리                                                        | -      | claude.ai/directory/manage에서 제출. anthropics/claude-plugins-official에 PR은 더 이상 안 받음 |
-| [BehiSecc/awesome-claude-skills](https://github.com/BehiSecc/awesome-claude-skills)     | 10.4k★ | 정해진 규칙 없이 PR                                                                            |
-| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills) | 79.7k★ | PR. 실사용 사례, 예시 프롬프트, 출력이 있어야 함                                               |
-| [travisvn/awesome-claude-skills](https://github.com/travisvn/awesome-claude-skills)     | 15.9k★ | 레포에 별이 어느 정도 있어야 함                                                                |
-| [hesreallyhim/awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) | 58.2k★ | 별 100개 이상, 웹 이슈 폼으로만 제출                                                           |
-| r/ClaudeAI, r/ClaudeCode                                                                | -      | 커뮤니티 글                                                                                    |
-| GeekNews Show GN                                                                        | -      | 직접 만든 것 소개 글                                                                           |
+| 곳                                                                                      | 규모   | 올리는 방법과 조건                                                                                                      |
+| --------------------------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Anthropic 공식 [Claude Code plugin](glossary:claude-code-plugin) 디렉터리               | -      | claude.ai/directory/manage에서 제출. anthropics/claude-plugins-official에 [PR](glossary:pull-request)은 더 이상 안 받음 |
+| [BehiSecc/awesome-claude-skills](https://github.com/BehiSecc/awesome-claude-skills)     | 10.4k★ | 정해진 규칙 없이 [PR](glossary:pull-request)                                                                            |
+| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills) | 79.7k★ | [PR](glossary:pull-request). 실사용 사례, 예시 프롬프트, 출력이 있어야 함                                               |
+| [travisvn/awesome-claude-skills](https://github.com/travisvn/awesome-claude-skills)     | 15.9k★ | 레포에 별이 어느 정도 있어야 함                                                                                         |
+| [hesreallyhim/awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) | 58.2k★ | 별 100개 이상, 웹 이슈 폼으로만 제출                                                                                    |
+| r/ClaudeAI, r/ClaudeCode                                                                | -      | 커뮤니티 글                                                                                                             |
+| GeekNews Show GN                                                                        | -      | 직접 만든 것 소개 글                                                                                                    |
 
 - 써 보고 내가 고르지 않았을 걸 만들게 됐다면 레포에 ⭐ 하나 눌러 주면 다른 사람이 찾기 쉬워짐
+
+## 9. 느낀 점
+
+두 번째 예시처럼 인프라 둘에 노트북, 빌드 도구가 같이 나오는 조합은 직접 고를 때는 잘 안 나옴. 이런 조합이 나오게 하는 게 목적

@@ -2,20 +2,18 @@
 title: 'Git / GitHub Cheatsheet'
 date: '2026-10-09'
 tags: ['Git']
-summary: 'Git/GitHub basic concepts, checking status, pull, resolving conflicts, commit/push, undoing changes'
+summary: 'Git/GitHub commands for checking status, pull, resolving conflicts, commit/push and undoing changes'
 draft: false
+level: 1
 ---
 
-> A personal cheatsheet for when I get confused. Run the commands in a terminal after moving into the repository folder.
+## 0. Introduction
 
----
+A personal cheatsheet for when I get confused. Run the commands in a terminal after moving into the [repository](glossary:repository) folder.
 
-## 0. Basic Concepts
+In restaurant terms, the working folder on my computer is the kitchen and the [repository](glossary:repository) on [GitHub](glossary:github) is the head-office storeroom. A photo of a finished plate is a record of one change, and setting a plate that is still being cooked into a drawer for a moment is putting work aside. That is, the kitchen is the local [repository](glossary:repository), the storeroom is the [remote](glossary:remote) called [origin](glossary:origin), the photo is a [commit](glossary:commit), and the drawer is a [stash](glossary:stash).
 
-- **Local**: the files/repository on my computer
-- **Remote (remote, origin)**: the repository uploaded to GitHub
-- **Commit (commit)**: one snapshot that records changes
-- **stash**: temporarily putting in-progress changes away in a "drawer"
+This post covers checking status, a [pull](glossary:pull) that loses no changes, resolving [conflicts](glossary:merge-conflict), committing and [pushing](glossary:push), and undoing changes.
 
 ---
 
@@ -30,9 +28,9 @@ git log HEAD..@{u} --oneline   # commits that are on the remote but not on mine
 
 ---
 
-## 2. Pulling Without Losing Changes ★ (what I did on 2026-06-13)
+## 2. Pulling Without Losing Changes
 
-When I have files being edited locally and the remote also has new commits.
+What I did on 2026-06-13. When I have files being edited locally and the [remote](glossary:remote) also has new [commits](glossary:commit).
 A plain `git pull` stops or is refused on overlapping files. The safe order:
 
 ```bash
@@ -46,14 +44,14 @@ git pull --ff-only
 git stash pop
 ```
 
-- If files overlap, `stash pop` produces a **conflict** → go to section 3 below.
-- No data is lost. Even on a conflict, the stash stays in `git stash list`.
+- If files overlap, `stash pop` produces a **[conflict](glossary:merge-conflict)** → go to section 3 below.
+- No data is lost. Even on a [conflict](glossary:merge-conflict), the [stash](glossary:stash) stays in `git stash list`.
 
 ---
 
 ## 3. Resolving Conflicts
 
-When you open a conflicted file, it contains markers like these:
+When you open a conflicted file, it contains [markers](glossary:conflict-marker) like these:
 
 ```
 <<<<<<< Updated upstream
@@ -65,15 +63,15 @@ My local (stash) content
 
 How to resolve:
 
-1. Keep only the content you want and **delete the three marker lines yourself** (`<<<`, `===`, `>>>`)
-2. If both sides are needed, keep both and delete only the markers
+1. Keep only the content you want and **delete the three [marker](glossary:conflict-marker) lines yourself** (`<<<`, `===`, `>>>`)
+2. If both sides are needed, keep both and delete only the [markers](glossary:conflict-marker)
 3. Stage the cleaned-up file:
 
 ```bash
 git add "path/to/file"
 ```
 
-**Delete vs modify conflict** (one side deleted the file and the other edited it):
+**Delete vs modify [conflict](glossary:merge-conflict)** (one side deleted the file and the other edited it):
 
 ```bash
 git rm "path/to/file"      # when choosing deletion
@@ -81,7 +79,7 @@ git rm "path/to/file"      # when choosing deletion
 git add "path/to/file"     # when choosing to keep it (the file stays)
 ```
 
-Once all conflicts are cleaned up, empty the stash drawer:
+Once all [conflicts](glossary:merge-conflict) are cleaned up, empty the [stash](glossary:stash) drawer:
 
 ```bash
 git stash drop         # delete the stash just popped
@@ -112,14 +110,6 @@ git reset --hard HEAD        # ⚠️ discards all local changes (cannot be undo
 
 ---
 
-## Frequently Used One-Line Summary
+## 6. Reflection
 
-| What I want to do           | Command                                        |
-| --------------------------- | ---------------------------------------------- |
-| Check status                | `git status`                                   |
-| Safely fetch remote changes | stash → `git pull --ff-only` → `git stash pop` |
-| After resolving a conflict  | Delete the markers, then `git add`             |
-| Commit                      | `git add .` → `git commit -m "..."`            |
-| Upload to GitHub            | `git push`                                     |
-| Temporarily stash changes   | `git stash push -u`                            |
-| Take out what was stashed   | `git stash pop`                                |
+Even on a [conflict](glossary:merge-conflict) the [stash](glossary:stash) stays in `git stash list`, so no data is lost.

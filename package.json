@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "start": "next dev",
-    "predev": "node ./scripts/copy-pyodide.mjs",
+    "predev": "node ./scripts/copy-pyodide.mjs && node ./scripts/glossary.mjs",
     "dev": "cross-env INIT_CWD=$PWD next dev",
-    "prebuild": "node ./scripts/copy-pyodide.mjs",
+    "prebuild": "node ./scripts/copy-pyodide.mjs && node ./scripts/glossary.mjs",
     "build": "cross-env INIT_CWD=$PWD next build && cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs",
     "serve": "next start",
     "analyze": "cross-env ANALYZE=true next build",

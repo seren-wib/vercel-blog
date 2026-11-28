@@ -3,56 +3,58 @@ title: 'random-idea: A Claude Skill That Draws Random Technologies and Turns The
 date: '2026-11-17'
 tags: ['Skills']
 draft: false
-summary: 'A skill that draws technologies at random from a list of 2,763 in 17 categories with a seed, then has Claude propose project ideas that use every one of them. Why I built it, similar tools, pick.mjs and the mulberry32 seed, drawing by category, installation, sample output, decisions that changed, where to share it'
+level: 2
+summary: 'A skill that draws technologies at random with a seed from a list of 2,763, then has Claude propose project ideas that use every one of them'
 ---
 
-> How I built **random-idea**, a Claude skill that draws a few technologies at random from a list and turns the combination into project ideas with Claude. The repo is [seren-wib/random-idea-generator](https://github.com/seren-wib/random-idea-generator).
-
-## 1. Why I built it
+## 0. Introduction
 
 - Side-project ideas always start from technologies I already know, so I rarely get to touch anything new
 - I wanted to **draw a few at random** from my list of technologies and come up with ideas from that combination together with Claude
-- The catch: if you ask a model to "pick at random", it is not really random. It keeps drifting toward familiar names like React, Docker and PostgreSQL
+- The catch: if you ask a model to "pick at random", it is not really random. It keeps drifting toward familiar names like [React](glossary:react), [Docker](glossary:docker) and [PostgreSQL](glossary:postgresql)
 - So a script does the drawing, and Claude only proposes ideas from the result
 
-### Is there something like this already?
+In restaurant terms, a customer who always orders the usual gets a few ingredients drawn by a lottery machine, and the cook makes dishes that use every one of them. Here the customer is me, the menu is `techs.json`, the lottery machine is the seeded [random number generator](glossary:prng) [mulberry32](glossary:mulberry32), the cook is Claude, and the restaurant as a whole is the [Claude skill](glossary:claude-skill).
+
+I built **random-idea**, a [Claude skill](glossary:claude-skill) that draws a few technologies at random from a list and turns the combination into project ideas with Claude. It also installs as a [Claude Code plugin](glossary:claude-code-plugin). The repo is [seren-wib/random-idea-generator](https://github.com/seren-wib/random-idea-generator).
+
+## 1. Checking for similar tools
 
 What I looked at before building it (as of 2026-11-17)
 
 - **StackRoulette** (⭐12): web stacks only, no updates since 2023-02
 - **random-stack-style repos**: small repos with 0 to 2 stars
 - **Hack Club What Should I Build?**, **onemillionideas**: sites that show project ideas
-- **IdeaXApi**, **Pickproject**: idea generation with an LLM attached
-- I could not find anything that **draws a set number per category** ("one AI, one hardware, two frontend"), so I built it
+- **IdeaXApi**, **Pickproject**: idea generation with an [LLM](glossary:llm) attached
+- I could not find anything that **draws a set number per category** ("one AI, one hardware, two [frontend](glossary:frontend)"), so I built it
 
-## 2. What I built
+## 2. Building the technology list
 
-- `random-idea`, a Claude skill that is also a Claude Code plugin. Public repo, MIT license, v0.1.0
-- Node 18 or later, zero dependencies. Runs on Windows, macOS and Linux
-
-### The technology list
-
+- Public repo, [MIT license](glossary:mit-license), v0.1.0
+- [Node](glossary:nodejs) 18 or later, [zero dependencies](glossary:zero-dependencies). Runs on Windows, macOS and Linux
 - **2,763 technologies** in **17 categories** in `skills/random-idea/assets/techs.json`
 - Each entry has five fields: `name`, `category`, `what` (what it is), `uses` (typical uses) and `hw` (hardware flag)
-- The hardware flag is separate from the category and is set on **203 entries**. For example, I2C is in Protocol/Standard but carries the hardware flag
+- The hardware flag is separate from the category and is set on **203 entries**. For example, [I2C](glossary:i2c) is in Protocol/Standard but carries the hardware flag
 
-| Category             | Count | Category          |     Count |
-| -------------------- | ----: | ----------------- | --------: |
-| Build/Tooling        |   407 | Algorithm/Theory  |       136 |
-| Infra/DevOps         |   345 | Language          |        90 |
-| Data/DB              |   258 | Mobile            |        74 |
-| Protocol/Standard    |   221 | Game              |        60 |
-| Backend              |   218 | Blockchain        |        58 |
-| Testing              |   188 | Design            |        46 |
-| Architecture/Pattern |   167 | Hardware/Embedded |        44 |
-| Frontend             |   166 |                   |           |
-| AI/ML                |   144 |                   |           |
-| Security             |   141 | **Total**         | **2,763** |
+| Category                      | Count | Category          |     Count |
+| ----------------------------- | ----: | ----------------- | --------: |
+| Build/Tooling                 |   407 | Algorithm/Theory  |       136 |
+| Infra/DevOps                  |   345 | Language          |        90 |
+| Data/DB                       |   258 | Mobile            |        74 |
+| Protocol/Standard             |   221 | Game              |        60 |
+| [Backend](glossary:backend)   |   218 | Blockchain        |        58 |
+| Testing                       |   188 | Design            |        46 |
+| Architecture/Pattern          |   167 | Hardware/Embedded |        44 |
+| [Frontend](glossary:frontend) |   166 |                   |           |
+| AI/ML                         |   144 |                   |           |
+| Security                      |   141 | **Total**         | **2,763** |
 
-### The draw: `scripts/pick.mjs`
+## 3. Drawing with a seed
 
-- It draws with **mulberry32**, a seeded random number generator. The same seed gives the same result on any machine and any Node version
-- The output is a Markdown table plus one line with the seed. Pass the seed back in to repeat the draw
+`scripts/pick.mjs` does the draw
+
+- It draws with **[mulberry32](glossary:mulberry32)**, a seeded [random number generator](glossary:prng). The same [seed](glossary:seed) gives the same result on any machine and any [Node](glossary:nodejs) version
+- The output is a [Markdown](glossary:markdown) table plus one line with the [seed](glossary:seed). Pass the [seed](glossary:seed) back in to repeat the draw
 
 ```bash
 node scripts/pick.mjs [options]
@@ -68,18 +70,18 @@ node scripts/pick.mjs [options]
 
 - `-n` and `--from` cannot be used together
 
-### What Claude does
+## 4. How Claude proposes ideas
 
 1. Turns the request ("give me an idea with one AI and one hardware") into options and runs `pick.mjs`
-2. Shows the drawn table and the seed
+2. Shows the drawn table and the [seed](glossary:seed)
 3. Proposes three ideas. Each says where every drawn technology is used, the smallest version you can finish in a weekend, and the part most likely to get stuck
 
-- **No swapping.** The skill tells Claude not to drop or replace a drawn technology even if the combination looks awkward. Extra pieces such as a database or hosting go on a separate "also needed" line
-- **The list never enters the conversation.** Only the script reads the 500 KB `techs.json`; only the drawn rows reach the conversation. So one draw costs a few hundred tokens
+- **No swapping.** The [skill](glossary:claude-skill) tells Claude not to drop or replace a drawn technology even if the combination looks awkward. Extra pieces such as a [database](glossary:database) or [hosting](glossary:hosting) go on a separate "also needed" line
+- **The list never enters the conversation.** Only the script reads the 500 KB `techs.json`; only the drawn rows reach the conversation. So one draw costs a few hundred [tokens](glossary:token)
 
-### Installation
+## 5. Installation
 
-Add the marketplace in Claude Code and install the plugin
+Add the marketplace in [Claude Code](glossary:claude-code) and install the [plugin](glossary:claude-code-plugin)
 
 ```bash
 claude plugin marketplace add seren-wib/random-idea-generator
@@ -90,11 +92,11 @@ claude plugin install random-idea@seren-wib
 ```
 
 - Open a new session, or run `/reload-plugins` in an open one
-- The skill runs `node`, so `node --version` has to work in your terminal
+- The [skill](glossary:claude-skill) runs `node`, so `node --version` has to work in your terminal
 
-### Sample output
+## 6. Sample output
 
-One AI/ML, one hardware, two frontend
+One AI/ML, one hardware, two [frontend](glossary:frontend)
 
 ```bash
 node scripts/pick.mjs --from "AI/ML=1,Hardware/Embedded=1,Frontend=2" --seed 7
@@ -102,12 +104,12 @@ node scripts/pick.mjs --from "AI/ML=1,Hardware/Embedded=1,Frontend=2" --seed 7
 
 Seed: 7 (repeat this draw with --seed 7)
 
-| Name                 | Category          | What it is                                                               | Typical uses                            | Hardware |
-| -------------------- | ----------------- | ------------------------------------------------------------------------ | --------------------------------------- | -------- |
-| Adversarial Training | AI/ML             | Method that adds attack examples to training to make a model more robust | model defense, robustness improvement   |          |
-| ATmega328P           | Hardware/Embedded | 8-bit AVR MCU used in the Arduino Uno                                    | learning basic embedded, simple control | yes      |
-| WebUSB               | Frontend          | API for accessing USB devices from the browser                           | web-based firmware flashers             | yes      |
-| Relay                | Frontend          | Meta's GraphQL client                                                    | large-scale GraphQL apps                |          |
+| Name                                                  | Category                      | What it is                                                                | Typical uses                                                        | Hardware |
+| ----------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------- | -------- |
+| [Adversarial Training](glossary:adversarial-training) | AI/ML                         | Method that adds attack examples to training to make a model more robust  | model defense, robustness improvement                               |          |
+| [ATmega328P](glossary:atmega328p)                     | Hardware/Embedded             | 8-bit AVR [MCU](glossary:mcu) used in the [Arduino](glossary:arduino) Uno | learning basic [embedded](glossary:embedded-system), simple control | yes      |
+| [WebUSB](glossary:webusb)                             | [Frontend](glossary:frontend) | API for accessing USB devices from the browser                            | web-based firmware flashers                                         | yes      |
+| [Relay](glossary:relay)                               | [Frontend](glossary:frontend) | Meta's [GraphQL](glossary:graphql) client                                 | large-scale [GraphQL](glossary:graphql) apps                        |          |
 
 Four from anywhere
 
@@ -117,34 +119,36 @@ node scripts/pick.mjs --seed 2026
 
 Seed: 2026 (repeat this draw with --seed 2026)
 
-| Name                        | Category      | What it is                        | Typical uses               | Hardware |
-| --------------------------- | ------------- | --------------------------------- | -------------------------- | -------- |
-| Kotlin Notebook             | Data/DB       | Kotlin notebook environment       | data analysis, prototyping |          |
-| GNU Make                    | Build/Tooling | Makefile-based build tool         | C/C++ builds, automation   |          |
-| Datadog Incident Management | Infra/DevOps  | Datadog incident response feature | incident response, on-call |          |
-| Alibaba Cloud               | Infra/DevOps  | Alibaba's cloud platform          | China-region services      |          |
+| Name                                                                            | Category      | What it is                                            | Typical uses                                   | Hardware |
+| ------------------------------------------------------------------------------- | ------------- | ----------------------------------------------------- | ---------------------------------------------- | -------- |
+| [Kotlin Notebook](glossary:kotlin-notebook)                                     | Data/DB       | Kotlin notebook environment                           | data analysis, prototyping                     |          |
+| [GNU Make](glossary:gnu-make)                                                   | Build/Tooling | Makefile-based build tool                             | C/C++ builds, automation                       |          |
+| [Datadog](glossary:datadog) [Incident Management](glossary:incident-management) | Infra/DevOps  | [Datadog](glossary:datadog) incident response feature | incident response, [on-call](glossary:on-call) |          |
+| [Alibaba Cloud](glossary:alibaba-cloud)                                         | Infra/DevOps  | Alibaba's cloud platform                              | China-region services                          |          |
 
-- A mix like the second one, two infra tools with a notebook and a build tool, rarely comes up when you pick by hand. Getting mixes like this is the point
+## 7. Decisions that changed along the way
 
-## 3. Decisions that changed along the way
-
-- **A CLI, no web page.** I did not build a drawing screen. The ideas come out of a conversation with Claude anyway
-- **One skill instead of a CLI repo.** Instead of a separately installed CLI tool, everything lives in one skill folder (`SKILL.md`, the script, the list)
+- **A [CLI](glossary:cli), no web page.** I did not build a drawing screen. The ideas come out of a conversation with Claude anyway
+- **One [skill](glossary:claude-skill) instead of a [CLI](glossary:cli) repo.** Instead of a separately installed [CLI](glossary:cli) tool, everything lives in one [skill](glossary:claude-skill) folder (`SKILL.md`, the script, the list)
 - **Dropped the "known" field.** I was going to mark whether I knew each technology and draw by a ratio of known to unknown, then dropped the field
-- **Private → public, in English.** The repo started private, then went public with the README and the list written in English
+- **Private → public, in English.** The repo started private, then went public with the [README](glossary:readme) and the list written in English
 
-## 4. Where to share it
+## 8. Where to share it
 
-Places that collect Claude skills and plugins. Star counts as of 2026-11-17
+Places that collect Claude [skills](glossary:claude-skill) and [plugins](glossary:claude-code-plugin). Star counts as of 2026-11-17
 
 | Place                                                                                   | Size   | How to submit and requirements                                                                         |
 | --------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------ |
-| Anthropic's official plugin directory                                                   | -      | Submit at claude.ai/directory/manage. PRs to anthropics/claude-plugins-official are no longer reviewed |
-| [BehiSecc/awesome-claude-skills](https://github.com/BehiSecc/awesome-claude-skills)     | 10.4k★ | PR, no fixed rules                                                                                     |
-| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills) | 79.7k★ | PR. Needs a real use case, sample prompts and output                                                   |
+| Anthropic's official [plugin](glossary:claude-code-plugin) directory                    | -      | Submit at claude.ai/directory/manage. PRs to anthropics/claude-plugins-official are no longer reviewed |
+| [BehiSecc/awesome-claude-skills](https://github.com/BehiSecc/awesome-claude-skills)     | 10.4k★ | [PR](glossary:pull-request), no fixed rules                                                            |
+| [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills) | 79.7k★ | [PR](glossary:pull-request). Needs a real use case, sample prompts and output                          |
 | [travisvn/awesome-claude-skills](https://github.com/travisvn/awesome-claude-skills)     | 15.9k★ | The repo needs some stars first                                                                        |
 | [hesreallyhim/awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) | 58.2k★ | 100+ stars, submissions only through the web issue form                                                |
 | r/ClaudeAI, r/ClaudeCode                                                                | -      | Community posts                                                                                        |
 | GeekNews Show GN                                                                        | -      | Posts introducing something you made                                                                   |
 
 - If it got you building something you would not have picked yourself, a ⭐ on the repo helps other people find it
+
+## 9. Reflection
+
+A mix like the second example, two infra tools with a notebook and a build tool, rarely comes up when you pick by hand. Getting mixes like this is the point.

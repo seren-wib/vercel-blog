@@ -11,17 +11,17 @@ summary: 'Scope of computer science, problems and algorithms (Euclidean algorith
 **Computer science is the study of problem-solving methods together with the computer systems that execute them**
 
 1. Problem definition
-2. Algorithm design
+2. [Algorithm](glossary:algorithm) design
 3. Program implementation
 4. Execution on a computer system
 
 ## The whole flow in one line
 
-**Problem → algorithm → program (C code) → executable → process → executed by the CPU**
+**Problem → [algorithm](glossary:algorithm) → program ([C code](glossary:c)) → [executable](glossary:executable-file) → [process](glossary:process) → executed by the [CPU](glossary:cpu)**
 
 # 2. Problems and algorithms
 
-- Algorithmic thinking: turning a problem into clear steps and data forms
+- [Algorithmic](glossary:algorithm) thinking: turning a problem into clear steps and data forms
 
 ## Algorithm
 
@@ -30,17 +30,17 @@ summary: 'Scope of computer science, problems and algorithms (Euclidean algorith
 
 ### Example (Euclidean algorithm)
 
-- gcd(m, n) = gcd(n, m mod n); when n becomes 0, m is the answer.
-- gcd(48,18) → (18,12) → (12,6) → (6,0) → 6
+- [gcd](glossary:gcd)(m, n) = [gcd](glossary:gcd)(n, m [mod](glossary:modulo) n); when n becomes 0, m is the answer.
+- [gcd](glossary:gcd)(48,18) → (18,12) → (12,6) → (6,0) → 6
 
 # 3. Connecting programs and computer systems
 
-- Until C code runs: preprocessing → compiling → assembling → linking → executable → OS loads it into memory
+- Until C code runs: [preprocessing](glossary:preprocessing) → [compiling](glossary:compiler) → [assembling](glossary:assembly) → [linking](glossary:linker) → [executable](glossary:executable-file) → [OS](glossary:os) [loads](glossary:loader) it into memory
 
-- Program execution path: user → application program → standard library → operating system → hardware
+- Program execution path: user → application program → [standard library](glossary:standard-library) → [operating system](glossary:os) → hardware
 
 ## Abstraction
 
 Hide the complex internals and expose only what the user needs
 
-Address of arr[i] = start address + i × element size
+[Address](glossary:memory-address) of [arr[i]](glossary:array) = start address + i × element size

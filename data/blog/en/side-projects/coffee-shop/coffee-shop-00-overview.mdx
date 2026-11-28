@@ -1,117 +1,350 @@
 ---
-title: 'Coffee Shop 0. A Coffee Bean Shop as a Term Project'
+title: 'Coffee Shop 0. A Bean Shop from Documents to Deployment'
 date: '2026-11-28'
 tags: ['Coffee Shop']
 draft: false
 aiGenerated: true
-summary: 'What, why and how of a coffee bean shop built as a Software Engineering team project: team, timeline, numbers and the series index'
+level: 3
+summary: 'How a coffee bean shop went from documents to production as a Software Engineering team project, with numbers'
 ---
 
-> This is the first post of a series on `coffee-shop`, the coffee bean shop built as the term project of a Software Engineering course. It is written so that someone new to the project gets the what, why and how from this post alone. The six posts after it follow the repository's commit history part by part. Claude Code wrote this series from the commits, pull requests and work notes.
+## 0. Introduction
+
+For a Software Engineering team assignment I built `coffee-shop`, an online coffee bean shop. The course grades documents more than code: the [SRS](glossary:srs) and the [SDD](glossary:sdd) are 10% each, so from 2026-09-15 the first two months were almost all documents. Implementation and [Deployment](glossary:deployment) were squeezed into the last ten days. The repository is public ([seren-wib/coffee-shop](https://github.com/seren-wib/coffee-shop)), and [Claude Code](glossary:claude-code) wrote this post from the commits, [PRs](glossary:pull-request) and work notes.
+
+In restaurant terms, the first two months were drawing the menu and the kitchen blueprint and getting them reviewed, and the last ten days were building the kitchen and the dining room and opening the doors. Every order slip got a number so the floor and the kitchen call it the same way, there is only one kitchen so orders queue in one line at the door, and the sign was swapped only after the new place was fully set up. The menu and blueprint are the [SRS](glossary:srs) and [SDD](glossary:sdd), the review is the assignment submissions and the professor's feedback, construction is the implementation [PRs](glossary:pull-request), the slip number is the requirement ID, the single line is the [SQLite](glossary:sqlite) [write lock](glossary:write-lock) wait ([BEGIN IMMEDIATE](glossary:begin-immediate) [transaction](glossary:transaction)), and the sign is the `current` [symbolic link](glossary:symbolic-link).
+
+Below, documents, [backend](glossary:backend), [frontend](glossary:frontend) and [Deployment](glossary:deployment) follow in the order they happened, and the numbers are in one table in section 11.
 
 ## 1. What we built
 
-A small online shop that sells coffee beans. Customers pick beans, choose a size and grind, put them in a cart, order, pay and track the delivery. Admins manage beans and stock and move orders through preparing, shipping and cancellation.
-
-| Who      | What they can do                                                          |
-| -------- | ------------------------------------------------------------------------- |
-| Guest    | Bean list and detail, search and filters, sign-up, login                  |
-| Member   | Cart, order, payment, order list and cancel, delivery tracking, addresses |
-| Admin    | Create and edit beans, options and stock, stop sales, handle orders       |
-| Operator | Install the server, deploy, create the admin account, check backups       |
-
-Payments run in Toss Payments **test mode**. No real money moves. The repository is public: [seren-wib/coffee-shop](https://github.com/seren-wib/coffee-shop).
-
-## 2. Why so much writing first
-
-The course is Software Engineering, so the documents are graded more than the code. By the syllabus, the requirements specification (SRS) and the design description (SDD) are 10% each. That is why the first two months of the project were almost all documents.
-
-In building terms, the first two months were drawing the blueprints and getting them reviewed, and the last ten days were construction.
-
-![Project timeline diagram. Sep 15 repository created, Sep 22 to Oct 11 HW1 requirement documents, Nov 6 to 9 HW2 design documents, Nov 17 documents restructured and docs-sync, Nov 19 backend implementation, Nov 23 frontend, Nov 27 deployment and CD, Nov 28 SDD feedback applied](/static/images/coffee-shop-00-overview/timeline.svg)
-
-The blueprints are the SRS and SDD, the reviews are the assignments (HW1, HW2) and the professor's feedback, and construction is the implementation pull requests. The analogy stops here.
-
-| Period             | Stage                   | What                                                                        |
-| ------------------ | ----------------------- | --------------------------------------------------------------------------- |
-| 2026-09-15 ~ 10-11 | HW1 requirements        | Use cases, DB schema, classes, wireframes, sequences, requirements          |
-| 2026-11-06 ~ 11-09 | HW2 design              | Algorithms, system architecture, non-functional design, screen flow         |
-| 2026-11-17         | Document restructure    | SRS and SDD rewritten as stage documents in `docs/specs/`, Google Docs sync |
-| 2026-11-19         | Backend                 | Two spikes, CI, models, every API, deploy scripts                           |
-| 2026-11-23         | Frontend                | 16 screens                                                                  |
-| 2026-11-27 ~ 11-28 | Deploy, final documents | First production deploy, continuous deployment (CD), final SRS and SDD      |
-
-## 3. How we built it
-
-The structure is simple. The React screens in the browser call a Django REST API, and the data lives in one SQLite file. Production is one AWS EC2 instance with Cloudflare in front.
+A customer picks beans, chooses a size and grind, puts them in the cart, orders, pays and tracks delivery. An admin manages beans and stock and moves orders through preparing, shipping and cancellation. Payments run in [Toss Payments](glossary:toss-payments) [test mode](glossary:test-mode), so no real money moves.
 
 ![System diagram. The React SPA in the browser goes through the Cloudflare proxy to nginx on EC2; nginx splits static files from /api/, which goes to gunicorn and Django. Django writes to a SQLite file and calls the Toss Payments API to confirm and cancel payments. The browser opens the payment window itself](/static/images/coffee-shop-00-overview/architecture.svg)
 
-| Area       | Choice                                     | Reason                                                                                                      |
-| ---------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| Backend    | Django 6.1, Django REST Framework          | ORM, migrations and auth come built in, which shrinks the work; the test runner is built in too             |
-| DB         | SQLite (WAL, IMMEDIATE transactions)       | One server and only demo users, so no reason for a separate DB server. Concurrent orders checked by a spike |
-| Frontend   | React 19, Vite 8, Tailwind CSS 4           | An SPA with 16 screens. The Vite dev server proxies `/api` to Django, so local setup is one line            |
-| Payments   | Toss Payments window SDK 2.10.0, test keys | Korean test payments work with just a sign-up                                                               |
-| Operations | EC2 t3.micro, nginx, gunicorn, systemd     | About $14.96 a month (estimate, SPMP 4.1). Only one server to look after                                    |
-| Automation | GitHub Actions (ci, docs-sync, deploy)     | Reaches Google and AWS through OIDC with no secrets                                                         |
+| Area                          | Choice                                                                                                                                          | Reason                                                                                                                                               |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Backend](glossary:backend)   | [Django](glossary:django) 6.1, [Django REST Framework](glossary:django-rest-framework)                                                          | [ORM](glossary:orm), [database migration](glossary:database-migration) and auth come built in, which shrinks the work; the test runner is built in   |
+| DB                            | [SQLite](glossary:sqlite) ([WAL](glossary:wal), [IMMEDIATE](glossary:transaction) [transactions](glossary:transaction))                         | One server and only demo users, so no reason for a separate DB server. Concurrent orders checked by a [spike](glossary:spike)                        |
+| [Frontend](glossary:frontend) | [React](glossary:react) 19, [Vite](glossary:vite) 8, [Tailwind CSS](glossary:tailwind-css) 4                                                    | An [SPA](glossary:spa) with 16 screens. The [Vite](glossary:vite) dev server proxies `/api` to [Django](glossary:django), so local setup is one line |
+| Payments                      | [Toss Payments](glossary:toss-payments) window [SDK](glossary:sdk) 2.10.0, test keys                                                            | Korean test payments work with just a sign-up                                                                                                        |
+| Operations                    | [EC2](glossary:amazon-ec2) [t3.micro](glossary:amazon-ec2), [nginx](glossary:nginx), [gunicorn](glossary:gunicorn), [systemd](glossary:systemd) | About $14.96 a month (estimate, [SPMP](glossary:spmp) 4.1). Only one server to look after                                                            |
+| Automation                    | [GitHub Actions](glossary:github-actions) (ci, docs-sync, deploy)                                                                               | Reaches Google and AWS through [OIDC](glossary:oidc) with no [secrets](glossary:secret)                                                              |
 
-## 4. The team and the split
+Three people, listed by [GitHub](glossary:github) ID only. seren-wib (me) did requirements, architecture, the document restructure, all implementation and [Deployment](glossary:deployment). Heisnotanimposter did the HW1 DB schema [DDL](glossary:ddl), the [class diagram](glossary:class-diagram) and [domain model](glossary:domain-model), and method algorithm design. Yang-HA-03 did the screen list and [wireframes](glossary:wireframe), [sequence diagrams](glossary:sequence-diagram), external interfaces and the screen flow. From November 17 I opened several [Claude Code](glossary:claude-code) sessions by role (documents, [backend](glossary:backend), [frontend](glossary:frontend), [Deployment](glossary:deployment)) and handed them the implementation. Each session owned its own folders, and the order, payment and admin order [PRs](glossary:pull-request) went through a [code review](glossary:code-review) (`/code-review`) before the merge. What to build and in which order was my call.
 
-Three people. People appear by GitHub ID only.
+![Project timeline diagram. Sep 15 repository created, Sep 22 to Oct 11 HW1 requirement documents, Nov 6 to 9 HW2 design documents, Nov 17 documents restructured and docs-sync, Nov 19 backend implementation, Nov 23 frontend, Nov 27 deployment and CD, Nov 28 SDD feedback applied](/static/images/coffee-shop-00-overview/timeline.svg)
 
-| GitHub            | Work                                                                            |
-| ----------------- | ------------------------------------------------------------------------------- |
-| seren-wib (me)    | Requirements, architecture, document restructure, all implementation, deploy    |
-| Heisnotanimposter | HW1 DB schema DDL, class diagram and domain models, method algorithm design     |
-| Yang-HA-03        | Screen list and wireframes, sequence diagrams, external interfaces, screen flow |
+## 2. Requirements and design documents
 
-Up to HW1 and HW2 the three of us split the writing. From November 17 I opened several Claude Code sessions by role (documents, backend, frontend, deploy) and handed them the implementation. Each session owned its own folders, and the order, payment and admin order pull requests went through a review (`/code-review`) before the merge. What to build and in which order was my call.
+### HW1 and HW2
 
-## 5. Numbers
+HW1 (requirements) ran from September 22 to October 11 and HW2 (design) from November 6 to 9. Roles were split by folder (`docs/backend/`, `docs/frontend/`). Figures were unified as `.drawio.svg` (#31): [GitHub](glossary:github) shows them as images and [draw.io](glossary:drawio) edits them as they are, while a plain `.drawio` shows only as XML on [GitHub](glossary:github).
 
-Values as of 2026-11-28. Sources: the repository's `main` (`git rev-list`, `git grep`) and GitHub (`gh pr list`, `gh run list`).
+With several people writing at once, the same fact differed between documents. Two were left in #36 as "items to confirm", decided at the October 11 meeting and applied in #41.
 
-| Item                      | Value                                                              |
-| ------------------------- | ------------------------------------------------------------------ |
-| Period                    | First commit 2026-09-15 ~ last merge 2026-11-28                    |
-| Commits on `main`         | 65 (1 initial commit + 64 pull request squash merges)              |
-| Merged pull requests      | 64. Two more were closed without merging                           |
-| Commit authors            | seren-wib 53, Heisnotanimposter 6, Yang-HA-03 6                    |
-| Requirement IDs           | DR-1~24, FR-1~63, NFR-1~43, UC-1~15                                |
-| Backend test functions    | 231 (`def test_`)                                                  |
-| Frontend tests            | 113 (vitest, 22 files)                                             |
-| `ci` workflow runs        | 64: 62 succeeded, 2 cancelled (by a newer push to the same branch) |
-| `docs-sync` workflow runs | 33: 23 succeeded, 10 cancelled                                     |
-| `deploy` workflow runs    | 3, all skipped (automatic deploy switched off, post 6)             |
-| First production deploy   | 2026-11-27 by hand, 29 s, health 200                               |
+- **State after a rejected cancellation.** The requirement said to return to the state before the request (`PAID` or `PREPARING`), but the schema had no column to store it. We added `status_before_cancel`, and the final implementation also got the [CHECK constraint](glossary:check-constraint) `ck_orders_cancel_request_previous` (#104).
+- **When stock is deducted.** The requirements and the `create_order` algorithm said at order creation, the table specification said at payment. We chose a single [conditional UPDATE](glossary:conditional-update) inside the order creation [transaction](glossary:transaction) (#100).
 
-## 6. Where the documents are
+The HW2 submission was a merged Google Docs file, and putting figures in as PNG took two fixes. [draw.io](glossary:drawio) to PNG broke Korean labels, so they became HTML labels (#55), and the screen flow did not fit the two-page limit, so a compressed two-row version was made just for the merged file (#57).
 
-The six stage documents live in the repository at [`docs/specs/`](https://github.com/seren-wib/coffee-shop/tree/main/docs/specs): project plan (SPMP), requirements specification (SRS), design description (SDD), test plan (STP), installation plan (SIP) and maintenance plan (SMP). Post 2 covers how every merge to `main` overwrites a Google Docs copy.
+### November 17: rewriting as stage documents
 
-The Google Drive copies (the synced Docs and the assignment submissions) do not open from a public link right now, so this post links only the repository. The content is the same, and the repository is the source.
+![Document restructure diagram. Left, old layout: HW1 and HW2 documents scattered across docs/backend, docs/frontend and docs/architecture.md. Right, new layout: six folders under docs/specs: spmp, srs, sdd, stp, sip, smp. The SRS defines DR, FR, NFR and UC IDs, and the SDD, STP, test names and PR bodies cite those IDs](/static/images/coffee-shop-01-requirements-design/docs-layout.svg)
 
-## 7. Series index
+Right before implementation I rewrote the scattered documents into six in `docs/specs/` ([SPMP](glossary:spmp), [SRS](glossary:srs), [SDD](glossary:sdd), [STP](glossary:stp), [SIP](glossary:sip), [SMP](glossary:smp)) and gave every requirement an ID (`DR-`, `FR-`, `NFR-`, `UC-`). It took four [PRs](glossary:pull-request) in one day.
 
-| Post | Title                                                                                                        | Pull requests                     |
-| ---- | ------------------------------------------------------------------------------------------------------------ | --------------------------------- |
-| 0    | This post                                                                                                    |                                   |
-| 1    | [Requirements and design documents](/en/blog/side-projects/coffee-shop/coffee-shop-01-requirements-design/)  | Documents in #7 ~ #57, #59 ~ #130 |
-| 2    | [Syncing documents to Google Docs](/en/blog/side-projects/coffee-shop/coffee-shop-02-docs-sync/)             | #64, #65, #66, #69                |
-| 3    | [Backend foundation](/en/blog/side-projects/coffee-shop/coffee-shop-03-backend-foundation/)                  | #73, #77, #80, #83, #85, #87      |
-| 4    | [Product, cart, order and payment APIs](/en/blog/side-projects/coffee-shop/coffee-shop-04-backend-features/) | #91 ~ #105                        |
-| 5    | [Frontend screens](/en/blog/side-projects/coffee-shop/coffee-shop-05-frontend/)                              | #111 ~ #119                       |
-| 6    | [Production deploy and continuous deployment](/en/blog/side-projects/coffee-shop/coffee-shop-06-deploy/)     | #108, #109, #125, #127            |
+| [PR](glossary:pull-request) | Lines changed | Content                                                                                                                                                                                                     |
+| --------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #59                         | +557 / -10    | Moved old documents to `docs/old/` and created the six document skeletons                                                                                                                                   |
+| #60                         | +554 / -35    | [SRS](glossary:srs) sections 1~7. DR 24, FR 57, [NFR](glossary:non-functional-requirement) 35, UC 14. Environment changed from "local PC" to [EC2](glossary:amazon-ec2) + [Cloudflare](glossary:cloudflare) |
+| #62                         | +2,292 / -51  | [SDD](glossary:sdd) sections 1~10. 9 components, 8 tables, 15 screens. 17 open questions in 11.2                                                                                                            |
+| #68                         | +49 / -2,345  | Deleted `docs/old/` (still in git history); only the 14 [wireframes](glossary:wireframe) moved to `docs/images/`                                                                                            |
 
-## Glossary
+#60 had 0 references to IDs outside the scope, and in #62 every FR, [NFR](glossary:non-functional-requirement), DR and UC was cited at least once with 0 missing IDs. There were three reasons to rewrite.
 
-| Term                                                                                                                                                                               | Meaning                                                                                  |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| [SRS](/en/blog/cs-fundamentals/software-engineering/software-engineering-ch4-requirements-analysis/#433-step-3-requirements-specification-software-requirements-specification-srs) | Requirements specification. What the system must do, written as sentences with IDs       |
-| SDD                                                                                                                                                                                | Design description. Which structure and code satisfy the requirements                    |
-| Spike                                                                                                                                                                              | A short experiment written before implementation to answer one technical question        |
-| [CI](/en/blog/dev/devops/devops-00-basics/#ci)                                                                                                                                     | Running tests and format checks automatically on every pull request and push             |
-| CD                                                                                                                                                                                 | Deploying a `main` commit that passed CI to production with no human step                |
-| SPA                                                                                                                                                                                | A web app that loads one page and lets JavaScript in the browser switch screens          |
-| [Test mode](/en/blog/dev/payments/payments-00-basics/#test-mode)                                                                                                                   | Keys and an environment a payment provider gives for running payments without real money |
+- **Without IDs there is no traceability.** To say which test checks "the order cancellation requirement", the requirement needs a number. So [requirements traceability](glossary:requirements-traceability) runs through IDs.
+- **The environment changed.** HW1 said "runs on a local PC only", but once the demo moved to a production server, [Deployment](glossary:deployment) and security requirements appeared.
+- **Stage documents let each implementation session read only what it needs.** Each session started from `docs/specs/README.md` and opened only its own section.
+
+On terms: in the [SRS](/en/blog/cs-fundamentals/software-engineering/software-engineering-ch4-requirements-analysis/#433-step-3-requirements-specification-software-requirements-specification-srs), a [domain requirement](glossary:domain-requirement) ([domain requirements](/en/blog/cs-fundamentals/software-engineering/software-engineering-ch4-requirements-analysis/#412-domain-requirements)) is a business rule such as option prices, shipping fees and order state changes, and a [non-functional requirement](glossary:non-functional-requirement) ([non-functional requirements](/en/blog/cs-fundamentals/software-engineering/software-engineering-ch4-requirements-analysis/#42-non-functional-requirements)) is a quality such as response time, security and [concurrency](glossary:concurrency).
+
+Once the [SRS](glossary:srs) fixes the IDs, everything else cites them, and test function names are the surest link.
+
+| Requirement | Test function                                          | What it checks                                                                                                                          |
+| ----------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| NFR-8       | `test_nfr8_token_lifetimes`                            | [Access token](glossary:access-token) 1,800 s, [refresh token](glossary:refresh-token) 604,800 s                                        |
+| NFR-9       | `test_nfr9_every_private_route_needs_token`            | Walks the whole URL config; a request without a token must get [401](glossary:http-status-code)                                         |
+| NFR-15      | `test_nfr15_last_stock_concurrent_orders`              | 10 concurrent orders for 1 unit: 1 success, 9 get [409](glossary:http-status-code)                                                      |
+| DR-19       | `test_dr19_disallowed_transitions_raise_invalid_state` | Every (action, state) pair outside the allowed table gets `INVALID_STATE` ([409](glossary:http-status-code) in the [API](glossary:api)) |
+
+The NFR-9 test walks the URL config itself, so routes added later are covered without editing it (#83). The new routes of the address [API](glossary:api) (#87) and the admin [API](glossary:api) (#95, #104) were checked automatically.
+
+When code and documents disagreed during implementation, the document was the one I fixed, and document-only [PRs](glossary:pull-request) stayed separate from code [PRs](glossary:pull-request). #121 (November 27) raised [CI/CD](glossary:cicd), deploy failure handling and the payment-off switch to requirements (FR-60~63, NFR-37~42, UC-15). The HW1 premise "local PC only" had left the [SRS](glossary:srs) without [CI/CD](glossary:cicd) requirements, although [CI](glossary:ci) had been running since November 19. #123 aligned the [SDD](glossary:sdd), [STP](glossary:stp), [SIP](glossary:sip) and [SPMP](glossary:spmp) lines that cite the new IDs.
+
+### Professor feedback (#129, #130)
+
+There were two points: number every UI part, and add a class and method specification.
+
+- Section 6 got a `6.x.0 whole screen` subsection and 72 part subsections (`6.1.1 SCR-01-01 search box`) for 16 screens, and 62 of the same ID badges went into the [draw.io](glossary:drawio) sources of the 14 [wireframes](glossary:wireframe), which were exported again.
+- A new section 12 lists 55 public [backend](glossary:backend) functions, 29 internal functions and 92 classes. A script checked them against `def` and `class` in `backend/`: 0 missing names, 0 signature mismatches.
+- Sections 1~11 kept their numbers, because many other documents point to them by section number.
+
+How documents sync to Google Docs automatically is in [Google Docs sync](/en/blog/side-projects/project-docs/project-docs-04-docs-sync/).
+
+## 3. SQLite concurrent order spike
+
+The biggest risk at design time was the DB. [SQLite](glossary:sqlite) has only one [write lock](glossary:write-lock) for the whole file. I could not write the order code without knowing what happens when 10 orders hit a bean with 1 unit left at once.
+
+![SQLite transaction mode comparison diagram. DEFERRED starts with a read and, when it tries to upgrade to a write lock after another connection committed first, gets SQLITE_BUSY with no waiting and becomes a 500. IMMEDIATE asks for the write lock at BEGIN, waits up to the 20 second timeout until it is free, then checks stock with a conditional UPDATE, and the loser gets 409](/static/images/coffee-shop-03-backend-foundation/sqlite-modes.svg)
+
+It is committed in `spikes/sqlite-concurrent-order/` (#73). It uses the design document's `create_order` as is: behind 3 [gunicorn](glossary:gunicorn) sync workers, 10 threads send `POST /api/orders/` at once. 10 requests per condition, 30 rounds, data reset every round.
+
+| Condition                                       | [201](glossary:http-status-code) | [409](glossary:http-status-code) | [500](glossary:http-status-code) | Rounds with wrong stock | [p95](glossary:percentile-latency) (local) |
+| ----------------------------------------------- | -------------------------------- | -------------------------------- | -------------------------------- | ----------------------- | ------------------------------------------ |
+| [IMMEDIATE](glossary:transaction), 300 requests | 30                               | 270                              | 0                                | 0                       | 41.96 ms                                   |
+| [DEFERRED](glossary:transaction) (default), 300 | -                                | -                                | 68 (in 29 of the 30 rounds)      | 0                       | not compared                               |
+
+The environment was [WSL2](glossary:wsl) Ubuntu (16 logical CPUs), [Python](glossary:python) 3.14.4, [Django](glossary:django) 6.1.1, [gunicorn](glossary:gunicorn) 27.0.1, [SQLite](glossary:sqlite) 3.46.1. I did not measure on the [t3.micro](glossary:amazon-ec2), so [p95](glossary:percentile-latency) is a local value.
+
+- **Stock was right in both modes.** What protects stock is the `WHERE stock_quantity >= n` [conditional UPDATE](glossary:conditional-update) plus [rollback](glossary:rollback), not the [transaction mode](glossary:transaction). That design stays.
+- **The [DEFERRED](glossary:transaction) [500s](glossary:http-status-code) cannot be prevented by `timeout`.** If a [transaction](glossary:transaction) that started with a read tries to upgrade to a write after another connection committed, [SQLite](glossary:sqlite) decides waiting is useless and returns `SQLITE_BUSY` (`database is locked`) immediately. It came back at once instead of after 20 seconds (server time at most 16.86 ms). That made `transaction_mode="IMMEDIATE"` a required setting.
+
+## 4. CI and branch protection
+
+I added [CI](glossary:ci) while there was still no feature code (#77). Even with 0 tests, the format check and the [database migration](glossary:database-migration) check mean something from the first model [PR](glossary:pull-request). The `backend` job runs `black --check`, `makemigrations --check`, tests on in-memory [SQLite](glossary:sqlite) and a [concurrency test](glossary:concurrency-test) on file [SQLite](glossary:sqlite); the `frontend` job runs `prettier --check`, `oxlint`, `vitest` and `vite build`.
+
+The [concurrency test](glossary:concurrency-test) runs separately because connections cannot see the same DB on in-memory [SQLite](glossary:sqlite), so `test_settings_file.py` holds a file-DB setting. It mutated the shared `DATABASES` dictionary at import time, which broke the in-memory run with `KeyError: 'MIRROR'`; `deepcopy` fixed it. [CI](glossary:ci) has no repository [secrets](glossary:secret) and tests run on fake values in `config/test_settings.py`.
+
+The same day I put [branch protection](glossary:branch-protection) on `main`.
+
+| Setting                                         | Value                     |
+| ----------------------------------------------- | ------------------------- |
+| Required checks                                 | `backend`, `frontend`     |
+| [PR](glossary:pull-request) required, approvals | required, 0               |
+| enforce admins                                  | on (admins cannot bypass) |
+| [Force push](glossary:force-push), deletion     | blocked                   |
+| strict (up to date with main)                   | off                       |
+
+Approvals are 0 because one person merges alone. Instead, nobody can merge without passing [CI](glossary:ci).
+
+## 5. Models, auth, stock, addresses
+
+I dropped HW1's `backend/schema.sql` and wrote the models fresh from [SDD](glossary:sdd) section 5 (#80, +1,623 / -590 lines). With a SQL file and [Django](glossary:django) models side by side, one of them ends up lying. Every constraint moved into `Meta.constraints` so the [database migration](glossary:database-migration) generates it.
+
+| Setting                           | Value                                                                                        |
+| --------------------------------- | -------------------------------------------------------------------------------------------- |
+| DB                                | [SQLite](glossary:sqlite), `transaction_mode="IMMEDIATE"`, [WAL](glossary:wal), `timeout=20` |
+| Default permission                | `IsAuthenticated` (public [APIs](glossary:api) opened explicitly)                            |
+| Response format                   | JSON renderer only                                                                           |
+| [Throttling](glossary:throttling) | login 10/min, sign-up 20/hour                                                                |
+| [JWT](glossary:jwt)               | [access token](glossary:access-token) 30 min, [refresh token](glossary:refresh-token) 7 days |
+| Timezone, locale                  | `Asia/Seoul`, `ko-kr`                                                                        |
+| [Django admin](glossary:django)   | attached only when `DEBUG` is on                                                             |
+
+The constraint names alone show the rules: `uq_user_addresses_one_default` (one default address), `uq_payments_order_success` (one successful payment per order), `ck_orders_shipped_fields` (tracking fields required once shipped).
+
+Auth (#83) is [JWT](glossary:jwt). The token claims hold only `user_id` and `role`. That is enough for the screen to decide whether to show the admin menu, and anyone can decode a token.
+
+- **Login failure has one response.** A missing email and a wrong password both give the same [401](glossary:http-status-code) `INVALID_CREDENTIALS` (NFR-7). Different responses would reveal which emails are registered.
+- **Sign-up requires privacy consent.** Without `privacy_agreed` it is rejected, and the time goes into `privacy_agreed_at` (FR-58).
+- **A [throttling](glossary:throttling) test trap.** Changing the limit with `override_settings` had no effect, because [DRF](glossary:django-rest-framework) reads `THROTTLE_RATES` at import time. The test patches `ScopedRateThrottle.THROTTLE_RATES` directly.
+- **Admin accounts cannot be created through the sign-up [API](glossary:api).** Only on the server, with `manage.py create_admin --email ...`.
+
+The stock service (#85) is five functions: `decrease_stock`, `increase_stock`, `set_stock`, `stop_sales`, `resume_sales`. Each is one [conditional UPDATE](glossary:conditional-update) and raises `DomainError` when 0 rows changed. Addresses (#87) keep "a member with addresses has exactly one default" in two layers: the service clears the old default before setting a new one, and if there are still two, a [partial unique index](glossary:partial-unique-index) blocks it.
+
+## 6. Order state changes and order creation
+
+One rule for everything: **code that changes state is always a [conditional UPDATE](glossary:conditional-update), and 0 changed rows means [409](glossary:http-status-code).** An order moves among seven states.
+
+![Order state diagram. From PENDING, payment success goes to PAID and member cancellation to CANCELLED. From PAID, admin prepare goes to PREPARING. From PAID and PREPARING, a member cancel request goes to CANCEL_REQUESTED, saving the earlier state in status_before_cancel. From CANCEL_REQUESTED, admin approval cancels at the PG and goes to CANCELLED, rejection returns to the earlier state. From PREPARING, shipping goes to SHIPPED and delivery to DELIVERED. Any change not in the table is 409 INVALID_STATE](/static/images/coffee-shop-04-backend-features/order-states.svg)
+
+```python:backend/orders/services.py
+# When a member cancels a pending-payment order directly
+updated = Order.objects.filter(
+    pk=order.pk, order_status=OrderStatus.PENDING
+).update(order_status=OrderStatus.CANCELLED)
+if updated == 0:
+    order.refresh_from_db()
+    raise invalid_state(order.order_status, "cancel")
+```
+
+With read, check, write as three steps, two concurrent requests can both pass the check. Putting the condition in `WHERE` makes check and write one statement, so there is no gap. Every admin order change goes through one helper, and `test_dr19_...` walks every pair outside the allowed table and expects `INVALID_STATE` (#104). Rejecting a cancellation restores `status_before_cancel` with an [F expression](glossary:f-expression). A `CANCEL_REQUESTED` row with that column empty cannot exist because of the [CHECK constraint](glossary:check-constraint), which I added after a review found that rejecting a cancel request with no earlier state returned a [500](glossary:http-status-code).
+
+An order is made from the whole cart (#100), in one [transaction](glossary:transaction):
+
+1. Read the cart under the [IMMEDIATE](glossary:transaction) [write lock](glossary:write-lock)
+2. Check sale status and stock per item, collect **all** problem `cart_item_ids` and return them in a [409](glossary:http-status-code) (`NOT_AVAILABLE` or `OUT_OF_STOCK`). Reporting one at a time makes the customer meet the next problem after every fix
+3. Assign the order number `ORD-YYYYMMDD-NNN` (a per-day sequence in Seoul time)
+4. Subtract stock per item with `decrease_stock`; if any fails, [roll back](glossary:rollback) everything
+5. Copy product name and price into the order item as a [snapshot](glossary:snapshot), so a later price change leaves the order as it was
+
+The [concurrency test](glossary:concurrency-test) `test_nfr15_last_stock_concurrent_orders` encodes the expected values of the section 3 [spike](glossary:spike). On file [SQLite](glossary:sqlite) with 10 threads it gave [201](glossary:http-status-code) once, [409](glossary:http-status-code) nine times, stock 0 and 1 order row in all 3 local runs.
+
+The #100 review produced 8 findings and I fixed all of them. For example, only an order number collision became a [409](glossary:http-status-code) `RETRY`, while other constraint violations stay [500](glossary:http-status-code) (folding everything into `RETRY` hides bugs).
+
+On the product side, the list (#91) is 20 per page, newest first, hides `STOPPED`, and ANDs the search, origin, price range and roast filters. List and detail share one query function `customer_products()`, so the "hide stopped products" rule cannot split, and a detail with 3 options takes 2 queries. The [seed data](glossary:seed-data) command `seed_demo` (#99) creates 100 beans, 50 members and [500](glossary:http-status-code) orders from a fixed seed by default. Orders split 71~72 per state across 7 states, and it took 1.71 s on file [SQLite](glossary:sqlite) (one measurement). It refuses a DB that already has data and needs `--force` when `DEBUG=False`.
+
+## 7. Payments: measure first, then code
+
+The browser opens the payment window and the server does the [payment approval](glossary:payment-approval) through the [Toss Payments](glossary:toss-payments) [API](glossary:api). Writing code without knowing the shape of the approval response or the error for a double cancellation would be guessing, so I ran a [spike](glossary:spike) before any payment code (#92, #105).
+
+![Payment flow diagram. The browser starts a payment with POST /api/orders/id/payments/ and the server creates a READY payment row. The browser opens the Toss payment window and, on success, receives paymentKey, orderId and amount at successUrl. The browser sends POST /api/payments/confirm/, the server compares the amount with the start amount and only if equal calls the Toss confirm API outside the transaction. If status is DONE the payment is SUCCESS and the order PAID. If the amount differs it does not call the PG, closes the payment as CANCELLED and returns 409 PAYMENT_MISMATCH](/static/images/coffee-shop-04-backend-features/payment-flow.svg)
+
+I measured with two test payments (1,000 won each). The 9 raw calls, with `paymentKey` masked, are in `spikes/toss-confirm-cancel/results/calls.jsonl`.
+
+| Step | Check                                            | Result                                                                                                                           |
+| ---- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| 2    | Approval                                         | 200 `DONE`, `method: "간편결제"`, +09:00 in `approvedAt` (1,313 ms / 551 ms)                                                     |
+| 3    | Full cancel, second cancel with another key      | 200 `CANCELED` (585 ms); second one 400 `ALREADY_CANCELED_PAYMENT` (215 ms)                                                      |
+| 4    | Approve with an amount different from the window | [403](glossary:http-status-code) `FORBIDDEN_REQUEST` (211 ms). The payment stays and can be approved again with the right amount |
+| 5    | Close the payment window with X                  | Does not go to `failUrl`; `requestPayment()` fails with `USER_CANCEL` (both runs)                                                |
+| 6    | Approve a payment older than 10 minutes          | Not measured                                                                                                                     |
+| 7    | Cancel twice with the same `Idempotency-Key`     | Both 200, same body (616 ms / 89 ms). Only 1 cancellation                                                                        |
+
+- **Step 4 changed the design.** It used to be "approve, then cancel at the [PG](glossary:payment-gateway) if the amount differs", but [Toss](glossary:toss-payments) rejects approving a different amount with [403](glossary:http-status-code), so that path is never reached. Now, if the confirm request's amount differs from the amount at payment start, the server **does not call the [PG](glossary:payment-gateway)**, closes the payment as `CANCELLED` and returns [409](glossary:http-status-code) `PAYMENT_MISMATCH` (#105). The cancel-after-approval path stays as a guard for a [PG](glossary:payment-gateway) reporting a different `totalAmount`.
+- **Step 7 set the order of cancellation approval.** Resending with the same [idempotency key](glossary:idempotency-key) (`cancel-<payment_id>`) returns the first result, so **cancelling at the [PG](glossary:payment-gateway) first and changing the DB after** is safe to resend if the request breaks midway.
+- **Step 5 became a screen rule.** Watching only `failUrl` misses the window close, so the screen receives the `requestPayment()` error directly (section 8).
+- Step 6 stays open in the documents as the assumption "per public docs, approval fails after 10 minutes".
+
+The payment code (#102) follows three rules.
+
+- The only code that calls [Toss](glossary:toss-payments) is `TossPaymentsClient` in `orders/pg.py`; tests use `FakePaymentsClient`.
+- [PG](glossary:payment-gateway) calls happen outside the DB [transaction](glossary:transaction). An external call can take up to the 10 s [timeout](glossary:timeout), and holding the [SQLite](glossary:sqlite) [write lock](glossary:write-lock) that long would stall every other order.
+- Only [Toss](glossary:toss-payments) `status == "DONE"` counts as approved. A [timeout](glossary:timeout), a 5xx, a non-JSON response or a dropped connection leaves the payment `READY` and returns [502](glossary:http-status-code) `PG_ERROR`.
+
+The #102 review gave 8 findings, and for each fix I first added a [regression test](glossary:regression-test) that fails on the old code. The heaviest was that a new payment attempt replacing a payment under approval could make the order `PAID` with no successful payment.
+
+## 8. Frontend screens
+
+The flow came from the [wireframes](glossary:wireframe) (HW1) and the look from a design canvas (BeanShop UI, 18 frames), then five [PRs](glossary:pull-request) (#111, #113, #115, #117, #119) built the screens in one day, November 23. The principle was **the screen does not decide**. Which buttons to show and whether paying again is allowed come in the server response, and the screen draws them as given.
+
+| Area   | Choice                                                                                                                           | Reason                                                                              |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| UI     | [React](glossary:react) 19, [React Router](glossary:react-router) 7                                                              | 18 routes set in one route table, wrapped in `RequireAuth` and `RequireAdmin`       |
+| Style  | [Tailwind CSS](glossary:tailwind-css) 4, [theme tokens](glossary:design-token)                                                   | Moving the canvas colors and spacing into tokens avoids rewriting values per screen |
+| HTTP   | One [axios](glossary:axios) instance                                                                                             | Token attach and refresh live in one file, `api/client.js` (NFR-31)                 |
+| Checks | [vitest](glossary:vitest), [Testing Library](glossary:testing-library), [oxlint](glossary:oxlint), [prettier](glossary:prettier) | The [CI](glossary:ci) `frontend` job runs them as they are                          |
+
+Admin screens are split with [lazy loading](glossary:lazy-loading) (`React.lazy`) because customers do not need to download them. #113~#119 were checked against a local [backend](glossary:backend).
+
+### Token refresh: once, and everyone waits
+
+An [access token](glossary:access-token) expires in 30 minutes. If the screen calls three [APIs](glossary:api) at once with an expired token, all three get [401](glossary:http-status-code), and if each sends its own [refresh token](glossary:refresh-token), the refresh goes out three times.
+
+![Token refresh diagram. Requests A, B and C all get 401 at once. The first sends POST /api/auth/token/refresh/ through refreshAccess() and keeps that Promise in the refreshing variable. B and C wait for the same Promise. When the new access token arrives, all three get a _retried mark and are resent once. If the refresh fails, the tokens are cleared and the user goes to /login?next=](/static/images/coffee-shop-05-frontend/token-refresh.svg)
+
+The response [interceptor](glossary:interceptor) in `api/client.js` works like this.
+
+- On a [401](glossary:http-status-code), if the request is not already a retry (`_retried`) and is not itself a login or refresh request, it tries to refresh
+- If a refresh is in progress it waits on that [Promise](glossary:promise), otherwise it creates one, and clears it when done
+- It resends the original request with the new token **once**; `_retried` prevents infinite loops
+- If there is no [refresh token](glossary:refresh-token) or the refresh fails, it clears the tokens and goes to `/login?next=<current path>`
+
+Only one file reads and writes the token keys: `auth/tokenStore.js`. The `role` inside the token only decides whether to show the admin menu; the real block is the server rechecking the role in the DB on every admin request and returning [403](glossary:http-status-code) (NFR-10).
+
+### Checkout and payment screens
+
+The payment window sends the browser to another page and back, and a person can close it midway.
+
+![Checkout screen flow diagram. The first click creates an order with POST /api/orders/, starts the payment right away and opens the Toss payment window. From the second click on, only the payment is reopened for the existing order. When the window returns to successUrl, /checkout/result sends confirm exactly once. PG_ERROR shows a re-check button, PAYMENT_MISMATCH a failure notice. Closing the window makes requestPayment() fail with USER_CANCEL and the checkout screen shows a cancellation notice; a failure returned through failUrl is recorded by the result screen through the fail API. The order can be paid again from its detail screen](/static/images/coffee-shop-05-frontend/checkout-flow.svg)
+
+- **First click creates the order and opens the window; later clicks only pay.** If every reopen after closing the window made a new order, stock would stay locked for each one (#115).
+- **Confirm only once.** `/checkout/result` sends the confirm request once with `useRef`, even though [StrictMode](glossary:strictmode) runs effects twice in development. The server confirm [API](glossary:api) is [idempotent](glossary:idempotency), so two calls would not break anything, but this keeps the result from flashing twice.
+- **A slow [PG](glossary:payment-gateway) and a failure are told apart.** [502](glossary:http-status-code) `PG_ERROR` shows a "check again" button, [409](glossary:http-status-code) `PAYMENT_MISMATCH` a failure notice.
+- **Closing the window arrives as an error.** As step 5 in section 7 showed, `lib/pay.js` receives the `USER_CANCEL` error directly and shows "Payment cancelled." Only a failure returned through `failUrl` is recorded by the result screen at `/api/payments/fail/`.
+
+Buttons are also decided by the server. The cancel, cancel request and pay again buttons on my order detail follow the `can_*` values of the response, and the prepare, ship, delivered, approve cancel and reject buttons on the admin order detail show only what is in `allowed_actions` (#119). If the screen kept its own state table, the [backend](glossary:backend) changing a transition rule would put wrong buttons on it. Even then, a button pressed on a stale screen ends in [409](glossary:http-status-code) at the server's [conditional UPDATE](glossary:conditional-update).
+
+Production has payments off (section 9), so I checked #115 in that state. Pressing pay shows a [503](glossary:http-status-code) `PAYMENTS_DISABLED` notice, and the order stays payable later from its detail screen. **The real [Toss](glossary:toss-payments) payment window has never been opened from this [frontend](glossary:frontend).** Confirm, failure and repay flows were checked only with fake responses in [vitest](glossary:vitest).
+
+## 9. A deployment that can roll back
+
+### The server starts even without a key (#108)
+
+This project had no [Toss](glossary:toss-payments) [test key](glossary:test-mode) of its own yet. If the server could not start without a key, the whole shop would hang on payments. So an empty `TOSS_SECRET_KEY` makes `PAYMENTS_ENABLED` false. Payment start, confirm and admin cancel approval stop with [503](glossary:http-status-code) `PAYMENTS_DISABLED` before touching the [PG](glossary:payment-gateway) or DB, and everything else keeps running. The [kill switch](glossary:kill-switch) is decided by whether a key exists, not by a code path.
+
+For dangerous settings it is the opposite: the server refuses to start (`config/checks.py`). `DEBUG` off with an empty `ALLOWED_HOSTS` refuses to start, and so does a `TOSS_SECRET_KEY` that does not start with `test_`, which stops a live key from moving real money at startup. All 6 new tests were confirmed to fail on the code before the change.
+
+### deploy.sh
+
+![Deploy script diagram. Under /srv/coffee-shop/releases there is one folder per tag. deploy.sh clones the new tag into a new folder and checks it is an ancestor of main, runs venv and pip install, the frontend build and version.txt, a pre-deploy DB backup and migrate, then switches the current symbolic link to the new folder. If the health check and version.txt match it is done; otherwise current goes back to the previous folder. The DB and .env live outside the release folders](/static/images/coffee-shop-06-deploy/release-switch.svg)
+
+`deploy/deploy.sh release-YYYYMMDD-N` takes one [release tag](glossary:release-tag), builds it in a new folder, and moves the `current` [symbolic link](glossary:symbolic-link) only if the [health check](glossary:health-check) passes.
+
+1. Check the tag format (wrong format exits with code 2); stop if `.env` is missing
+2. Clone the tag into `releases/<tag>/` and check the commit is an ancestor of `main` (otherwise delete and stop)
+3. [Backend](glossary:backend) venv and `pip install`, [frontend](glossary:frontend) `npm ci` and build. The build gets a `version.txt` holding the [commit hash](glossary:commit-hash)
+4. Pre-deploy [database backup](glossary:database-backup), then `migrate`
+5. Create `current.new` and swap it with `current` using `mv -T` (the switch happens at once)
+6. Check that `/api/health/` and the `version.txt` served by [nginx](glossary:nginx) match this commit. On failure, put `current` back on the previous release and, if the DB needs restoring, print the backup path
+7. Keep only the 3 most recent releases
+
+The DB file and `.env` live outside the release folders (`/srv/coffee-shop/data/`, `/srv/coffee-shop/.env`), so switching the link leaves them untouched. The same [PR](glossary:pull-request) added an [nginx](glossary:nginx) config template, [security headers](glossary:security-header), a log format that drops query strings, a script that trusts [CF-Connecting-IP](glossary:cf-connecting-ip) only from [Cloudflare](glossary:cloudflare) address ranges, [systemd](glossary:systemd) units (the app and a daily 04:00 backup timer), a [journald](glossary:journald) size limit and `install.sh` for first setup.
+
+### Rehearsal (#125)
+
+The shell scripts in #108 had only passed `bash -n`. Before production I did a [dry run](glossary:dry-run) in an Ubuntu 24.04 container with only `systemctl` faked.
+
+| Case                                                  | Result                            |
+| ----------------------------------------------------- | --------------------------------- |
+| First [deployment](glossary:deployment)               | 54 s, health 200                  |
+| Tag whose [health check](glossary:health-check) fails | Rolled back to previous (rc 1)    |
+| Tag whose `migrate` fails                             | `current` unchanged (rc 1)        |
+| Tag not on `main`                                     | `current` unchanged (rc 1)        |
+| Malformed tag                                         | [Exit code](glossary:exit-code) 2 |
+| [ShellCheck](glossary:shellcheck) `-S warning`        | 0 warnings                        |
+
+It caught three bugs. The four scripts in `deploy/` were committed as `100644`, so I set the [executable bit](glossary:executable-bit). The first [deployment](glossary:deployment) has no `current`, so reading the previous release with `readlink` returned the link path itself, and a failed first [deployment](glossary:deployment) left `current` pointing at itself (`readlink -e` returns empty when there is no target). [gunicorn](glossary:gunicorn) 27 opens a control socket in `$HOME`, but the app runs as a system account with no home folder, so `control_socket_disable = True` turned it off.
+
+### First production deployment
+
+On 2026-11-27 the operator logged in over [SSH](glossary:ssh) and deployed by hand: tag `release-20261127-1` (commit f87bffb), 29 s, health 200. From outside I checked the HTTP to [HTTPS](glossary:https) [301](glossary:http-status-code), the [health check](glossary:health-check), the 404 JSON for an unknown [API](glossary:api) path, the [security headers](glossary:security-header) and `version.txt`. Demo data went in with `seed_demo`: 100 beans, 50 members, [500](glossary:http-status-code) orders (`--force`, since `DEBUG` is off on that DB). The server address, domain and accounts appear neither in the repository nor in this post.
+
+## 10. Continuous deployment (CD)
+
+Since #127, merging into `main` is the only human step.
+
+![Auto deploy diagram. A push to main runs the ci workflow, and on success the deploy workflow starts through workflow_run. It continues only when DEPLOY_ENABLED is true. It picks the next release-YYYYMMDD-N tag, gets an IAM role through GitHub OIDC and pushes the tag. SSM Run Command (AWS-RunShellScript) runs deploy.sh with the tag on EC2 and prints the result. Finally it reads version.txt through Cloudflare and checks it equals the commit. Port 22 is not opened to GitHub; the SSM agent uses outbound 443](/static/images/coffee-shop-06-deploy/cd-flow.svg)
+
+The rules of `.github/workflows/deploy.yml`:
+
+- **When it runs.** When `ci` succeeds on a `main` push (`workflow_run`), or manually. An automatic run is skipped if the commit is no longer the tip of `main`, if it already has a [release tag](glossary:release-tag), or if only documents changed since the last tag.
+- **Credentials first, tag after.** If the [IAM role](glossary:aws-iam-role) cannot be obtained, no tag is left behind.
+- **[SSM](glossary:aws-systems-manager), not [SSH](glossary:ssh).** Port 22 is not opened to the [GitHub Actions](glossary:github-actions) runner. The server's [SSM](glossary:aws-systems-manager) agent opens outbound 443 and fetches commands. The role may only `ssm:SendCommand` with `AWS-RunShellScript` to that one instance for requests from this repository's `main`, and read results.
+- **One at a time.** `concurrency: deploy-production`, `cancel-in-progress: false`. A deploy must not be cut off midway, so the next run waits.
+- **No long-lived [secret](glossary:secret).** The three [Actions secrets](glossary:github-actions) (role ARN, instance ID, production URL) are identifiers, not [secrets](glossary:secret); they sit in [secrets](glossary:secret) only so the public repository's logs mask them.
+- **Off by default.** It runs only when the repository variable `DEPLOY_ENABLED` is `true`, so merging before the AWS setup does nothing.
+
+I ran the tag-picking shell in a temporary repository for five cases: first [deployment](glossary:deployment), a `ci` rerun, only documents changed, the number after `-10`, and a manual run on a commit that already has a tag. The AWS side runs only once its setup is done.
+
+The four `manage.py check --deploy` warnings (`SECURE_HSTS_SECONDS`, `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`) stay because [Cloudflare](glossary:cloudflare) does the HTTP to [HTTPS](glossary:https) switch now, and whether to turn it on in [Django](glossary:django) too is not decided.
+
+## 11. Numbers and current state
+
+As of 2026-11-28. Sources: the repository's `main` (`git rev-list`, `git grep`) and [GitHub](glossary:github) (`gh pr list`, `gh run list`).
+
+| Item                                                 | Value                                                                                                                                                                            |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Period                                               | First commit 2026-09-15 ~ last merge 2026-11-28                                                                                                                                  |
+| Commits on `main`                                    | 65 (1 initial commit + 64 [PR](glossary:pull-request) squash merges)                                                                                                             |
+| Merged [PRs](glossary:pull-request)                  | 64. Two more were closed without merging                                                                                                                                         |
+| Commit authors                                       | seren-wib 53, Heisnotanimposter 6, Yang-HA-03 6                                                                                                                                  |
+| Requirement IDs                                      | DR-1~24, FR-1~63, NFR-1~43, UC-1~15                                                                                                                                              |
+| [Backend](glossary:backend) test functions           | 231 (`def test_`)                                                                                                                                                                |
+| [Frontend](glossary:frontend) tests                  | 113 ([vitest](glossary:vitest), 22 files)                                                                                                                                        |
+| Main JS [bundle](glossary:bundle)                    | 379 kB ([gzip](glossary:gzip) 118 kB), admin screens split out (FE session notes, 2026-11-23)                                                                                    |
+| `ci` runs                                            | 64: 62 succeeded, 2 cancelled (by a newer push to the same branch)                                                                                                               |
+| `docs-sync` runs                                     | 33: 23 succeeded, 10 cancelled                                                                                                                                                   |
+| `deploy` runs                                        | 3, all skipped (no `DEPLOY_ENABLED`)                                                                                                                                             |
+| First production [deployment](glossary:deployment)   | 2026-11-27 by hand, 29 s, health 200. Production is up on `release-20261127-1`                                                                                                   |
+| Payments                                             | Off (no key of its own). The pay button shows a [503](glossary:http-status-code) notice                                                                                          |
+| Left for automatic [deployment](glossary:deployment) | AWS [OIDC provider](glossary:iam), deploy role, instance role attachment, [Actions secrets](glossary:github-actions), `DEPLOY_ENABLED=true`                                      |
+| Not measured                                         | Response time [p95](glossary:percentile-latency) (NFR-1), first screen in 2 s (NFR-2), recovery after reboot, backup restore, production [rollback](glossary:rollback) rehearsal |
+| `check --deploy`                                     | 4 warnings, 0 errors                                                                                                                                                             |
+
+The unmeasured items only have a placeholder "to be measured" in section 9 of the [STP](glossary:stp). The six stage documents are in the repository's [`docs/specs/`](https://github.com/seren-wib/coffee-shop/tree/main/docs/specs), and the repository is the source.
+
+## 12. Reflection
+
+Had I numbered the requirements in HW1, the November 17 rewrite would have been little more than moving things.

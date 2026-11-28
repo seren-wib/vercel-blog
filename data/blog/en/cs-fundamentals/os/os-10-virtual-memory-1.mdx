@@ -35,7 +35,7 @@ summary: 'hex, paging, virtual address, page table, demand paging, segmentation'
 
 # 0. HEX
 
-- `0x`: a marker meaning "this is hexadecimal"
+- `0x`: a marker meaning "this is [hexadecimal](glossary:hexadecimal)"
 - Example
   - `0x4AFE = 4×4096(16^3) + 10×256(16^2) + 15×16(16^1) + 14×1(16^0) = 19198`
 - One digit is 4 bits (because it's base 16)
@@ -44,23 +44,23 @@ summary: 'hex, paging, virtual address, page table, demand paging, segmentation'
 
 ## 1. Concept
 
-**virtual memory → page table → physical memory**
+**[virtual memory](glossary:virtual-memory) → [page table](glossary:page-table) → [physical memory](glossary:physical-memory)**
 
-- Lets the memory a process uses be split up and placed at noncontiguous locations in physical memory.
-- Cut virtual-mem and physical-mem into chunks of the same size (4kb is common)
-- The operating system keeps track of all free frames.
-- Sets up a page table to translate virtual addresses into physical addresses.
-- If you exit a program and restart it, the vm gives the same values but the actual physical memory is different.
+- Lets the memory a process uses be split up and placed at [noncontiguous](glossary:noncontiguous-allocation) locations in [physical memory](glossary:physical-memory).
+- Cut [virtual-mem](glossary:virtual-memory) and [physical-mem](glossary:physical-memory) into chunks of the same size (4kb is common)
+- The operating system keeps track of all free [frames](glossary:frame).
+- Sets up a [page table](glossary:page-table) to translate [virtual addresses](glossary:virtual-address) into [physical addresses](glossary:physical-address).
+- If you exit a program and restart it, the vm gives the same values but the actual [physical memory](glossary:physical-memory) is different.
 
 ### Additional concepts from the user's point of view
 
 - The user sees only contiguous memory.
-  - Virtual address space (VAS)
-- In reality, pages are stored scattered across all of physical memory.
-  - A mapping exists that translates virtual addresses into physical addresses.
+  - [Virtual address space](glossary:address-space)
+- In reality, [pages](glossary:page) are stored [scattered](glossary:noncontiguous-allocation) across all of [physical memory](glossary:physical-memory).
+  - A mapping exists that translates [virtual addresses](glossary:virtual-address) into [physical addresses](glossary:physical-address).
   - This mapping is invisible to the program.
 - Process A can't access process B, so protection is solved naturally too.
-- Process A must not be able to know process B's memory layout or page mapping information.
+- Process A must not be able to know process B's memory layout or [page](glossary:page) mapping information.
   - Why:
     - it could read another process's data
     - it could modify another process's data
@@ -69,82 +69,82 @@ summary: 'hex, paging, virtual address, page table, demand paging, segmentation'
 
 ### Advantages
 
-1. Physical memory allocation is easy.
-2. No external fragmentation.
-3. Page out (pushing pages down to disk when memory is full) is easy.
-4. Page protection is easy (because it uses the protection bit + valid bit).
-5. Page sharing is easy (because the OS just has to make page tables point to the same PFN).
+1. [Physical memory](glossary:physical-memory) allocation is easy.
+2. No [external fragmentation](glossary:external-fragmentation).
+3. [Page out](glossary:page-out) (pushing [pages](glossary:page) down to disk when memory is full) is easy.
+4. [Page](glossary:page) protection is easy (because it uses the [protection bit](glossary:protection-bit) + [valid bit](glossary:valid-bit)).
+5. [Page](glossary:page) sharing is easy (because the OS just has to make [page tables](glossary:page-table) point to the same [PFN](glossary:pfn)).
 
 ### Disadvantages
 
-1. Internal fragmentation can occur (not a big problem since it's 4kb) + it's used together with segmentation later, so it rarely happens
+1. [Internal fragmentation](glossary:internal-fragmentation) can occur (not a big problem since it's 4kb) + it's used together with [segmentation](glossary:segmentation) later, so it rarely happens
 2. Every memory access has to happen twice, so it's 2x slower
-   - Solution: use a TLB
-3. Page tables are too large → solutions: multi-level / inverted page table
+   - Solution: use a [TLB](glossary:tlb)
+3. [Page tables](glossary:page-table) are too large → solutions: [multi-level](glossary:multi-level-page-table) / [inverted page table](glossary:inverted-page-table)
 
 ## 2. virtual address
 
-**A virtual address is a location in the virtual address space a process generates**
+**A [virtual address](glossary:virtual-address) is a location in the [virtual address space](glossary:address-space) a process generates**
 
 ### Components
 
-- Made up of a VPN and an offset.
+- Made up of a [VPN](glossary:vpn) and an [offset](glossary:offset).
 - 32 bits in total.
-- Of these, the offset is tied to the page size.
-  - If the page size is 2^n, the offset gets n bits.
-- The VPN is 32-n bits.
-  - If the page size is 4kb, since 2^12=4kb, VPN = 20bit, offset = 12bit.
+- Of these, the [offset](glossary:offset) is tied to the [page](glossary:page) size.
+  - If the [page](glossary:page) size is 2^n, the [offset](glossary:offset) gets n bits.
+- The [VPN](glossary:vpn) is 32-n bits.
+  - If the [page](glossary:page) size is 4kb, since 2^12=4kb, [VPN](glossary:vpn) = 20bit, [offset](glossary:offset) = 12bit.
 
 ## 3. page table
 
 - Managed by the OS.
-- Each process has its own page table (because each process's address space must be independent and protected).
-- The VPN is mapped to a PFN by the page table.
-- VPNs and PTEs (page table entry = one slot in the page table) correspond one to one.
+- Each process has its own [page table](glossary:page-table) (because each process's [address space](glossary:address-space) must be independent and protected).
+- The [VPN](glossary:vpn) is mapped to a [PFN](glossary:pfn) by the [page table](glossary:page-table).
+- [VPNs](glossary:vpn) and [PTEs](glossary:pte) ([page table](glossary:page-table) entry = one slot in the [page table](glossary:page-table)) correspond one to one.
 
 ## 4. Components of a PTE(Page Table Entries)
 
-| V    | R    | M    | Prot | PFN(Page Frame Number) |
-| ---- | ---- | ---- | ---- | ---------------------- |
-| 1bit | 1bit | 1bit | 2bit | 20bit                  |
+| V    | R    | M    | [Prot](glossary:protection-bit) | [PFN](glossary:pfn)(Page Frame Number) |
+| ---- | ---- | ---- | ------------------------------- | -------------------------------------- |
+| 1bit | 1bit | 1bit | 2bit                            | 20bit                                  |
 
-- V(Valid bit):
-  - If 1, take out the PFN and translate from the VPN; if 0, there's a problem and it's handed to the OS (trap)
-    - 1 means valid: this page is a legitimate page inside the process's address space
-    - 0 means invalid: outside the address space; there are 2 cases
-      - Never allocated in the first place (Never allocated) — a bogus address, something like a NULL pointer. Touching it is an illegal access
-      - Evicted to disk (page out to disk) — legitimate, but pushed down to disk for lack of space. Touching it causes a page fault → pulled back up
-- R(Reference): whether the page has ever been accessed
-- M(Modify/dirty): whether anything was written to this page - written back to disk only when dirty
-- Prot: R/W/X permissions
-  - Each page has protection bits, so even for a legitimate page it sets in fine detail "which operations are allowed (read-only, read-write, execute-only)".
-- PFN: physical frame number
+- V([Valid bit](glossary:valid-bit)):
+  - If 1, take out the [PFN](glossary:pfn) and translate from the [VPN](glossary:vpn); if 0, there's a problem and it's handed to the OS ([trap](glossary:trap))
+    - 1 means [valid](glossary:valid-bit): this [page](glossary:page) is a legitimate [page](glossary:page) inside the process's [address space](glossary:address-space)
+    - 0 means invalid: outside the [address space](glossary:address-space); there are 2 cases
+      - Never allocated in the first place (Never allocated) — a bogus address, something like a [NULL pointer](glossary:null-pointer). Touching it is an illegal access
+      - Evicted to disk ([page out](glossary:page-out) to disk) — legitimate, but pushed down to disk for lack of space. Touching it causes a [page fault](glossary:page-fault) → pulled back up
+- R([Reference](glossary:reference-bit)): whether the [page](glossary:page) has ever been accessed
+- M([Modify](glossary:dirty-bit)/[dirty](glossary:dirty-bit)): whether anything was written to this [page](glossary:page) - written back to disk only when [dirty](glossary:dirty-bit)
+- [Prot](glossary:protection-bit): R/W/X permissions
+  - Each [page](glossary:page) has [protection bits](glossary:protection-bit), so even for a legitimate [page](glossary:page) it sets in fine detail "which operations are allowed (read-only, read-write, execute-only)".
+- [PFN](glossary:pfn): physical [frame](glossary:frame) number
 
 ### When the valid bit is 0(invalid)
 
-1. Physical memory is accessed for the first time via the page table
+1. [Physical memory](glossary:physical-memory) is accessed for the first time via the [page table](glossary:page-table)
 2. It's not in memory
 3. It's on disk
-4. Bring it from disk into memory (page fault)
+4. Bring it from disk into memory ([page fault](glossary:page-fault))
 
 ## 5. Terminology
 
 ### One book
 
-- virtual memory
-- physical memory
+- [virtual memory](glossary:virtual-memory)
+- [physical memory](glossary:physical-memory)
 
 ### Page 5 of the book
 
-- page: one slot of vm
-- page table
-- frame: one slot of physical mem
+- [page](glossary:page): one slot of vm
+- [page table](glossary:page-table)
+- [frame](glossary:frame): one slot of physical mem
 
 #### The 10th word on page 5 of the book
 
-- virtual address(VPN+offset)
-- PTE
-- physical address(PFN+offset)
+- [virtual address](glossary:virtual-address)([VPN](glossary:vpn)+[offset](glossary:offset))
+- [PTE](glossary:pte)
+- [physical address](glossary:physical-address)([PFN](glossary:pfn)+[offset](glossary:offset))
 
 ## 6. The whole paging flow
 
@@ -184,53 +184,53 @@ So the resulting physical address is B6AFE (because the offset is kept)
 
 # 2. demanding paging
 
-**Instead of loading the whole program into memory, load only the pages actually touched, as needed (on demand).**
+**Instead of loading the whole program into memory, load only the [pages](glossary:page) actually touched, as needed (on demand).**
 
 - Less I/O, less memory used, more users accommodated, better responsiveness.
 
-If a page isn't in memory → the PTE's valid=0, and the OS writes in the PTE **"where on disk this page is (swap location)"**.
+If a [page](glossary:page) isn't in memory → the [PTE](glossary:pte)'s [valid](glossary:valid-bit)=0, and the OS writes in the [PTE](glossary:pte) **"where on disk this [page](glossary:page) is ([swap](glossary:swap-space) location)"**.
 
-Touching that page → page fault (trap)
+Touching that [page](glossary:page) → [page fault](glossary:page-fault) ([trap](glossary:trap))
 
-**This isn't an error like a segfault; it's recoverable, normal behavior.**
+**This isn't an error like a [segfault](glossary:segmentation-fault); it's recoverable, normal behavior.**
 
 The OS handles it and re-executes the instruction that faulted. The app doesn't even know it happened. (transparent)
 
 ## 1. Page fault handling steps
 
-1. Address reference (the CPU accesses a page)
-2. Trap(Page fault) (valid = 0 → handed to the OS)
-3. Look it up on disk: check the swap file location
-4. Move it from disk into a frame -- but what if there's no free frame here? Someone has to be evicted (page replacement algorithm)
-5. Update the PTE: valid=1, link the frame
+1. Address reference (the CPU accesses a [page](glossary:page))
+2. [Trap](glossary:trap)([Page fault](glossary:page-fault)) ([valid](glossary:valid-bit) = 0 → handed to the OS)
+3. Look it up on disk: check the [swap](glossary:swap-space) file location
+4. Move it from disk into a [frame](glossary:frame) -- but what if there's no free [frame](glossary:frame) here? Someone has to be evicted ([page replacement algorithm](glossary:page-replacement))
+5. Update the [PTE](glossary:pte): [valid](glossary:valid-bit)=1, link the [frame](glossary:frame)
 6. Restart the instruction
 
 ## 2. Why this works -- Locality
 
-- Doesn't loading only when needed keep causing page faults?
-  - No. Because of locality
-    1. Temporal locality: data just used is likely to be used again.
-    2. Spatial locality: places near what was just used are likely to be used next.
+- Doesn't loading only when needed keep causing [page faults](glossary:page-fault)?
+  - No. Because of [locality](glossary:locality-of-reference)
+    1. Temporal [locality](glossary:locality-of-reference): data just used is likely to be used again.
+    2. Spatial [locality](glossary:locality-of-reference): places near what was just used are likely to be used next.
 
 ## 3. Cold start
 
-When a process first starts, its page table is all valid=0
+When a process first starts, its [page table](glossary:page-table) is all [valid](glossary:valid-bit)=0
 
-At startup it has to just take the cold page faults head-on
+At startup it has to just take the [cold page faults](glossary:cold-start) head-on
 
-Why it's called demand: pages aren't all loaded in advance; they're loaded only when a demand comes in (when a fault happens)
+Why it's called demand: [pages](glossary:page) aren't all loaded in advance; they're loaded only when a demand comes in (when a fault happens)
 
 # 3. Segmentation
 
-Whereas paging cuts memory into identical slots ignoring meaning, segmentation **cuts memory into logical units of meaning.**
+Whereas [paging](glossary:paging) cuts memory into identical slots ignoring meaning, [segmentation](glossary:segmentation) **cuts memory into logical units of meaning.**
 
-virtual address = [ Segment# | Offset ] // segment number + offset
+[virtual address](glossary:virtual-address) = [ Segment# | [Offset](glossary:offset) ] // segment number + [offset](glossary:offset)
 
-- Segment# = consists of base and limit
-  - base: where this segment starts in physical memory
-  - limit: how long this segment is ← this is new
-    - Why limit is needed: each segment has a different size
-- It's an extended version of variable partitions.
+- Segment# = consists of base and [limit](glossary:base-register)
+  - base: where this segment starts in [physical memory](glossary:physical-memory)
+  - [limit](glossary:base-register): how long this segment is ← this is new
+    - Why [limit](glossary:base-register) is needed: each segment has a different size
+- It's an extended version of [variable partitions](glossary:variable-partition).
 
 ### Advantages
 
@@ -240,47 +240,47 @@ virtual address = [ Segment# | Offset ] // segment number + offset
 
 ### Disadvantages
 
-1. External fragmentation occurs - because segments vary in size. But since segments are large, it's not a big problem
-2. The segment table is large (kept in main memory, with a hardware cache to make up for speed) (but it's generally smaller than a page table)
+1. [External fragmentation](glossary:external-fragmentation) occurs - because segments vary in size. But since segments are large, it's not a big problem
+2. The [segment table](glossary:segment-table) is large (kept in main memory, with a hardware cache to make up for speed) (but it's generally smaller than a [page table](glossary:page-table))
 
 ## 1. Translation process
 
-**logical address → space segment table → physical memory**
+**logical address → space [segment table](glossary:segment-table) → [physical memory](glossary:physical-memory)**
 
-1. Virtual address [segment#|Offset]
-2. Segment table [Seg#](limit, base)
-3. Check whether the offset is smaller than the limit
-4. **If the offset is larger than the limit, protection fault**
-   - Why the offset must not exceed the limit: the limit is the total memory size allocated to that virtual address
-5. Physical address = base + offset
+1. [Virtual address](glossary:virtual-address) [segment#|[Offset](glossary:offset)]
+2. [Segment table](glossary:segment-table) [Seg#](limit, base)
+3. Check whether the [offset](glossary:offset) is smaller than the [limit](glossary:base-register)
+4. **If the [offset](glossary:offset) is larger than the [limit](glossary:base-register), [protection fault](glossary:protection-fault)**
+   - Why the [offset](glossary:offset) must not exceed the [limit](glossary:base-register): the [limit](glossary:base-register) is the total memory size allocated to that [virtual address](glossary:virtual-address)
+5. [Physical address](glossary:physical-address) = base + [offset](glossary:offset)
 
 # 4. Paging vs Segmentation differences in detail
 
 ## 1. Structure and performance differences
 
-| Item                           | Paging                              | Segmentation                      |
-| ------------------------------ | ----------------------------------- | --------------------------------- |
-| Block size                     | Fixed (4KB~64KB)                    | Variable                          |
-| Addressing                     | page number + offset                | segment# + offset                 |
-| Replacement                    | Easy (all the same size)            | Hard (must find a hole that fits) |
-| Fragmentation                  | Internal                            | External                          |
-| Disk transfer                  | Efficient (optimized for page size) | Inefficient (transfer sizes vary) |
-| Linear address spaces          | 1                                   | Several                           |
-| Transparent to the programmer? | Yes (invisible)                     | No (visible)                      |
+| Item                                                   | [Paging](glossary:paging)                                | [Segmentation](glossary:segmentation) |
+| ------------------------------------------------------ | -------------------------------------------------------- | ------------------------------------- |
+| Block size                                             | Fixed (4KB~64KB)                                         | Variable                              |
+| Addressing                                             | [page](glossary:page) number + [offset](glossary:offset) | segment# + [offset](glossary:offset)  |
+| Replacement                                            | Easy (all the same size)                                 | Hard (must find a hole that fits)     |
+| Fragmentation                                          | Internal                                                 | External                              |
+| Disk transfer                                          | Efficient (optimized for [page](glossary:page) size)     | Inefficient (transfer sizes vary)     |
+| [Linear address spaces](glossary:linear-address-space) | 1                                                        | Several                               |
+| Transparent to the programmer?                         | Yes (invisible)                                          | No (visible)                          |
 
 ## 2. Capability and purpose differences
 
-| Question                                              | Paging                     | Segmentation                                       |
-| ----------------------------------------------------- | -------------------------- | -------------------------------------------------- |
-| Total address space > physical memory possible?       | Yes                        | Yes (but it can be inefficient)                    |
-| Separate protection for code/data?                    | No                         | Yes                                                |
-| Easy to accommodate data structures that change size? | No                         | Yes                                                |
-| Easy code sharing?                                    | No                         | Yes                                                |
-| Why was it invented?                                  | Large linear address space | Logically independent spaces (sharing, protection) |
+| Question                                                                                              | [Paging](glossary:paging)                                   | [Segmentation](glossary:segmentation)              |
+| ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------- |
+| Total [address space](glossary:address-space) > [physical memory](glossary:physical-memory) possible? | Yes                                                         | Yes (but it can be inefficient)                    |
+| Separate protection for code/data?                                                                    | No                                                          | Yes                                                |
+| Easy to accommodate data structures that change size?                                                 | No                                                          | Yes                                                |
+| Easy code sharing?                                                                                    | No                                                          | Yes                                                |
+| Why was it invented?                                                                                  | Large [linear address space](glossary:linear-address-space) | Logically independent spaces (sharing, protection) |
 
 # 5. Conclusion: Segmentation with Paging (hybrid)
 
-- **Paged Segments: segmentation + paging. Segments are sized as multiples of the page size**
-- Segments become **"pageable"** — instead of moving a whole segment, it's loaded and evicted in page-sized pieces
-- As a result, external fragmentation is eliminated (segmentation's fatal weakness is solved by paging)
-  - Internal fragmentation can still exist.
+- **[Paged Segments](glossary:paged-segments): [segmentation](glossary:segmentation) + [paging](glossary:paging). Segments are sized as multiples of the [page](glossary:page) size**
+- Segments become **"pageable"** — instead of moving a whole segment, it's loaded and evicted in [page](glossary:page)-sized pieces
+- As a result, [external fragmentation](glossary:external-fragmentation) is eliminated ([segmentation](glossary:segmentation)'s fatal weakness is solved by [paging](glossary:paging))
+  - [Internal fragmentation](glossary:internal-fragmentation) can still exist.

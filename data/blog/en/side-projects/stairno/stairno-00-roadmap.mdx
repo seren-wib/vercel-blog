@@ -13,6 +13,8 @@ Run separately, my freelance work, games, and small programs and web services wo
 
 In restaurant terms, Stairno is the name of a restaurant chain and the four branches are the four sites. Instead of a membership card per branch there is one card that works in all of them, and the head-office counter that issues cards and takes payments is the account center and the shared [API](glossary:api). The signboard and interior manual that every branch follows the same way is the [Design system](glossary:design-system), and a branch's address is its [Domain](glossary:domain). The name comes from _stairno_, "star" in Gothic; read in English it contains _stair_, so I chose it for a star climbing one step at a time from the ground. What I did: fixed the site structure and the account policy, wrote a 10-step roadmap, and pulled the look of the hub `stairno.com` out into the `@stairno/ui` package.
 
+![System architecture diagram. The browser reaches the hub (Cloudflare Pages) and the account center (Worker), both it and the account center call the Hono and Better Auth API Worker, which talks to Neon PostgreSQL, Resend, Toss Payments, PayPal and R2, other Stairno sites sign in through its OIDC provider, and GitHub Actions runs the migration and deploys](/static/images/stairno-00-roadmap/system-architecture.drawio.svg)
+
 ## 1. Four sites, one account
 
 ![Stairno's overall structure](/static/images/stairno-00-roadmap/structure.svg)
@@ -153,9 +155,9 @@ What is left is [Font loading](glossary:font-loading). While the [Pretendard](gl
 | 21 October                | The last two scenarios (three failed renewals, mail in both languages) passed. All 10 passed          |
 | 22 October                | Rehearsal cleanup, shared documents brought in line, pending changes shipped as `v0.4.3`. Step 4 done |
 
-Step 4 is done. The closing day is in [section 12 of part 4a](/en/blog/side-projects/stairno/stairno-04-payments/#12-closing-step-4-22-october). Step 5, Labs, is next, but first come the jobs the rehearsal turned up: refund requests in the account center, "keep me signed in", and three bugs found along the way. The plan said 1–2 weeks for sign-in and 2–3 weeks for payments, but the code went in within a day.
+Step 4 is done. The closing day is in [section 12 of part 3](/en/blog/side-projects/stairno/stairno-03-payments/#12-closing-step-4-22-october). Step 5, Labs, is next, but first come the jobs the rehearsal turned up: refund requests in the account center, "keep me signed in", and three bugs found along the way. The plan said 1–2 weeks for sign-in and 2–3 weeks for payments, but the code went in within a day.
 
-The rest of the series: [Stairno 2. The plan and the cross-domain sign-in experiment](/en/blog/side-projects/stairno/stairno-02-account-plan/), [Stairno 3. Building sign-in and going live](/en/blog/side-projects/stairno/stairno-03-login/), [Stairno 4. Building payments](/en/blog/side-projects/stairno/stairno-04-payments/) and [Stairno 4a. The production payment rehearsal](/en/blog/side-projects/stairno/stairno-04-payments/#6-a-rehearsal-only-site).
+The rest of the series: [Stairno 1. The plan and the cross-domain sign-in experiment](/en/blog/side-projects/stairno/stairno-01-account-plan/), [Stairno 2. Building sign-in and going live](/en/blog/side-projects/stairno/stairno-02-login/) and [Stairno 3. Building payments](/en/blog/side-projects/stairno/stairno-03-payments/).
 
 ## 6. Reflection
 

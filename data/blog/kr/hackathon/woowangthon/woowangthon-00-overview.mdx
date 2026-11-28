@@ -17,6 +17,8 @@ summary: '학교 PC 세 대로 학생이 돈 없이 배포하는 플랫폼을 �
 
 이 글은 시리즈 첫 글로 대회 주제와 우리가 푸는 문제, 플랫폼의 흐름과 구조, 내 역할, 진행 상황, 시리즈 목차를 정리한다. 나는 [Cluster](glossary:cluster)를 맡아 일곱 단계를 모두 끝냈고, 11월 21일 본선에서 최우수상을 받은 뒤 11월 26일 반납까지 마쳤다.
 
+![시스템 아키텍처 다이어그램. 브라우저는 CloudFront의 S3 정적 페이지를 받고 Cloudflare Tunnel을 거쳐 EC2의 NestJS 서버를 부르며, 서버는 Supabase, AI 서버, GoCD와 Tailscale을 통해 학교 PC 3대의 k3s 리더를 거쳐 워커의 학생 서비스 Pod를 띄우고, 방문자는 Cloudflare Tunnel과 Traefik을 거쳐 그 Pod에 닿는다](/static/images/woowangthon-00-overview/system-architecture.drawio.svg)
+
 ## 1. 우왕톤이 뭔가
 
 멋쟁이사자처럼 충북대와 충북대 AI부트캠프사업단이 여는 3주짜리 [Hackathon](glossary:hackathon)이다. 주제는 하나다.

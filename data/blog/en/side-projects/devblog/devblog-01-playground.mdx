@@ -15,6 +15,8 @@ In restaurant terms, this blog is a shop that sells only pre-made lunch boxes an
 
 On [Vercel](glossary:vercel) I built runners for SQL, HTML, JavaScript, Python, C and C++ without a server, put a sort visualizer on top of them, and added a comment box with [giscus](glossary:giscus).
 
+![System architecture diagram. An author opens a PR with mdx to GitHub main, GitHub Actions checks it and Vercel builds it with contentlayer2 and Next.js into static /kr and /en pages; the visitor's browser gets them through middleware, runs code with Pyodide, sql.js and Web Workers, and calls giscus (GitHub Discussions), Compiler Explorer, Umami and AdSense directly](/static/images/devblog-01-playground/system-architecture.drawio.svg)
+
 ## 1. Choosing where each language runs
 
 The question shrinks to one: **"where can this language run?"**

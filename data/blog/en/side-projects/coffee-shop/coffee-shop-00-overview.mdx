@@ -16,11 +16,11 @@ In restaurant terms, the first two months were drawing the menu and the kitchen 
 
 Below, documents, [backend](glossary:backend), [frontend](glossary:frontend) and [Deployment](glossary:deployment) follow in the order they happened, and the numbers are in one table in section 11.
 
+![System diagram. The React SPA in the browser goes through the Cloudflare proxy to nginx on EC2; nginx splits static files from /api/, which goes to gunicorn and Django. Django writes to a SQLite file and calls the Toss Payments API to confirm and cancel payments. The browser opens the payment window itself](/static/images/coffee-shop-00-overview/system-architecture.drawio.svg)
+
 ## 1. What we built
 
 A customer picks beans, chooses a size and grind, puts them in the cart, orders, pays and tracks delivery. An admin manages beans and stock and moves orders through preparing, shipping and cancellation. Payments run in [Toss Payments](glossary:toss-payments) [test mode](glossary:test-mode), so no real money moves.
-
-![System diagram. The React SPA in the browser goes through the Cloudflare proxy to nginx on EC2; nginx splits static files from /api/, which goes to gunicorn and Django. Django writes to a SQLite file and calls the Toss Payments API to confirm and cancel payments. The browser opens the payment window itself](/static/images/coffee-shop-00-overview/architecture.svg)
 
 | Area                          | Choice                                                                                                                                          | Reason                                                                                                                                               |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -90,7 +90,7 @@ There were two points: number every UI part, and add a class and method specific
 - A new section 12 lists 55 public [backend](glossary:backend) functions, 29 internal functions and 92 classes. A script checked them against `def` and `class` in `backend/`: 0 missing names, 0 signature mismatches.
 - Sections 1~11 kept their numbers, because many other documents point to them by section number.
 
-How documents sync to Google Docs automatically is in [Google Docs sync](/en/blog/side-projects/project-docs/project-docs-04-docs-sync/).
+How documents sync to Google Docs automatically is in [Google Docs sync](/en/blog/side-projects/project-docs/project-docs-01-docs-sync/).
 
 ## 3. SQLite concurrent order spike
 

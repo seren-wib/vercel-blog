@@ -124,7 +124,7 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
   | ----------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
   | `dev`             | 개발 / Dev                      | unity, git, sql, web, auth, payments, devops, cloudflare, hardware                                                                 |
   | `cs-fundamentals` | CS 기초 / CS Fundamentals       | computer-systems, data-structures, software-engineering, database-systems, information-retrieval, network, os, ai, cloud-computing |
-  | `side-projects`   | 사이드 프로젝트 / Side Projects | stairno, devblog, project-docs, coffee-shop, random-idea                                                                           |
+  | `side-projects`   | 사이드 프로젝트 / Side Projects | stairno, devblog, project-docs, coffee-shop, skills, hardware                                                                      |
   | `hackathon`       | 해커톤 / Hackathon              | woowangthon, grokbot                                                                                                               |
 
   지금은 모든 카테고리가 상위 아래에 있다. 상위 없는 카테고리 처리와 이름 충돌 규칙은 `docs/shared/pages.md` "카테고리" 절.
@@ -144,7 +144,9 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 - `date`는 발행하는 날.
 - URL은 `/<locale>/blog/<parent>/<category>/<slug>`. 언어 접두사는 `kr`·`en` (기존 URL은 `/kr`로 리다이렉트). 상위 카테고리 생기기 전 주소는 새 주소로 308.
 - 카테고리는 상위 4개(`dev`, `cs-fundamentals`, `side-projects`, `hackathon`) 아래에 둔다. 하위 폴더 이름은 예전 카테고리 이름 그대로다.
-- 하드웨어 지식 글(회로·납땜·부품·측정 도구)은 `dev/hardware`, 하드웨어로 만든 제품 글은 `side-projects/<제품 이름>`에 둔다.
+- 하드웨어 글은 두 곳이다. 하드웨어 지식(회로·납땜·부품·측정 도구)은 `dev/hardware`에 `hardware-<내용>.mdx`로, 하드웨어로 만든 제품은 `side-projects/hardware`에 `hardware-project-<제품>-<내용>.mdx`로 둔다. 하위 이름이 같아도 파일명(slug)은 블로그 전체에서 겹치면 안 된다 (빌드가 막는다).
+- Claude 스킬·dotfiles 스킬 글은 `side-projects/skills`에 `skills-<내용>.mdx`로 둔다.
+- 카테고리는 `data/categoryTree.js`에 선언하면 글이 없어도 사이드바(글 수 0)와 빈 카테고리 페이지가 생긴다.
 - 사이드 프로젝트는 프로젝트마다 `side-projects/<프로젝트>/` 카테고리 하나를 둔다 (`side-projects/` 바로 아래에 글 파일을 두지 않는다).
 - 모든 글은 한국어·영어 두 버전으로 발행한다. 영어 번역은 Claude가 한다.
 - 글 파일명(slug)은 전부 `<category>-` 접두사로 시작한다. URL에 카테고리가 두 번 들어가는 건 감수한다.

@@ -20,9 +20,11 @@
 | ----------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `dev`             | 개발 / Dev                      | unity, git, sql, web, auth, payments, devops, cloudflare, hardware                                                                 |
 | `cs-fundamentals` | CS 기초 / CS Fundamentals       | computer-systems, data-structures, software-engineering, database-systems, information-retrieval, network, os, ai, cloud-computing |
-| `side-projects`   | 사이드 프로젝트 / Side Projects | stairno, devblog, project-docs, coffee-shop, random-idea                                                                           |
+| `side-projects`   | 사이드 프로젝트 / Side Projects | stairno, devblog, project-docs, coffee-shop, skills, hardware                                                                      |
 | `hackathon`       | 해커톤 / Hackathon              | woowangthon, grokbot                                                                                                               |
 
+- `data/categoryTree.js`에 선언한 하위 카테고리는 글이 없어도 사이드바에 `(0)`으로 나오고, 카테고리 페이지에 빈 상태 문구(`emptyCategory`)가 뜬다. 빈 카테고리는 sitemap에는 넣지 않는다.
+- 하위 이름은 상위마다 겹칠 수 있다 (`dev/hardware`, `side-projects/hardware`). 글 수·사이드바·페이지·이전/다음·접힘 상태는 전부 `<parent>/<category>`나 상위 이름으로 구분하므로 섞이지 않는다. 파일명은 블로그 전체에서 유일해야 한다 (`checkUrlCollisions`가 빌드 때 검사).
 - 지금은 모든 카테고리가 상위 아래에 있다. 코드는 상위 없는 카테고리(`data/blog/<locale>/<category>/`)도 받는다. 이런 카테고리는 상위 카테고리 뒤에 따로 나오고, 목록 주소가 `/[locale]/blog/category/[category]`다 (`data/categoryTree.js`의 `topLevel`).
 - 상위 없는 카테고리의 글 주소(`/blog/<category>/<글>/`)는 상위의 카테고리 주소(`/blog/<parent>/<category>/`)와 깊이가 같다. 둘이 같은 주소가 되면 빌드가 실패한다 (`contentlayer.config.ts`의 `checkUrlCollisions`).
 - 카테고리 이름은 상위 이름·상위 없는 카테고리 이름과 겹치면 안 된다. 예전 주소 리다이렉트 규칙이 그 주소를 잡아버린다 (`data/redirects.js`가 빌드 때 검사).
@@ -71,7 +73,9 @@ Blog(`/[locale]`, 랜딩 글 목록) · Projects · About · Playground · 언�
 - 상위 카테고리 생기기 전 주소 → 상위 아래 주소 (상위마다 규칙 하나, 언어 유지. 접두사 없는 주소는 `/kr`로 한 번에)
   - 글 `/[locale]/blog/[category]/[slug]` → `/[locale]/blog/[parent]/[category]/[slug]`
   - 카테고리 `/[locale]/blog/category/[category]`(`/page/[page]` 포함) → `/[locale]/blog/[parent]/[category]`
-  - 이름이 상위가 된 예전 카테고리(`hackathon`, `side-projects`): 글은 한 편씩 지정(`/blog/hackathon/hackathon-grokbot-bus-transfer` → `/blog/hackathon/grokbot/...`, `/blog/side-projects/side-projects-random-idea-generator` → `/blog/side-projects/random-idea/random-idea-generator`), 목록 `/blog/category/<이름>` → `/blog/<이름>`
+  - 이름이 상위가 된 예전 카테고리(`hackathon`, `side-projects`): 글은 한 편씩 지정(`/blog/hackathon/hackathon-grokbot-bus-transfer` → `/blog/hackathon/grokbot/...`, `/blog/side-projects/side-projects-random-idea-generator` → `/blog/side-projects/skills/skills-random-idea-generator`), 목록 `/blog/category/<이름>` → `/blog/<이름>`
+  - 이름이 바뀐 하위 카테고리: `/blog/side-projects/random-idea/`(글 `random-idea-generator` 포함) → `/blog/side-projects/skills/` (`renamedChildCategories`)
+  - 예전 최상위 카테고리 목록은 `data/redirects.js`의 `movedCategories`에 명시한다. 하위 이름이 상위마다 겹칠 수 있어서(`dev/hardware`, `side-projects/hardware`) 트리에서 뽑지 않는다.
 - 없앤 페이지 → 언어별 랜딩: `/[locale]/latest`, `/[locale]/blog/category` → `/[locale]` (접두사 없는 `/latest`, `/blog/category`는 `/kr`)
 - `/tags` → `/kr`, `/tags/[tag]` → 그 카테고리 목록 (`/kr/blog/[parent]/[tag]`, 상위 없으면 `/kr/blog/category/[tag]`)
 

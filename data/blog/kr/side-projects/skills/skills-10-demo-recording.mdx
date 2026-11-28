@@ -12,7 +12,7 @@ level: 2
 
 > [Agent skill](glossary:agent-skill) 연재 10편. [Agent skill](glossary:agent-skill)이 무엇이고 왜 따로 뺐는지는 [CH0. 스킬 개요](/kr/blog/side-projects/skills/skills-00-overview/)에 있다.
 
-`demo-recording`은 웹 앱 시연 영상을 찍을 때 AI 에이전트가 여는 [스킬](/kr/blog/side-projects/devblog/devblog-04-agent-environment/#3-필요할-때-꺼내기)이다. [README](glossary:readme)에 붙일 영상, 발표 영상, 블로그용 화면 녹화가 대상이다. 브라우저는 코드가 조작하지만, 영상만 보면 사람이 마우스를 움직이고 키보드를 치는 것처럼 보이게 하는 것이 목표다.
+`demo-recording`은 웹 앱 시연 영상을 찍을 때 AI 에이전트가 여는 [스킬](/kr/blog/side-projects/devblog/devblog-02-agent-environment/#3-필요할-때-꺼내기)이다. [README](glossary:readme)에 붙일 영상, 발표 영상, 블로그용 화면 녹화가 대상이다. 브라우저는 코드가 조작하지만, 영상만 보면 사람이 마우스를 움직이고 키보드를 치는 것처럼 보이게 하는 것이 목표다.
 
 식당으로 비유하면 시연 영상은 식당 홍보 영상이다. 자동 주문기가 혼자 메뉴를 고르는 장면만 찍으면 손님이 어떻게 주문하는지 보이지 않는다. 그래서 촬영 전에 장면 순서표를 짜고, 카메라에 안 잡히는 손은 화면에 직접 그려 넣고, 손이 움직이는 방식과 주문 말투를 사람처럼 맞춘다. 자동 촬영 장비가 못 들어가는 주방은 사람이 직접 찍는다. 자동 주문기는 [headless browser](glossary:headless-browser)로 도는 [browser automation](glossary:browser-automation), 장면 순서표는 scene list, 화면에 그려 넣은 손은 pointer overlay, 손의 움직임은 [cubic Bezier curve](glossary:cubic-bezier-curve)로 만든 마우스 이동, 주문 말투는 keystroke timing, 주방은 [OS screen recorder](glossary:screencast)다.
 
@@ -132,7 +132,7 @@ _한 번의 이동은 control point 두 개를 옆으로 민 [cubic Bezier curve
 
 _`human.cjs` 하나를 녹화기와 [Playwright](glossary:playwright) [MCP](glossary:mcp)가 같이 불러온다_
 
-처음(11-18)에는 포인터와 이동 코드가 전부 `record.mjs` 안에 있었다. 대본대로 찍는 녹화와 에이전트가 평소 [Playwright](glossary:playwright) [MCP](/kr/blog/side-projects/devblog/devblog-04-agent-environment/#9-mcp)로 브라우저를 쓸 때 같은 손버릇을 쓰게 하려고, 11-25에 이 코드를 개인 설정 레포의 `claude/playwright/human.cjs`로 빼 공유 모듈로 만들었다. 이 과정에서 `record.mjs`는 9,280 B에서 4,449 B로 줄었다.
+처음(11-18)에는 포인터와 이동 코드가 전부 `record.mjs` 안에 있었다. 대본대로 찍는 녹화와 에이전트가 평소 [Playwright](glossary:playwright) [MCP](/kr/blog/side-projects/devblog/devblog-02-agent-environment/#9-mcp)로 브라우저를 쓸 때 같은 손버릇을 쓰게 하려고, 11-25에 이 코드를 개인 설정 레포의 `claude/playwright/human.cjs`로 빼 공유 모듈로 만들었다. 이 과정에서 `record.mjs`는 9,280 B에서 4,449 B로 줄었다.
 
 `human.cjs`는 진입점이 둘이다.
 

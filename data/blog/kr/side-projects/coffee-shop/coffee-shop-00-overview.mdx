@@ -16,11 +16,11 @@ summary: '소프트웨어공학 팀 과제로 원두 쇼핑몰을 문서부터 �
 
 아래는 일어난 순서대로 문서, [Backend](glossary:backend), [Frontend](glossary:frontend), [Deployment](glossary:deployment)를 적고, 숫자는 11절 표에 모았다.
 
+![시스템 구성 다이어그램. 브라우저의 React SPA가 Cloudflare 프록시를 거쳐 EC2의 nginx로 들어오고, nginx가 정적 파일과 /api/를 gunicorn·Django로 나눈다. Django는 SQLite 파일에 쓰고, 결제 승인과 취소는 토스페이먼츠 API를 부른다. 결제창은 브라우저가 직접 연다](/static/images/coffee-shop-00-overview/system-architecture.drawio.svg)
+
 ## 1. 무엇을 만들었나
 
 손님은 원두를 고르고 용량과 분쇄도를 정해 장바구니에 담고, 주문하고, 결제하고, 배송을 조회한다. 관리자는 원두와 재고를 관리하고 주문을 준비·발송·취소 처리한다. 결제는 [Toss Payments](glossary:toss-payments) [Test mode](glossary:test-mode)라 진짜 돈은 오가지 않는다.
-
-![시스템 구성 다이어그램. 브라우저의 React SPA가 Cloudflare 프록시를 거쳐 EC2의 nginx로 들어오고, nginx가 정적 파일과 /api/를 gunicorn·Django로 나눈다. Django는 SQLite 파일에 쓰고, 결제 승인과 취소는 토스페이먼츠 API를 부른다. 결제창은 브라우저가 직접 연다](/static/images/coffee-shop-00-overview/architecture.svg)
 
 | 영역                          | 선택                                                                                                                                            | 이유                                                                                                                                 |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
@@ -90,7 +90,7 @@ NFR-9 테스트는 URL 설정을 직접 훑어서 나중에 경로가 추가돼�
 - 새 12절에 [Backend](glossary:backend) 공개 함수 55개, 내부 함수 29개, 클래스 92개를 적었다. 스크립트로 `backend/`의 `def`·`class`와 대조해 이름 누락 0, [Function signature](glossary:function-signature) 불일치 0을 확인했다.
 - 1~11절 번호는 그대로 두었다. 다른 문서가 절 번호로 가리키는 곳이 많아서다.
 
-문서를 Google Docs로 자동 동기화하는 구조는 [Google Docs 동기화](/kr/blog/side-projects/project-docs/project-docs-04-docs-sync/)에 있다.
+문서를 Google Docs로 자동 동기화하는 구조는 [Google Docs 동기화](/kr/blog/side-projects/project-docs/project-docs-01-docs-sync/)에 있다.
 
 ## 3. SQLite 동시 주문 Spike
 

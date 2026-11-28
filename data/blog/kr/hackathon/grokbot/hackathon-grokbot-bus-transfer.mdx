@@ -17,6 +17,8 @@ level: 2
 
 한 일은 이렇다. [Requirements specification](glossary:requirements-specification)과 [Interface](glossary:interface)를 쓰고, 리허설 뒤 규칙을 바꾸고, 결과를 네이버·카카오·구글 지도와 비교해 검증하고, 3분 발표를 했다.
 
+![시스템 아키텍처 다이어그램. 운영자가 GPS와 노선 인자를 주면 make_tasks.py가 tasks/bot*.json을 만들고, search_bot.py가 naver.py(Playwright)로 네이버 지도 JSON API를 조회해 results/{si}.json을 쓰며, summarize_results.py가 이를 모아 results/summary.json 순위를 만든다](/static/images/hackathon-grokbot-bus-transfer/system-architecture.drawio.svg)
+
 ## 1. 대회와 팀
 
 [Grok Bot](glossary:grok-bot)은 SpaceXAI가 낸 [AI agent](glossary:ai-agent) 제품이다. [AI agent](glossary:ai-agent) 하나하나가 자기 클라우드 박스(작업용 리눅스 환경)를 갖고, 거기서 코드를 짜고 돌리고 레포에 [Commit](glossary:commit)한다. Build Day는 이 봇으로 하루 안에 무언가를 만들어 3분 남짓 발표하는 행사다. 공식 이름은 발표 화면과 우리 덱 표지에 찍힌 **Grok Bot Seoul Build Day**다.

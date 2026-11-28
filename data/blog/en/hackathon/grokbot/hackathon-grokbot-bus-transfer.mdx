@@ -17,6 +17,8 @@ In restaurant terms, a head chef splits the orders and hands them to line cooks,
 
 What I did: wrote the [requirements specification](glossary:requirements-specification) and the [contract](glossary:interface), changed the rules after the rehearsal, verified the results against Naver, Kakao and Google maps, and gave the three-minute pitch.
 
+![System architecture diagram. The operator passes GPS and line arguments to make_tasks.py, which writes tasks/bot*.json; search_bot.py then queries the Naver Map JSON API through naver.py (Playwright) and writes results/{si}.json, and summarize_results.py ranks them into results/summary.json](/static/images/hackathon-grokbot-bus-transfer/system-architecture.drawio.svg)
+
 ## 1. The event and the team
 
 [Grok Bot](glossary:grok-bot) is an [agent](glossary:ai-agent) product from SpaceXAI. Each [agent](glossary:ai-agent) gets its own cloud box (a Linux work environment) where it writes code, runs it and [commits](glossary:commit) to a repo. Build Day is an event where you build something with these bots in one day and pitch it in about three minutes. The official name, as printed on the venue screen and on our deck's cover, is **Grok Bot Seoul Build Day**.

@@ -20,7 +20,7 @@ In restaurant terms, this skill is a recipe card the kitchen pulls out only when
 
 ## 1. Why it is a skill
 
-Instruction files go into the [context window](glossary:context-window) whole in every session, but for a [skill](/en/blog/side-projects/devblog/devblog-04-agent-environment/#3-pulling-out-what-is-needed) only the one-paragraph `description` is always visible, and the body is opened when a trigger matches. Paper search is not a daily task, so it belongs in a [skill](glossary:skill).
+Instruction files go into the [context window](glossary:context-window) whole in every session, but for a [skill](/en/blog/side-projects/devblog/devblog-02-agent-environment/#3-pulling-out-what-is-needed) only the one-paragraph `description` is always visible, and the body is opened when a trigger matches. Paper search is not a daily task, so it belongs in a [skill](glossary:skill).
 
 It started on 2026-11-27. I decided to first find out what public [APIs](glossary:api) cannot do, and a work session built two Google Sheets. One ranks [venues](glossary:venue) by authority (107 CS rows, 5 multidisciplinary rows); the other holds raw per-[venue](glossary:venue) data ([h5-index](glossary:h5-index), OA status, [DOI](glossary:doi) coverage, search [APIs](glossary:api)). The [skill](glossary:skill) turns that research into a procedure.
 

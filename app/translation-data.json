@@ -85,9 +85,9 @@
     "hackathon/woowangthon/woowangthon-17-finals-and-return",
     "side-projects/coffee-shop/coffee-shop-00-overview",
     "side-projects/devblog/devblog-01-playground",
-    "side-projects/devblog/devblog-04-agent-environment",
+    "side-projects/devblog/devblog-02-agent-environment",
     "side-projects/project-docs/project-docs-00-overview",
-    "side-projects/project-docs/project-docs-04-docs-sync",
+    "side-projects/project-docs/project-docs-01-docs-sync",
     "side-projects/skills/skills-00-overview",
     "side-projects/skills/skills-01-blog-post",
     "side-projects/skills/skills-02-docs-style",
@@ -102,9 +102,9 @@
     "side-projects/skills/skills-11-unity-mcp-setting",
     "side-projects/skills/skills-random-idea-generator",
     "side-projects/stairno/stairno-00-roadmap",
-    "side-projects/stairno/stairno-02-account-plan",
-    "side-projects/stairno/stairno-03-login",
-    "side-projects/stairno/stairno-04-payments"
+    "side-projects/stairno/stairno-01-account-plan",
+    "side-projects/stairno/stairno-02-login",
+    "side-projects/stairno/stairno-03-payments"
   ],
   "en": [
     "cs-fundamentals/ai/ai-05-03-deep-learning",
@@ -191,9 +191,9 @@
     "hackathon/woowangthon/woowangthon-17-finals-and-return",
     "side-projects/coffee-shop/coffee-shop-00-overview",
     "side-projects/devblog/devblog-01-playground",
-    "side-projects/devblog/devblog-04-agent-environment",
+    "side-projects/devblog/devblog-02-agent-environment",
     "side-projects/project-docs/project-docs-00-overview",
-    "side-projects/project-docs/project-docs-04-docs-sync",
+    "side-projects/project-docs/project-docs-01-docs-sync",
     "side-projects/skills/skills-00-overview",
     "side-projects/skills/skills-01-blog-post",
     "side-projects/skills/skills-02-docs-style",
@@ -208,8 +208,8 @@
     "side-projects/skills/skills-11-unity-mcp-setting",
     "side-projects/skills/skills-random-idea-generator",
     "side-projects/stairno/stairno-00-roadmap",
-    "side-projects/stairno/stairno-02-account-plan",
-    "side-projects/stairno/stairno-03-login",
-    "side-projects/stairno/stairno-04-payments"
+    "side-projects/stairno/stairno-01-account-plan",
+    "side-projects/stairno/stairno-02-login",
+    "side-projects/stairno/stairno-03-payments"
   ]
 }

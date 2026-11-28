@@ -17,6 +17,8 @@ In restaurant terms, the students are customers and the three school PCs are a b
 
 This is the first post of the series. It covers the contest theme and the problem we solve, the flow and structure of the platform, my role, where we are, and the series index. I took the [cluster](glossary:cluster) and finished all seven stages, we won the Excellence Award at the finals on November 21, and the return was done on November 26.
 
+![System architecture diagram. The browser loads the React pages from CloudFront and S3 and calls the NestJS server on EC2 through a Cloudflare Tunnel; that server uses Supabase, the AI server and GoCD, and over Tailscale drives the k3s leader on the three school PCs that runs the student Pod on a worker, which visitors reach through a second Cloudflare Tunnel and Traefik](/static/images/woowangthon-00-overview/system-architecture.drawio.svg)
+
 ## 1. What is Woowangthon
 
 It's a three-week [hackathon](glossary:hackathon) run by LIKELION Chungbuk National University and the Chungbuk National University AI Bootcamp program. There is one theme.

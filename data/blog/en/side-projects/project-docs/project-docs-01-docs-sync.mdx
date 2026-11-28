@@ -1,5 +1,5 @@
 ---
-title: 'Project Docs 4. Source in the Repo, Copy in Google Docs'
+title: 'Project Docs 1. Source in the Repo, Copy in Google Docs'
 date: '2026-11-28'
 tags: ['Project Docs']
 draft: false
@@ -8,7 +8,7 @@ level: 3
 summary: 'Stage documents live in the repo as one file per section and are copied one way into Google Docs on every push.'
 ---
 
-> Part 4 of the series. The full template picture is in [Project Docs 0](/en/blog/side-projects/project-docs/project-docs-00-overview/).
+> Part 1 of the series. The full template picture is in [Project Docs 0](/en/blog/side-projects/project-docs/project-docs-00-overview/).
 
 ## 0. Introduction
 
@@ -28,7 +28,7 @@ The next day, 10-18, I flipped it. The source is local Markdown, and Google Docs
 
 In the early hours of 2026-11-16 I replaced the four uncommitted single files with committed per-section files. This is [Docs as code](glossary:docs-as-code). Two reasons:
 
-- **Two computers**: I alternate between a Windows desktop and a MacBook. If a document is not committed, one machine does not know what the other changed. Once committed, documents ride the same [two-computer structure that syncs through Git](/en/blog/side-projects/devblog/devblog-04-agent-environment/#7-two-computers-three-agents).
+- **Two computers**: I alternate between a Windows desktop and a MacBook. If a document is not committed, one machine does not know what the other changed. Once committed, documents ride the same [two-computer structure that syncs through Git](/en/blog/side-projects/devblog/devblog-02-agent-environment/#7-two-computers-three-agents).
 - **How much the agent reads**: with one file per document the agent reads the whole thing to see one section. With one file per section it reads the file list in `docs/specs/README.md` and opens only what it needs.
 
 I also weighed security. A private repo has one account, me, so I commit as is. In a public repo I remove unfixed security holes, admin addresses, internal hosts, operating procedures and anything a client asked to keep private, and write `(Google Docs only)` in their place. Secrets and personal data go in no repo.

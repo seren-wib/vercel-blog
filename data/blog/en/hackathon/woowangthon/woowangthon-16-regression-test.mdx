@@ -1,0 +1,169 @@
+---
+title: 'Woowangthon 16. Fine Alone, Broken in Pairs'
+date: '2026-11-17'
+tags: ['Woowangthon']
+draft: false
+summary: 'The demo-path regression test on November 15 (T15–T43) that closed build stages 6 and 7. Running all ten demo steps again from start to finish on the new main on submission day, a normal deploy in about 160 seconds, 604 seconds for the AI to fix a repo with a deliberately wrong port, 503 within 8 seconds of a forced stop, five kinds of bad input, an AI fix that failed only when two ran at once (409, inferred), failed slots left behind by deploys that ended in a PR, two bugs fixed on the afternoon of submission day and one left alone, and keeping what was confirmed apart from what was inferred'
+---
+
+> Part 16 of the series. The regression test on November 15, the day of the contest submission, when I ran the whole demo path again from start to finish. The leader's deploy executor registering with the GoCD server is in [part 15](/en/blog/hackathon/woowangthon/woowangthon-15-gocd-registration/), and the big picture is in [Woowangthon 0](/en/blog/hackathon/woowangthon/woowangthon-00-overview/).
+
+## In one line
+
+On November 13~14 the team connected a deploy from the platform all the way to a student space for the first time, and on the morning of submission day I ran the demo path again from start to finish on the new `main`. 23 of 29 tests passed, 3 failed. Two of the failures had the same shape: fine when running alone, broken only when overlapping with another deploy. I fixed those two that afternoon and they passed on a rerun. The third doesn't affect the demo, so it stays as a known limit.
+
+## 1. Why run it again
+
+[Part 15](/en/blog/hackathon/woowangthon/woowangthon-15-gocd-registration/#7-what-has-never-run) ended with "the deploy pipeline hasn't run once." On November 13~14 the team connected that path end to end for the first time. A deploy pressed on the platform went through the leader's executor and brought an app up in a student space. Those tests were my teammates' work, so this series doesn't retell them.
+
+On November 15 I ran the same path again from start to finish on the new `main`. In between, 15 PRs (#215–#232) had been merged into the team repo's `main`: a screen rework, the deploy queue, AI instructions and so on. Judging uses the `main` commit at 18:00 that day. Before recording the demo, I had to check once more that all ten demo steps still ran on that commit. The baseline was `main` at `2fc6f07`, the one running in production.
+
+The test numbers follow the team's test log. T1–T14 follow my teammates' test records, and my tests continue from T15.
+
+A Claude Code session ran the tests with Chrome and curl. I took the results and decided what to look at next. I kept one rule in the log: keep what I saw apart from what I inferred. A cause I couldn't see in a log stays "inferred" to the end.
+
+## 2. The ten demo steps (T15–T25)
+
+| Test    | Time        | Step                                                                     | Result                                                  |
+| ------- | ----------- | ------------------------------------------------------------------------ | ------------------------------------------------------- |
+| T15     | 11:50       | Are the public addresses alive                                           | `app.` · `api.` · three existing services all 200       |
+| T16–T20 | 11:51–12:16 | Steps 1–5: login check, GitHub link, repo, settings draft, secrets       | Passed. Three small issues (below)                      |
+| T21     | 12:16–12:19 | Step 6: build → deploy → verify                                          | About 160 seconds                                       |
+| T22–T23 | 12:20–12:30 | Steps 8 · 9: result card, the public address without logging in          | Passed. 0 restarts, 10MiB of memory                     |
+| T24     | 12:33–12:43 | Step 7: the AI fixes a repo with a deliberately wrong port and redeploys | 604 seconds                                             |
+| T25     | 12:53       | Step 10: forced stop from the operator page                              | 503 within 8 seconds, the service next to it stayed 200 |
+
+### A normal repo in 160 seconds
+
+I pressed step 6 with the normal repo. It started at 12:16:57, and the public address returned 200 at 12:19:36. About 160 seconds. That covers everything from the build to putting it in a student space and [verifying through Traefik](/en/blog/hackathon/woowangthon/woowangthon-12-deploy-executor/#7-verify-goes-through-traefik). The deploy pipeline I wrote in part 15 had "never run once" ran from start to finish on the new `main` too. This was also the first time I saw the "AI deploy explanation" card that came in with this `main` ([woowangthon/WOOWANGTHON_TEAM_18#232](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/232)).
+
+### A deliberately wrong port in 604 seconds
+
+The step 7 repo is wrong on purpose. The README says 8080, and the code opens 3000. The deploy fails verification. Then the AI has to read the Pod logs, find the cause, fix it and deploy again.
+
+It started at 12:33, and "Fixed it and deployed again" showed up at 12:43:09. 604 seconds. About 290 seconds in, the screen changed to "Fixing the problem," and the AI's tool call count went up 1/20, 2/20. This will be the longest scene in the demo video, so I wrote the time down separately.
+
+### A forced stop in 8 seconds
+
+Step 10 is the operator page. It showed 3 nodes Ready, 69 services and 3 operations alerts. I force-stopped one service at 12:53:25, and its public address returned 503 at 12:53:32. Within 8 seconds. At the same time the service next to it stayed at 200.
+
+## 3. Bad input and small issues
+
+Off the demo path, I tried five inputs a student might get wrong (T28–T32).
+
+| Input                                | Result                            |
+| ------------------------------------ | --------------------------------- |
+| Someone else's repo                  | Blocked                           |
+| A repo that doesn't exist            | Blocked                           |
+| A GitLab address                     | Blocked                           |
+| A name (slug) that breaks the rules  | Blocked                           |
+| Confirming an already confirmed name | Saved as a new version. No notice |
+
+All five behaved as designed. Only the last one can let a student overwrite something without knowing it.
+
+These are the small issues I saw along the way. They don't block the demo, so instead of fixing them I passed them on as things to watch before recording.
+
+- The settings draft comes out with the service name, role and public path blank.
+- Choosing the role `be` fills the public path with `/api`. Trying again in T36, confirming it as is leaves `/` unpublished.
+- After saving secrets, the step indicator still says "waiting for input."
+- The lines showing the AI's evidence for its fix include raw values (`None`, summary tags). The step where it read Pod logs (`read_pod_logs`) is missing a line.
+- The operator list shows `bench-*` services unrelated to the demo, and an operator account goes to `/admin` instead of the deploy page (T26 · T27, checked only).
+
+## 4. The AI fix that failed when overlapping (T33–T35)
+
+From here on, these are situations the demo doesn't have. In the demo, deploys run one at a time. In real use, several students press deploy at once. So I made two overlap.
+
+In T33 I overlapped two deploys and let the AI fix them. One failed. The AI found the cause and made a fix commit, and that commit got through build and deploy to ready. But the test step that checks the fix (`run_verify`) fell over with `PIPELINE_UNAVAILABLE`, and the result ended as "user action needed." No fix PR was opened either.
+
+At the same time, in T34 I put two deploys in the queue back to back. That passed. It waited at "1 ahead," then started when the build ahead finished. Next, in T35 I ran the AI fix PR flow alone, and it succeeded.
+
+Fine alone, broken in pairs. This is the cause I settled on. There is only one pipeline, `student-trial`, for trial deploys of the app the AI fixed. In [part 15](/en/blog/hackathon/woowangthon/woowangthon-15-gocd-registration/#7-what-has-never-run) it wasn't even defined; it appeared in the meantime. If an earlier trial is using that pipeline, GoCD rejects the new run request with 409, and the platform server treats that as a failure right away.
+
+But this is inferred. Whether a 409 really came back can only be known from the platform server's logs, and I had no access to the container logs on the EC2. The issue ([woowangthon/WOOWANGTHON_TEAM_18#239](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/issues/239)) says "inferred" too. The evidence behind the inference is that T35 succeeded alone.
+
+## 5. Operations alerts and leftover slots (T37–T40)
+
+Next were operations alerts. They work by the platform server pulling alerts from the leader's Prometheus every 20 seconds. It uses [the service proxy path from part 13](/en/blog/hackathon/woowangthon/woowangthon-13-metrics/#3-the-rights-say-yes-and-still-422) as is. So there was nothing new to change on the leader.
+
+| Test | Input                                                 | Result                                                                                                                 |
+| ---- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| T37  | `CHAOS=crash` (an app that dies as soon as it starts) | Repeated restarts, then an automatic stop. The student page shows 5 restarts, exit code 1 and 20 log lines as evidence |
+| T38  | `CHAOS=unready` (alive but never ready)               | An alert the AI judged from the state                                                                                  |
+| T39  | Stopping from an alert on the operator page           | Passed. One stop handled two alerts for the same project                                                               |
+
+From the student page, all of it passed. Whether the alerts reached Discord I couldn't check, because I had no access to the channel. One small issue: the 20 log lines shown as evidence fill up with health check 503 lines, which pushes the actual cause out.
+
+Then T40 caught one more. A service with no public address was raising 4 operations alerts. Following it back, it was the failed slot of an earlier first deploy that the AI had ended by opening a fix PR or with "user action needed." That slot's Pod wasn't taken down and kept restarting, raising alerts.
+
+Looking at the code, the cleanup that takes failed slots down only ran when the AI gave up (`gave_up`). The design doc even gave a reason: with "user action needed," the agent has to read that slot's Pod logs, so it's kept. But by then the ticket is already closed, and there's no agent left to read them. The slot stayed after the reason for keeping it was gone.
+
+## 6. What I fixed before submission
+
+This was around 14:00. Less than four hours were left before the 18:00 submission. There were two criteria for fixing or not: does it affect the demo (one deploy at a time), and can I fix it and check it again in the time left.
+
+B1 (fails when overlapping) and B2 (leftover slots) were both off the demo path, but the fixes were small. By the merged diffs, B2 is 3 files, +7 −5 lines, and B1, tests included, is 5 files, +85 −9 lines. I had time to fix them and run them again, so I fixed both.
+
+| Bug | Issue                                                                 | PR                                                                                                 | Fix                                                                                                                                                   |
+| --- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B1  | [#239](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/issues/239) | [woowangthon/WOOWANGTHON_TEAM_18#242](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/242) | When GoCD rejects a trial run with 409, don't end it as a failure right away; request again every 5 seconds (up to 5 minutes)                         |
+| B2  | [#240](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/issues/240) | [woowangthon/WOOWANGTHON_TEAM_18#241](https://github.com/woowangthon/WOOWANGTHON_TEAM_18/pull/241) | Also take failed slots down for deploys where the AI opened a PR (`pr_opened`) or ended with user action (`needs_user`). The design doc was fixed too |
+
+#242 also tells 409 apart from other failures and logs a 409 at `warn`. Next time the same thing happens, it can be confirmed from the log instead of inferred.
+
+suda5936 reviewed and approved both. In the #241 review they pointed out one remaining gap: a deploy that ends because its time in the queue ran out (`TIMED_OUT`) doesn't take the slot down either. Both were merged at 14:17, and TaeTaeJin deployed the BE again.
+
+Then I ran them again.
+
+| Test | Time        | What                               | Result                                                                                     |
+| ---- | ----------- | ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| T41  | 14:27–14:43 | B1 rerun: two AI fixes overlapping | Passed. Both said "Fixed it and deployed again," public addresses 200 (14:41:54, 14:43:59) |
+| T43  | 14:43–14:55 | B2 rerun                           | Passed. After opening the PR, "Stopped" with no human hand, no operations alerts           |
+
+The cause of B1 is still inferred. What's confirmed goes as far as "with code fixed on the assumption of a 409, two overlapping runs passed." Those are two different things.
+
+## 7. What I didn't fix (T42)
+
+While T41 was running, in T42 I sent three deploys to AI fixing at the same time. The third failed with `AGENT_UNAVAILABLE`.
+
+This is less a bug than a limit we set. The AI server runs at most two at a time (`agent_max_runs`, default 2). It answers the third request with `503 AGENT_BUSY`, and the platform server treats that as a failure without retrying. Same shape as B1: reading "busy" as "failed."
+
+I didn't fix this one. The demo runs deploys one at a time so it isn't affected, and I chose to spend the time left before submission on the B1 · B2 reruns. Instead of putting it in the repo, I decided to share it in the team channel as a known limit.
+
+## 8. The day in numbers
+
+| Item                | Value                                                                |
+| ------------------- | -------------------------------------------------------------------- |
+| Tests               | 29 (T15–T43)                                                         |
+| Passed              | 23                                                                   |
+| Failed              | 3 (B1 · B2 fixed the same day and passed on rerun, B3 a known limit) |
+| Observed · checked  | 3                                                                    |
+| Normal deploy       | About 160 seconds                                                    |
+| AI fix and redeploy | 604 seconds                                                          |
+| Forced stop → 503   | Within 8 seconds                                                     |
+| Start → cleanup     | 11:50 → 14:55                                                        |
+
+All test services were taken down at 14:55. The times and numbers come from the T15–T43 rows of the team's test log, and the pass · fail counts are a count of those rows. Things I couldn't see in a log, like Discord delivery or B1's 409, are marked above as "not checked" or "inferred."
+
+## 9. The done criteria, again
+
+In [part 0](/en/blog/hackathon/woowangthon/woowangthon-00-overview/#8-where-we-are-now)'s stage table, stages 6 and 7 were "In progress." Here are their done criteria again.
+
+| Stage | Done when                                                            | Evidence                                                                                                                                                                 |
+| ----- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 6     | Deploys work from the platform server, and the visitor address opens | T21: a deploy pressed on the platform reached a public 200 in about 160 seconds                                                                                          |
+| 7     | Metrics are visible and can be queried from the platform server      | The metrics screens have been open since part 13, and in T25 · T37–T39 the leader's Prometheus alerts reached the operator and student pages through the platform server |
+
+I count both as done. What's left is the contest and returning the PCs.
+
+Two things stay with me from this test. One is that both failures came from "overlapping." Following only the demo path in a single line passes all the way. After confirming it works alone, I had to create the case of two on purpose. The other is keeping what was confirmed apart from what was inferred to the end. An agent ran the tests, but turning the results into "this way we read it, fixed it, and it passed" instead of "fixed" was my job.
+
+## 10. Wrap-up
+
+| What happened                                              | What I learned                                                                                                       |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `main` with 15 newly merged PRs                            | Run the demo path again from start to finish before recording. "It worked earlier" holds only for that commit        |
+| The AI fix works alone and fails when two overlap          | Even if the demo runs one at a time, real use overlaps. Make them overlap on purpose                                 |
+| GoCD's 409 and the AI server's 503 both treated as failure | "Busy" is not a failure. Wait and retry, or at least record it as busy                                               |
+| Failed slot cleanup ran only on `gave_up`                  | When something is kept because "someone will read it later," check whether that still holds after the reader is gone |
+| The 409 stays inferred because I couldn't see the log      | Write an unconfirmed cause as inferred in the issue too, and when fixing, add a log so it can be confirmed next time |
+| Three bugs on the afternoon of submission day              | Choose what to fix by whether it affects the demo and whether it can be fixed and checked again in the time left     |

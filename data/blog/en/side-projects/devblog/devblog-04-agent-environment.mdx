@@ -1,0 +1,412 @@
+---
+title: 'DevBlog 4. The Whole Structure of My AI Agent Environment'
+date: '2026-11-25'
+tags: ['DevBlog']
+draft: false
+summary: 'How three agents (Claude Code, Codex, Antigravity) on two computers share one dotfiles repo: context engineering, L0/L1/L2 progressive disclosure, agentic retrieval vs vector RAG, cwd-based partitioning of memory and worklog, source-to-build instruction assembly, symlinks and git sync, five hooks, MCP registration rules, the session hierarchy, and the persona with example injection'
+---
+
+## 0. Introduction
+
+I came to write this post while playing twenty questions. To some people twenty questions is just a game. Seen another way, it is an optimization problem in natural-language information retrieval: find the answer with 20 yes/no questions, that is, 20 bits. If every question splits the candidates exactly in half, 20 questions can pick one out of about a million (2^20). The same game becomes a completely different problem depending on how you look at it. A small change in wording, in other words a difference in framing.
+
+That reminded me that I had been describing my own AI agent environment to people as "nothing special, I stuff in markdown files and tell it to read what it needs". That is not wrong. Said differently, the same thing is context engineering: agentic retrieval running on a hierarchical index.
+
+So I am writing this post to put the structure into proper words. I use three [AI coding agents](/en/blog/cs-fundamentals/ai/ai-07-01-ai-agent/#ai-agent), Claude Code, Codex and Antigravity, and switch between two machines, a Windows desktop and a MacBook. School assignments, this blog, team projects and personal repos are all open at the same time, there are many skills, and the instructions change as I go. This whole environment lives in one repo, `~/dotfiles`.
+
+The post reads in two layers. Each section starts with an analogy of a sentence or two and a diagram, so a reader seeing this for the first time still gets roughly what was done. Then the analogy is replaced with the proper terms, followed by the real paths, numbers and the reasons for the design. Numbers that change are collected, with a date, in the "By the numbers" table at the end.
+
+## 1. The big picture
+
+![Overall map: two computers share one dotfiles repo on GitHub, and three agents read the instructions, memory and worklog in it](/static/images/devblog-04-agent-environment/overview.svg)
+
+_Overall map: two computers share one dotfiles repo on GitHub, and three agents read the instructions, memory and worklog in it_
+
+As an analogy, it is one bag shared by two houses. Each house has three assistants; when they start work they take notes out of the bag and read them, and when they finish they put new notes in.
+
+In terms, the bag is the GitHub private repo `seren-wib/dotfiles`, the two houses are the Windows and macOS clones, and the three assistants are Claude Code, Codex and Antigravity. The notes come in three kinds.
+
+- **Instructions**: rules the agent receives as its system prompt in every session. The sources are in `agents/`.
+- **memory**: where facts are written down. Only current state and references go here.
+- **worklog**: what is left to do and what was done. One `WORK.md` per unit of work (key).
+
+On top of these come hooks (scripts that run automatically at set points), skills (manuals for specific tasks), MCP registration scripts and a symlink list.
+
+The information is split into three layers.
+
+![Three layers: L0 is loaded every session, L1 is retrieved when needed, L2 is the deep record](/static/images/devblog-04-agent-environment/three-layers.svg)
+
+_Three layers: L0 is loaded every session, L1 is retrieved when needed, L2 is the deep record_
+
+As an analogy, they are the top of the desk, the drawers and the storeroom. Only what you look at all the time sits on the desk, only labels show on the drawers, and you go to the storeroom only when you need to find something.
+
+- **L0 Always loaded**: what goes into the system prompt every session. The persona, the shared rules, the per-agent rules, the global memory index (file names with one-line descriptions), and skill names with their descriptions.
+- **L1 Retrieved on demand**: what the agent opens with the `Read` tool when a topic comes up. Skill bodies, global memory bodies, the project `MEMORY.md`, `WORK.md`.
+- **L2 Deep record**: what is searched with `grep` only when a question comes up. `worklog/<key>/history/`, `memory/log/YYYY-MM.md`, transcripts of finished sessions, the git log.
+
+Showing only names in the upper layer and opening the lower layer only for what is needed is called progressive disclosure. The lower the layer, the larger it is and the less often it is read. There is one reason for the design: text in L0 is multiplied by the number of sessions and becomes cost, while L1 and L2 cost only the sessions that use them.
+
+## 2. What is always carried
+
+As an analogy, it is the one-page code of conduct you get every morning. It has to be one page so you can read all of it before you start.
+
+In terms, it is the system prompt. Claude Code reads `~/.claude/CLAUDE.md`, Codex `~/.codex/AGENTS.md`, and Antigravity `~/.gemini/GEMINI.md` at session start. All three files are assembled from the same sources (section 6).
+
+The assembled result is in this order:
+
+1. Persona (`agents/persona.md`)
+2. Shared rules (`agents/shared.md`): four sections, on how to work, the environment, per-session cost, and memory rules
+3. Per-agent rules (`agents/claude.md` and so on)
+4. Global memory index (`memory/global/MEMORY.md`)
+
+The length a model can see at once (the context window) is fixed, and every character that goes in is counted as input tokens. The system prompt goes in again with every request, so whatever is in it is multiplied by the number of sessions and requests. Keep appending long markdown files to the instructions to "tell the agent everything about me", and rules that will never be used are read every time.
+
+This cost is bigger than it looks. In my environment, opening an empty session lays down about 50,000 tokens before anything is asked, and roughly half of that is MCP tool lists. That is my own measurement; it has not yet been broken down into system prompt, instructions, memory index, skill descriptions and hook output.
+
+So what goes into L0 is decided by the "per-session cost" section of the shared rules. Everything loaded into every session is input tokens: instruction files, the global index, MCP tool lists, plugin skill descriptions, and messages injected by hooks. The rules are:
+
+- Before adding anything, ask first "does every session need this?". If not, send it somewhere that opens only when needed (L1), such as a memory body or a skill body.
+- MCP never goes in the user scope; it is added in the local scope only for the folders that need it.
+- claude.ai connectors come first. The same tool never comes in through two paths.
+- Plugins and connectors that are not used are turned off.
+
+Section 9 covers the MCP rules in detail. Designing what the model is shown, when, and how much is called context engineering. Where it differs from writing one good instruction file (prompt engineering) is that the structure decides what goes in every time and what is pulled out only when needed.
+
+The global index looks like this (example values):
+
+```text
+## State (open only the matching file)
+- [me/profile](~/.claude/memory/me/profile.md) — identity, stack
+- [me/tools](~/.claude/memory/me/tools.md) — subscriptions, machine setup
+
+## References
+- [refs-env](~/.claude/memory/refs-env.md) — OS quirks, auth locations
+```
+
+Each line holds only a file name and one short hook. These lines are loaded into all three agents in every session, so per character they are the most expensive lines in the repo.
+
+## 3. Pulling out what is needed
+
+![In vector RAG a retriever picks similar chunks and attaches them; in agentic retrieval the model looks at the index and opens files itself](/static/images/devblog-04-agent-environment/retrieval-compare.svg)
+
+_In vector RAG a retriever picks similar chunks and attaches them; in agentic retrieval the model looks at the index and opens files itself_
+
+As an analogy, there are two kinds of library. In one, a librarian cuts out the pages that look similar to your question and hands them over. In the other, you look at the table of contents and open the chapter yourself.
+
+The first is vector [RAG](/en/blog/cs-fundamentals/ai/ai-07-02-rag/#1-ragretrieval-augmented-generation) (Retrieval-Augmented Generation). The question is turned into a vector by an [embedding](/en/blog/cs-fundamentals/ai/ai-06-01-llm/#2-embedding) model, the top-k document chunks with the highest similarity are picked from a vector DB, and they are attached to the context. The retriever decides what to look at. The second is the agentic retrieval this environment uses. The index is already in the context (L0), the model decides "this topic means this file", and it opens the whole file with the `Read` tool. The model itself decides. In twenty-questions terms, the index is the list of questions and opening one file is asking one question.
+
+The index is hierarchical:
+
+- one line in the global index → the body of `me/*.md` or `refs-*.md`
+- a skill's name and description → the `SKILL.md` body → helper files in that skill folder (for `session-flow`, per-situation files such as `archive.md` and `pr-merge.md`)
+- the project memory path given by the session start hook → `MEMORY.md` → split topic files once it passes 3 KB
+
+Skills are the typical example of this structure. Claude Code puts only each skill's `name` and `description` into the system prompt and opens the body when the task comes up. I have 11 skills (table in section 5); their bodies add up to tens of KB, but what goes into every session is a few lines of descriptions.
+
+I did not use vector RAG because of scale and dependencies.
+
+- **Scale**: there are a few dozen memory and skill documents. At that size a file name and a one-line description are enough to choose, and there are not enough documents to need similarity search.
+- **Dependencies**: no embedding model, no vector store, no re-indexing every time a document changes. All it needs is folders, markdown and git, and all three agents can read files.
+- **Maintainability**: what was read and when stays in the transcript as `Read` calls. If the wrong file was opened, fixing one index line is enough.
+
+It has costs too. If the model misreads the index, it does not open the file it needs. Opening a file takes a tool call. If the documents grew into the thousands, the index itself would overflow L0 and this approach would stop fitting. So each index line is written so that it shows "when to open this", and the global files are capped at 10 (section 5).
+
+## 4. The folder is the address
+
+![The cwd goes through path encoding to become the Claude Code auto-memory folder, and the same key finds the memory and worklog](/static/images/devblog-04-agent-environment/folder-routing.svg)
+
+_The cwd goes through path encoding to become the Claude Code auto-memory folder, and the same key finds the memory and worklog_
+
+As an analogy, the name of the room you are standing in is the number of that room's drawer. Start working in the blog folder and the blog drawer opens.
+
+In terms, it is partitioning by cwd (current working directory). Memory and worklog are split per work folder, and the folder name is the key.
+
+Claude Code already creates an auto-memory folder per folder. The path is `~/.claude/projects/<encoded path>/memory/`, where the encoding replaces every non-alphanumeric character in the path with `-` (the repo root for a git repo). That folder is created separately on each machine, so left alone, the Mac knows nothing about memory written on Windows.
+
+So the `memory-sync.js` hook moves the folder to `memory/<key>/` in the repo and puts a symlink in its original place. There are two ways for the other machine to find the same project:
+
+- **git repo**: by remote URL. With "remote URL → key" in `memory/repos.txt`, a clone on the other machine links itself the first time an agent opens it, even at a different path.
+- **folders that are not git repos** (such as the school iCloud folder): by the path for each OS in `memory/paths.txt`. `-` if it does not exist on one OS.
+
+The worklog uses the same key, as in `worklog/vercel-blog/WORK.md`. `worklog/INDEX.md` holds the work currently open ("In progress") and a table that turns the names I use into folders (for example "blog → `~/projects/vercel-blog`").
+
+When a session starts, the hook puts one line into the context: "this folder's project memory path, worklog path". The agent reads the `MEMORY.md` at that path first. The reason for the design is scalability. However many projects there are, only the current folder's path line goes into L0, and other projects' memory is not visible at all.
+
+## 5. Where the rules live
+
+As an analogy, even notes have different places depending on their kind. Daily rules go on the desk, manuals for specific jobs in the drawer, current state on the notepad, to-dos in the work log.
+
+In terms, each kind of information has its own storage location and load time.
+
+| Kind                            | Where                                  | Loaded              | Example                                            |
+| ------------------------------- | -------------------------------------- | ------------------- | -------------------------------------------------- |
+| Rules for every session         | `agents/*.md` → assembled instructions | L0, every session   | Commit only when told, check dates with `date +%F` |
+| Format and procedure for a task | `claude/skills/<name>/SKILL.md`        | L1, for that task   | Publishing to the blog, README format              |
+| Rules for one folder only       | that folder's `CLAUDE.md`              | in that folder only | The repo's publishing pipeline                     |
+| Current state, references       | `memory/`                              | L1                  | Account locations, pitfalls hit before             |
+| To do, done                     | `worklog/<key>/WORK.md`                | L1                  | `## 할 일`, `## 한 일`                             |
+| Past records                    | `history/`, `memory/log/`              | L2                  | Finished stages, history of decision changes       |
+
+Only two kinds of thing go into memory:
+
+- **State**: facts as of now. Current values only, without the process or how it got there.
+- **References**: IDs, paths, account locations and pitfalls you need for the work that are not in any repo.
+
+What stays out is decided too. Working rules go to the instructions or a skill, process and history to the log, to-dos to the worklog. "Would I make a mistake in another folder without knowing this?" separates global from project memory. Files are grouped by kind, never one file per fact. There are size limits: 2.5 KB per global file, 10 global files, 3 KB for a project `MEMORY.md`.
+
+A project `MEMORY.md` looks like this (example values; the section names are Korean, State and References):
+
+```markdown
+# Project memory — example-repo
+
+## 상태
+
+- Deploy: automatic on merge to main, a preview per PR
+- Posts published with empty sections: ch3, ch5
+
+## 참조
+
+- Hosting project id: prj_XXXX
+- Build pitfall: .md files don't show up, only .mdx
+```
+
+And `WORK.md` (sections: Seats, To do, Done):
+
+```markdown
+## 자리
+
+- Lead: `<name> Lead`
+
+## 할 일
+
+- [ ] Post 16 waiting for review
+
+## 한 일
+
+- 2026-11-25 Home Lead reopened the project (<session name>)
+```
+
+There are 11 skills:
+
+| skill               | What it does                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------- |
+| `session-flow`      | Recording sessions, handover, archiving, running slots                                            |
+| `pr-workflow`       | Issues, branches, splitting commits, PRs, merging                                                 |
+| `project-docs`      | Stage documents (plan, SRS, SDD, test, installation and maintenance plans), decision records, TDD |
+| `docs-style`        | Checklists, comparison tables, report Google Docs                                                 |
+| `blog-post`         | Blog post rules (one voice, two layers, cross-links, masking)                                     |
+| `readme-style`      | README format for public repos                                                                    |
+| `profile-edit`      | GitHub, blog and LinkedIn profiles                                                                |
+| `lms-sync`          | Pulling course files and dates from the school LMS                                                |
+| `demo-recording`    | Recording demo videos with Playwright                                                             |
+| `teruten`           | Turning the exam security program on the Mac on and off                                           |
+| `unity-mcp-setting` | Connecting MCP to a Unity project                                                                 |
+
+The reason for the design is maintainability. When a rule changes there is one place to fix. If the blog rules change, only `blog-post` changes, and the per-session instructions are untouched.
+
+## 6. Why changing instructions don't cause drift
+
+![memory-sync.js build combines four sources into instruction files for the three agents](/static/images/devblog-04-agent-environment/source-build.svg)
+
+_memory-sync.js build combines four sources into instruction files for the three agents_
+
+As an analogy, there is one manuscript and a printer prints it in three formats. To fix something, you fix the manuscript and print again. A pen correction on a printed copy disappears at the next printing.
+
+In terms, it is the separation of source and build artifact. The sources are `persona.md`, `shared.md`, `claude.md`, `codex.md` and `gemini.md` in `agents/`, plus `memory/global/MEMORY.md`; the build artifacts are `claude/CLAUDE.md`, `codex/AGENTS.md` and `gemini/GEMINI.md`. `node ~/.claude/hooks/memory-sync.js build` concatenates the sources in order and writes the three files.
+
+- Only Claude Code understands `@` imports, so `CLAUDE.md` gets the single line `@~/dotfiles/agents/persona.md` instead of the persona text. The Codex and Antigravity files get the persona text itself.
+- A "Generated by ... Edit those" comment sits at the top of each file, so the file itself says not to edit it directly.
+- If the content is unchanged, the file is not rewritten. Running build any number of times gives the same result (idempotent).
+- The hooks run build on every pull and push. The artifacts are committed too, so a freshly cloned machine works even before any hook has run.
+
+This structure is why three agents and two machines see the same rules even when the instructions keep changing. There is one place to edit, the source, and the machine takes care of the rest.
+
+The change history goes in `memory/log/YYYY-MM.md`. When an agent overwrites a state value or finishes a piece of work, it writes one line itself: `- date [folder/file] what: before → after (why)`. State files keep only current values, and "why did I change that?" is found by `grep`ping the log (L2).
+
+It is also kept in step with the claude.ai app memory. Every day at 04:44 (KST), a scheduled cloud task reads `tasks/memory-tidy.md` and makes the global `me/*.md` files and the app memory identical. It backs up the app side first, follows whichever side changed since the last sync commit, and merges line by line when both changed. No cleanup or compression runs automatically.
+
+## 7. Two computers, three agents
+
+![The clones on both machines pull and push with the GitHub repo, and the install scripts create symlinks from links.txt](/static/images/devblog-04-agent-environment/two-machines.svg)
+
+_The clones on both machines pull and push with the GitHub repo, and the install scripts create symlinks from links.txt_
+
+As an analogy, each of the two houses keeps a copy of the same bag and hangs it on a wall hook. The contents are matched every day; the hooks are put up only once.
+
+In terms, it is git sync and symlinks. The originals live in the repo, and the real places where each tool looks for its settings (`~/.claude/`, `~/.codex/`, `~/.gemini/`, the VS Code user folder) hold only links. One file, `links.txt`, decides what is linked where. It has 24 lines.
+
+```text
+claude/CLAUDE.md                  ~/.claude/CLAUDE.md
+claude/hooks                      ~/.claude/hooks
+claude/skills/blog-post           ~/.claude/skills/blog-post
+memory/global                     ~/.claude/memory
+codex/AGENTS.md                   ~/.codex/AGENTS.md
+vscode/settings.json              {vscode}/settings.json
+```
+
+Both `install.ps1` (Windows) and `install.sh` (macOS) read this file. Existing files are moved to `~/.dotfiles-backup/<timestamp>/` before the link is made. On Windows without admin rights or Developer Mode, a junction is used instead of a symlink.
+
+The reasons for the design:
+
+- **Maintainability**: when a new link target appears, add one line to `links.txt` and update the README table. The two install scripts are not edited separately.
+- **Portability**: every path is written relative to `~` or `$HOME`, and `node` is preferred over `python`/`python3`, whose names differ by OS. All hooks are node scripts.
+- **Safety**: credentials, sessions, conversation history, caches, sqlite files and build outputs (`*.vsix`) are blocked by `.gitignore`. Line endings and encoding follow `.gitattributes`: LF and UTF-8 without BOM by default, and a BOM only for `.ps1` files that contain Korean, with CRLF (Windows PowerShell 5.1 misreads UTF-8 without a BOM).
+- **Visibility**: the repo is private, because memory holds personal state.
+
+The repo also holds settings outside the agents: the VS Code extension list (`vscode/extensions.txt`), a local extension that adds Antigravity shortcut buttons, and two Windows scheduled tasks (a stretch reminder at :50 every hour, and copying photos into folders by year). The scheduled tasks are not linked; their register scripts are run once.
+
+## 8. hook
+
+![Where hooks run during one session: SessionStart, UserPromptSubmit, PostToolUse, Stop](/static/images/devblog-04-agent-environment/hook-timeline.svg)
+
+_Where hooks run during one session: SessionStart, UserPromptSubmit, PostToolUse, Stop_
+
+As an analogy, they are clocking in, a whisper every time you speak, an alarm that rings when a certain job is done, and handing in the work log when you leave. They happen on their own at set times without the assistant having to remember.
+
+In terms, they are hooks: commands attached to an agent's lifecycle events (session start, prompt submit, after a tool runs, end of a response). If the instructions say "git pull when a session starts", the model may forget, but a hook runs regardless of the model. In Claude Code, 4 scripts are registered in 5 places.
+
+| event                            | script                | What it does                                                                                                                         |
+| -------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `SessionStart`                   | `memory-sync.js pull` | git pull `~/dotfiles`, repair broken links, rebuild instructions, print one line with this folder's memory and worklog paths         |
+| `UserPromptSubmit`               | `persona-examples.js` | Inject 2 example dialogues on the first prompt and every third prompt (section 11)                                                   |
+| `PostToolUse` (Bash, PowerShell) | `pr-merged.js`        | If the command that just ran merged or closed a PR, tell the agent to sync local and record it first                                 |
+| `Stop`                           | `memory-sync.js push` | Rebuild instructions, register new project memory, commit only `memory/`, `worklog/`, `agents/` and the instruction files, then push |
+| `Stop`                           | `notify-done.js`      | A Windows toast notification when a response ends (does nothing on the Mac)                                                          |
+
+`memory-sync.js` is over 600 lines so that it can fail quietly:
+
+- **push runs as a detached process.** The agent does not wait for the push to finish.
+- **A lock file** keeps pull and push from touching git at the same time.
+- **It does not commit when other files are staged.** That way an automatic commit never splits a commit I am making by hand.
+- **On a conflict**, it rebases again so that only overlapping hunks follow the remote, and keeps the old local state on a local `sync-conflict/<time>` branch. The next session start shows that name in one line.
+- **The automatic commit author** is `dotfiles autosync <autosync@dotfiles.invalid>`, an address no GitHub account owns, so it stays out of the contribution graph.
+- Results and failures go to `<tmp>/dotfiles-memory-sync/sync.log`.
+
+Codex hooks the same scripts in `codex/hooks.json` on `SessionStart` (pull), `UserPromptSubmit` (persona) and `Stop` (push). Antigravity has different hook events, so pull (actually pulling only once every 10 minutes) and the persona go on `PreInvocation`, and push on `Stop`. The same script takes a `claude|codex|antigravity` argument and answers in each agent's output format (plain text, `additionalContext` JSON, `ephemeralMessage` JSON).
+
+Hook output is also an L0 cost, so there are rules: the session start hook prints one path line, and the persona hook two examples every third prompt. Hooks do not repeat what is already in the instructions.
+
+## 9. MCP
+
+As an analogy, MCP connections are the outside phone lines each assistant can use. If two lines go to the same place, the phone book goes in twice and gets thicker.
+
+In terms, they are [MCP](/en/blog/cs-fundamentals/ai/ai-07-01-ai-agent/#model-context-protocol-mcp) (Model Context Protocol) servers: connections that let an agent use outside services such as Google Drive, a calendar or Notion as tools, and every connected server's tool list goes into the system prompt (L0). So the rule is "the same tool never comes in through two paths". Roughly half of the 50,000 tokens of an empty session from section 2 come from here.
+
+| Agent       | How it gets them                                                                                                                                                                                                                                                                                                        |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code | The claude.ai account's connectors and plugins (Google Workspace, Notion, Slack, Playwright and others) come first. No local MCP in the user scope. Only what a connector can't do is added from that folder with `claude mcp add --scope local`. Right now that is two places, the Roblox folder and the Unity folder. |
+| Codex       | Only its own account plugins. No local MCP.                                                                                                                                                                                                                                                                             |
+| Antigravity | It has no account connectors, so it gets every local launcher and remote endpoint.                                                                                                                                                                                                                                      |
+
+The Antigravity config is never edited by hand. `mcp/sync.mjs` reads the shared service list and generates the Codex and Antigravity configs. `gemini/mcp_config.json` is a template in the repo; the real config (`~/.gemini/config/mcp_config.json`) contains OAuth settings, so it is only generated on each machine and never committed. `mcp/roblox.mjs` and `mcp/google-calendar.mjs` are launchers that start their servers from home-relative paths. VS Code has a single Unity MCP in `vscode/mcp.json`.
+
+Authentication is separate per client and never copied. Token files live outside the repo and are set up by hand on each machine. Plugins and connectors are turned on when there is a use for them and turned off after a month without use.
+
+The reasons for the design are dependencies and cost. Leaving Claude Code to the account connectors means no servers to run on each machine, and folder-scoped servers grow the tool list only in that folder.
+
+## 10. Session layout
+
+![Under the Home Lead there is a Lead per project, and under that PM, FE and BE slots and work sessions](/static/images/devblog-04-agent-environment/session-hierarchy.svg)
+
+_Under the Home Lead there is a Lead per project, and under that PM, FE and BE slots and work sessions_
+
+As an analogy, there is one head office desk, one foreman per site, and staff under each foreman. When a staff member changes, the seat stays, and the handover goes through the work log.
+
+In terms, it is a session hierarchy. In the Claude Code desktop app a session can start other sessions, which are nested under it.
+
+1. **Home Lead**: one, in home (`~`). Opens and closes projects and keeps "In progress" in `worklog/INDEX.md`.
+2. **Project Lead** (`<name> Lead`): one per open project, running in the project root. It only divides the work and never edits code itself.
+3. **Slots and work sessions**: role seats I asked for, such as PM, FE and BE, and work sessions the Lead hands one task each. This post, too, was written by a work session that the blog Lead started.
+
+A few rules hold the structure together:
+
+- **Leads hold no state.** Open projects are in `INDEX.md`, and a project's slots and work are in that key's `WORK.md`. So any Lead can have its conversation replaced and keep working just by reading the files.
+- **The slot stays; only the conversation is replaced.** A replacement is a handover, not an ending. The next conversation starts from `WORK.md`, not from the old conversation.
+- **Reports go up only**, with `SendMessage`. A work session reports to the session that started it, a Project Lead to the Home Lead.
+- **Records are written in the turn where something changed.** When the app automatically archives a session left idle, no model runs, so trying to write just before archiving misses it.
+- **Finished sessions** are archived, and a link to the transcript is kept under `session-archive/<YYYY-MM>/<key>/` with a readable name (`archive-link.js`). This folder differs per machine and is not in git.
+
+The reason for the design is close to testability. Because state lives only in files, what a session knows can be checked in `WORK.md` instead of in the conversation.
+
+## 11. Persona
+
+As an analogy, it is the tone and personality given to the assistant. Over a long stretch of work the tone slowly fades, so every so often you show it again: "this is how you talk".
+
+In terms, it is a persona prompt and few-shot examples. `agents/persona.md` sets the background, attitude and tone: an old friend who speaks casually, in short sentences, with some teasing. It looks like a joke, but it has functions:
+
+- **Term correction**: when I blur a technical term or answer back with the analogy, it accepts that and then makes me say it again with the right term, at most one per answer. The two-layer structure of this post, starting with an analogy and ending with terms, comes from the same rule.
+- **Keeping the tone**: it keeps long explanations from slipping back into an assistant voice.
+
+In long sessions the persona fades (persona drift). The system prompt is at the very beginning, and as the conversation grows, recent messages carry relatively more weight. So the `persona-examples.js` hook injects two example dialogues from `agents/examples.md` again on the first prompt and every third prompt. There are 8 examples; they rotate in a fixed order, with some appearing more often. The instruction file keeps only 2 examples permanently, and the hook rotates the rest. That is cheaper than putting all 8 in L0.
+
+Text that goes into files (commit messages, code comments, documents) does not use the persona's tone. Neither does this post.
+
+## 12. Limits and next steps
+
+The limits of the current structure:
+
+- **It relies on index quality.** The model picks a file from one index line, so a vague description means it does not open the file it needs. There is no way to measure this yet.
+- **L0 was not measured item by item.** The only token figure is about 50,000 for a whole empty session; everything else was measured in bytes. Korean has a different byte-to-token ratio from English, so per-item cost can't be stated precisely from byte counts.
+- **Sync conflicts**: when both machines edit the same file at the same time, a conflict happens. On the day I wrote this, the Windows clone had a conflict in one `worklog/` file. Cases the hook cannot resolve automatically have to be cleaned up by hand.
+- **Hook features differ per agent.** Antigravity's hook input format is undocumented, so one received input is saved to a file and the code is matched to it.
+- **Memory cleanup is not automatic.** There used to be a daily automatic cleanup, but it is off now; agents overwrite values in the turn where they change and leave a log line. Whether the size limits are exceeded is checked by a person.
+
+Two things to try next: measure how many tokens each part of L0 takes at session start and add it to the table below, and test with a few questions whether the right file gets opened from one index line.
+
+## By the numbers
+
+Counted by hand on 2026-11-25, in the working tree of the Windows clone. That clone was 20 commits behind the remote, with the same structure.
+
+| Item                                | Value                                                      | Source                                                                                                                  |
+| ----------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Links in `links.txt`                | 24 lines                                                   | `grep -cvE '^\s*(#\|$)' links.txt`                                                                                      |
+| Assembled `CLAUDE.md`               | 13,930 B (the 8,769 B persona is separate, via `@` import) | `wc -c`                                                                                                                 |
+| Assembled `AGENTS.md` / `GEMINI.md` | 22,657 B / 22,371 B                                        | `wc -c`                                                                                                                 |
+| `agents/shared.md`                  | 11,837 B                                                   | `wc -c`                                                                                                                 |
+| `agents/examples.md`                | 8,988 B, 8 examples                                        | `wc -c`, rotation table in `persona-examples.js`                                                                        |
+| Skills                              | 11 (`SKILL.md` 1,302 to 16,278 B)                          | `ls claude/skills`, `wc -c`                                                                                             |
+| Claude Code hooks                   | 5 registrations, 4 scripts                                 | `hooks` in `claude/settings.json`                                                                                       |
+| `memory-sync.js`                    | 629 lines                                                  | `wc -l`                                                                                                                 |
+| Global memory                       | 11 files (1 index + 7 `me/` + 3 `refs-`), 24,001 B total   | `wc -c memory/global`                                                                                                   |
+| Project memory                      | 19 keys                                                    | `ls -d memory/*/` (excluding global, log)                                                                               |
+| `repos.txt` / `paths.txt`           | 12 / 9 lines (excluding comments)                          | `grep -cv`                                                                                                              |
+| Worklog keys                        | 27, with 50 `history/` files                               | `ls -d worklog/*/`, `find`                                                                                              |
+| session-archive links               | 225 (2026-10, 2026-11)                                     | `find session-archive -type f`                                                                                          |
+| Antigravity MCP template            | 13 servers                                                 | `gemini/mcp_config.json`                                                                                                |
+| Claude Code local-scope MCP         | 2 folders                                                  | shared instructions                                                                                                     |
+| VS Code extension list              | 62 lines                                                   | `wc -l vscode/extensions.txt`                                                                                           |
+| Tokens at empty session start       | about 50,000, roughly half of it MCP tool lists            | My measurement. Per item (system prompt, instructions, memory index, skill descriptions, MCP, hook output) not measured |
+
+## Glossary
+
+| Term                                                                                 | Meaning                                                                                                 |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| context window                                                                       | The maximum length of input a model can see at once                                                     |
+| input token                                                                          | The unit of model input. Price and length limits are counted in it                                      |
+| system prompt                                                                        | Instructions placed at the start of the conversation, sent again with every request                     |
+| context engineering                                                                  | Designing what the model is shown, when, and how much                                                   |
+| progressive disclosure                                                               | Showing names and summaries first and opening the body only when needed                                 |
+| [RAG](/en/blog/cs-fundamentals/ai/ai-07-02-rag/#1-ragretrieval-augmented-generation) | Answering with retrieved documents attached to the input                                                |
+| [embedding](/en/blog/cs-fundamentals/ai/ai-06-01-llm/#2-embedding)                   | Text turned into a vector that lies close to vectors of similar meaning                                 |
+| vector DB, top-k                                                                     | A store that keeps vectors and returns the k closest to a query vector                                  |
+| chunk                                                                                | A piece of a document cut out as a unit of retrieval                                                    |
+| agentic retrieval                                                                    | Retrieval where the model uses tools to choose what to read                                             |
+| hierarchical index                                                                   | A multi-level table of contents where one index points to the next                                      |
+| partitioning                                                                         | Splitting data by key so only the needed part is read                                                   |
+| cwd                                                                                  | The folder currently being worked in                                                                    |
+| skill                                                                                | A bundle of task-specific instructions. Only the description is always loaded; the body opens when used |
+| hook                                                                                 | A command attached to an agent's lifecycle event                                                        |
+| lifecycle event                                                                      | A point such as session start, prompt submit, after a tool runs, or end of a response                   |
+| detached process                                                                     | A process that runs on its own without the parent waiting for it                                        |
+| lock                                                                                 | A marker that keeps two jobs from touching the same resource at the same time                           |
+| rebase                                                                               | A git operation that moves your commits onto the latest remote commit and stacks them again             |
+| source, build artifact                                                               | The original a person edits, and the result a machine makes from it                                     |
+| idempotent                                                                           | Giving the same result however many times it runs                                                       |
+| symlink, junction                                                                    | Links pointing to a file or folder elsewhere. A junction is a Windows folder-only link                  |
+| source of truth                                                                      | The one copy among several that is the reference                                                        |
+| [MCP](/en/blog/cs-fundamentals/ai/ai-07-01-ai-agent/#model-context-protocol-mcp)     | A protocol that lets an agent use outside services as tools                                             |
+| connector                                                                            | An MCP connection attached to a claude.ai account                                                       |
+| MCP scope (user, local)                                                              | Where an MCP registration applies. user means every folder, local means that folder only                |
+| persona prompt                                                                       | Instructions that set the model's tone and attitude                                                     |
+| few-shot example                                                                     | An example showing the shape of the desired output                                                      |
+| persona drift                                                                        | The set tone fading over a long conversation                                                            |

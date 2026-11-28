@@ -1,81 +1,48 @@
-import { allCoreContent } from 'pliny/utils/contentlayer'
-import { getCategoryLabel, sortByChapter } from '@/data/categories'
-import ListLayout from '@/layouts/ListLayoutWithCategories'
-import { allBlogs } from 'contentlayer/generated'
-import categoryData from 'app/category-data.json'
 import { notFound } from 'next/navigation'
-import { genPageMetadata } from 'app/seo'
-import { getDictionary, locales, type Locale, asLocale } from '@/data/i18n'
+import { parentOf } from '@/data/categories'
+import { locales, asLocale } from '@/data/i18n'
+import { BlogListPage, POSTS_PER_PAGE, categoryCounts, listMetadata } from 'app/blog-routes'
 
-const POSTS_PER_PAGE = 5
-const counts = categoryData as Record<string, Record<string, number>>
+/** /<locale>/blog/category/<category>/page/<n>/ for a category without a parent */
+const pageCount = (locale: string, category: string) =>
+  parentOf(category) ? 0 : Math.ceil((categoryCounts[locale]?.[category] ?? 0) / POSTS_PER_PAGE)
 
 export const generateStaticParams = async () =>
-  locales.flatMap((locale) => {
-    const categoryCounts = counts[locale] ?? {}
-    return Object.keys(categoryCounts).flatMap((category) => {
-      const totalPages = Math.max(1, Math.ceil(categoryCounts[category] / POSTS_PER_PAGE))
-      return Array.from({ length: totalPages }, (_, i) => ({
-        locale,
-        category: encodeURI(category),
-        page: (i + 1).toString(),
-      }))
-    })
-  })
+  locales.flatMap((locale) =>
+    Object.keys(categoryCounts[locale] ?? {})
+      .filter((category) => !parentOf(category))
+      .flatMap((category) =>
+        Array.from({ length: Math.max(1, pageCount(locale, category)) }, (_, i) => ({
+          locale,
+          category: encodeURI(category),
+          page: (i + 1).toString(),
+        }))
+      )
+  )
+
+async function resolve(params: Promise<{ locale: string; category: string; page: string }>) {
+  const { locale: rawLocale, category: rawCategory, page: rawPage } = await params
+  const locale = asLocale(rawLocale)
+  const category = decodeURI(rawCategory)
+  const page = Number(rawPage)
+  const valid = Number.isInteger(page) && page >= 1 && page <= pageCount(locale, category)
+  return valid
+    ? { locale, list: { kind: 'category' as const, categoryPath: category, page } }
+    : null
+}
 
 export async function generateMetadata(props: {
   params: Promise<{ locale: string; category: string; page: string }>
 }) {
-  const { locale: rawLocale, category: rawCategory, page } = await props.params
-  const locale = asLocale(rawLocale)
-  const category = decodeURI(rawCategory)
-  const label = getCategoryLabel(category)
-  return genPageMetadata({
-    title: label,
-    description: getDictionary(locale).categoryPosts(label),
-    locale,
-    path: `/blog/category/${category}/page/${page}/`,
-    availableLocales: locales.filter(
-      (l) => Math.ceil((counts[l]?.[category] ?? 0) / POSTS_PER_PAGE) >= parseInt(page)
-    ),
-  })
+  const route = await resolve(props.params)
+  if (!route) return
+  return listMetadata(route.locale, route.list)
 }
 
 export default async function CategoryPage(props: {
   params: Promise<{ locale: string; category: string; page: string }>
 }) {
-  const params = await props.params
-  const category = decodeURI(params.category)
-  const pageNumber = parseInt(params.page)
-  const filteredPosts = sortByChapter(
-    allCoreContent(
-      allBlogs.filter(
-        (post) => post.locale === asLocale(params.locale) && post.category === category
-      )
-    )
-  )
-  const totalPages = Math.ceil(filteredPosts.length / POSTS_PER_PAGE)
-
-  // Return 404 for invalid page numbers or empty pages
-  if (pageNumber <= 0 || pageNumber > totalPages || isNaN(pageNumber)) {
-    return notFound()
-  }
-  const initialDisplayPosts = filteredPosts.slice(
-    POSTS_PER_PAGE * (pageNumber - 1),
-    POSTS_PER_PAGE * pageNumber
-  )
-  const pagination = {
-    currentPage: pageNumber,
-    totalPages: totalPages,
-  }
-
-  return (
-    <ListLayout
-      locale={asLocale(params.locale)}
-      posts={filteredPosts}
-      initialDisplayPosts={initialDisplayPosts}
-      pagination={pagination}
-      title={getCategoryLabel(category)}
-    />
-  )
+  const route = await resolve(props.params)
+  if (!route) return notFound()
+  return <BlogListPage locale={route.locale} list={route.list} />
 }

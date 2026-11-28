@@ -1,6 +1,7 @@
 /**
  * Site languages. Every page lives under /<locale>/ (see docs/shared/pages.md).
- * Posts live under data/blog/<locale>/<category>/<slug>.mdx; a post and its translation share the slug.
+ * Posts live under data/blog/<locale>/<parent>/<category>/<file>.mdx (or <locale>/<category>/ without a parent);
+ * a post and its translation share the slug.
  */
 export const locales = ['kr', 'en'] as const
 export type Locale = (typeof locales)[number]
@@ -31,7 +32,7 @@ export function localeFromPathname(pathname: string): Locale {
   return isLocale(first) ? first : defaultLocale
 }
 
-/** The same page in another locale: '/kr/blog/os/x/' -> '/en/blog/os/x/' */
+/** The same page in another locale: '/kr/blog/cs-fundamentals/os/x/' -> '/en/blog/cs-fundamentals/os/x/' */
 export function switchLocalePath(pathname: string, target: Locale) {
   const parts = pathname.split('/')
   if (isLocale(parts[1])) {

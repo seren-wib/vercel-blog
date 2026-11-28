@@ -1,6 +1,41 @@
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded by next.config.js as CommonJS
+const { parents, topLevel } = require('./categoryTree')
+
+/**
+ * Categories that moved under a parent: /blog/<category>/... -> /blog/<parent>/<category>/...
+ * Every child in data/categoryTree.js counts (a child that never existed at the top level only adds a
+ * harmless rule). A child must not share its name with a parent or a top-level category, or these rules
+ * would catch that one's URLs.
+ */
+const movedCategories = Object.fromEntries(
+  Object.entries(parents).flatMap(([parent, { children }]) =>
+    children.map((child) => [child, `${parent}/${child}`])
+  )
+)
+for (const child of Object.keys(movedCategories)) {
+  if (parents[child] || topLevel.includes(child)) {
+    throw new Error(`Category "${child}" has the same name as a parent or a top-level category`)
+  }
+}
+
+/**
+ * The old top-level hackathon category became the hackathon parent; its posts moved to hackathon/grokbot.
+ * Its rules only match old post slugs (hackathon-...), so the parent's own pages under /blog/hackathon/ pass.
+ */
+const hackathonPost = 'hackathon-[^/]+'
+const hackathonPosts = 'hackathon/grokbot'
+
+/** Current path of a post given as '<old category>/<file>' */
+function currentPostPath(oldPath) {
+  const [category, ...rest] = oldPath.split('/')
+  if (movedCategories[category]) return [movedCategories[category], ...rest].join('/')
+  if (category === 'hackathon') return [hackathonPosts, ...rest].join('/')
+  return oldPath
+}
+
 /**
  * Old flat post URLs (/blog/<slug>) from before posts were split into category folders.
- * Each maps to the post's current path under /blog/<category>/.
+ * Each maps to the post's path under /blog/<category>/ at the time (currentPostPath adds the parent).
  */
 const movedPosts = {
   '01unity': 'unity/unity-01-basics',
@@ -79,7 +114,23 @@ const encodePath = (postPath) => postPath.split('/').map(encodeURIComponent).joi
  */
 const postRedirects = Object.entries({ ...movedPosts, ...renamedPosts }).map(([from, to]) => ({
   source: `/blog/${encodePath(from)}`,
-  destination: `/kr/blog/${encodePath(to)}/`,
+  destination: `/kr/blog/${encodePath(currentPostPath(to))}/`,
+  permanent: true,
+}))
+
+/**
+ * Posts that were taken down and replaced by a rewritten set (same locale, same category).
+ */
+const replacedPosts = {
+  'database-systems/database-systems-ch2-db-systems-er-model':
+    'database-systems/database-systems-ch2-er-schema-table',
+  'database-systems/database-systems-ch3-relational-data-model':
+    'database-systems/database-systems-ch2-er-schema-table',
+}
+
+const replacedPostRedirects = Object.entries(replacedPosts).map(([from, to]) => ({
+  source: `/:locale(kr|en)/blog/${from}`,
+  destination: `/:locale/blog/${currentPostPath(to)}/`,
   permanent: true,
 }))
 
@@ -88,6 +139,18 @@ const postRedirects = Object.entries({ ...movedPosts, ...renamedPosts }).map(([f
  */
 const tagRedirects = [
   { source: '/tags', destination: '/kr/', permanent: true },
+  ...Object.entries(parents).flatMap(([parent, { children }]) => {
+    const tag = `:tag(${children.join('|')})`
+    return [
+      { source: `/tags/${tag}`, destination: `/kr/blog/${parent}/:tag/`, permanent: true },
+      {
+        source: `/tags/${tag}/page/:page`,
+        destination: `/kr/blog/${parent}/:tag/page/:page/`,
+        permanent: true,
+      },
+    ]
+  }),
+  { source: '/tags/hackathon', destination: '/kr/blog/hackathon/', permanent: true },
   { source: '/tags/:tag', destination: '/kr/blog/category/:tag/', permanent: true },
   {
     source: '/tags/:tag/page/:page',
@@ -118,31 +181,64 @@ const removedPageRedirects = [
   { source: '/:locale(kr|en)/blog/category', destination: '/:locale/', permanent: true },
   {
     source: '/:locale(kr|en)/blog/information-retrieval/information-retrieval-ch7a-midterm-review',
-    destination: '/:locale/blog/category/information-retrieval/',
+    destination: `/:locale/blog/${movedCategories['information-retrieval']}/`,
     permanent: true,
   },
 ]
 
 /**
- * Posts that were taken down and replaced by a rewritten set (same locale, same category).
+ * Posts and category pages from before the parent categories, one rule per parent.
+ * With a locale prefix the locale is kept; without one (older URLs) they go to /kr in one step,
+ * instead of middleware.ts adding /kr first and this rule moving them second.
  */
-const replacedPosts = {
-  'database-systems/database-systems-ch2-db-systems-er-model':
-    'database-systems/database-systems-ch2-er-schema-table',
-  'database-systems/database-systems-ch3-relational-data-model':
-    'database-systems/database-systems-ch2-er-schema-table',
-}
+const prefixes = [
+  { from: '/:locale(kr|en)', to: '/:locale' },
+  { from: '', to: '/kr' },
+]
+const movedCategoryRedirects = prefixes.flatMap(({ from, to }) => [
+  ...Object.entries(parents).flatMap(([parent, { children }]) => {
+    const category = `:category(${children.join('|')})`
+    return [
+      {
+        source: `${from}/blog/category/${category}`,
+        destination: `${to}/blog/${parent}/:category/`,
+        permanent: true,
+      },
+      {
+        source: `${from}/blog/category/${category}/page/:page`,
+        destination: `${to}/blog/${parent}/:category/page/:page/`,
+        permanent: true,
+      },
+      {
+        source: `${from}/blog/${category}/:slug`,
+        destination: `${to}/blog/${parent}/:category/:slug/`,
+        permanent: true,
+      },
+    ]
+  }),
+  {
+    source: `${from}/blog/category/hackathon`,
+    destination: `${to}/blog/hackathon/`,
+    permanent: true,
+  },
+  {
+    source: `${from}/blog/category/hackathon/page/:page`,
+    destination: `${to}/blog/hackathon/page/:page/`,
+    permanent: true,
+  },
+  {
+    source: `${from}/blog/hackathon/:slug(${hackathonPost})`,
+    destination: `${to}/blog/${hackathonPosts}/:slug/`,
+    permanent: true,
+  },
+])
 
-const replacedPostRedirects = Object.entries(replacedPosts).map(([from, to]) => ({
-  source: `/:locale(kr|en)/blog/${from}`,
-  destination: `/:locale/blog/${to}/`,
-  permanent: true,
-}))
-
+// Specific URLs first: the first matching rule wins, and movedCategoryRedirects would catch them too
 module.exports = [
   ...postRedirects,
   ...replacedPostRedirects,
+  ...removedPageRedirects,
   ...tagRedirects,
   ...listRedirects,
-  ...removedPageRedirects,
+  ...movedCategoryRedirects,
 ]

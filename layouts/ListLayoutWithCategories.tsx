@@ -7,7 +7,13 @@ import type { Blog } from 'contentlayer/generated'
 import Link from '@/components/Link'
 import Category from '@/components/Category'
 import categoryData from 'app/category-data.json'
-import { getCategoryLabel, sortCategories } from '@/data/categories'
+import {
+  categoryHref,
+  categoryTree,
+  getCategoryLabel,
+  getParentLabel,
+  parentHref,
+} from '@/data/categories'
 import { getDictionary, localeInfo, localePath, type Locale } from '@/data/i18n'
 
 interface PaginationProps {
@@ -21,7 +27,18 @@ interface ListLayoutProps {
   description?: string
   initialDisplayPosts?: CoreContent<Blog>[]
   pagination?: PaginationProps
+  /** The parent and category this list belongs to, for highlighting in the sidebar */
+  current?: { parent?: string; categoryPath?: string }
+  /** Category links shown under the title of a parent page */
+  subcategories?: { path: string; count: number }[]
 }
+
+const chipClass = (active: boolean) =>
+  `rounded-full border px-3 py-1 text-sm ${
+    active
+      ? 'border-primary-500 text-primary-500'
+      : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300'
+  }`
 
 function Pagination({ totalPages, currentPage, locale }: PaginationProps & { locale: Locale }) {
   const pathname = usePathname()
@@ -66,6 +83,45 @@ function Pagination({ totalPages, currentPage, locale }: PaginationProps & { loc
   )
 }
 
+/** A sidebar entry: bold text when it is the current page, a link otherwise */
+function SidebarLink({
+  href,
+  label,
+  count,
+  active,
+  ariaLabel,
+  strong = false,
+}: {
+  href: string
+  label: string
+  count: number
+  active: boolean
+  ariaLabel: string
+  strong?: boolean
+}) {
+  const text = `${label} (${count})`
+  if (active) {
+    return (
+      <h3 className="inline px-3 py-2 text-sm font-bold text-gray-950 uppercase dark:text-white">
+        {text}
+      </h3>
+    )
+  }
+  return (
+    <Link
+      href={href}
+      className={`hover:text-primary-500 dark:hover:text-primary-500 px-3 py-2 text-sm uppercase ${
+        strong
+          ? 'font-semibold text-gray-700 dark:text-gray-200'
+          : 'font-medium text-gray-500 dark:text-gray-300'
+      }`}
+      aria-label={ariaLabel}
+    >
+      {text}
+    </Link>
+  )
+}
+
 export default function ListLayoutWithCategories({
   locale,
   posts,
@@ -73,12 +129,16 @@ export default function ListLayoutWithCategories({
   description,
   initialDisplayPosts = [],
   pagination,
+  current = {},
+  subcategories,
 }: ListLayoutProps) {
   const pathname = usePathname()
   const dict = getDictionary(locale)
   const categoryCounts = (categoryData as Record<string, Record<string, number>>)[locale] ?? {}
-  const sortedCategories = sortCategories(Object.keys(categoryCounts))
-  const currentCategory = decodeURI(pathname.split('/blog/category/')[1] ?? '').split('/')[0]
+  const tree = categoryTree(categoryCounts)
+  const currentParentNode = tree.find(
+    (node) => node.kind === 'parent' && node.parent === current.parent
+  )
   const home = localePath(locale)
   const isAllPosts = pathname.replace(/\/$/, '') === home || pathname.startsWith(`${home}/page/`)
 
@@ -96,21 +156,53 @@ export default function ListLayoutWithCategories({
               {description}
             </p>
           )}
+          {subcategories && (
+            <nav aria-label={dict.categories} className="mt-4 hidden flex-wrap gap-2 sm:flex">
+              {subcategories.map((c) => (
+                <Link
+                  key={c.path}
+                  href={localePath(locale, categoryHref(c.path))}
+                  className={chipClass(false)}
+                >
+                  {`${getCategoryLabel(c.path)} (${c.count})`}
+                </Link>
+              ))}
+            </nav>
+          )}
           <nav aria-label={dict.categories} className="mt-4 flex flex-wrap gap-2 sm:hidden">
-            {sortedCategories.map((c) => (
-              <Link
-                key={c}
-                href={localePath(locale, `/blog/category/${c}`)}
-                className={`rounded-full border px-3 py-1 text-sm ${
-                  c === currentCategory
-                    ? 'border-primary-500 text-primary-500'
-                    : 'border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300'
-                }`}
-              >
-                {getCategoryLabel(c)}
-              </Link>
-            ))}
+            {tree.map((node) =>
+              node.kind === 'parent' ? (
+                <Link
+                  key={`parent:${node.parent}`}
+                  href={localePath(locale, parentHref(node.parent))}
+                  className={chipClass(node.parent === current.parent)}
+                >
+                  {getParentLabel(node.parent, locale)}
+                </Link>
+              ) : (
+                <Link
+                  key={node.path}
+                  href={localePath(locale, categoryHref(node.path))}
+                  className={chipClass(node.path === current.categoryPath)}
+                >
+                  {getCategoryLabel(node.path)}
+                </Link>
+              )
+            )}
           </nav>
+          {currentParentNode?.kind === 'parent' && (
+            <nav aria-label={dict.categories} className="mt-2 flex flex-wrap gap-2 sm:hidden">
+              {currentParentNode.children.map((c) => (
+                <Link
+                  key={c.path}
+                  href={localePath(locale, categoryHref(c.path))}
+                  className={chipClass(c.path === current.categoryPath)}
+                >
+                  {`${getCategoryLabel(c.path)} (${c.count})`}
+                </Link>
+              ))}
+            </nav>
+          )}
         </div>
         <div className="flex sm:space-x-24">
           <div className="hidden h-full max-h-screen max-w-[280px] min-w-[280px] flex-wrap overflow-auto rounded-sm bg-white pt-5 shadow-md ring-1 ring-gray-200 sm:flex dark:bg-gray-950/60 dark:shadow-gray-800/40 dark:ring-gray-800">
@@ -131,30 +223,51 @@ export default function ListLayoutWithCategories({
                 {dict.categories}
               </h3>
               <ul>
-                {sortedCategories.map((c) => (
-                  <li key={c} className="my-3">
-                    {c === currentCategory ? (
-                      <h3 className="inline px-3 py-2 text-sm font-bold text-gray-950 uppercase dark:text-white">
-                        {`${getCategoryLabel(c)} (${categoryCounts[c]})`}
-                      </h3>
-                    ) : (
-                      <Link
-                        href={localePath(locale, `/blog/category/${c}`)}
-                        className="hover:text-primary-500 dark:hover:text-primary-500 px-3 py-2 text-sm font-medium text-gray-500 uppercase dark:text-gray-300"
-                        aria-label={dict.viewCategoryPosts(getCategoryLabel(c))}
-                      >
-                        {`${getCategoryLabel(c)} (${categoryCounts[c]})`}
-                      </Link>
-                    )}
-                  </li>
-                ))}
+                {tree.map((node) =>
+                  node.kind === 'parent' ? (
+                    <li key={`parent:${node.parent}`} className="my-3">
+                      <SidebarLink
+                        href={localePath(locale, parentHref(node.parent))}
+                        label={getParentLabel(node.parent, locale)}
+                        count={node.count}
+                        active={node.parent === current.parent && !current.categoryPath}
+                        ariaLabel={dict.viewCategoryPosts(getParentLabel(node.parent, locale))}
+                        strong
+                      />
+                      <ul className="mt-1 ml-3 border-l border-gray-200 dark:border-gray-700">
+                        {node.children.map((c) => (
+                          <li key={c.path} className="my-2">
+                            <SidebarLink
+                              href={localePath(locale, categoryHref(c.path))}
+                              label={getCategoryLabel(c.path)}
+                              count={c.count}
+                              active={c.path === current.categoryPath}
+                              ariaLabel={dict.viewCategoryPosts(getCategoryLabel(c.path))}
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    </li>
+                  ) : (
+                    <li key={node.path} className="my-3">
+                      <SidebarLink
+                        href={localePath(locale, categoryHref(node.path))}
+                        label={getCategoryLabel(node.path)}
+                        count={node.count}
+                        active={node.path === current.categoryPath}
+                        ariaLabel={dict.viewCategoryPosts(getCategoryLabel(node.path))}
+                        strong
+                      />
+                    </li>
+                  )
+                )}
               </ul>
             </div>
           </div>
           <div>
             <ul>
               {displayPosts.map((post) => {
-                const { path, date, title, summary, category, aiGenerated } = post
+                const { path, date, title, summary, categoryPath, aiGenerated } = post
                 return (
                   <li key={path} className="py-5">
                     <article className="flex flex-col space-y-2 xl:space-y-0">
@@ -177,7 +290,7 @@ export default function ListLayoutWithCategories({
                             </Link>
                           </h2>
                           <div className="flex flex-wrap">
-                            <Category category={category} locale={locale} />
+                            <Category categoryPath={categoryPath} locale={locale} />
                           </div>
                         </div>
                         <div className="prose max-w-none text-gray-500 dark:text-gray-400">

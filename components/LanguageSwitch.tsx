@@ -7,9 +7,12 @@ import { getDictionary, localeInfo, locales, switchLocalePath, type Locale } fro
 
 const available = translationData as Record<Locale, string[]>
 
-/** Slug of the post on this page ('<category>/<file>'), or null when the page is not a post */
+/**
+ * Candidate post slug of this page (everything after /<locale>/blog/, e.g. 'dev/git/git-basics'),
+ * or null outside /blog/. List pages also match, but their paths are never in translation-data.json.
+ */
 function postSlug(pathname: string) {
-  const match = pathname.match(/^\/[^/]+\/blog\/(?!category\/)([^/]+\/[^/]+)\/?$/)
+  const match = pathname.match(/^\/[^/]+\/blog\/(?!category\/)(.+?)\/?$/)
   return match ? decodeURI(match[1]) : null
 }
 

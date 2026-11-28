@@ -28,7 +28,7 @@ interface LayoutProps {
 }
 
 export default function PostLayout({ content, authorDetails, next, prev, children }: LayoutProps) {
-  const { path, slug, date, title, category, toc } = content
+  const { path, slug, date, title, categoryPath, toc } = content
   const locale = content.locale as Locale
   const dict = getDictionary(locale)
   const basePath = path.split('/')[0]
@@ -112,13 +112,13 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
             </div>
             <footer>
               <div className="divide-gray-200 text-sm leading-5 font-medium xl:col-start-1 xl:row-start-2 xl:divide-y dark:divide-gray-700">
-                {category && (
+                {categoryPath && (
                   <div className="py-4 xl:py-8">
                     <h2 className="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
                       {dict.category}
                     </h2>
                     <div className="flex flex-wrap">
-                      <Category category={category} locale={locale} />
+                      <Category categoryPath={categoryPath} locale={locale} />
                     </div>
                   </div>
                 )}

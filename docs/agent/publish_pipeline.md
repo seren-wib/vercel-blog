@@ -144,6 +144,7 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 - `date`는 발행하는 날.
 - URL은 `/<locale>/blog/<parent>/<category>/<slug>`. 언어 접두사는 `kr`·`en` (기존 URL은 `/kr`로 리다이렉트). 상위 카테고리 생기기 전 주소는 새 주소로 308.
 - 카테고리는 상위 4개(`dev`, `cs-fundamentals`, `side-projects`, `hackathon`) 아래에 둔다. 하위 폴더 이름은 예전 카테고리 이름 그대로다.
+- 하드웨어 지식 글(회로·납땜·부품·측정 도구)은 `dev/hardware`, 하드웨어로 만든 제품 글은 `side-projects/<제품 이름>`에 둔다. 상위 없는 `hardware` 폴더의 기존 글은 옮길지 정해질 때까지 그대로 둔다.
 - 모든 글은 한국어·영어 두 버전으로 발행한다. 영어 번역은 Claude가 한다.
 - 글 파일명(slug)은 전부 `<category>-` 접두사로 시작한다. URL에 카테고리가 두 번 들어가는 건 감수한다.
 - 이미지는 카테고리가 아니라 글 단위 폴더(`public/static/images/<slug>/`)로 묶는다.

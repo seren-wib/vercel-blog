@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { formatDate } from 'pliny/utils/formatDate'
 import { CoreContent } from 'pliny/utils/contentlayer'
@@ -15,6 +16,7 @@ import {
   parentHref,
 } from '@/data/categories'
 import { getDictionary, localeInfo, localePath, type Locale } from '@/data/i18n'
+import { readCollapsed, writeCollapsed } from '@/data/sidebarCollapse'
 
 interface PaginationProps {
   totalPages: number
@@ -140,6 +142,16 @@ export default function ListLayoutWithCategories({
     (node) => node.kind === 'parent' && node.parent === current.parent
   )
   const home = localePath(locale)
+  // Collapsed parents; the head script already hid them before paint, this keeps aria-expanded in sync
+  const [collapsed, setCollapsed] = useState<string[]>([])
+  useEffect(() => setCollapsed(readCollapsed()), [])
+  const toggle = (parent: string) => {
+    const next = collapsed.includes(parent)
+      ? collapsed.filter((p) => p !== parent)
+      : [...collapsed, parent]
+    writeCollapsed(next)
+    setCollapsed(next)
+  }
   const isAllPosts = pathname.replace(/\/$/, '') === home || pathname.startsWith(`${home}/page/`)
 
   const displayPosts = initialDisplayPosts.length > 0 ? initialDisplayPosts : posts
@@ -225,16 +237,48 @@ export default function ListLayoutWithCategories({
               <ul>
                 {tree.map((node) =>
                   node.kind === 'parent' ? (
-                    <li key={`parent:${node.parent}`} className="my-3">
-                      <SidebarLink
-                        href={localePath(locale, parentHref(node.parent))}
-                        label={getParentLabel(node.parent, locale)}
-                        count={node.count}
-                        active={node.parent === current.parent && !current.categoryPath}
-                        ariaLabel={dict.viewCategoryPosts(getParentLabel(node.parent, locale))}
-                        strong
-                      />
-                      <ul className="mt-1 ml-3 border-l border-gray-200 dark:border-gray-700">
+                    <li
+                      key={`parent:${node.parent}`}
+                      className="my-3"
+                      data-category-group={node.parent}
+                    >
+                      <div className="flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => toggle(node.parent)}
+                          aria-expanded={!collapsed.includes(node.parent)}
+                          aria-controls={`category-children-${node.parent}`}
+                          aria-label={dict.toggleCategory(getParentLabel(node.parent, locale))}
+                          className="hover:text-primary-500 -ml-2 rounded p-1 text-gray-400 dark:text-gray-500"
+                        >
+                          <svg
+                            data-category-chevron
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                            className="h-4 w-4 transition-transform"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </button>
+                        <SidebarLink
+                          href={localePath(locale, parentHref(node.parent))}
+                          label={getParentLabel(node.parent, locale)}
+                          count={node.count}
+                          active={node.parent === current.parent && !current.categoryPath}
+                          ariaLabel={dict.viewCategoryPosts(getParentLabel(node.parent, locale))}
+                          strong
+                        />
+                      </div>
+                      <ul
+                        id={`category-children-${node.parent}`}
+                        data-category-children
+                        className="mt-1 ml-3 border-l border-gray-200 dark:border-gray-700"
+                      >
                         {node.children.map((c) => (
                           <li key={c.path} className="my-2">
                             <SidebarLink

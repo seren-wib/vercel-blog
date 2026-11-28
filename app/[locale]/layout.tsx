@@ -14,6 +14,7 @@ import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getDictionary, isLocale, localeInfo } from '@/data/i18n'
 import { feedPath } from 'app/seo'
+import { collapseScript, collapseStyles } from '@/data/sidebarCollapse'
 
 const space_grotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -87,6 +88,9 @@ export default async function RootLayout(props: {
       className={`${space_grotesk.variable} scroll-smooth`}
       suppressHydrationWarning
     >
+      {/* Collapsed sidebar groups, applied before the first paint (data/sidebarCollapse.ts) */}
+      <script dangerouslySetInnerHTML={{ __html: collapseScript }} />
+      <style dangerouslySetInnerHTML={{ __html: collapseStyles }} />
       <script
         async
         src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9188608147369332"

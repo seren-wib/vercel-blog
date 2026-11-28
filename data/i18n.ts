@@ -90,6 +90,7 @@ const dictionaries = {
     publishedOn: '작성일',
     aiGenerated: 'AI 생성',
     viewCategoryPosts: (label: string) => `${label} 글 보기`,
+    toggleCategory: (label: string) => `${label} 하위 카테고리 접기/펼치기`,
     categoryPosts: (label: string) => `${label} 글 목록`,
     notFoundTitle: '페이지를 찾을 수 없습니다.',
     notFoundBody: '주소가 바뀌었거나 없는 페이지입니다. 홈에서 다른 글을 찾아보세요.',
@@ -130,6 +131,7 @@ const dictionaries = {
     publishedOn: 'Published on',
     aiGenerated: 'AI-generated',
     viewCategoryPosts: (label: string) => `View ${label} posts`,
+    toggleCategory: (label: string) => `Collapse or expand ${label}`,
     categoryPosts: (label: string) => `${label} posts`,
     notFoundTitle: "Sorry, we couldn't find this page.",
     notFoundBody:

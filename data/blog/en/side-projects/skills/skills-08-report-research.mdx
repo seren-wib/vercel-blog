@@ -1,0 +1,155 @@
+---
+title: 'CH8. report-research: Research by Reading Blogs and Communities in a Browser'
+date: '2026-11-28'
+tags: ['Skills']
+draft: false
+aiGenerated: true
+summary: 'A research skill that reads blog and community posts fetch cannot open in a browser, and keeps the source of every claim.'
+---
+
+> Part 8 of the skills series. What a skill is and why skills were moved out of the instruction file is in [CH0. Skills overview](/en/blog/side-projects/skills/skills-00-overview/).
+
+## In one line
+
+`report-research` is a skill for gathering material for reports and assignments: instead of search APIs and fetch, it opens blogs, cafes and Q&A boards directly in a Playwright browser and reads them. Every post read keeps its URL, author and date, and its body is only summarized. It was built in four commits over 14 minutes on the evening of 2026-11-27, and today it is one `SKILL.md` plus six per-site note files.
+
+## 1. Why a browser
+
+As an analogy, every student with the same homework types the same words into the library catalog and cites the same few books at the top of the list. Nobody reads the reviews and trial-and-error you only see by walking to the shelf and opening the book.
+
+![The same question ends at the same few pages through the search API and fetch path, and leaves first-hand experience and a source table through the Playwright browser path](/static/images/skills-08-report-research/paths.svg)
+
+_Through the search API and fetch, the same question ends at the same few pages; through the browser, it leaves first-hand experience and a source table_
+
+The catalog is the **search API**, and the hand that opens the book is **browser rendering**. Most AI research tools get URLs from a search API and pull the HTML with fetch, so on the same topic anyone who runs them gets similar pages. The "Why" line at the top of the skill is exactly this problem.
+
+Often fetch cannot read the page at all. A Naver Blog post has no body in the outer document; it loads separately inside an iframe. Measured, the outer document's `document.body.innerText` was 0 characters. Search results drawn by script (Brunch) are not in the static HTML either. A browser renders these the way a person sees them, so whatever a person can read, it can read the same way.
+
+Academic sources are not this skill's job. Papers belong to [CH7. paper-search](/en/blog/side-projects/skills/skills-07-paper-search/), and when a report needs both papers and practitioner experience, the two skills are used together. The format for writing the report from the material follows [CH2. docs-style](/en/blog/side-projects/skills/skills-02-docs-style/).
+
+## 2. Rules that changed in 14 minutes
+
+As an analogy, it started as a guide to the local library, then added a foreign-language reading room, and finally printed a separate notice for each room and pinned it on that room's wall.
+
+In terms, the **scope** of the skill widened from Korean sites to "anywhere fetch can't open", and per-site knowledge was **split out of the body**. The dotfiles repo history is below. Sizes are `wc -c -l` of `SKILL.md` at each commit.
+
+| Time (11-27) | Commit    | What changed                                                                                      | `SKILL.md`        |
+| ------------ | --------- | ------------------------------------------------------------------------------------------------- | ----------------- |
+| 20:20        | `1d437de` | Added as `kr-web-search`. Naver Blog, Naver Cafe, Naver KnowledgeiN, Brunch, Tistory              | 77 lines, 6,607 B |
+| 20:25        | `0dab803` | Renamed to `report-research`. Stack Overflow and Reddit added                                     | 88 lines, 8,609 B |
+| 20:29        | `4af55ba` | Per-site notes split into six `sites/<host>.md` files. Rule pages and login-only sources left out | 53 lines, 5,834 B |
+| 20:34        | `9a5ee10` | Table of measured times added                                                                     | 66 lines, 6,395 B |
+
+The commit message gives no separate reason for the rename. It coincides with the commit that brought overseas sites into scope, the point where "kr" no longer fit. In the third commit the site list in the description became "examples, not the limit". A site not on the list is read in the browser on the spot, and if it is likely to come up again, another note file is added.
+
+The third commit cut the body from 88 lines to 53, because the per-site selectors and code moved out. A skill body is read in full every time the skill opens, so opening only the note for the one site about to be read is cheaper. It is the same idea as [opening skills only when needed](/en/blog/side-projects/devblog/devblog-04-agent-environment/#3-pulling-out-what-is-needed), applied once more inside a skill.
+
+Reddit left in two steps. At the second commit, a subreddit page opened in Playwright showed a "Prove your humanity" check after 16.5 s, and the run stopped there without working around it. In the third commit Reddit was dropped from scope altogether, since nearly every post there asks for a login. At first there was a path to hand posts that needed my own login to Claude in Chrome; that went too. Now only posts that open without signing in are read.
+
+## 3. Lines it does not cross
+
+As an analogy, these are reading-room rules: read only in rooms anyone can enter, don't go into rooms that need a member card, turn back at a "no entry" sign, don't write in the books, and take notes instead of copies.
+
+In terms, these are access scope and behavior limits. The rules section of the skill, condensed:
+
+| Rule                    | What it does                                                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Straight to the browser | No fetch, WebFetch, API, mobile-URL rewriting or source parsing first                                                                |
+| Don't open rule pages   | robots.txt, terms and API docs are not opened during research. They cost tokens and don't change what a person may read in a browser |
+| Read only what's needed | Open the few posts that answer the question. Don't expand every thread or every "more replies"                                       |
+| No login-only sources   | If a login or membership prompt shows instead of the body, skip it and count it. Never type IDs, passwords or codes                  |
+| No bot-check bypass     | On a CAPTCHA, an anti-automation check or a block page, stop on that host. No retries, no switching browsers or user agents          |
+| Read, don't write       | No comments, votes, likes, follows, cafe joins or posts                                                                              |
+| Gentle per host         | One tab, at least 2–3 s between page loads on the same host, about 20 posts per host per run                                         |
+| Sources, not copies     | URL, nickname, date and title for each post. Summaries in my own words, at most one short quoted sentence per post                   |
+
+The rules did not start out this way. The first version had a line "respect each site's terms and robots rules"; the second put robots.txt and API-doc checks on the "don't do first" list; the third made it a rule of its own. In their place, excluding login-only sources, no bypassing, and a per-host rate limit hold the line: read what a person can open without signing in, at a person's pace, and only read.
+
+## 4. Notes per site
+
+As an analogy, each reading room gets its own slip saying which shelf the books are on.
+
+![On Naver Blog the top document's innerText is 0 characters, and the body is in .se-main-container inside the iframe mainFrame](/static/images/skills-08-report-research/naver-iframe.svg)
+
+_On Naver Blog the top document is empty and the body is inside the iframe `mainFrame`_
+
+The slip is `sites/<host>.md`, and the shelf is a **CSS selector**. Each file holds the verified date, the search URL, the body and metadata selectors, and one test line (characters and seconds). All of it was checked on 2026-11-27 on a Mac with the Playwright MCP.
+
+| File                   | Size    | Key point                                                                                                                      |
+| ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `blog.naver.com.md`    | 1,573 B | Body in iframe `mainFrame`. The only file that carries reading code                                                            |
+| `cafe.naver.com.md`    | 922 B   | Body in iframe `cafe_main`. Opened through the search tab's link with its `art=` token, a post was readable without membership |
+| `kin.naver.com.md`     | 771 B   | No iframe. Uses `kin.naver.com`'s own search (the KnowledgeiN tab of Naver's main search gave no links)                        |
+| `brunch.co.kr.md`      | 569 B   | Search results are drawn by script, so wait about 2 s                                                                          |
+| `tistory.com.md`       | 826 B   | The body element differs by skin: the first of four candidates that has text. Search through Daum                              |
+| `stackoverflow.com.md` | 916 B   | Asked date is `time[itemprop="dateCreated"]`. A plain `time` picks up the last-activity date                                   |
+
+There is one browser, the Playwright MCP. Clicks, typing and scrolling go through `page.human`, the human-like mouse and typing helper also used in [CH10. demo-recording](/en/blog/side-projects/skills/skills-10-demo-recording/). Reading doesn't need it: open with `page.goto`, then use `page.evaluate` (or `page.frame({ name }).evaluate` for an iframe) to get back only the title, author, date and body length from the DOM. The whole page never gets pasted into the conversation, which saves tokens.
+
+Google was dropped as a search entry. Searching `site:tistory.com` to find Tistory posts returned a `/sorry` 429 bot page on the first query. Per the rules it stopped there, and Tistory search moved to Daum's blog tab.
+
+## 5. One research run
+
+As an analogy: pick the questions, pull the list, choose what to read, read with notes, and hand it in with a bibliography.
+
+![Five steps: query, search, pick, read, report. A login prompt skips only that post, and a CAPTCHA stops that host](/static/images/skills-08-report-research/flow.svg)
+
+_Five steps and two branches: a login prompt skips only that post, a bot check stops that host_
+
+1. **query**: 3–5 of them, in the language of the sites to be read, with experience words (후기, 경험, 실무, 회고, 단점 / experience, in production, lessons learned).
+2. **search**: open the site's own search page in the browser and collect post URLs from the result DOM.
+3. **pick**: 5–15 posts that look first-hand. Leave out sponsored posts (체험단, 협찬, 원고료 notices), copied news, AI-written filler and login-only results.
+4. **read**: for each post, note URL, title, author, date, length, a 3–5 line summary, one optional short quote, and the kind (experience, opinion, answer, ad).
+5. **report**: findings grouped by theme, leading with experience that disagrees with the official docs or the API answer, then the source table. Also list posts opened, posts used, posts skipped and why, hosts that blocked, and the measured wall-clock time.
+
+The source table header is fixed as `# | 제목 | 작성자 | 작성일 | 사이트 | 종류 | 링크` (number, title, author, date, site, kind, link). That table becomes the report's references as is.
+
+## 6. Measured times
+
+As an analogy, it is timing how many seconds it takes to pull one book off the shelf and open it in each room.
+
+In terms, it is **the time from page load to DOM extraction**. Values from 2026-11-27, Mac, Playwright MCP, one run each.
+
+| Step                                                            | Time      |
+| --------------------------------------------------------------- | --------- |
+| Search page + post URLs (Naver Blog, Naver Cafe, KnowledgeiN)   | 0.4–0.7 s |
+| Search page (Brunch, Daum)                                      | 2.4–2.5 s |
+| One post (Brunch, KnowledgeiN, Naver Blog, Tistory, Naver Cafe) | 0.7–3.6 s |
+| One Stack Overflow question with answers                        | 5.3 s     |
+
+The skill estimates that 10 posts read with a 2–3 s gap per host take a little over a minute of browser time. That was not measured end to end, so the skill has every report state its own measured wall-clock time.
+
+## 7. Not done yet
+
+- On KnowledgeiN, the accepted answer and dates, and on Brunch, the post date, were not found with simple selectors. When they are needed, one `browser_snapshot` will find them and the note file gets updated.
+- Every measurement was on the Mac. Checking that the skill link works on Windows is still a to-do.
+- The KnowledgeiN test question had a 6-character body. The selectors matched, but a long question has not been measured yet.
+- There is no record yet of a report built with this skill actually being submitted.
+
+## By the numbers
+
+As of 2026-11-28.
+
+| Item                     | Value                           |
+| ------------------------ | ------------------------------- |
+| Commits                  | 4 (2026-11-27 20:20–20:34)      |
+| `SKILL.md`               | 66 lines, 6,395 B               |
+| `sites/` note files      | 6 files, 81 lines, 5,577 B      |
+| Body size over time      | 6,607 → 8,609 → 5,834 → 6,395 B |
+| Verified sites           | 6                               |
+| Sites dropped from scope | 1 (Reddit)                      |
+| Search entries dropped   | 1 (Google)                      |
+
+## Glossary
+
+| Term                                                       | Meaning                                                                                                             |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| [Skill](/en/blog/side-projects/skills/skills-00-overview/) | A bundle of instructions opened only for a certain kind of work. Normally only its name and description are visible |
+| search API                                                 | A service that takes a query and returns a list of result URLs                                                      |
+| fetch                                                      | A request that downloads one URL's HTML. It does not run scripts                                                    |
+| Playwright                                                 | A library that drives a browser from code. Attached here as an MCP server                                           |
+| iframe                                                     | An HTML element that embeds another document. Its text is not visible from the outer document                       |
+| DOM                                                        | The tree of a page as the browser rendered it. Selectors find elements in it                                        |
+| CSS selector                                               | An expression that picks elements from the DOM, such as `.se-main-container`                                        |
+| bot check                                                  | A page that checks whether you are human: a CAPTCHA, a 429 block page and so on                                     |
+| wall-clock time                                            | The real time that passed from start to finish                                                                      |

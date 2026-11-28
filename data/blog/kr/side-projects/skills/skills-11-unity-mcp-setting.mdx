@@ -68,7 +68,7 @@ claude mcp add --scope local --transport http unityMCP http://127.0.0.1:8080/mcp
 
 > user [scope](glossary:mcp)는 쓰지 않는다. [Unity](glossary:unity)를 열지 않은 폴더에서도 매 세션 연결 실패가 뜬다.
 
-같은 커밋에서 [MCP server](glossary:mcp-server) 이름도 `UnityMCP`에서 `unityMCP`로 바뀌었다. 지금은 `mcp/sync.mjs`와 [VS Code](glossary:vs-code) `mcp.json`도 `unityMCP`를 쓴다. 이 변경은 [Unity](glossary:unity) 하나만의 일이 아니라, [Claude Code](glossary:claude-code)의 로컬 [MCP](glossary:mcp)를 전부 user [scope](glossary:mcp)에서 빼고 필요한 폴더에만 거는 정리의 일부였다. 그 규칙은 [에이전트 환경 글의 MCP 절](/kr/blog/side-projects/devblog/devblog-04-agent-environment/#9-mcp)에 있다. `~/projects/unity-projects`는 `mcp/sync.mjs`가 이미 local [scope](glossary:mcp)로 등록해 두므로, 그 바로 아래 프로젝트에서는 3단계가 할 일이 없다.
+같은 커밋에서 [MCP server](glossary:mcp-server) 이름도 `UnityMCP`에서 `unityMCP`로 바뀌었다. 지금은 `mcp/sync.mjs`와 [VS Code](glossary:vs-code) `mcp.json`도 `unityMCP`를 쓴다. 이 변경은 [Unity](glossary:unity) 하나만의 일이 아니라, [Claude Code](glossary:claude-code)의 로컬 [MCP](glossary:mcp)를 전부 user [scope](glossary:mcp)에서 빼고 필요한 폴더에만 거는 정리의 일부였다. 그 규칙은 [에이전트 환경 글의 MCP 절](/kr/blog/side-projects/devblog/devblog-02-agent-environment/#9-mcp)에 있다. `~/projects/unity-projects`는 `mcp/sync.mjs`가 이미 local [scope](glossary:mcp)로 등록해 두므로, 그 바로 아래 프로젝트에서는 3단계가 할 일이 없다.
 
 ## 4. 내 프로젝트의 서버인지 확인
 

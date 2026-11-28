@@ -20,7 +20,7 @@ summary: '논문을 공개 API로 찾고, venue 등급을 표에서 붙이고, �
 
 ## 1. 스킬로 만든 이유
 
-지침 파일은 매 세션 [Context window](glossary:context-window)에 통째로 들어가지만, [skill](/kr/blog/side-projects/devblog/devblog-04-agent-environment/#3-필요할-때-꺼내기)은 `description` 한 단락만 상시로 보이고 본문은 트리거가 맞을 때 연다. 논문 검색은 매일 하는 일이 아니라서 [Skill](glossary:skill) 자리에 맞다.
+지침 파일은 매 세션 [Context window](glossary:context-window)에 통째로 들어가지만, [skill](/kr/blog/side-projects/devblog/devblog-02-agent-environment/#3-필요할-때-꺼내기)은 `description` 한 단락만 상시로 보이고 본문은 트리거가 맞을 때 연다. 논문 검색은 매일 하는 일이 아니라서 [Skill](glossary:skill) 자리에 맞다.
 
 시작은 2026-11-27이다. 나는 먼저 "공개 [API](glossary:api)로 조사 못 하는 게 뭔지"부터 알아보기로 했고, 작업 세션이 Google Sheet 두 개를 만들었다. 하나는 [Venue](glossary:venue)를 권위 순으로 정리한 표(CS 107행, 다학제 5행)이고, 다른 하나는 [Venue](glossary:venue)별 원자료([h5-index](glossary:h5-index), [Open access](glossary:open-access) 여부, [DOI](glossary:doi) 커버리지, 검색 [API](glossary:api))다. [Skill](glossary:skill)은 그 조사 결과를 실행 절차로 옮긴 것이다.
 

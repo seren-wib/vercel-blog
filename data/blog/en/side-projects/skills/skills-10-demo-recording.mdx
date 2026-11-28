@@ -12,7 +12,7 @@ level: 2
 
 > Part 10 of the [skills](glossary:agent-skill) series. What a [skill](glossary:agent-skill) is and why these rules were split out is in [CH0. Skills Overview](/en/blog/side-projects/skills/skills-00-overview/).
 
-`demo-recording` is the [skill](/en/blog/side-projects/devblog/devblog-04-agent-environment/#3-pulling-out-what-is-needed) an AI agent opens when it records a web app demo: a video for a [README](glossary:readme), a presentation, or a screen recording for this blog. Code drives the browser, but the goal is a video that looks like a person moving the mouse and typing on the keyboard.
+`demo-recording` is the [skill](/en/blog/side-projects/devblog/devblog-02-agent-environment/#3-pulling-out-what-is-needed) an AI agent opens when it records a web app demo: a video for a [README](glossary:readme), a presentation, or a screen recording for this blog. Code drives the browser, but the goal is a video that looks like a person moving the mouse and typing on the keyboard.
 
 In restaurant terms, a demo video is a promo video for a restaurant. If you only film an automatic ordering machine picking dishes by itself, nobody sees how a guest orders. So you draw up a running order before the shoot, draw in the hand the camera cannot see, and make the hand's movement and the ordering voice look human. Where the automatic rig cannot go, the kitchen, a person films by hand. The ordering machine is [headless browser](glossary:headless-browser) [automation](glossary:browser-automation), the running order is the scene list, the drawn-in hand is the pointer overlay, the hand's movement is a mouse path built from a [cubic Bezier curve](glossary:cubic-bezier-curve), the ordering voice is keystroke timing, and the kitchen is the [OS screen recorder](glossary:screencast).
 
@@ -132,7 +132,7 @@ Scrolling works the same way. `scroll(dy)` does not jump; it sends [wheel events
 
 _One `human.cjs`, loaded by both the recorder and [Playwright](glossary:playwright) MCP_
 
-At first (11-18) all the pointer and movement code was inside `record.mjs`. To give the scripted recording and the agent's everyday browsing through [Playwright](glossary:playwright) [MCP](/en/blog/side-projects/devblog/devblog-04-agent-environment/#9-mcp) the same hand habits, it moved on 11-25 to `claude/playwright/human.cjs` in the personal config repo as a shared module. `record.mjs` went from 9,280 B to 4,449 B.
+At first (11-18) all the pointer and movement code was inside `record.mjs`. To give the scripted recording and the agent's everyday browsing through [Playwright](glossary:playwright) [MCP](/en/blog/side-projects/devblog/devblog-02-agent-environment/#9-mcp) the same hand habits, it moved on 11-25 to `claude/playwright/human.cjs` in the personal config repo as a shared module. `record.mjs` went from 9,280 B to 4,449 B.
 
 `human.cjs` has two entry points.
 

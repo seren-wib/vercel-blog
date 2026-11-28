@@ -16,7 +16,7 @@ When several sessions run at once in the [Claude Code](glossary:claude-code) des
 
 In restaurant terms, this is how a restaurant chain runs. Headquarters only knows which branches are open, each branch manager splits the work, and staff take turns at stations such as the kitchen or the floor. The next person on shift starts from the handover log, not from the previous person's memory. Headquarters is the home Lead, a branch manager is a project Lead, a station is a role slot, a staff member is a conversation, and the handover log is `WORK.md`.
 
-Sessions are split into home Lead, project Lead and work session, and what each one knows lives only in two files, `WORK.md` and `INDEX.md`. So any session can drop its conversation and start fresh, and it picks up the work just by reading those files. Where this structure sits in the whole environment is covered briefly in [the session layout of my agent environment](/en/blog/side-projects/devblog/devblog-04-agent-environment/#10-session-layout); this post covers how the rules changed over two weeks. Of the 34 [commits](glossary:commit) to the `session-flow` folder (2026-11-14 to 11-28), 33 changed `SKILL.md` (`~/dotfiles` git log, as of 2026-11-28).
+Sessions are split into home Lead, project Lead and work session, and what each one knows lives only in two files, `WORK.md` and `INDEX.md`. So any session can drop its conversation and start fresh, and it picks up the work just by reading those files. Where this structure sits in the whole environment is covered briefly in [the session layout of my agent environment](/en/blog/side-projects/devblog/devblog-02-agent-environment/#10-session-layout); this post covers how the rules changed over two weeks. Of the 34 [commits](glossary:commit) to the `session-flow` folder (2026-11-14 to 11-28), 33 changed `SKILL.md` (`~/dotfiles` git log, as of 2026-11-28).
 
 ## 1. Three levels of sessions
 
@@ -30,7 +30,7 @@ _Under the home Lead there is one Lead per project, and under each, role slots a
 
 A session starts another with `start_session`, and the new session is nested under the one that started it. Only project Leads are pulled out with `detach_session` and placed in a per-project group in the sidebar. Role slots are never detached, so that closing a project Lead also cleans up everything nested under it.
 
-The structure did not start with three levels. The first version on 2026-11-14 was one home Lead with sessions under it; the same day, three levels (home Lead, project Lead, roles) and several projects open at once came in (`88d9bc6`). On 11-17 the Lead levels were fixed at two, and work sessions always open in the project root (`13243e5`). A session opened in a subfolder gets a different project memory path and starts with empty memory. How the memory path follows the folder name is in [the folder is the address](/en/blog/side-projects/devblog/devblog-04-agent-environment/#4-the-folder-is-the-address).
+The structure did not start with three levels. The first version on 2026-11-14 was one home Lead with sessions under it; the same day, three levels (home Lead, project Lead, roles) and several projects open at once came in (`88d9bc6`). On 11-17 the Lead levels were fixed at two, and work sessions always open in the project root (`13243e5`). A session opened in a subfolder gets a different project memory path and starts with empty memory. How the memory path follows the folder name is in [the folder is the address](/en/blog/side-projects/devblog/devblog-02-agent-environment/#4-the-folder-is-the-address).
 
 ## 2. Leads only assign
 
@@ -85,7 +85,7 @@ The skill's Every turn section reads like this. The app auto-archives sessions u
 - When remaining work changes, edit `## 할 일`. When something is done, write a dated `## 한 일` line in that turn and delete its `## 할 일` item.
 - When I only learn something is resolved (checked, not done by me), [grep](glossary:grep) every key's (28 folders as of 2026-11-28) `~/dotfiles/worklog/*/WORK.md` and close every matching item, other projects' keys included (`7adb788`, 11-27). In those keys only the item is removed, with no `## 한 일` line.
 - A changed fact goes to memory; work started or stopped goes to "In progress" in `INDEX.md`.
-- No git commands for these files. The Stop [hook](/en/blog/side-projects/devblog/devblog-04-agent-environment/#8-hook) [commits](glossary:commit) and [pushes](glossary:push) `memory/` and `worklog/`.
+- No git commands for these files. The Stop [hook](/en/blog/side-projects/devblog/devblog-02-agent-environment/#8-hook) [commits](glossary:commit) and [pushes](glossary:push) `memory/` and `worklog/`.
 
 For work with a deadline, like an assignment, the deadline and submission status live only in the upper Lead's key (e.g. `univ`) (`01bc017`, 11-27). The key that does the work (e.g. `vm`) holds only a pointer, "deadline and submission status: `univ` WORK.md", never the value. If the same value lives in two places, only one gets updated.
 

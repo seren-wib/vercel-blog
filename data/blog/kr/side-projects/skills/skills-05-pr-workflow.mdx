@@ -55,7 +55,7 @@ _[deploy](glossary:deployment)가 따라오는 [PR](glossary:pull-request)은 �
 
 예외는 2026-11-02 우왕톤에서 생겼다. [deploy](glossary:deployment)가 없는 docs-only [PR](glossary:pull-request)은 서로 다른 파일이나 줄을 고치면 같이 열어 둘 수 있다. 대신 뒤에 연 [PR](glossary:pull-request) 본문에 머지 순서를 적는다. 이 글이 속한 [skill](glossary:agent-skill) 연재가 그 예외 그대로다. 글 하나에 [PR](glossary:pull-request) 하나씩, 각자 다른 파일을 만들기 때문에 같이 열려 있고, 머지는 번호 순서로 한다.
 
-[Git Flow](glossary:git-flow) 레포는 그 레포의 `CONTRIBUTING.md`를 따른다. 보통은 `main`이 릴리스([PR](glossary:pull-request)과 [CI](glossary:ci) 필수, [merge commit](glossary:merge-commit), 머지하면 [deploy](glossary:deployment), 태그 `vX.Y.Z`)이고, `develop`이 기본 [branch](glossary:branch)다. `feature/*`는 [CI](glossary:ci)를 기다리지 않고 `develop`으로 들어간다. Stairno가 이렇게 바꾼 과정은 [Stairno 4편의 Git Flow 절](/kr/blog/side-projects/stairno/stairno-04-payments/#4-중간에-git-flow로-바꾼-이유)에 있다.
+[Git Flow](glossary:git-flow) 레포는 그 레포의 `CONTRIBUTING.md`를 따른다. 보통은 `main`이 릴리스([PR](glossary:pull-request)과 [CI](glossary:ci) 필수, [merge commit](glossary:merge-commit), 머지하면 [deploy](glossary:deployment), 태그 `vX.Y.Z`)이고, `develop`이 기본 [branch](glossary:branch)다. `feature/*`는 [CI](glossary:ci)를 기다리지 않고 `develop`으로 들어간다. Stairno가 이렇게 바꾼 과정은 [Stairno 3편의 Git Flow 절](/kr/blog/side-projects/stairno/stairno-03-payments/#4-중간에-git-flow로-바꾼-이유)에 있다.
 
 레포별 예외도 한 줄 있다. Stairno는 운영 환경 쓰기와 [deploy](glossary:deployment)가 따라오는 머지를 내가 직접 한다. 이 블로그 [PR](glossary:pull-request)은 [agent](glossary:ai-coding-agent)가 머지해도 된다.
 

@@ -30,7 +30,7 @@ The [skill](glossary:agent-skill) was created in a [commit](glossary:commit) on 
 
 Where it overlaps with other [skills](glossary:agent-skill), it hands off with a one-line pointer.
 
-- Stage documents ([SPMP](glossary:spmp), [SRS](glossary:srs), [SDD](glossary:sdd), [STP](glossary:stp), [SIP](glossary:sip), [SMP](glossary:smp)) and [decision records](glossary:decision-record) go to the `project-docs` [skill](glossary:agent-skill). Why [decision records](glossary:decision-record) live inside the [SDD](glossary:sdd) is in [Project Docs 2](/en/blog/side-projects/project-docs/project-docs-00-overview/#5-decision-records-inside-the-sdd).
+- Stage documents ([SPMP](glossary:spmp), [SRS](glossary:srs), [SDD](glossary:sdd), [STP](glossary:stp), [SIP](glossary:sip), [SMP](glossary:smp)) and [decision records](glossary:decision-record) go to the `project-docs` [skill](glossary:agent-skill). Why [decision records](glossary:decision-record) live inside the [SDD](glossary:sdd) is in [Project Docs 0](/en/blog/side-projects/project-docs/project-docs-00-overview/#5-decision-records-inside-the-sdd).
 - [README](glossary:readme) layout goes to the `readme-style` [skill](glossary:agent-skill) ([CH3](/en/blog/side-projects/skills/skills-03-readme-style/)).
 - Blog posts go to the `blog-post` [skill](glossary:agent-skill) ([CH1](/en/blog/side-projects/skills/skills-01-blog-post/)).
 
@@ -55,7 +55,7 @@ For an **option comparison** table or list there are two rules.
 - Every drawback that matters gets its own bullet, with the concrete consequence. Several costs are never shrunk into one soft phrase.
 - Before finishing, check that every cost of an option mentioned in chat is also in the document.
 
-The second rule follows from comparisons happening in conversation first. If a cost said in chat drops out on the way into the document, anyone reading only the document later never learns about it. The specific incident behind this rule is not recorded. The format for keeping rejected options and their reasons in [decision records](glossary:decision-record) is in [the entry shape in Project Docs 2](/en/blog/side-projects/project-docs/project-docs-00-overview/#5-decision-records-inside-the-sdd).
+The second rule follows from comparisons happening in conversation first. If a cost said in chat drops out on the way into the document, anyone reading only the document later never learns about it. The specific incident behind this rule is not recorded. The format for keeping rejected options and their reasons in [decision records](glossary:decision-record) is in [the entry shape in Project Docs 0](/en/blog/side-projects/project-docs/project-docs-00-overview/#5-decision-records-inside-the-sdd).
 
 ## 4. Language and file formats
 
@@ -68,7 +68,7 @@ The **file format** rules came in on 2026-11-27.
 
 - A document is a [docx](glossary:docx) and a sheet is an [xlsx](glossary:xlsx), built locally. I open them in [Google Docs](glossary:google-docs) and Sheets through [Drive](glossary:google-drive).
 - Deliverables are not made as new native [Google Docs](glossary:google-docs) or Sheets. Existing ones stay as they are.
-- Exceptions: [Markdown](glossary:markdown) in a repo, the repo → [Google Docs](glossary:google-docs) sync in `project-docs` ([Project Docs 4](/en/blog/side-projects/project-docs/project-docs-04-docs-sync/)), and documents teammates edit together.
+- Exceptions: [Markdown](glossary:markdown) in a repo, the repo → [Google Docs](glossary:google-docs) sync in `project-docs` ([Project Docs 1](/en/blog/side-projects/project-docs/project-docs-01-docs-sync/)), and documents teammates edit together.
 - On the Mac, the iCloud Drive `UNIV/` folder shows in [Drive](glossary:google-drive) under "Computers → mac → UNIV". It was the only folder [Google Drive](glossary:google-drive) for desktop had added on that Mac (checked 2026-11-27), and the [Drive](glossary:google-drive) API reports those copies as `canEdit: false`. The Windows side has not been checked.
 
 ## 5. Building school reports

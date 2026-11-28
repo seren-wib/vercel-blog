@@ -1,0 +1,188 @@
+---
+title: 'CH5. pr-workflow: from issue to post-merge cleanup'
+date: '2026-11-28'
+tags: ['Skills']
+draft: false
+aiGenerated: true
+summary: 'A skill that makes every repo follow the same order: issue, branch, PR, merge, then a branch update'
+---
+
+> Part 5 of the series. What a skill is and why these rules moved out of the instruction file is in [CH0. Skills overview](/en/blog/side-projects/skills/skills-00-overview/).
+
+## In one line
+
+`pr-workflow` is the skill an AI coding agent opens right before it creates an issue, cuts a branch, makes a commit or PR, merges, or cleans up branches. It holds the order of work (issue → branch → PR → merge → branch update), one PR at a time, how to split commits, rule docs first when the structure changes, the five steps of a branch update, and how to sort bot reviews. It started as six rules scattered across global memory, and on 2026-11-13 I gathered them into one skill.
+
+## 1. Order of work
+
+As an analogy: pin a to-do note first, build it at your own workbench, hand in a review request, merge once it passes inspection, and clear the workbench at the end.
+
+![Order of work: GitHub issue, branch, PR, merge after CI, branch update. A trivial change skips the issue](/static/images/skills-05-pr-workflow/order-of-work.svg)
+
+_Order of work: issue → branch → PR → merge → branch update. Only trivial changes skip the issue_
+
+The note is an [issue](/en/blog/dev/devops/devops-00-basics/#issue), the workbench is a [branch](/en/blog/dev/devops/devops-00-basics/#branch), the review request is a [PR](/en/blog/dev/devops/devops-00-basics/#pr), and clearing the workbench is the branch update (section 5).
+
+1. Create a GitHub issue in the main repo.
+2. Branch from upstream `main`: in my fork for someone else's repo, inside the repo for my own.
+3. Link the issue in the PR body. `Fixes #N` when this PR finishes the issue (merging closes it automatically), `Part of #N` when one issue is handled by several PRs.
+4. Right after the merge, run a branch update so local `main` matches the remote. If the work was in a worktree, update the main checkout too. Follow-ups (a docs mirror and so on) come after that.
+
+**One task per PR.** Unrelated tasks never get folded into one PR.
+
+This order was born on 2026-10-31 in the team repo of a hackathon (Woowangthon). The agent opened a one-line README link PR with no issue, and I said the issue comes first. Then we looked at the usual practice together. Issues track work that needs discussion or visibility; a one-line change is its own record in the PR. So one exception was added.
+
+| Trivial (PR without an issue)                   | Not trivial (issue first)                 |
+| ----------------------------------------------- | ----------------------------------------- |
+| A typo, a single link                           | Anything that needs a decision            |
+| A one-line doc fix nobody else needs to know of | Anything that spans more than one sitting |
+|                                                 | Anything someone else might pick up       |
+
+The agent judges the size. It never asks me "is this big enough for an issue?"; it decides and says which path it took. The same day someone suggested folding that link fix into an unrelated diagram PR. One PR has one purpose, so it was not folded in.
+
+## 2. One PR at a time
+
+As an analogy: one counter, one queue. The next person steps up only when the one in front is done. People handing in different forms, though, may stand there together.
+
+![One PR at a time: a PR that triggers a deploy is merged and its deploy checked before the next PR opens. Docs-only PRs may be open together if they do not overlap, with the merge order written in the body](/static/images/skills-05-pr-workflow/one-pr-at-a-time.svg)
+
+_PRs that deploy go in single file; docs-only PRs touching different files may be open together_
+
+The counter is the release branch, the queue is the PR order.
+
+- Merge the current PR after CI passes and check its deploy before opening the next one.
+- Queued tasks go in the order asked. If a new request arrives mid-task, the current one is finished first unless I say otherwise.
+- While [CI](/en/blog/dev/devops/devops-00-basics/#ci) runs, prepare the next work locally. Locally, run only the changed tests plus format, type and migration checks. The full suite is CI's job.
+
+The reason is a single one. Each change should land and deploy on its own, so the history and the deploys stay easy to follow afterwards. Once the agent read "merge the current PR first" as "merge both together", so the rule now says it outright.
+
+The exception came on 2026-11-02 at Woowangthon. Docs-only PRs with no deploy may be open at the same time when they touch different files or lines; the later PR's body states the merge order. The skill series this post belongs to is exactly that exception: one PR per post, each creating different files, all open together and merged in number order.
+
+[Git Flow](/en/blog/dev/devops/devops-00-basics/#git-flow) repos follow their own `CONTRIBUTING.md`. Usually `main` is the release (PR and CI required, merge commit, a merge deploys, tag `vX.Y.Z`) and `develop` is the default branch. `feature/*` goes into `develop` without waiting for CI. How Stairno switched to this is in [the Git Flow section of Stairno part 4](/en/blog/side-projects/stairno/stairno-04-payments/#6-a-change-midway-git-flow).
+
+There is one repo-specific line too. For Stairno, production writes and merges that deploy are done by me. PRs on this blog the agent may merge.
+
+## 3. Splitting commits
+
+As an analogy: one plate of food is one PR, and each step such as prepping, tasting and searing is one commit. You don't serve the side dishes one plate at a time.
+
+![Splitting commits: refactor, a failing test, then feat commits pile up on one branch and become one PR](/static/images/skills-05-pr-workflow/commit-slices.svg)
+
+_Inside one branch, refactor → test → feat slices pile up into one PR_
+
+The plate is the branch and PR, the steps are commits.
+
+- **One branch and PR = one feature a user can use.** Its API, screen, tests and spec updates go in together. That is about 300 to 800 changed lines; past 1000, look for a place to split.
+- An adapter or small fix that only serves that feature is a commit on the same branch. No small PR whose only job is to unblock the next one.
+- Inside the branch, each slice is a failing `test` commit followed by a `feat` commit ([TDD](/en/blog/dev/devops/devops-00-basics/#tdd)). Moves that keep behaviour the same are their own `refactor` commit before the pair. Each commit must be revertable on its own.
+- Stage explicit paths. Never `git add -A`. No record states the reason for this line.
+
+The rule came after 14 small PRs, split finely by concern, did little but add CI and deploy waits. 300 to 800 lines is the size that lets a whole feature be reviewed and reverted at once without a CI and deploy wait for every piece.
+
+## 4. Rule docs first
+
+As an analogy: before moving house, fix the map of the new place and pass it around. Once the map is settled, nobody argues about where the boxes go.
+
+![Rule docs before a restructure: PR 1 changes CLAUDE.md and the rule docs and is merged, then PR 2 moves the files](/static/images/skills-05-pr-workflow/rule-docs-first.svg)
+
+_The rule-docs PR merges first; file moves come in the next PR_
+
+The map is the rule docs, the move is the file moves. When a convention changes (naming, folder layout, paths), `CLAUDE.md`, the docs it imports and other instruction files are changed first, in a PR of their own. Only after that PR passes CI and merges does the move branch start.
+
+This blog still shows it. On 2026-10-10, [#44](https://github.com/seren-wib/vercel-blog/pull/44) changed one file only, `docs/agent/publish_pipeline.md` (13 lines added, 9 removed): post file names get a category prefix, and images are grouped in one folder per post. Later that day [#45](https://github.com/seren-wib/vercel-blog/pull/45) moved 119 files by that rule.
+
+There is a counter-example too. On 2026-11-28, [#163](https://github.com/seren-wib/vercel-blog/pull/163), which added parent categories, carried the structure-doc commit and the post-move commit in the same PR. There is no record of why it was not split this time.
+
+## 5. Branch update
+
+As an analogy: tidying a shared desk. Finished papers get cleared without asking; only what is still in use stays, with a note on why.
+
+![Branch update: fetch --prune, ff main, push fork main, delete merged, drop stashes, plus the rule for spotting squash merges](/static/images/skills-05-pr-workflow/branch-update.svg)
+
+_The five steps of a branch update. Squash merges don't show up in `git branch --merged`, so the PR state decides_
+
+The desk is the local and remote branches, the finished papers are merged branches. When I say "브랜치 갱신" (branch update), the agent does all of the following in one go, without asking about deletions.
+
+1. `git fetch --prune` on every remote.
+2. Fast-forward local `main` to `upstream/main`. Uncommitted edits are stashed, not discarded, and then checked against upstream.
+3. Push the fork's `main` to match.
+4. Delete merged branches both locally and on the remote (the fork, or `origin` in my own repos) with `git push origin --delete <b>`. Afterwards only `main` and branches still in progress remain.
+5. Drop stashes whose content is already in `main`.
+
+It then reports deleted and kept branches in one short list, with a reason for each kept one.
+
+Step 4 has two traps.
+
+- **Squash merge.** A squash merge puts a single new commit on `main`; the branch's own commits never land there. So `git branch --merged` can't find the merged branch, and the test is different: a branch counts as merged when its PR is `MERGED` and the PR's `headRefOid` (the last PR commit GitHub remembers) equals the branch tip, or the tip is already in `upstream/main`. If the tip is past the PR head, check whether those later commits already landed through another PR before deleting.
+- **Worktree.** git refuses `git branch -D` on a branch checked out in a worktree. So `git worktree remove` comes first, and `git worktree prune` at the end.
+
+This section grew twice. On 2026-11-12 only local branches were deleted and the fork's remote branches were left behind; I said an update obviously includes the fork and asking before each deletion was unnecessary. So it became "the fork too, without asking". On 2026-11-19 one of my private repos had 24 local and 22 remote branches, 22 of them already merged. The rule only mentioned forks, so `origin` in my own repos was never cleaned. That day step 4 gained "or `origin` in my own repos", and step 4 of section 1, "branch update right after the merge", came in the same day. How the session carries on after a merge is in [CH6. session-flow](/en/blog/side-projects/skills/skills-06-session-flow/).
+
+## 6. Sorting bot reviews
+
+As an analogy: an automatic spell checker. Not every red underline is right, so a person picks what to fix.
+
+![Bot reviews: bot comments sorted into right, half right and wrong, which are fixed, asked about and left out. Human reviews always get an answer](/static/images/skills-05-pr-workflow/bot-triage.svg)
+
+_Bot comments go three ways; human reviews all get an answer_
+
+The spell checker is an AI review bot such as CodeRabbit. Bot comments are advice, not a gate that blocks the merge.
+
+- First sort them into right / half right / wrong and show me.
+- Fix the right ones. Ask about the half-right ones. Leave the wrong ones out.
+- Reply to the bot only when I ask.
+- Human (teammate) reviews always get an answer, regardless of this sorting.
+
+The rule comes from Woowangthon. Section 5 of the team repo's `AGENTS.md` said bot review is advice, not a gate, and the reason given was that following every comment bends the docs to the bot's taste and only adds commits. How the bot read proposal docs as implementation specs in the first week, kept asking for designs and got paused, is in [Woowangthon part 1](/en/blog/hackathon/woowangthon/woowangthon-01-docs-and-prs/#1-three-docs-i-posted-alone-on-day-one). On 2026-11-06 I also saw the bot review again on its own after a fix commit was pushed. That is the record that "one bot review per PR" was a wrong assumption.
+
+## 7. How the skill changed
+
+As an analogy: sticky notes scattered over the desk were copied into one notebook, and later a few pages were torn out into another notebook.
+
+![SKILL.md size per commit: it started at 5284 B, dropped to 4211 B when the SDLC section moved to project-docs, and is 4509 B now](/static/images/skills-05-pr-workflow/skill-size.svg)
+
+_`SKILL.md` size per commit. The biggest drop was 2026-11-16, when the SDLC section moved to `project-docs`_
+
+The sticky notes are global memory files, the notebook is the skill. Before 2026-11-13 these rules lived in six global memory files (`issue-first-workflow`, `one-pr-at-a-time`, `split-commits-by-feature`, `rule-docs-before-restructure`, `branch-update-cleanup`, `bot-review-triage`). The commit message gives one reason: rules needed for only one kind of task should not sit in global memory all the time, but move to a skill that opens only when that task comes up.
+
+| Date       | Commit    | Change                                                                        |
+| ---------- | --------- | ----------------------------------------------------------------------------- |
+| 2026-11-13 | `fa0ceb8` | Six memory rules into one skill (55 lines)                                    |
+| 2026-11-13 | `2bc5f8f` | "Repo-specific" section added (Stairno and blog merge rights)                 |
+| 2026-11-16 | `e1c18a0` | The 11-line Project SDLC section becomes a one-line pointer to `project-docs` |
+| 2026-11-19 | `3cff282` | Branch update right after a merge; a merge no longer closes the session       |
+| 2026-11-19 | `a82bb3a` | Step 4 of the branch update gains `origin` in my own repos                    |
+
+The SDLC section moved out when the new `project-docs` skill was made to hold the rules for the stage documents (SPMP, SRS, SDD, STP, SIP, SMP). That skill's story is in [Project Docs 0](/en/blog/side-projects/project-docs/project-docs-00-overview/).
+
+## By the numbers
+
+As of 2026-11-28. Sources: `git log`, `git show` and `wc` in `~/dotfiles`, and `git log --first-parent --merges` in this blog's repo.
+
+| Item                                      | Value              |
+| ----------------------------------------- | ------------------ |
+| `SKILL.md` size                           | 48 lines, 4509 B   |
+| Sections (`##`) in `SKILL.md`             | 8                  |
+| Commits that changed the skill            | 5 (11-13 to 11-19) |
+| First → current size                      | 5284 B → 4509 B    |
+| Global memory files merged into the skill | 6                  |
+| Merge commits on this blog's `main`       | 140                |
+
+## Glossary
+
+| Term                                                       | Meaning                                                                        |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [Issue](/en/blog/dev/devops/devops-00-basics/#issue)       | A GitHub post that records a task or a bug                                     |
+| [PR](/en/blog/dev/devops/devops-00-basics/#pr)             | A request to merge my branch's changes into `main`                             |
+| fork                                                       | A copy of someone else's repo under my account; branches and PRs start there   |
+| upstream                                                   | The remote name for the original repo a fork came from                         |
+| `Fixes #N` / `Part of #N`                                  | Words in a PR body that link an issue. `Fixes` closes the issue on merge       |
+| fast-forward                                               | An update that just moves the branch tip forward, with no new merge commit     |
+| squash merge                                               | A merge that squashes a branch's commits into one on `main`                    |
+| `headRefOid`                                               | The hash of the PR head commit as GitHub remembers it                          |
+| worktree                                                   | A git feature that checks out several branches of one repo in separate folders |
+| stash                                                      | A git feature that sets uncommitted edits aside for a while                    |
+| [Git Flow](/en/blog/dev/devops/devops-00-basics/#git-flow) | A branch model that separates `main` (release) and `develop` (integration)     |
+| [TDD](/en/blog/dev/devops/devops-00-basics/#tdd)           | Writing a failing test first, then the code that makes it pass                 |
+| docs-only PR                                               | A PR that changes only docs, no code; no deploy follows it                     |
+| bot review                                                 | Automatic comments an AI review bot leaves on a PR                             |

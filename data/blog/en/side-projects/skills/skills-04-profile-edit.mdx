@@ -1,0 +1,159 @@
+---
+title: 'CH4. profile-edit: Editing three profiles from one source'
+date: '2026-11-28'
+tags: ['Skills']
+draft: false
+aiGenerated: true
+summary: 'The skill that updates the GitHub profile README, the blog About page and LinkedIn from one set of source files, and the traps it records'
+---
+
+> Part 4 of the series. What a skill is and why these rules moved into one is in [CH0. Skills overview](/en/blog/side-projects/skills/skills-00-overview/).
+
+## In one paragraph
+
+My public profile lives in three places: the GitHub profile README, this blog's About and Projects pages, and LinkedIn. `profile-edit` is the skill the agent opens when it changes any of them. Its rules come down to one idea. A person edits only two source files, the README and the blog are generated, and LinkedIn gets only the gap between the generated target and the live page, edited in a browser. The skill is 42 lines and 5,528 bytes, and 11 of its 28 bullets are LinkedIn editor traps.
+
+## 1. One manuscript
+
+As an analogy, keep a single manuscript and print it three times in different formats. Correct each edition separately and sooner or later the three disagree.
+
+![One source, three profiles: profile-sync data/ → lib/render.mjs → GitHub README, blog, LinkedIn](/static/images/skills-04-profile-edit/pipeline-en.svg)
+
+_One source, three profiles_
+
+In real terms this is a **single source of truth** plus **code generation**. The manuscript is `data/profile.mjs` (intro, experience, education, certificates, awards, open source contributions) and `data/projects.mjs` (14 projects) in the private profile-sync repo, and the press is `lib/render.mjs`. The repo was created on 2026-10-25 and has 22 commits as of 2026-11-28.
+
+The skill's first rules pin this down.
+
+- Edit only `data/profile.mjs` and `data/projects.mjs`. The GitHub README, the blog's `data/authors/*.mdx` and `data/projectsData.ts` are generated output.
+- Never edit the README by hand. Its format also comes from `lib/render.mjs`.
+- Before generating, `git pull` all three repos: profile-sync, the profile README repo and vercel-blog.
+
+The last rule has a record behind it. On 2026-10-28 a run generated from a stale `data/` and wiped entries another session had added, and the rule was written that day. The generator prints its source as is, so a stale source overwrites newer output with older content.
+
+Generation runs after the tests. The documented command only reaches `scripts/build.mjs` if `npm test` passes, and on 2026-11-28 all 10 tests in `test/render.test.mjs` passed (94 ms). Each output ships differently. The README is committed straight to `main` of the profile repo, and the blog goes through a branch and a PR that is merged after CI passes. The blog PR process belongs to [CH5. pr-workflow](/en/blog/side-projects/skills/skills-05-pr-workflow/).
+
+## 2. What goes where
+
+As an analogy, the same manuscript gets a different length in a newspaper, a magazine and on a business card.
+
+In real terms this is an **output mapping**. The skill fixes what each output carries.
+
+| Item                                        | GitHub README           | Blog About · Projects            | LinkedIn                              |
+| ------------------------------------------- | ----------------------- | -------------------------------- | ------------------------------------- |
+| Intro                                       | yes                     | yes                              | yes                                   |
+| Projects                                    | all                     | non-`hidden` only                | non-`hidden` only                     |
+| Open source contributions                   | Contributing to section | Contributing to section in About | one Open Source Contributions project |
+| Experience, education, certificates, awards | no                      | yes                              | yes                                   |
+
+As of 2026-11-28, 2 of the 14 projects are not `hidden`. So the README shows all 14, and the blog and LinkedIn show those 2 plus the open source item, 3 in total. That number is the result of a cut on 2026-11-26, when 6 projects and 20 skills were removed from LinkedIn, leaving 4 skills.
+
+The other rules are about content.
+
+- The intro is one text in all three places. The Stairno Account paragraph sits second so it lands in the part LinkedIn's About shows before "see more". Other projects stay out of the intro.
+- Lists put Building before Shipped. A project that is released and works is Shipped right away, even with updates still coming. The blog `status` field and LinkedIn end dates follow the same rule.
+- The GitHub README keeps its format: the stars badges and the Contributing to section stay.
+- Updates happen only when I ask. At first a cloud routine ran every Monday, but I decided to pick what goes up myself and turned it off on 2026-10-25. Now the candidates are gathered into a table and only the ones I pick go in.
+
+## 3. LinkedIn gets only the gap
+
+As an analogy, put the sign that is up next to the draft of the new sign, and swap only the panels whose letters differ. There is no machine that hangs the whole sign at once.
+
+![LinkedIn: edit only the gap between live and target. Diff live.md against target.md, edit with Playwright, then copy target over live](/static/images/skills-04-profile-edit/linkedin-diff-en.svg)
+
+_LinkedIn: edit only the gap between live and target_
+
+In real terms this is a diff between **desired state** and **current state**. The generator never writes to LinkedIn. It stops at `linkedin/target.md`, and the live page is recorded in `linkedin/live.md`. Changes go in this order.
+
+1. `git diff --no-index linkedin/live.md linkedin/target.md` lists the fields that would change.
+2. On my go-ahead, Playwright edits them. I sign in myself. There are 8 seconds between saves.
+3. When done, target is copied over live and committed.
+
+There is no guarantee `live.md` still matches the page, though. I edit LinkedIn directly too, so the skill says to re-read the live page before editing. Cloud runs never touch LinkedIn.
+
+There are a few policy lines as well. The positioning is backend plus AI, without leading on React or Next.js. English is the primary profile language and Korean the secondary one, and each is written natively rather than translated. Projects have no per-language version, so each project holds an English block, then a Korean block, then the repo URL. Class team projects go under Projects, never Experience. Feed posts are written only when I ask, and never deleted.
+
+## 4. Editor traps
+
+As an analogy, it is moving furniture in a house you don't know. You learn which floorboard gives way by stepping through it once.
+
+In real terms these are **UI automation gotchas**. LinkedIn's edit screens are built for human hands, so under automation some of them do something other than what they show. All 11 lines of the skill's last section are traps like that. The ones with a record come first.
+
+| Trap                                                                                                 | What happened (record)                                          | What the skill does                                                                                     |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| In the About editor (tiptap), clicking a paragraph does not move the caret and overwrites other text | 2026-10-21 the About was overwritten twice                      | Set a DOM Range on the target `<p>` text node, `keyboard.insertText`, read every `<p>` back before Save |
+| Adding skills in the Korean UI picks Korean-named entities                                           | 2026-10-11 six Korean-named skills replaced by English entities | Add them in the English UI and click only an exactly matching option                                    |
+| Deleting a skill can't be undone                                                                     | 2026-10-11 a skill was deleted before confirmation              | Only recommend a deletion and wait for a clear yes                                                      |
+| Removing and re-adding project media can lose it                                                     | 2026-10-25 project images were lost                             | One image at a time, and check the project name after saving                                            |
+
+The rest have no record of when they were hit. Here is what they say.
+
+- Adding an Experience entry overwrites the headline with the job title, so the headline gets re-checked after any position change.
+- Projects can't be reordered. Ongoing ones come first, then by end date, newest first.
+- The add-image button often needs a second click, and it has to be clicked with the MCP click tool to catch the file chooser. Once, chained steps wrote a media title into the project name.
+- Typing a Featured link with `fill()` breaks the preview. Type it one key at a time and wait about 10 seconds.
+- Escape in an edit form opens a discard-changes confirm. The education form's notify-your-network switch defaults on and gets turned off before saving.
+- LinkedIn's "share this update" prompts are declined, because accepting posts to the feed.
+
+The human-like mouse and typing helper used for Playwright clicks and input lives in the global instructions, not in this skill. A similar pointer and typing effect for screen recordings is in [CH10. demo-recording](/en/blog/side-projects/skills/skills-10-demo-recording/).
+
+## 5. What stays private
+
+As an analogy, some papers never get attached to a résumé.
+
+In real terms these are **disclosure rules**. Every profile is a public page, so the skill lists what can't go on one.
+
+- Student ID number, health and finances go nowhere.
+- Vane, the game in progress, gets one neutral line (Unity 2D top-down story adventure, prototype). No story details.
+- In vercel-blog PR bodies and commit messages, upstream PRs are never written as `owner/repo#N` or URLs. Repo name in plain text only.
+
+The last rule dates from 2026-10-28. vercel-blog is a public repo, so a PR body that names another repo's PR number shows up on that upstream PR's timeline as "mentioned". That happened on two of this blog's PRs. The same rule is in [CH1. blog-post](/en/blog/side-projects/skills/skills-01-blog-post/), which covers blog posts.
+
+## 6. From memory to a skill
+
+As an analogy, it is tearing a thin manual for one job out of the thick notebook you carry every day.
+
+In real terms the rules moved from **memory**, which every session reads, into a **skill**, which loads only when needed: **lazy loading**. They started out spread across three global memory files: the profile README format, the LinkedIn profile, and profile-sync.
+
+| Date       | Change                                                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-11 | Profile README repo created and the LinkedIn profile rebuilt                                                              |
+| 2026-10-25 | README moved from hand edits to profile-sync generation. LinkedIn's current state moved from memory to `linkedin/live.md` |
+| 2026-10-27 | LinkedIn memory file 11.8 KB → 5.1 KB. Past state removed, only fixed policy and editing tips kept                        |
+| 2026-10-28 | `git pull` rule and the no-upstream-mention rule added                                                                    |
+| 2026-11-13 | `profile-edit` created at 42 lines, in the same commit as four other skills                                               |
+
+The 2026-11-13 commit message gives the reason: rules and gotchas that matter for one kind of task load when that task comes up, instead of sitting in global memory. A session that never touches a profile has no use for 11 lines of LinkedIn traps. The skill file has not changed since, as of 2026-11-28. How skills, instructions and memory were split is in [CH0. Skills overview](/en/blog/side-projects/skills/skills-00-overview/).
+
+## 7. Wrap-up
+
+`profile-edit` comes down to three things. Edit only the one source. Generate whatever can be generated, and for LinkedIn, which can't be, touch only the gap between target and current. And add one line for every editor trap and disclosure rule as it is found. 11 of the 28 bullets are traps, and 4 of those have a record of when they were hit.
+
+## By the numbers
+
+As of 2026-11-28.
+
+| Item                 | Value                                                                    | Source               |
+| -------------------- | ------------------------------------------------------------------------ | -------------------- |
+| Skill body           | 42 lines, 5,528 bytes, 28 bullets (rules 9, LinkedIn policy 8, traps 11) | `SKILL.md`           |
+| Skill commits        | 1 (2026-11-13, five skills together, 7 files, 180 lines added)           | dotfiles git log     |
+| profile-sync commits | 22 (first commit 2026-10-25)                                             | profile-sync git log |
+| Projects             | 14, of which 2 not `hidden`                                              | `data/projects.mjs`  |
+| Render tests         | 10 passed, 0 failed, 94 ms                                               | `npm test`           |
+| LinkedIn memory file | 11.8 KB → 5.1 KB (2026-10-27)                                            | memory change log    |
+| 2026-11-26 cut       | 20 LinkedIn skills and 6 projects removed, 4 skills kept                 | work log             |
+
+## Glossary
+
+| Term                          | Meaning                                                                                  |
+| ----------------------------- | ---------------------------------------------------------------------------------------- |
+| single source of truth        | Keeping a piece of information in one place and building everything else from it         |
+| code generation               | Producing files such as a README or a page from source data with a program               |
+| output mapping                | The table of which source items go into each output, and in what shape                   |
+| desired state / current state | What it should become (`target.md`) and what it is now (`live.md`)                       |
+| diff                          | Only the lines that differ between two files                                             |
+| Playwright                    | A tool that drives a browser from code                                                   |
+| tiptap                        | The rich text editor library behind LinkedIn's About editor                              |
+| DOM Range                     | A browser object pointing at a position or span in the document, used to place the caret |
+| entity                        | LinkedIn's shared item that ties a skill or job title to its name in each language       |
+| lazy loading                  | Loading something only when it is needed instead of every time                           |

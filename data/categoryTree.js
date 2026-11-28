@@ -13,7 +13,17 @@
 const parents = {
   dev: {
     label: { kr: '개발', en: 'Dev' },
-    children: ['unity', 'git', 'sql', 'web', 'auth', 'payments', 'devops', 'cloudflare'],
+    children: [
+      'unity',
+      'git',
+      'sql',
+      'web',
+      'auth',
+      'payments',
+      'devops',
+      'cloudflare',
+      'hardware',
+    ],
   },
   'cs-fundamentals': {
     label: { kr: 'CS 기초', en: 'CS Fundamentals' },
@@ -26,11 +36,12 @@ const parents = {
       'network',
       'os',
       'ai',
+      'cloud-computing',
     ],
   },
   'side-projects': {
     label: { kr: '사이드 프로젝트', en: 'Side Projects' },
-    children: ['stairno', 'devblog', 'project-docs', 'coffee-shop'],
+    children: ['stairno', 'devblog', 'project-docs', 'coffee-shop', 'random-idea'],
   },
   hackathon: {
     label: { kr: '해커톤', en: 'Hackathon' },
@@ -38,13 +49,14 @@ const parents = {
   },
 }
 
-const topLevel = ['hardware', 'cloud-computing', 'side-projects']
+const topLevel = []
 
 const labels = {
   stairno: 'Stairno',
   devblog: 'DevBlog',
   'project-docs': 'Project Docs',
   'side-projects': 'Side Projects',
+  'random-idea': 'Random Idea',
   woowangthon: 'Woowangthon',
   grokbot: 'Grokbot',
   'coffee-shop': 'Coffee Shop',

@@ -338,12 +338,12 @@ _The top shows the message order between the laptop (ssh) and the server (sshd);
    - The first time, it asks "Are you sure you want to continue connecting?" and saves the key on yes.
    - If it differs from the saved one, it warns (possible man-in-the-middle attack, server reinstall, etc.).
 8. **User authentication**
-   - Public key: your public key is in the server's `~/.ssh/authorized_keys`, and the laptop proves itself by signing with the private key. The private key never leaves. Hands-on in [SSH Key Authentication](/en/blog/cloud-computing/cloud-computing-hw2-kvm-vm-cluster/#2-ssh-key-authentication-ch04-extra).
+   - Public key: your public key is in the server's `~/.ssh/authorized_keys`, and the laptop proves itself by signing with the private key. The private key never leaves. Hands-on in [SSH Key Authentication](/en/blog/cs-fundamentals/cloud-computing/cloud-computing-hw2-kvm-vm-cluster/#2-ssh-key-authentication-ch04-extra).
    - Password: the channel is already encrypted, so it doesn't leak in plaintext.
 9. **Open a channel + start a shell**: session channel → pseudo-terminal (pty) → a login shell starts on the server.
 10. **Every keystroke**: key input → SSH encrypts → TCP 22 → hops → the server's sshd decrypts → passed to the shell → the screen output (including the echo of the typed character) comes back encrypted.
 
-A walkthrough of steps 4 to 8 from the server and client files' point of view is in [How an SSH Server and Client Connect](/en/blog/cloud-computing/cloud-computing-hw3-htcondor-cluster/#ch4-2-how-an-ssh-server-and-client-connect).
+A walkthrough of steps 4 to 8 from the server and client files' point of view is in [How an SSH Server and Client Connect](/en/blog/cs-fundamentals/cloud-computing/cloud-computing-hw3-htcondor-cluster/#ch4-2-how-an-ssh-server-and-client-connect).
 
 ## Reaching a PC behind NAT
 

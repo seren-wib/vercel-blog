@@ -19,18 +19,24 @@ for (const child of Object.keys(movedCategories)) {
 }
 
 /**
- * The old top-level hackathon category became the hackathon parent; its posts moved to hackathon/grokbot.
- * Its rules only match old post slugs (hackathon-...), so the parent's own pages under /blog/hackathon/ pass.
+ * Old top-level categories whose name is now a parent: old file -> current '<parent>/<category>/<file>'.
+ * Listed one post at a time, so the parent's own pages under /blog/<parent>/ never match these rules.
+ * Their old category page (/blog/category/<name>/) goes to the parent page.
  */
-const hackathonPost = 'hackathon-[^/]+'
-const hackathonPosts = 'hackathon/grokbot'
+const categoriesTurnedParents = {
+  hackathon: {
+    'hackathon-grokbot-bus-transfer': 'hackathon/grokbot/hackathon-grokbot-bus-transfer',
+  },
+  'side-projects': {
+    'side-projects-random-idea-generator': 'side-projects/random-idea/random-idea-generator',
+  },
+}
 
 /** Current path of a post given as '<old category>/<file>' */
 function currentPostPath(oldPath) {
   const [category, ...rest] = oldPath.split('/')
   if (movedCategories[category]) return [movedCategories[category], ...rest].join('/')
-  if (category === 'hackathon') return [hackathonPosts, ...rest].join('/')
-  return oldPath
+  return categoriesTurnedParents[category]?.[rest.join('/')] ?? oldPath
 }
 
 /**
@@ -162,7 +168,11 @@ const tagRedirects = [
       },
     ]
   }),
-  { source: '/tags/hackathon', destination: '/kr/blog/hackathon/', permanent: true },
+  ...Object.keys(categoriesTurnedParents).map((parent) => ({
+    source: `/tags/${parent}`,
+    destination: `/kr/blog/${parent}/`,
+    permanent: true,
+  })),
   { source: '/tags/:tag', destination: '/kr/blog/category/:tag/', permanent: true },
   {
     source: '/tags/:tag/page/:page',
@@ -222,21 +232,23 @@ const movedCategoryRedirects = prefixes.flatMap(({ from, to }) => [
       },
     ]
   }),
-  {
-    source: `${from}/blog/category/hackathon`,
-    destination: `${to}/blog/hackathon/`,
-    permanent: true,
-  },
-  {
-    source: `${from}/blog/category/hackathon/page/:page`,
-    destination: `${to}/blog/hackathon/page/:page/`,
-    permanent: true,
-  },
-  {
-    source: `${from}/blog/hackathon/:slug(${hackathonPost})`,
-    destination: `${to}/blog/${hackathonPosts}/:slug/`,
-    permanent: true,
-  },
+  ...Object.entries(categoriesTurnedParents).flatMap(([parent, posts]) => [
+    {
+      source: `${from}/blog/category/${parent}`,
+      destination: `${to}/blog/${parent}/`,
+      permanent: true,
+    },
+    {
+      source: `${from}/blog/category/${parent}/page/:page`,
+      destination: `${to}/blog/${parent}/page/:page/`,
+      permanent: true,
+    },
+    ...Object.entries(posts).map(([file, current]) => ({
+      source: `${from}/blog/${parent}/${file}`,
+      destination: `${to}/blog/${current}/`,
+      permanent: true,
+    })),
+  ]),
 ])
 
 // Specific URLs first: the first matching rule wins, and movedCategoryRedirects would catch them too

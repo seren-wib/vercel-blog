@@ -385,7 +385,7 @@ bootstrap-servers와 prechecks까지는 통과했다. deploy를 시작한 지 37
 
 Ubuntu 호스트에서 만든 첫 인스턴스가 부팅 중 `virtio_blk` 메시지 직후 멈췄다. CPU는 100%였고 게스트 시계는 9초에서 더 가지 않았다. cirros 0.6.3도 같았다.
 
-[HW6](/kr/blog/cloud-computing/cloud-computing-hw6-kvm-live-migration/#kvm에-rocky-가상머신-설치)에서 Rocky aarch64를 KVM에 설치할 때 겪은 중첩 가상화의 MSI 인터럽트 문제와 같은 증상이다. 그때처럼 커널 인자에 `pci=nomsi`를 넣으면 MSI 대신 기존 인터럽트 방식을 쓴다. cirros aarch64는 EFI 파티션의 GRUB으로 부팅하므로, 이미지를 복사해 `qemu-nbd`로 블록 장치에 연결하고 EFI 파티션을 마운트해 `EFI/ubuntu/grub.cfg`의 커널 줄 끝에 `pci=nomsi`를 붙였다.
+[HW6](/kr/blog/cs-fundamentals/cloud-computing/cloud-computing-hw6-kvm-live-migration/#kvm에-rocky-가상머신-설치)에서 Rocky aarch64를 KVM에 설치할 때 겪은 중첩 가상화의 MSI 인터럽트 문제와 같은 증상이다. 그때처럼 커널 인자에 `pci=nomsi`를 넣으면 MSI 대신 기존 인터럽트 방식을 쓴다. cirros aarch64는 EFI 파티션의 GRUB으로 부팅하므로, 이미지를 복사해 `qemu-nbd`로 블록 장치에 연결하고 EFI 파티션을 마운트해 `EFI/ubuntu/grub.cfg`의 커널 줄 끝에 `pci=nomsi`를 붙였다.
 
 ```bash
 modprobe nbd max_part=16

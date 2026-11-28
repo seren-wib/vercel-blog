@@ -67,6 +67,14 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 - 리스트 항목 같은 줄에 붙은 표(`3. UNICODE| 구분 |`)는 줄을 나눠야 표로 렌더링된다.
 - 비어 있는 섹션(제목만 있는 헤딩)이 있으면 발행 전에 사용자에게 알린다.
 
+### 용어사전 링크
+
+- 용어는 `data/glossary/<글자>.jsonl`(`0-9`, `a`~`z`)에 한 줄씩 추가만 한다: `{"term","categories","ko","en"}`. `categories`는 `data/glossary/categories.js`에 있는 값만 쓴다. 정렬·대소문자 병합은 빌드(`scripts/glossary.mjs`)가 한다.
+- 본문에서 용어가 나올 때마다 `[Term](glossary:<slug>)`로 링크한다. `<slug>`는 term의 github-slugger slug다. 언어 접두사는 쓰지 않는다. `plugins/remark-glossary-links.ts`가 빌드 때 `/<locale>/glossary/#<slug>`로 바꾼다.
+- 헤딩, frontmatter, 코드, 인라인 코드, 기존 링크, 이미지 alt 안에는 링크를 걸지 않는다. KR 본문도 용어는 영어 원어로 쓴다.
+- 글 끝에 용어 표(`## 용어 정리`)를 두지 않는다.
+- 없는 slug로 링크하거나 `/kr/glossary/#…` 형식으로 쓰면 빌드가 실패한다.
+
 ### 이미지
 
 1. 본문의 이미지 링크(`![...](../img/x.svg)`, `<img src=...>`)를 전부 찾는다.

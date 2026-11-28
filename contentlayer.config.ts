@@ -8,6 +8,7 @@ import { fromHtmlIsomorphic } from 'hast-util-from-html-isomorphic'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import { remarkAlert } from 'remark-github-blockquote-alert'
+import { remarkGlossaryLinks } from './plugins/remark-glossary-links'
 import {
   remarkExtractFrontmatter,
   remarkCodeTitles,
@@ -288,6 +289,7 @@ export default makeSource({
       remarkMath,
       remarkImgToJsx,
       remarkAlert,
+      remarkGlossaryLinks,
     ],
     rehypePlugins: [
       rehypeSlug,

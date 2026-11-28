@@ -6,7 +6,8 @@
  * sorts each letter, and writes:
  *   public/glossary/index.json           [{ term, slug, letter, categories, ko }] for search and #anchors
  *   public/glossary/<locale>/<letter>.json  [{ term, slug, categories, text }] loaded when a letter opens
- * It also checks that every /<locale>/glossary/#<slug> link in data/blog points at a term that exists.
+ * It also checks that every [Term](glossary:<slug>) link in data/blog points at a term that exists
+ * (plugins/remark-glossary-links.ts turns them into /<locale>/glossary/#<slug> at build time).
  * Any error fails the build.
  */
 import { readFileSync, readdirSync, writeFileSync, mkdirSync, rmSync, statSync } from 'fs'
@@ -100,14 +101,18 @@ export function checkLinks(entries) {
   const known = new Set(entries.map((e) => e.slug))
   const errors = []
   let links = 0
-  const re = /\]\(\/(kr|en)\/glossary\/(?:#([^)\s]*))?\)/g
+  const re = /\]\(glossary:([^)\s]*)\)/g
+  const localeLink = /\]\(\/(kr|en)\/glossary\/#/g
   for (const file of walk(path.join(root, 'data/blog'))) {
     const text = readFileSync(file, 'utf8')
+    if (localeLink.test(text))
+      errors.push(`${path.relative(root, file)}: write glossary links as (glossary:<slug>)`)
+    localeLink.lastIndex = 0
     for (const m of text.matchAll(re)) {
       links++
-      const anchor = m[2] ? decodeURIComponent(m[2]) : ''
+      const anchor = decodeURIComponent(m[1])
       if (anchor && !known.has(anchor))
-        errors.push(`${path.relative(root, file)}: glossary link #${anchor} has no entry`)
+        errors.push(`${path.relative(root, file)}: glossary link glossary:${anchor} has no entry`)
     }
   }
   return { links, errors }

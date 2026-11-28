@@ -120,16 +120,16 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 - **언어**: `data/blog/<locale>/` 폴더 = 언어 (`kr`, `en`). `locale` 필드는 `contentlayer.config.ts`에서 폴더 이름으로 계산한다. 화면 구조·토글·SEO는 `docs/shared/pages.md`.
 - **카테고리**: 두 단계. `data/blog/<locale>/<parent>/<category>/` 폴더 = 상위 카테고리 / 카테고리. `parent`·`category`·`categoryPath`(`<parent>/<category>`) 필드는 `contentlayer.config.ts`에서 폴더 이름으로 계산하고, 언어별 글 수는 빌드 때 `app/category-data.json`에 `categoryPath` 키로 기록된다. 상위 표시 이름(KR·EN), 하위 표시 이름(영어), 사이드바 순서는 `data/categoryTree.js`.
 
-  | 상위              | KR / EN                         | 카테고리                                                                                                          |
-  | ----------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-  | `dev`             | 개발 / Dev                      | unity, git, sql, web, auth, payments, devops, cloudflare                                                          |
-  | `cs-fundamentals` | CS 기초 / CS Fundamentals       | computer-systems, data-structures, software-engineering, database-systems, information-retrieval, network, os, ai |
-  | `side-projects`   | 사이드 프로젝트 / Side Projects | stairno, devblog, project-docs, coffee-shop                                                                       |
-  | `hackathon`       | 해커톤 / Hackathon              | woowangthon, grokbot                                                                                              |
+  | 상위              | KR / EN                         | 카테고리                                                                                                                           |
+  | ----------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+  | `dev`             | 개발 / Dev                      | unity, git, sql, web, auth, payments, devops, cloudflare, hardware                                                                 |
+  | `cs-fundamentals` | CS 기초 / CS Fundamentals       | computer-systems, data-structures, software-engineering, database-systems, information-retrieval, network, os, ai, cloud-computing |
+  | `side-projects`   | 사이드 프로젝트 / Side Projects | stairno, devblog, project-docs, coffee-shop, random-idea                                                                           |
+  | `hackathon`       | 해커톤 / Hackathon              | woowangthon, grokbot                                                                                                               |
 
-  상위 없이 `data/blog/<locale>/<category>/`에 둔 카테고리(지금 `hardware`, `cloud-computing`, `side-projects`)도 동작한다. 규칙과 이름 충돌 처리는 `docs/shared/pages.md` "카테고리" 절.
+  지금은 모든 카테고리가 상위 아래에 있다. 상위 없는 카테고리 처리와 이름 충돌 규칙은 `docs/shared/pages.md` "카테고리" 절.
 
-- **URL**: 글 `/<locale>/blog/<parent>/<category>/<slug>/` (예: `/kr/blog/cs-fundamentals/network/network-ch7-data-link/`), 상위 목록 `/<locale>/blog/<parent>/`, 카테고리 목록 `/<locale>/blog/<parent>/<category>/`. 상위 없는 카테고리는 글 `/<locale>/blog/<category>/<slug>/`, 목록 `/<locale>/blog/category/<category>/`. 상위 생기기 전 주소, 언어 접두사 없는 예전 주소, 폴더 분리 전 주소, 카테고리 접두사를 붙이기 전 주소, 예전 태그 페이지(`/tags/...`)는 `data/redirects.js`에서 지금 주소로 한 번에 308 리다이렉트.
+- **URL**: 글 `/<locale>/blog/<parent>/<category>/<slug>/` (예: `/kr/blog/cs-fundamentals/network/network-ch7-data-link/`), 상위 목록 `/<locale>/blog/<parent>/`, 카테고리 목록 `/<locale>/blog/<parent>/<category>/`. 상위 생기기 전 주소, 언어 접두사 없는 예전 주소, 폴더 분리 전 주소, 카테고리 접두사를 붙이기 전 주소, 예전 태그 페이지(`/tags/...`)는 `data/redirects.js`에서 지금 주소로 한 번에 308 리다이렉트.
 - **이미지**: `public/static/images/<slug>/`에 글별로 둔다. 사이트 공용 이미지(`avatar.png`, `logo.png`, `twitter-card.png`)만 `public/static/images/` 바로 아래에 있다.
 - **태그 없음**: 화면 분류는 카테고리 하나만 쓴다. 태그 페이지·사이드바 태그 목록·헤더 Tags 메뉴는 없앴다.
 - **장 순서**: 카테고리 페이지와 글 하단 이전/다음 링크는 `sortByChapter`(파일명 자연 정렬). 이전/다음은 같은 카테고리 안에서만 돈다. 블로그 전체 목록과 상위 카테고리 목록은 날짜순.
@@ -144,7 +144,8 @@ summary: '본문 핵심 키워드를 쉼표로 나열'
 - `date`는 발행하는 날.
 - URL은 `/<locale>/blog/<parent>/<category>/<slug>`. 언어 접두사는 `kr`·`en` (기존 URL은 `/kr`로 리다이렉트). 상위 카테고리 생기기 전 주소는 새 주소로 308.
 - 카테고리는 상위 4개(`dev`, `cs-fundamentals`, `side-projects`, `hackathon`) 아래에 둔다. 하위 폴더 이름은 예전 카테고리 이름 그대로다.
-- 하드웨어 지식 글(회로·납땜·부품·측정 도구)은 `dev/hardware`, 하드웨어로 만든 제품 글은 `side-projects/<제품 이름>`에 둔다. 상위 없는 `hardware` 폴더의 기존 글은 옮길지 정해질 때까지 그대로 둔다.
+- 하드웨어 지식 글(회로·납땜·부품·측정 도구)은 `dev/hardware`, 하드웨어로 만든 제품 글은 `side-projects/<제품 이름>`에 둔다.
+- 사이드 프로젝트는 프로젝트마다 `side-projects/<프로젝트>/` 카테고리 하나를 둔다 (`side-projects/` 바로 아래에 글 파일을 두지 않는다).
 - 모든 글은 한국어·영어 두 버전으로 발행한다. 영어 번역은 Claude가 한다.
 - 글 파일명(slug)은 전부 `<category>-` 접두사로 시작한다. URL에 카테고리가 두 번 들어가는 건 감수한다.
 - 이미지는 카테고리가 아니라 글 단위 폴더(`public/static/images/<slug>/`)로 묶는다.

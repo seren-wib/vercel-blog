@@ -63,11 +63,11 @@
 
 ## 빌드 타임 생성 파일
 
-| 파일                                             | 생성 함수                  | 내용                                                                             |
-| ------------------------------------------------ | -------------------------- | -------------------------------------------------------------------------------- |
-| `app/tag-data.json`                              | `createTagCount()`         | `{ "태그명": 포스트수 }`                                                         |
-| `app/category-data.json`                         | `createCategoryCount()`    | `{ "kr": { "dev/git": 2, "hardware": 1 }, "en": { ... } }` (키는 `categoryPath`) |
-| `app/translation-data.json`                      | `createTranslationIndex()` | `{ "kr": [slug...], "en": [slug...] }` — 언어 토글이 짝 있는 글을 찾을 때 씀     |
-| `public/search-kr.json`, `public/search-en.json` | `createSearchIndex()`      | 언어별 kbar 검색 인덱스                                                          |
-| `public/feed.xml`, `public/en/feed.xml`          | `postbuild.mjs`            | 언어별 RSS 피드                                                                  |
-| `public/sitemap.xml`                             | `app/sitemap.ts`           | 사이트맵                                                                         |
+| 파일                                             | 생성 함수                  | 내용                                                                                 |
+| ------------------------------------------------ | -------------------------- | ------------------------------------------------------------------------------------ |
+| `app/tag-data.json`                              | `createTagCount()`         | `{ "태그명": 포스트수 }`                                                             |
+| `app/category-data.json`                         | `createCategoryCount()`    | `{ "kr": { "dev/git": 2, "dev/hardware": 1 }, "en": { ... } }` (키는 `categoryPath`) |
+| `app/translation-data.json`                      | `createTranslationIndex()` | `{ "kr": [slug...], "en": [slug...] }` — 언어 토글이 짝 있는 글을 찾을 때 씀         |
+| `public/search-kr.json`, `public/search-en.json` | `createSearchIndex()`      | 언어별 kbar 검색 인덱스                                                              |
+| `public/feed.xml`, `public/en/feed.xml`          | `postbuild.mjs`            | 언어별 RSS 피드                                                                      |
+| `public/sitemap.xml`                             | `app/sitemap.ts`           | 사이트맵                                                                             |

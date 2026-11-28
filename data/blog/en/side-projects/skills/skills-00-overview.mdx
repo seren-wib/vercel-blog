@@ -1,0 +1,156 @@
+---
+title: 'CH0. Skills Overview'
+date: '2026-11-28'
+tags: ['Skills']
+draft: false
+aiGenerated: true
+summary: 'Why I moved AI agent rules out of the instruction files into skills that load only when needed, and the series index'
+---
+
+> Part 0 of the series. What a skill is, why I moved rules out of the instruction files instead of keeping them all there, and how I manage them. Each skill gets its own post in parts 1 to 11.
+
+## 0. Introduction
+
+I use three agents, Claude Code, Codex and Antigravity, on both Windows and a Mac. All of their settings live in one personal repo called `dotfiles`. The repo is private, so this series summarizes its rules and quotes them briefly instead of linking.
+
+The repo holds **instruction files** that the agents read in every conversation, and 13 **skills** that they open only for a particular task. The series covers 11 of them, one per post. The sources are records, not memory: git commits to the skill folders, the memory change log (`memory/log/`) and the work records (`worklog/`). Where no record gives a reason for a decision, I wrote "no record".
+
+The posts read in two layers. Each section starts with an analogy and a diagram, then moves to the real terms, paths and numbers. Numbers that change are collected with their date in the "By the numbers" table at the end.
+
+## 1. What a skill is
+
+Think of notes on the desk and manuals in the drawers. You see the notes every time you sit down, so they have to be short. You pull a manual out only for the job it covers, so it can be long. But every drawer needs a label saying what is inside.
+
+![Fixed input every session vs files opened only when needed](/static/images/skills-00-overview/context-loading.svg)
+
+_Left: input that goes into every session. Right: files read only when the task matches_
+
+In real terms, the notes are the **instruction file**, the manuals are **skills**, and the label is a skill's `description`.
+
+- **Instruction file**: a file loaded whole into the context when a session starts. Claude Code reads `CLAUDE.md`, Codex reads `AGENTS.md`, Antigravity reads `GEMINI.md`.
+- **Skill**: one folder with one `SKILL.md`. The frontmatter at the top holds `name` and `description`, and the body below is the rules. Scripts or sub-documents can sit in the same folder.
+
+Every session, Claude Code puts only each skill's `name` and `description` into a list. It loads the body through the Skill tool when the current task matches the `description`. Sub-files (`setup.md`, `sites/*.md` and the like) are opened only when the body points to them ("for this case, open this file"). The fixed cost is just the labels; the heavy parts are read step by step when needed.
+
+```text
+~/.claude/skills/blog-post/
+└── SKILL.md      # ---
+                  # name: blog-post
+                  # description: (abridged) Rules for publishing to the blog ... Use when uploading a note to the blog, ...
+                  # ---
+                  # (body: the rules)
+```
+
+## 2. Why I moved them out
+
+Think of a desk where you kept sticking up notes until it was covered. You end up rereading notes for jobs you are not doing that day.
+
+In real terms, the problem was **input tokens paid as a fixed cost in every session**. The instruction file, the global memory index, the skill list, the MCP tool list and hook messages all go into the model input each time a conversation starts. If the blog rules sit in the instruction file, a session pays for them even when it writes no blog post. Today 12 sessions started at once just to write this series. A fixed input is multiplied by the number of sessions.
+
+The records show this order.
+
+| Date       | What happened                                                                                                                               | Source                                                                                         |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| 2026-10-06 | The repo's first commit holds one skill (`unity-mcp-setting`). `readme-style` was added on 2026-10-11                                       | Commits "Initial dotfiles", "Add readme-style skill ..."                                       |
+| 2026-10-15 | Instruction sources split into `agents/`, and a "per-session cost" section added to the instructions                                        | Commit "Restructure instructions, move memory to repo root, trim per-session token cost"       |
+| 2026-11-13 | Working rules moved out of memory into `agents/`, skills and folder `CLAUDE.md` files. Global memory files 60 → 11, index 7,108 B → 1,091 B | Commit "Limit memory to state, open items and references" and 3 others                         |
+| 2026-11-13 | Rules used for only one kind of task moved into 5 skills: `pr-workflow`, `docs-style`, `blog-post`, `profile-edit`, `teruten`               | Commit "Add skills for task-specific rules that lived in memory"                               |
+| 2026-11-20 | The same idea applied inside a skill. `session-flow`'s `SKILL.md` 29,962 B → 7,908 B, situational procedures moved to 5 sub-files           | Commit "session-flow: cut SKILL.md to rules only and move situational procedures to sub-files" |
+
+The rule added to the instructions on 2026-10-15 is still unchanged. It lists what is loaded every session and makes the agent ask whether something is needed in every session before adding it. If not, it goes somewhere that opens only when needed, and the rule names three such places: memory note bodies, folder-scoped MCP servers and skills.
+
+The 2026-11-13 commit message states the reason for skills directly: rules and gotchas that matter for only one kind of task load when that task comes up, instead of sitting in global memory.
+
+![Instruction file size vs total SKILL.md size](/static/images/skills-00-overview/instructions-vs-skills.svg)
+
+_Blue: the Codex instruction file (persona, shared, agent part and memory index all included). Green: all SKILL.md files combined_
+
+The result shows in the sizes. Measured on Codex's `AGENTS.md`, which is assembled into one file including the persona, the instruction file has stayed between 21 and 24 KB since 2026-10-15. Over the same period the `SKILL.md` total grew from 7.0 KB to 86.2 KB. The rules that were added piled up in skills instead of the fixed input. The per-session cost on the skill side is the 13 `description` lines, 5,765 B in total.
+
+These numbers are bytes. Tokens were measured only once: on 2026-11-20, Claude Code's `/context` showed about 74k of a 128.5k-token context as fixed input. Those 74k include the system prompt and tool definitions, and there is no record measuring the instruction file's share alone.
+
+## 3. Where agents/ ends
+
+Think of one manuscript and a binding machine that binds a separate book for each agent. The manual drawers stay apart from the books; each book gets only one page listing the drawers.
+
+![agents/ sources, assembled instruction files, skill folders](/static/images/skills-00-overview/agents-and-skills.svg)
+
+_Instruction files are assembled from agents/, skill folders are linked in with symlinks_
+
+In real terms, the manuscript is the **source files** in `agents/`, the binding machine is `memory-sync.js build`, the books are the **assembled instruction files**, and the drawers are `claude/skills/<name>/`.
+
+- **Sources**: `agents/persona.md` (voice), `agents/shared.md` (rules shared by all three agents), `agents/claude.md`, `codex.md` and `gemini.md` (per-agent parts), and the global memory index.
+- **Assembly**: `node ~/.claude/hooks/memory-sync.js build` joins these four in order into `claude/CLAUDE.md`, `codex/AGENTS.md` and `gemini/GEMINI.md`. Editing the output by hand is overwritten by the next build.
+- **Skills**: they live in `claude/skills/<name>/` and one line in `links.txt` symlinks each to `~/.claude/skills/<name>`. `install.ps1` on Windows and `install.sh` on the Mac read the same `links.txt`.
+
+`agents/shared.md` decides where a rule goes. A rule to follow in every session gets one line in `agents/`, a format used only for a particular job becomes a skill, and a rule that holds only in one folder goes into that folder's `CLAUDE.md`.
+
+In this setup the skill folders are linked only into `~/.claude/skills`. Codex and Antigravity do not get the skill list automatically, so the shared instructions in `agents/shared.md` have one line listing each skill's name with a short description. From that line, the two agents open `~/.claude/skills/<name>/SKILL.md` by path when they do that task. There is one copy of each skill file, and all three agents follow the same rules.
+
+## 4. Making and editing a skill
+
+Think of updating the drawer list and the label every time you put a manual in a drawer. When a manual gets thick, you keep the pages you read often at the front and move the rest to an appendix.
+
+In real terms:
+
+1. Create `~/dotfiles/claude/skills/<name>/SKILL.md`. The `description` says both what the skill does and when to use it ("Use when ..."), because the agent decides whether to open the skill from that sentence alone.
+2. Add one line to `links.txt`, the name to the `README.md` table and an entry to the skill list in `agents/shared.md`, then reassemble the instructions.
+3. Keep only always-on rules in `SKILL.md`. Situational procedures, setup steps and per-site notes go to sub-files that the body points to. `session-flow` (2026-11-20, 29,962 B → 7,908 B) and `project-docs` (same day, `setup.md` split out) were divided this way.
+4. When and why a rule changed stays in commit messages and `memory/log/`. That is where this series got its sources.
+
+There are 67 commits to the skill folders up to 2026-11-28. Of those, 33 are in `session-flow` alone. The procedure for opening and closing sessions kept changing as I used it. The story is in [part 6](/en/blog/side-projects/skills/skills-06-session-flow/).
+
+## 5. Series index
+
+| Part                                                                  | Skill               | What it does                                                           |
+| --------------------------------------------------------------------- | ------------------- | ---------------------------------------------------------------------- |
+| Part 0 (this post)                                                    | Overview            | What a skill is and why rules were moved out                           |
+| [Part 1](/en/blog/side-projects/skills/skills-01-blog-post/)          | `blog-post`         | Rules for posting to this blog: two-layer writing, cross-links, photos |
+| [Part 2](/en/blog/side-projects/skills/skills-02-docs-style/)         | `docs-style`        | Plans, checklists, option tables and school report formats             |
+| [Part 3](/en/blog/side-projects/skills/skills-03-readme-style/)       | `readme-style`      | README format for public repos                                         |
+| [Part 4](/en/blog/side-projects/skills/skills-04-profile-edit/)       | `profile-edit`      | Editing the GitHub profile, blog About page and LinkedIn               |
+| [Part 5](/en/blog/side-projects/skills/skills-05-pr-workflow/)        | `pr-workflow`       | Git flow from issue and branch to commit and PR                        |
+| [Part 6](/en/blog/side-projects/skills/skills-06-session-flow/)       | `session-flow`      | Session records, handover and archiving                                |
+| [Part 7](/en/blog/side-projects/skills/skills-07-paper-search/)       | `paper-search`      | Finding papers through public APIs, and venue grades                   |
+| [Part 8](/en/blog/side-projects/skills/skills-08-report-research/)    | `report-research`   | Researching blogs and communities that fetch cannot open, in a browser |
+| [Part 9](/en/blog/side-projects/skills/skills-09-lms-sync/)           | `lms-sync`          | Pulling course files and assignment dates from the school LMS          |
+| [Part 10](/en/blog/side-projects/skills/skills-10-demo-recording/)    | `demo-recording`    | Recording web app demo videos that look like a person using them       |
+| [Part 11](/en/blog/side-projects/skills/skills-11-unity-mcp-setting/) | `unity-mcp-setting` | Connecting MCP to a Unity project                                      |
+
+### Skills left out of the series
+
+- **`project-docs`**: rules for the six stage documents I write for each project. There is already a five-part [Project Docs series](/en/blog/side-projects/project-docs/project-docs-00-overview/), so this series only links to it.
+- **`teruten`**: a short procedure (1,302 B) for turning an exam security program on and off. It is tied to the school's exam environment, so it stays out of public posts.
+
+There is also one skill I built outside dotfiles as a public repo: [random-idea](/en/blog/side-projects/skills/skills-random-idea-generator/), which draws technologies at random and turns them into project ideas.
+
+## By the numbers
+
+As of 2026-11-28. Sources: `git log`, `git show <commit>:<file> | wc -c` and `git ls-files` in the dotfiles repo, and the `worklog/` records.
+
+| Item                                                         | Value                                          |
+| ------------------------------------------------------------ | ---------------------------------------------- |
+| Skills in dotfiles                                           | 13 (11 in this series + 2 left out)            |
+| All `SKILL.md` combined                                      | 86,208 B (2026-11-12: 7,038 B, 2 skills)       |
+| Git-tracked files in the skill folders                       | 43, 196,128 B (sub-files and scripts included) |
+| `description` lines loaded every session                     | 5,765 B (13)                                   |
+| `codex/AGENTS.md` (instruction file, persona included)       | 23,476 B (2026-11-12: 24,100 B)                |
+| `claude/CLAUDE.md` (persona loaded separately by `@` import) | 14,749 B                                       |
+| Global memory files, index                                   | 11, 1,206 B (2026-11-12: 60, 7,108 B)          |
+| Commits to the skill folders                                 | 67 (33 of them in `session-flow`)              |
+| Largest `SKILL.md`                                           | `project-docs` 18,161 B                        |
+| Fixed input in `/context` on 2026-11-20                      | about 74k / 128.5k tokens                      |
+
+## Glossary
+
+| Term                                                              | Meaning                                                                                                              |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Instruction file                                                  | A file read whole at session start. `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`                                            |
+| Skill                                                             | A folder holding `SKILL.md` and sub-files. The body is read only for that task                                       |
+| `description`                                                     | The one-line summary in a skill's frontmatter. Only this loads every session, and it decides whether the skill opens |
+| [Token](/en/blog/cs-fundamentals/ai/ai-06-01-llm/#1-tokenization) | The unit of model input. Fixed input is paid again in every session                                                  |
+| Context                                                           | All the input the model sees at once in a conversation                                                               |
+| Frontmatter                                                       | Metadata between the `---` lines at the top of a file                                                                |
+| Symlink                                                           | A file system entry that points to a file or folder at another path                                                  |
+| dotfiles                                                          | A repo collecting development environment config files                                                               |
+| MCP                                                               | A protocol that lets agents use external tools. Its tool list is also fixed input                                    |
